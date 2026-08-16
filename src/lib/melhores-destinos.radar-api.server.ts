@@ -668,75 +668,123 @@ export async function radarOpportunitiesForLead(
     return [];
   }
 
-  const meses = (itinerario.months ?? [])
-    .filter((m) => typeof m.price === "number" && m.price! > 0)
+  const bookingClassRaw = itinerario.booking_class ?? null;
+
+  const meses = (Array.isArray(itinerario.months) ? itinerario.months : [])
+    .filter((m) => !!m && typeof m.price === "number" && m.price! > 0)
     .sort((a, b) => {
       if (a.cheapest && !b.cheapest) return -1;
       if (b.cheapest && !a.cheapest) return 1;
       return (a.price ?? Infinity) - (b.price ?? Infinity);
     })
     .slice(0, Math.max(1, opts?.maxMonths ?? 2));
+  radarMetrics.md_months_received += meses.length;
 
   const hoje = isoToday();
-  const ofertas: RadarOpportunity[] = [];
+  /** §16/§17 — um candidato por fingerprint, guardando os fornecedores. */
+  const porFingerprint = new Map<string, RadarOpportunity>();
 
   for (const mes of meses) {
-    if (ofertas.length >= count) break;
-    let datas: RawDate[] = mes.dates ?? [];
+    let datas: RawDate[] = Array.isArray(mes.dates) ? mes.dates : [];
+    // §7 — dates: null NUNCA significa "sem ofertas": segue o dates_link.
     if (!datas.length && mes.dates_link) {
+      radarMetrics.md_dates_links_followed++;
       try {
         const det = await getJson<RawItinerary>(mes.dates_link, {
           ttlMs: RADAR_TTL.offers,
           cancel,
           etapa: "itinerary_prices:dates",
         });
-        datas = (det.months ?? []).flatMap((m) => m.dates ?? []);
+        datas = (Array.isArray(det?.months) ? det.months : []).flatMap((m) =>
+          Array.isArray(m?.dates) ? m.dates! : [],
+        );
       } catch (e) {
         if (e instanceof RadarCancelledError) throw e;
         datas = [];
       }
     }
-    if (!datas.length) continue;
+    if (!datas.length) {
+      // §20 — mês sem ofertas disponíveis: registra e segue adiante.
+      radarMetrics.md_months_no_dates_available++;
+      continue;
+    }
+    radarMetrics.md_dates_received += datas.length;
 
     const mesIndex = MESES[String(mes.month ?? "").slice(0, 3).toLowerCase()] ?? 1;
     const ano = mes.year ?? new Date().getFullYear();
 
-    const normalizadas = datas
-      .map((d) => {
-        const ida = toIso(d.departure, ano, mesIndex);
-        if (!ida || ida < hoje) return null;
-        const volta = toIso(d.arrival, ano, mesIndex);
-        const bag = normalizeBaggage(d.luggage_type);
-        const cia = normalizeAirline(d.airline_code);
-        return {
-          ...lead,
-          departureDate: ida,
-          returnDate: volta && volta >= ida ? volta : null,
-          nights: typeof d.stay === "number" ? d.stay : null,
-          airlineCode: cia.code,
-          airlineName: cia.name,
-          airlineIconUrl: d.airline_icon_url ?? null,
-          baggage: bag.code,
-          baggageLabel: bag.label,
-          radarPrice: typeof d.price === "number" ? d.price : lead.radarPrice,
-          provider: d.provider_name ?? null,
-          externalUrl: d.link ?? null,
-        } satisfies RadarOpportunity;
-      })
-      .filter((d): d is RadarOpportunity => !!d)
-      .sort((a, b) => (a.radarPrice ?? Infinity) - (b.radarPrice ?? Infinity));
+    for (const d of datas) {
+      if (!d) continue;
+      // §20 — oferta sem preço não é oportunidade válida.
+      if (typeof d.price !== "number" || !(d.price > 0)) {
+        radarMetrics.md_invalid_without_price++;
+        continue;
+      }
+      const ida = toIso(d.departure, ano, mesIndex);
+      if (!ida || ida < hoje) continue;
+      const voltaBruta = toIso(d.arrival, ano, mesIndex);
+      const volta = voltaBruta && voltaBruta >= ida ? voltaBruta : null;
+      const cia = normalizeAirline(d.airline_code);
+      if (!cia.code) {
+        radarMetrics.md_invalid_without_airline++;
+        continue;
+      }
+      const bag = normalizeBaggage(d.luggage_type);
+      const fingerprint = [
+        "melhores_destinos",
+        lead.origin.iata,
+        lead.destination.iata,
+        ida,
+        volta ?? "-",
+        cia.code,
+      ].join("|");
 
-    const vistas = new Set(ofertas.map((o) => `${o.departureDate}|${o.returnDate ?? "-"}`));
-    for (const o of normalizadas) {
-      const chave = `${o.departureDate}|${o.returnDate ?? "-"}`;
-      if (vistas.has(chave)) continue;
-      vistas.add(chave);
-      ofertas.push(o);
-      radarMetrics.opportunitiesFound++;
-      if (ofertas.length >= count) break;
+      const existente = porFingerprint.get(fingerprint);
+      if (existente) {
+        // §17 — mesma rota/data/cia em vários fornecedores: fica o MENOR preço.
+        radarMetrics.md_candidates_deduplicated++;
+        existente.radarSources.push({ provider: d.provider_name ?? null, price: d.price });
+        existente.radarSources.sort((a, b) => a.price - b.price);
+        if (d.price < (existente.radarPrice ?? Infinity)) {
+          existente.radarPrice = d.price;
+          existente.provider = d.provider_name ?? null;
+          existente.providerDisplay = d.website_display ?? null;
+          existente.externalUrl = d.link ?? null;
+        }
+        continue;
+      }
+
+      porFingerprint.set(fingerprint, {
+        ...lead,
+        departureDate: ida,
+        returnDate: volta,
+        stayDays: typeof d.stay === "number" ? d.stay : null,
+        nights: typeof d.stay === "number" ? d.stay : null,
+        airlineCode: cia.code,
+        airlineName: cia.name,
+        airlineIconUrl: d.airline_icon_url ?? null,
+        baggage: bag.code,
+        baggageRaw: d.luggage_type ?? null,
+        baggageLabel: bag.label,
+        loyaltyProgram: d.loyalty_program ?? null,
+        // §10 — o preço do radar é dates[].price, sempre em BRL.
+        radarPrice: d.price,
+        currency: "BRL",
+        provider: d.provider_name ?? null,
+        providerDisplay: d.website_display ?? null,
+        externalUrl: d.link ?? null,
+        radarBookingClassRaw: bookingClassRaw,
+        radarSources: [{ provider: d.provider_name ?? null, price: d.price }],
+        fingerprint,
+      });
     }
   }
 
+  const ofertas = [...porFingerprint.values()]
+    .sort((a, b) => (a.radarPrice ?? Infinity) - (b.radarPrice ?? Infinity))
+    .slice(0, Math.max(1, count));
+  radarMetrics.opportunitiesFound += ofertas.length;
+  radarMetrics.md_candidates_created += ofertas.length;
   return ofertas;
 }
 
