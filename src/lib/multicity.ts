@@ -87,3 +87,31 @@ export function decodeSegments(raw?: string | null): MultiSegmentInput[] | null 
     .slice(0, MAX_SEGMENTS);
   return parts.length >= MIN_SEGMENTS ? parts : null;
 }
+
+/**
+ * PRÉ-SELEÇÃO DE VOO POR TRECHO (?ps=AD-1150_LA-0445).
+ *
+ * O link de uma promoção multi-trecho já nasce com o voo de cada trecho
+ * escolhido — o cliente abre o motor e vê o carrinho pronto, sem precisar
+ * selecionar ida e volta na mão.
+ */
+export type MultiPick = { airline: string | null; time: string | null };
+
+export function encodePicks(picks: MultiPick[]): string {
+  return picks
+    .map((p) => `${(p.airline ?? "").toUpperCase()}-${(p.time ?? "").replace(":", "")}`)
+    .join("_");
+}
+
+export function decodePicks(raw?: string | null): MultiPick[] | null {
+  if (!raw) return null;
+  const picks = raw
+    .split("_")
+    .slice(0, MAX_SEGMENTS)
+    .map((chunk) => {
+      const m = /^([A-Z0-9]{0,3})-(\d{0,4})$/.exec(chunk.trim().toUpperCase());
+      if (!m) return { airline: null, time: null };
+      return { airline: m[1] || null, time: m[2] ? `${m[2].slice(0, 2)}:${m[2].slice(2)}` : null };
+    });
+  return picks.some((p) => p.airline || p.time) ? picks : null;
+}
