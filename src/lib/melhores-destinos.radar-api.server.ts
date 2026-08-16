@@ -68,6 +68,19 @@ export const radarMetrics = {
   categoriesChecked: 0,
   destinationsChecked: 0,
   opportunitiesFound: 0,
+  // §22 — contadores de diagnóstico do radar
+  md_categories_received: 0,
+  md_destinations_received: 0,
+  md_routes_received: 0,
+  md_months_received: 0,
+  md_dates_received: 0,
+  md_dates_links_followed: 0,
+  md_candidates_created: 0,
+  md_candidates_deduplicated: 0,
+  md_invalid_without_price: 0,
+  md_invalid_without_route: 0,
+  md_invalid_without_airline: 0,
+  md_months_no_dates_available: 0,
   lastError: null as string | null,
   lastErrorAt: null as string | null,
 };
@@ -209,13 +222,23 @@ export function normalizeBaggage(raw?: string | null): { code: string; label: st
   if (v.includes("checked") || v.includes("baggage") || v.includes("despach"))
     return { code: "checked", label: "Bagagem despachada" };
   if (v.includes("personal")) return { code: "personal_item", label: "Item pessoal" };
-  return { code: v, label: "Não informado" };
+  // §12: código desconhecido nunca é inventado — vira "unknown" e o bruto é preservado.
+  return { code: "unknown", label: "Não informado" };
 }
 
 /** 16) Companhia: mapeamento interno (não depende do ícone externo). */
+/** §11 — mapper interno de companhias (a fonte ainda devolve códigos antigos). */
+const AIRLINE_NAMES: Record<string, string> = {
+  LA: "LATAM Airlines",
+  JJ: "LATAM Airlines",
+  AD: "Azul Linhas Aéreas",
+  G3: "GOL Linhas Aéreas",
+};
+
 export function normalizeAirline(code?: string | null): { code: string | null; name: string | null } {
   const c = code ? String(code).trim().toUpperCase() : null;
-  return { code: c, name: c ? nomeCompanhia(c) : null };
+  if (!c) return { code: null, name: null };
+  return { code: c, name: AIRLINE_NAMES[c] ?? nomeCompanhia(c) };
 }
 
 function categoryIdFromLink(link?: string | null): number | null {
@@ -265,14 +288,26 @@ export type RadarLead = {
 export type RadarOpportunity = RadarLead & {
   departureDate: string;
   returnDate: string | null;
+  /** dias de permanência devolvidos pela fonte (dates[].stay) */
+  stayDays: number | null;
+  /** @deprecated use stayDays — mantido para compatibilidade do pipeline */
   nights: number | null;
   airlineCode: string | null;
   airlineName: string | null;
   airlineIconUrl: string | null;
   baggage: string;
+  baggageRaw: string | null;
   baggageLabel: string;
+  loyaltyProgram: string | null;
   provider: string | null;
+  providerDisplay: string | null;
   externalUrl: string | null;
+  /** §18 — metadado bruto do radar, sem conversão para classe VIA AIR */
+  radarBookingClassRaw: string | null;
+  /** §17 — fornecedores/preços observados para a MESMA oportunidade */
+  radarSources: Array<{ provider: string | null; price: number }>;
+  /** §16 — fingerprint de deduplicação antes da consulta VIA AIR */
+  fingerprint: string;
 };
 
 /* ------------------------------------------------------------------ *
@@ -282,7 +317,16 @@ export type RadarOpportunity = RadarLead & {
 type RawCategories = {
   from_city_name?: string | null;
   to_city_name?: string | null;
-  categories?: Array<{ name?: string; cheapest_itinerary_price?: number | null; link?: string }>;
+  month?: string | null;
+  categories?: Array<{
+    name?: string;
+    description?: string | null;
+    relevance?: number | null;
+    cheapest_itinerary_price?: number | null;
+    cheapest_itinerary_price_found_at?: string | null;
+    image?: string | null;
+    link?: string;
+  }>;
   cities?: Array<{
     from_city_name?: string | null;
     to_city_name?: string | null;
@@ -293,27 +337,41 @@ type RawCategories = {
 
 type RawItinerary = {
   from_city_name?: string | null;
+  from_iata_code?: string | null;
   to_city_name?: string | null;
+  to_iata_code?: string | null;
+  month?: string | null;
+  date_from?: string | null;
+  date_until?: string | null;
+  min_stay?: number | null;
+  max_stay?: number | null;
+  booking_class?: string | null;
   months?: Array<{
     month?: string;
     year?: number;
     price?: number | null;
+    price_currency?: string | null;
     cheapest?: boolean;
     dates_link?: string | null;
     dates?: RawDate[] | null;
-  }>;
+  }> | null;
 };
 
 type RawDate = {
   luggage_type?: string | null;
+  loyalty_program?: string | null;
   departure?: string | null;
+  departure_txt?: string | null;
   arrival?: string | null;
+  arrival_txt?: string | null;
   stay?: number | null;
   price?: number | null;
+  price_currency?: string | null;
   airline_code?: string | null;
   airline_icon_url?: string | null;
   link?: string | null;
   provider_name?: string | null;
+  website_display?: string | null;
 };
 
 /** Etapa 1 — categorias (opcionalmente já filtradas pela origem). */
@@ -340,24 +398,46 @@ export async function radarCategories(
     } satisfies RadarCategory;
   });
   radarMetrics.categoriesChecked += cats.length;
+  radarMetrics.md_categories_received += cats.length;
   return cats;
 }
 
 /** 7) Endpoint de origens — normalização/resolução city_name ↔ IATA. */
 export async function radarOrigins(opts?: { cancel?: RadarCancel }): Promise<
-  Array<{ iata: string; city: string; state: string | null }>
+  Array<{
+    iata: string;
+    cityIata: string | null;
+    city: string;
+    state: string | null;
+    country: string | null;
+    airportName: string | null;
+  }>
 > {
   try {
     const json = await getJson<{
-      origins?: Array<{ iata_code?: string; city_name?: string; state?: string | null }>;
+      origins?: Array<{
+        iata_code?: string;
+        iata_city_code?: string | null;
+        city_name?: string;
+        state?: string | null;
+        country?: string | null;
+        airport_name?: string | null;
+      }>;
     }>(`${API}/airports/origins`, {
       ttlMs: RADAR_TTL.categories,
       cancel: opts?.cancel,
       etapa: "origins",
     });
     return (json.origins ?? [])
-      .filter((o) => o.iata_code && o.city_name)
-      .map((o) => ({ iata: o.iata_code!.toUpperCase(), city: o.city_name!, state: o.state ?? null }));
+      .filter((o) => o?.iata_code && o?.city_name)
+      .map((o) => ({
+        iata: o.iata_code!.toUpperCase(),
+        cityIata: o.iata_city_code ? o.iata_city_code.toUpperCase() : null,
+        city: o.city_name!,
+        state: o.state ?? null,
+        country: o.country ?? null,
+        airportName: o.airport_name ?? null,
+      }));
   } catch {
     return [];
   }
@@ -407,11 +487,16 @@ export async function radarLeadsForOrigin(
 
     for (const city of json.cities ?? []) {
       const { from: linkFrom, to } = iataFromItineraryLink(city.link);
-      if (!to || !city.link) continue;
+      if (!to || !city.link) {
+        radarMetrics.md_invalid_without_route++;
+        continue;
+      }
       const originIata = normalizeIata(linkFrom ?? from);
       const destination = normalizeIata(to);
       if (destination.length !== 3 || destination === originIata) continue;
       radarMetrics.destinationsChecked++;
+      radarMetrics.md_destinations_received++;
+      radarMetrics.md_routes_received++;
 
       const preco = typeof city.total_price === "number" ? city.total_price : null;
       const national = cat.national && scopeOfRoute(originIata, destination) === "nacional";
@@ -432,6 +517,108 @@ export async function radarLeadsForOrigin(
         itineraryLink: String(city.link),
         collectedAt,
       });
+    }
+  }
+
+  return [...leads.values()];
+}
+
+/**
+ * §15 — CAMINHO OFICIAL DA API (usado quando o atalho por origem não devolve
+ * nada): categorias → destinos da categoria → origens disponíveis daquele
+ * destino → link do itinerário. Sempre seguindo o `link` devolvido pela
+ * própria resposta, nunca montando URL por suposição.
+ */
+export async function radarLeadsByCategory(
+  monitoredOrigins: string[],
+  opts?: { cancel?: RadarCancel; onProgress?: (msg: string) => void; deadline?: number },
+): Promise<RadarLead[]> {
+  const cancel = opts?.cancel;
+  const semTempo = () => !!opts?.deadline && Date.now() >= opts.deadline;
+  const collectedAt = new Date().toISOString();
+  const permitidas = new Set(monitoredOrigins.map((o) => normalizeIata(o)));
+  const leads = new Map<string, RadarLead>();
+
+  let categorias: RadarCategory[] = [];
+  try {
+    categorias = await radarCategories(undefined, { cancel });
+  } catch (e) {
+    if (e instanceof RadarCancelledError) throw e;
+    return [];
+  }
+
+  for (const cat of categorias) {
+    if (semTempo()) break;
+    await checarCancelamento(cancel);
+    opts?.onProgress?.(`Radar — ${cat.name}`);
+    let destinos: RawCategories;
+    try {
+      destinos = await getJson<RawCategories>(cat.link, {
+        ttlMs: RADAR_TTL.cities,
+        cancel,
+        etapa: "categories:destinations",
+      });
+    } catch (e) {
+      if (e instanceof RadarCancelledError) throw e;
+      continue;
+    }
+
+    for (const destino of destinos.cities ?? []) {
+      if (semTempo()) break;
+      if (!destino?.link) {
+        radarMetrics.md_invalid_without_route++;
+        continue;
+      }
+      radarMetrics.md_destinations_received++;
+      let origens: RawCategories;
+      try {
+        origens = await getJson<RawCategories>(destino.link, {
+          ttlMs: RADAR_TTL.cities,
+          cancel,
+          etapa: "categories:origins",
+        });
+      } catch (e) {
+        if (e instanceof RadarCancelledError) throw e;
+        continue;
+      }
+
+      for (const rota of origens.cities ?? []) {
+        const { from, to } = iataFromItineraryLink(rota?.link);
+        if (!from || !to || !rota?.link) {
+          radarMetrics.md_invalid_without_route++;
+          continue;
+        }
+        const originIata = normalizeIata(from);
+        const destinationIata = normalizeIata(to);
+        if (!permitidas.has(originIata) || originIata === destinationIata) continue;
+        radarMetrics.md_routes_received++;
+
+        const preco = typeof rota.total_price === "number" ? rota.total_price : null;
+        const scope: "nacional" | "internacional" =
+          cat.national && scopeOfRoute(originIata, destinationIata) === "nacional"
+            ? "nacional"
+            : scopeOfRoute(originIata, destinationIata);
+        const chave = `${originIata}|${destinationIata}`;
+        const atual = leads.get(chave);
+        if (atual && (atual.radarPrice ?? Infinity) <= (preco ?? Infinity)) continue;
+
+        leads.set(chave, {
+          source: "melhores_destinos",
+          type: scope === "nacional" ? "national" : "international",
+          scope,
+          categoryId: cat.id,
+          category: cat.name || null,
+          origin: { iata: originIata, city: rota.from_city_name ?? null },
+          destination: {
+            iata: destinationIata,
+            city: rota.to_city_name ?? destinos.to_city_name ?? destino.to_city_name ?? null,
+          },
+          radarPrice: preco,
+          currency: "BRL",
+          itineraryLink: String(rota.link),
+          collectedAt,
+        });
+      }
     }
   }
 
@@ -481,75 +668,123 @@ export async function radarOpportunitiesForLead(
     return [];
   }
 
-  const meses = (itinerario.months ?? [])
-    .filter((m) => typeof m.price === "number" && m.price! > 0)
+  const bookingClassRaw = itinerario.booking_class ?? null;
+
+  const meses = (Array.isArray(itinerario.months) ? itinerario.months : [])
+    .filter((m) => !!m && typeof m.price === "number" && m.price! > 0)
     .sort((a, b) => {
       if (a.cheapest && !b.cheapest) return -1;
       if (b.cheapest && !a.cheapest) return 1;
       return (a.price ?? Infinity) - (b.price ?? Infinity);
     })
     .slice(0, Math.max(1, opts?.maxMonths ?? 2));
+  radarMetrics.md_months_received += meses.length;
 
   const hoje = isoToday();
-  const ofertas: RadarOpportunity[] = [];
+  /** §16/§17 — um candidato por fingerprint, guardando os fornecedores. */
+  const porFingerprint = new Map<string, RadarOpportunity>();
 
   for (const mes of meses) {
-    if (ofertas.length >= count) break;
-    let datas: RawDate[] = mes.dates ?? [];
+    let datas: RawDate[] = Array.isArray(mes.dates) ? mes.dates : [];
+    // §7 — dates: null NUNCA significa "sem ofertas": segue o dates_link.
     if (!datas.length && mes.dates_link) {
+      radarMetrics.md_dates_links_followed++;
       try {
         const det = await getJson<RawItinerary>(mes.dates_link, {
           ttlMs: RADAR_TTL.offers,
           cancel,
           etapa: "itinerary_prices:dates",
         });
-        datas = (det.months ?? []).flatMap((m) => m.dates ?? []);
+        datas = (Array.isArray(det?.months) ? det.months : []).flatMap((m) =>
+          Array.isArray(m?.dates) ? m.dates! : [],
+        );
       } catch (e) {
         if (e instanceof RadarCancelledError) throw e;
         datas = [];
       }
     }
-    if (!datas.length) continue;
+    if (!datas.length) {
+      // §20 — mês sem ofertas disponíveis: registra e segue adiante.
+      radarMetrics.md_months_no_dates_available++;
+      continue;
+    }
+    radarMetrics.md_dates_received += datas.length;
 
     const mesIndex = MESES[String(mes.month ?? "").slice(0, 3).toLowerCase()] ?? 1;
     const ano = mes.year ?? new Date().getFullYear();
 
-    const normalizadas = datas
-      .map((d) => {
-        const ida = toIso(d.departure, ano, mesIndex);
-        if (!ida || ida < hoje) return null;
-        const volta = toIso(d.arrival, ano, mesIndex);
-        const bag = normalizeBaggage(d.luggage_type);
-        const cia = normalizeAirline(d.airline_code);
-        return {
-          ...lead,
-          departureDate: ida,
-          returnDate: volta && volta >= ida ? volta : null,
-          nights: typeof d.stay === "number" ? d.stay : null,
-          airlineCode: cia.code,
-          airlineName: cia.name,
-          airlineIconUrl: d.airline_icon_url ?? null,
-          baggage: bag.code,
-          baggageLabel: bag.label,
-          radarPrice: typeof d.price === "number" ? d.price : lead.radarPrice,
-          provider: d.provider_name ?? null,
-          externalUrl: d.link ?? null,
-        } satisfies RadarOpportunity;
-      })
-      .filter((d): d is RadarOpportunity => !!d)
-      .sort((a, b) => (a.radarPrice ?? Infinity) - (b.radarPrice ?? Infinity));
+    for (const d of datas) {
+      if (!d) continue;
+      // §20 — oferta sem preço não é oportunidade válida.
+      if (typeof d.price !== "number" || !(d.price > 0)) {
+        radarMetrics.md_invalid_without_price++;
+        continue;
+      }
+      const ida = toIso(d.departure, ano, mesIndex);
+      if (!ida || ida < hoje) continue;
+      const voltaBruta = toIso(d.arrival, ano, mesIndex);
+      const volta = voltaBruta && voltaBruta >= ida ? voltaBruta : null;
+      const cia = normalizeAirline(d.airline_code);
+      if (!cia.code) {
+        radarMetrics.md_invalid_without_airline++;
+        continue;
+      }
+      const bag = normalizeBaggage(d.luggage_type);
+      const fingerprint = [
+        "melhores_destinos",
+        lead.origin.iata,
+        lead.destination.iata,
+        ida,
+        volta ?? "-",
+        cia.code,
+      ].join("|");
 
-    const vistas = new Set(ofertas.map((o) => `${o.departureDate}|${o.returnDate ?? "-"}`));
-    for (const o of normalizadas) {
-      const chave = `${o.departureDate}|${o.returnDate ?? "-"}`;
-      if (vistas.has(chave)) continue;
-      vistas.add(chave);
-      ofertas.push(o);
-      radarMetrics.opportunitiesFound++;
-      if (ofertas.length >= count) break;
+      const existente = porFingerprint.get(fingerprint);
+      if (existente) {
+        // §17 — mesma rota/data/cia em vários fornecedores: fica o MENOR preço.
+        radarMetrics.md_candidates_deduplicated++;
+        existente.radarSources.push({ provider: d.provider_name ?? null, price: d.price });
+        existente.radarSources.sort((a, b) => a.price - b.price);
+        if (d.price < (existente.radarPrice ?? Infinity)) {
+          existente.radarPrice = d.price;
+          existente.provider = d.provider_name ?? null;
+          existente.providerDisplay = d.website_display ?? null;
+          existente.externalUrl = d.link ?? null;
+        }
+        continue;
+      }
+
+      porFingerprint.set(fingerprint, {
+        ...lead,
+        departureDate: ida,
+        returnDate: volta,
+        stayDays: typeof d.stay === "number" ? d.stay : null,
+        nights: typeof d.stay === "number" ? d.stay : null,
+        airlineCode: cia.code,
+        airlineName: cia.name,
+        airlineIconUrl: d.airline_icon_url ?? null,
+        baggage: bag.code,
+        baggageRaw: d.luggage_type ?? null,
+        baggageLabel: bag.label,
+        loyaltyProgram: d.loyalty_program ?? null,
+        // §10 — o preço do radar é dates[].price, sempre em BRL.
+        radarPrice: d.price,
+        currency: "BRL",
+        provider: d.provider_name ?? null,
+        providerDisplay: d.website_display ?? null,
+        externalUrl: d.link ?? null,
+        radarBookingClassRaw: bookingClassRaw,
+        radarSources: [{ provider: d.provider_name ?? null, price: d.price }],
+        fingerprint,
+      });
     }
   }
 
+  const ofertas = [...porFingerprint.values()]
+    .sort((a, b) => (a.radarPrice ?? Infinity) - (b.radarPrice ?? Infinity))
+    .slice(0, Math.max(1, count));
+  radarMetrics.opportunitiesFound += ofertas.length;
+  radarMetrics.md_candidates_created += ofertas.length;
   return ofertas;
 }
 
