@@ -53,6 +53,7 @@ import {
   maxInstallmentText,
 } from "@/lib/airfare-conditions";
 import { onerCreateFlightCart, onerFlightSearch } from "@/lib/onertravel.functions";
+import { createMultiCityQuote } from "@/lib/multicity-quote.functions";
 import {
   onerCreateFlightCartPublic,
   onerFlightSearchPublic,
@@ -795,7 +796,12 @@ function MultiCitySummaryDialog({
   purchased,
   onPurchased,
   onResearch,
+  inline = false,
+  quoteToken,
 }: {
+  /** Link pronto: a tela final é a própria página, sem modal. */
+  inline?: boolean;
+  quoteToken?: string;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   segs: SegState[];
@@ -816,16 +822,12 @@ function MultiCitySummaryDialog({
   );
   const paxTotal = pax.adults + pax.children + pax.infants;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-[720px] flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-card p-0">
-        <DialogHeader className="border-b border-border/50 bg-background/40 px-5 py-4 text-left">
-          <DialogTitle className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-            <Plane className="h-3.5 w-3.5 text-primary" /> Sua viagem multi-trecho
-          </DialogTitle>
-        </DialogHeader>
-
+  const corpo = (
+    <>
         <div className="flex-1 space-y-4 overflow-y-auto p-4 md:p-5">
+          {!inline && !publicMode && (
+            <CompartilharCotacao segs={segs} flights={flights} pax={pax} ui={ui} />
+          )}
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-primary">
             <CheckCircle2 className="h-3.5 w-3.5" />
             {validos.length === segs.length
@@ -911,8 +913,124 @@ function MultiCitySummaryDialog({
             </span>
           </div>
         </div>
+    </>
+  );
+
+  if (inline) {
+    return (
+      <section className="mx-auto w-full max-w-[760px] overflow-hidden rounded-3xl border border-border/60 bg-card">
+        <header className="border-b border-border/50 bg-background/40 px-5 py-4">
+          <h1 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+            <Plane className="h-3.5 w-3.5 text-primary" /> Sua viagem multi-trecho
+          </h1>
+        </header>
+        {corpo}
+      </section>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[92vh] w-[calc(100vw-1.5rem)] max-w-[720px] flex-col gap-0 overflow-hidden rounded-3xl border-border/60 bg-card p-0">
+        <DialogHeader className="border-b border-border/50 bg-background/40 px-5 py-4 text-left">
+          <DialogTitle className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+            <Plane className="h-3.5 w-3.5 text-primary" /> Sua viagem multi-trecho
+          </DialogTitle>
+        </DialogHeader>
+        {corpo}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Link pronto da cotação: grava a seleção completa no backend e devolve um
+ * endereço único (/multitrecho/cotacao/{token}) que abre a tela final em
+ * qualquer celular — sem depender de localStorage nem da URL do motor.
+ */
+function CompartilharCotacao({
+  segs,
+  flights,
+  pax,
+  ui,
+}: {
+  segs: SegState[];
+  flights: (OnerFlight | null)[];
+  pax: MultiPax;
+  ui: FlightUi;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const criar = useServerFn(createMultiCityQuote);
+
+  const mut = useMutation({
+    mutationFn: async () => {
+      const escolhidos = flights.filter(Boolean) as OnerFlight[];
+      if (escolhidos.length !== segs.length) throw new Error("Selecione um voo em cada trecho.");
+      return criar({
+        data: {
+          segments: segs.map((s) => ({
+            origin: s.input.origin.trim().toUpperCase(),
+            destination: s.input.destination.trim().toUpperCase(),
+            date: s.input.date,
+          })),
+          pax,
+          picks: escolhidos.map((f) => pickFromFlight(f, ui)),
+          total: escolhidos.reduce((a, f) => a + f.price.total, 0),
+          label: segs.map((s) => `${s.input.origin}-${s.input.destination}`).join(" / "),
+        },
+      });
+    },
+    onSuccess: (r) => {
+      setUrl(r.url);
+      navigator.clipboard?.writeText(r.url).catch(() => {});
+      toast.success("Link da cotação criado e copiado.");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível gerar o link."),
+  });
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+        Link pronto da cotação
+      </div>
+      {url ? (
+        <div className="space-y-2">
+          <div className="truncate rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-xs">
+            {url}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                navigator.clipboard?.writeText(url);
+                toast.success("Link copiado.");
+              }}
+            >
+              Copiar link
+            </Button>
+            <Button size="sm" asChild>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Sua viagem multi-trecho está pronta: ${url}`)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Enviar no WhatsApp
+              </a>
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button size="sm" onClick={() => mut.mutate()} disabled={mut.isPending}>
+          {mut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Gerar link com a viagem montada
+        </Button>
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        O link abre direto a tela final, com todos os trechos, bagagem, parcelamento e o valor
+        total — funciona em qualquer celular.
+      </p>
+    </div>
   );
 }
 
