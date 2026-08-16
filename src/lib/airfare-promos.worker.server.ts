@@ -236,6 +236,31 @@ export async function processPendingCandidates(args: {
 
   const metricasSnapshot = () => [...metricas.values()].sort((a, b) => a.origin.localeCompare(b.origin));
 
+  /* ─── TELEMETRIA DA FILA (visível no Command Center em tempo real) ─── */
+  const duracoes: number[] = [];
+  const tele = {
+    queued: 0,
+    running: 0,
+    completed: 0,
+    with_fare: 0,
+    without_fare: 0,
+    timeout: 0,
+    error: 0,
+    requeued: 0,
+  };
+
+  const telemetria = (): ValidationTelemetry => ({
+    concurrency,
+    ...tele,
+    avg_duration_ms: duracoes.length
+      ? Math.round(duracoes.reduce((a, b) => a + b, 0) / duracoes.length)
+      : null,
+    p95_duration_ms: percentil(duracoes, 95),
+    updated_at: new Date().toISOString(),
+  });
+
+
+
   const touch = async (patch: Record<string, unknown>) => {
     try {
       await client
