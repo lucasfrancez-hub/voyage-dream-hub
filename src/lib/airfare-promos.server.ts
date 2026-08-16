@@ -254,15 +254,43 @@ export const ENGINE_CALL_TIMEOUT_MS = 60_000;
 /** Timeout total por candidata (ida + volta + gravação). */
 export const CANDIDATE_TIMEOUT_MS = 100_000;
 
-export function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+export function withTimeout<T>(
+  p: Promise<T>,
+  ms: number,
+  label: string,
+  signal?: AbortSignal,
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error(`timeout:${label}:${ms}ms`)), ms);
+    let vivo = true;
+    const t = setTimeout(() => {
+      if (!vivo) return;
+      vivo = false;
+      reject(new Error(`timeout:${label}:${ms}ms`));
+    }, ms);
+    // CANCELAMENTO IMEDIATO: não esperamos a requisição pendente terminar —
+    // soltamos o worker na hora (a promessa órfã é descartada).
+    const onAbort = () => {
+      if (!vivo) return;
+      vivo = false;
+      clearTimeout(t);
+      reject(new Error(`cancelado:${label}`));
+    };
+    if (signal) {
+      if (signal.aborted) return onAbort();
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
     p.then(
       (v) => {
+        signal?.removeEventListener("abort", onAbort);
+        if (!vivo) return;
+        vivo = false;
         clearTimeout(t);
         resolve(v);
       },
       (e) => {
+        signal?.removeEventListener("abort", onAbort);
+        if (!vivo) return;
+        vivo = false;
         clearTimeout(t);
         reject(e);
       },
@@ -338,7 +366,7 @@ export async function quoteRoute(args: {
 
   const res = await medirMotor(
     "ida",
-    () => withTimeout(searchFlights({ ...base, returnDate } as never), ENGINE_CALL_TIMEOUT_MS, "ida"),
+    () => withTimeout(searchFlights({ ...base, returnDate } as never), ENGINE_CALL_TIMEOUT_MS, "ida", args.signal),
     args.onEngineTiming,
   );
   const candidatas = [...(res.outbound?.flights ?? [])].sort(
@@ -388,6 +416,7 @@ export async function quoteRoute(args: {
               } as never),
               ENGINE_CALL_TIMEOUT_MS,
               "volta",
+              args.signal,
             ),
           args.onEngineTiming,
         );
@@ -446,6 +475,7 @@ export async function quoteRoute(args: {
         route,
         departureDate,
         returnDate,
+        signal: args.signal,
         onEngineTiming: args.onEngineTiming,
       });
       const economia = perna ? Number((convTotal - perna.total).toFixed(2)) : null;
@@ -519,6 +549,7 @@ async function quoteOneWayLegs(args: {
   route: PromoRoute;
   departureDate: string;
   returnDate: string;
+  signal?: AbortSignal;
   onEngineTiming?: EngineTimingSink;
 }): Promise<{
   out: OnerFlight;
@@ -536,6 +567,7 @@ async function quoteOneWayLegs(args: {
           searchFlights({ ...base, departureDate, returnDate: null } as never),
           ENGINE_CALL_TIMEOUT_MS,
           "multi:ida",
+          args.signal,
         ),
       args.onEngineTiming,
     );
@@ -554,6 +586,7 @@ async function quoteOneWayLegs(args: {
           } as never),
           ENGINE_CALL_TIMEOUT_MS,
           "multi:volta",
+          args.signal,
         ),
       args.onEngineTiming,
     );
@@ -605,30 +638,26 @@ export async function requestPromoRunCancel(runId?: string) {
   }
   if (!alvo) return { cancelled: false as const, reason: "sem_coleta_ativa" };
 
+  // 1) marca o pedido (os workers em voo leem este status ~1x/s e abortam)
   await db
     .from("airfare_promo_runs")
     .update({ status: "cancel_requested", cancel_requested_at: now, updated_at: now })
     .eq("id", alvo)
     .in("status", ACTIVE_RUN_STATUSES as unknown as string[]);
 
-  // candidatas ainda na fila são encerradas de imediato (as em processamento
-  // terminam com segurança e o worker para antes de pegar novas)
+  // 2) esvazia a fila NA HORA: nada mais entra em validação. Inclui as
+  //    candidatas já em `processing` — o worker que as segurava aborta a
+  //    requisição em curso e não grava mais nada nesta execução.
   await db
     .from("airfare_promo_candidates")
     .update({ status: "cancelled", processed_at: now })
     .eq("run_id", alvo)
-    .eq("status", "pending");
+    .in("status", ["pending", "processing"]);
 
-  const { count } = await db
-    .from("airfare_promo_candidates")
-    .select("id", { count: "exact", head: true })
-    .eq("run_id", alvo)
-    .eq("status", "processing");
-
-  if (!Number(count ?? 0)) {
-    const { finalizeCancelledRun } = await import("@/lib/airfare-promos.worker.server");
-    await finalizeCancelledRun(alvo);
-  }
+  // 3) encerra a execução IMEDIATAMENTE — não esperamos a fila atual drenar.
+  //    A UI já mostra "Atualização cancelada" no próximo refresh (~1s).
+  const { finalizeCancelledRun } = await import("@/lib/airfare-promos.worker.server");
+  await finalizeCancelledRun(alvo);
 
   return { cancelled: true as const, runId: alvo };
 }
@@ -790,7 +819,7 @@ export async function collectAirfarePromotions(opts?: {
   let cancelPedido = false;
   const pediuCancelamento = async () => {
     if (!runId || cancelPedido) return cancelPedido;
-    if (Date.now() - ultimaChecagem < 4000) return cancelPedido;
+    if (Date.now() - ultimaChecagem < 1000) return cancelPedido;
     ultimaChecagem = Date.now();
     try {
       const { data } = await db
@@ -798,7 +827,10 @@ export async function collectAirfarePromotions(opts?: {
         .select("status")
         .eq("id", runId)
         .maybeSingle();
-      cancelPedido = (data as { status?: string } | null)?.status === "cancel_requested";
+      const st = (data as { status?: string } | null)?.status;
+      // qualquer status diferente de "running" encerra a descoberta na hora
+      // (o cancelamento marca a execução como "cancelada" imediatamente)
+      cancelPedido = !!st && st !== "running";
     } catch {
       /* checagem best-effort */
     }

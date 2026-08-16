@@ -558,7 +558,7 @@ export async function processPendingCandidates(args: {
   let ultimaChecagem = 0;
   let ultimoStatusRunning = true;
   const cancelamentoPedido = async () => {
-    if (Date.now() - ultimaChecagem < 4000) return !ultimoStatusRunning;
+    if (Date.now() - ultimaChecagem < 1000) return !ultimoStatusRunning;
     ultimaChecagem = Date.now();
     try {
       const { data } = await client
@@ -567,12 +567,27 @@ export async function processPendingCandidates(args: {
         .eq("id", runId)
         .maybeSingle();
       const st = (data as { status?: string } | null)?.status;
+      // "running" é o único estado que permite continuar. Qualquer outro
+      // (cancel_requested/cancelada) interrompe na hora.
       ultimoStatusRunning = st === "running";
+      if (!ultimoStatusRunning) {
+        cancelada = true;
+        abortController.abort();
+      }
     } catch {
       /* falha de leitura não cancela a execução */
     }
     return !ultimoStatusRunning;
   };
+
+  /**
+   * VIGIA DE CANCELAMENTO — roda em paralelo aos workers (1x/s). Sem ele o
+   * cancelamento só era percebido ENTRE candidatas, ou seja, depois de até
+   * ~100s de validação em curso ("Cancelando…" preso por minutos).
+   */
+  const vigia = setInterval(() => {
+    void cancelamentoPedido();
+  }, 1000);
 
   /** Progresso gravado no máximo 1x/s â a UI reflete cada resultado sem inundar o banco. */
   let ultimoTouch = 0;
@@ -610,7 +625,7 @@ export async function processPendingCandidates(args: {
 
   const worker = async () => {
     while (Date.now() < deadline) {
-      if (cancelada || (await cancelamentoPedido())) {
+      if (cancelada || abortController.signal.aborted || (await cancelamentoPedido())) {
         cancelada = true;
         abortController.abort();
         return;
@@ -626,9 +641,19 @@ export async function processPendingCandidates(args: {
       let label = "";
       try {
         // TIMEOUT INDIVIDUAL: nenhuma consulta prende um worker da fila.
-        label = await withTimeout(processar(cand, saida), CANDIDATE_TIMEOUT_MS, "candidata");
+        label = await withTimeout(
+          processar(cand, saida),
+          CANDIDATE_TIMEOUT_MS,
+          "candidata",
+          abortController.signal,
+        );
       } catch (err) {
         const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
+        // cancelado: não marcamos a candidata como erro nem contabilizamos
+        if (abortController.signal.aborted || /^cancelado/i.test(msg)) {
+          cancelada = true;
+          return; // o `finally` abaixo devolve o contador de em-voo
+        }
         saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
         counters.error_count++;
         label = `${cand.origin_iata}→${cand.destination_iata}`;
@@ -682,17 +707,22 @@ export async function processPendingCandidates(args: {
         counters.processed++;
         processadasAgora++;
       }
+      if (cancelada || abortController.signal.aborted) return;
       await progresso(label, saida.desfecho !== "requeue");
     }
   };
 
   // FILA GLOBAL: os workers competem pela mesma fila, sem esperar terminar uma
   // origem para começar outra. Terminou uma validação, começa a próxima.
-  await Promise.all(Array.from({ length: concurrency }, () => worker()));
-  await progresso("", true);
+  try {
+    await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  } finally {
+    clearInterval(vigia);
+  }
+  if (!cancelada) await progresso("", true);
 
   if (cancelada) {
-    await touch({ ...counters, origin_metrics: metricasSnapshot() });
+    // o cancelamento já encerrou a execução; aqui apenas garantimos o estado
     await finalizeCancelledRun(runId);
     return { processed: processadasAgora, remaining: 0, finished: true };
   }
