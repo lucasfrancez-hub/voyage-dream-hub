@@ -234,13 +234,16 @@ export function curateOrigin<T extends CurationInput>(
   // As cotas acima são preferência de composição, não teto do universo:
   // se ainda há vaga (limite) e sobra oportunidade dentro do teto de
   // qualidade, ela entra. Assim 69 elegíveis nunca viram "só 7 analisadas".
-  const tetoFinal = scope === "nacional" ? NATIONAL_QUALITY_MAX_RATIO : 1;
-  for (const d of elegiveis) {
-    if (selecionadas.length >= limit) break;
-    if (d.status === "selecionada") continue;
-    if (d.ratio > tetoFinal) continue;
-    if (!cabeNoDestino(d)) continue;
-    aceitar(d, `completar_vagas_${d.region}`);
+  // No internacional as cotas + excepcionalidade continuam mandando; no
+  // nacional as cotas (4+2+1) eram um teto artificial de 7.
+  if (scope === "nacional") {
+    for (const d of elegiveis) {
+      if (selecionadas.length >= limit) break;
+      if (d.status === "selecionada") continue;
+      if (d.ratio > NATIONAL_QUALITY_MAX_RATIO) continue;
+      if (!cabeNoDestino(d)) continue;
+      aceitar(d, `completar_vagas_${d.region}`);
+    }
   }
 
   decisions.push(...elegiveis);
