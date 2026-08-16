@@ -28,7 +28,7 @@ describe("curadoria nacional", () => {
     }
   });
 
-  it("não perde vagas por causa das exclusões: percorre até completar 10", () => {
+  it("aplica a composição por categoria (até 4 NE, 2 Rio, 1 N/CO, 3 flexíveis)", () => {
     const excluidos = ["VCP", "GRU", "CGH", "CWB", "POA"].map((d, i) =>
       cand({ destination_iata: d, reference_price: 200 + i }),
     );
@@ -36,9 +36,26 @@ describe("curadoria nacional", () => {
       (d, i) => cand({ destination_iata: d, reference_price: 700 + i * 10 }),
     );
     const res = curateOrigin("MGF", [...excluidos, ...validos], 10);
-    expect(res.selected).toHaveLength(10);
+    const porMotivo = (m: string) =>
+      res.decisions.filter((d) => d.status === "selecionada" && d.reason === m).length;
+    expect(porMotivo("composicao_nordeste")).toBeLessThanOrEqual(4);
+    expect(porMotivo("composicao_rio")).toBeLessThanOrEqual(2);
+    expect(porMotivo("composicao_norte_centro_oeste")).toBeLessThanOrEqual(1);
+    expect(res.decisions.filter((d) => d.status === "selecionada" && d.reason === "flexivel_nacional").length)
+      .toBeLessThanOrEqual(3);
+    expect(res.selected.length).toBeLessThanOrEqual(10);
     expect(res.selected.some((c) => NATIONAL_DESTINATION_EXCLUSIONS.has(c.destination_iata))).toBe(false);
     expect(res.excluded).toBe(5);
+  });
+
+  it("não completa a cota com rota fraca: publica só o que é bom", () => {
+    const fracas = ["REC", "MCZ", "SSA", "FOR", "NAT"].map((d) =>
+      cand({ destination_iata: d, reference_price: 2400 }),
+    );
+    const boa = cand({ destination_iata: "JPA", reference_price: 700 });
+    const res = curateOrigin("MGF", [...fracas, boa], 10);
+    expect(res.selected).toHaveLength(1);
+    expect(res.selected[0]!.destination_iata).toBe("JPA");
   });
 
   it("prefere destinos de lazer/Nordeste em preços equivalentes", () => {
@@ -104,13 +121,15 @@ describe("curadoria internacional", () => {
     expect(excepcional.selected).toHaveLength(1);
   });
 
-  it("redistribui vagas quando faltam candidatas em uma região", () => {
+  it("flexíveis internacionais só entram com tarifa excepcional", () => {
     const lista = [
       intl("LIS", 2600), intl("MAD", 2700), intl("CDG", 2800), intl("FCO", 2850),
       intl("BCN", 2900), intl("OPO", 2950), intl("ATH", 3000),
       intl("EZE", 1300), intl("SCL", 1500),
     ];
     const res = curateOrigin("GRU", lista, 9);
-    expect(res.selected).toHaveLength(9); // nenhuma vaga desperdiçada
+    // 3 Europa (cota) + 2 América do Sul (cota) + até 2 flexíveis excepcionais
+    expect(res.selected.length).toBeLessThanOrEqual(7);
+    expect(res.selected.length).toBeGreaterThanOrEqual(5);
   });
 });

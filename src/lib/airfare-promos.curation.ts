@@ -10,6 +10,11 @@
  */
 import {
   INTERNATIONAL_REGION_QUOTAS,
+  NATIONAL_CATEGORY_QUOTAS,
+  NATIONAL_FLEX_MAX_RATIO,
+  NATIONAL_FLEX_SLOTS,
+  NATIONAL_QUALITY_MAX_RATIO,
+  nationalCategoryOfDestination,
   MAX_PER_DESTINATION,
   NATIONAL_LEISURE_DESTINATIONS,
   NORTHEAST_DESTINATIONS,
@@ -154,7 +159,8 @@ export function curateOrigin<T extends CurationInput>(
   const scope = candidates[0]?.scope ?? "nacional";
 
   if (scope === "internacional") {
-    // 1ª passada: cotas preferenciais por região
+    // 1ª passada: composição por região (Europa 3 • EUA/Canadá 2 •
+    // América do Sul 2 • Caribe/México 1). Cotas são TETO, não meta.
     const usadasPorRegiao = new Map<PromoRegion, number>();
     for (const d of elegiveis) {
       if (selecionadas.length >= limit) break;
@@ -167,43 +173,58 @@ export function curateOrigin<T extends CurationInput>(
       aceitar(d, `cota_regional_${d.region}`);
     }
 
-    // 2ª passada: vagas especiais só para tarifas realmente excepcionais
-    let especiais = 0;
+    // 2ª passada: até 2 vagas FLEXÍVEIS internacionais — qualquer região
+    // (inclusive reforçar uma categoria já cheia), mas só com tarifa
+    // realmente excepcional. Sobrando vaga sem excepcionalidade, fica vazia.
+    let flex = 0;
     for (const d of elegiveis) {
-      if (selecionadas.length >= limit || especiais >= SPECIAL_OPPORTUNITY_SLOTS) break;
+      if (selecionadas.length >= limit || flex >= SPECIAL_OPPORTUNITY_SLOTS) break;
       if (d.status === "selecionada") continue;
-      if (hasRegionQuota(d.region)) continue;
       if (d.ratio > SPECIAL_OPPORTUNITY_MAX_RATIO) {
         d.reason = `sem_excepcionalidade_${d.region}`;
         continue;
       }
       if (!cabeNoDestino(d)) continue;
-      especiais++;
-      aceitar(d, `oportunidade_especial_${d.region}`);
-    }
-
-    // 3ª passada: REDISTRIBUIÇÃO — vagas que sobraram vão para as melhores
-    // oportunidades restantes, sem respeitar cota (nunca deixar vaga vazia).
-    for (const d of elegiveis) {
-      if (selecionadas.length >= limit) break;
-      if (d.status === "selecionada") continue;
-      if (!hasRegionQuota(d.region) && d.ratio > SPECIAL_OPPORTUNITY_MAX_RATIO) continue;
-      if (!cabeNoDestino(d)) continue;
-      aceitar(d, "redistribuicao_de_vaga");
+      flex++;
+      aceitar(d, `flexivel_internacional_${d.region}`);
     }
   } else {
-    // NACIONAL: diversidade de destinos primeiro
+    // NACIONAL: composição por categoria de destino
+    // (até 4 Nordeste/lazer • até 2 Rio • até 1 Norte/Centro-Oeste)
+    // + até 3 flexíveis. Nada entra fora do teto de qualidade.
+    const usadasPorCategoria = new Map<string, number>();
+
     for (const d of elegiveis) {
       if (selecionadas.length >= limit) break;
+      if (d.ratio > NATIONAL_QUALITY_MAX_RATIO) {
+        d.reason = "fora_do_teto_de_qualidade";
+        continue;
+      }
+      const cat = nationalCategoryOfDestination(d.candidate.destination_iata);
+      if (cat === "outros") continue;
+      const cota = NATIONAL_CATEGORY_QUOTAS[cat];
+      const usadas = usadasPorCategoria.get(cat) ?? 0;
+      if (usadas >= cota) continue;
+      // diversidade: um destino por categoria antes de repetir
       if (porDestino.has(d.candidate.destination_iata)) continue;
-      aceitar(d, "melhor_oportunidade_do_destino");
-    }
-    // completa com repetições justificadas
-    for (const d of elegiveis) {
-      if (selecionadas.length >= limit) break;
-      if (d.status === "selecionada") continue;
       if (!cabeNoDestino(d)) continue;
-      aceitar(d, "segunda_oportunidade_justificada");
+      usadasPorCategoria.set(cat, usadas + 1);
+      aceitar(d, `composicao_${cat}`);
+    }
+
+    // Vagas flexíveis: qualquer destino turístico nacional com oportunidade
+    // realmente forte (não serve para completar cota com rota fraca).
+    let flex = 0;
+    for (const d of elegiveis) {
+      if (selecionadas.length >= limit || flex >= NATIONAL_FLEX_SLOTS) break;
+      if (d.status === "selecionada") continue;
+      if (d.ratio > NATIONAL_FLEX_MAX_RATIO) {
+        d.reason = "flexivel_sem_excepcionalidade";
+        continue;
+      }
+      if (!cabeNoDestino(d)) continue;
+      flex++;
+      aceitar(d, "flexivel_nacional");
     }
   }
 

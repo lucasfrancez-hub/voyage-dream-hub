@@ -15,16 +15,13 @@ export const MAX_OPPORTUNITIES_PER_ORIGIN = 10;
 export const MAX_OPPORTUNITIES_BY_ORIGIN: Record<string, number> = {};
 
 /** Origens da curadoria NACIONAL. */
-export const PRIORITY_ORIGINS_NACIONAL = ["MGF", "LDB", "CWB", "CAC", "IGU"] as const;
+export const PRIORITY_ORIGINS_NACIONAL = ["MGF", "LDB", "CWB", "CAC", "IGU", "XAP"] as const;
 
 /**
- * Origens da curadoria INTERNACIONAL: as regionais TAMBÉM participam
- * (Maringá, Londrina, Cascavel e Foz podem ter boa oportunidade internacional)
- * somadas aos hubs GRU/SAO, GIG/RIO, BSB e CWB.
+ * Origens da curadoria INTERNACIONAL (briefing comercial): somente os hubs
+ * com oferta internacional real — GRU/SAO, CWB, POA, GIG/RIO e BSB.
  */
-export const PRIORITY_ORIGINS_HUB = [
-  "MGF", "LDB", "CWB", "CAC", "IGU", "GRU", "GIG", "BSB",
-] as const;
+export const PRIORITY_ORIGINS_HUB = ["GRU", "CWB", "POA", "GIG", "BSB"] as const;
 
 /** União das duas listas, já deduplicada. */
 export const PRIORITY_ORIGINS = [
@@ -78,6 +75,7 @@ export function isOriginAllowedForScope(
 export const NATIONAL_DESTINATION_EXCLUSIONS = new Set([
   "VCP", // Campinas
   "GRU", "CGH", "SAO", // São Paulo
+  "VCP", // Campinas
   "CWB", // Curitiba
   "POA", // Porto Alegre
 ]);
@@ -94,6 +92,46 @@ export const NATIONAL_LEISURE_DESTINATIONS = new Set([
 export const NORTHEAST_DESTINATIONS = new Set([
   "MCZ", "REC", "SSA", "FOR", "NAT", "JPA", "AJU", "SLZ", "THE", "IOS", "BPS", "JJD", "PHB", "MVF", "CPV", "VDC",
 ]);
+
+// ---------------------------------------------------------------------------
+// COMPOSIÇÃO NACIONAL POR ORIGEM (briefing comercial)
+//   até 4 Nordeste/lazer • até 2 Rio • até 1 Norte/Centro-Oeste • até 3 flexíveis
+// "até" NUNCA obriga a preencher: rota fraca não entra só para fechar cota.
+// ---------------------------------------------------------------------------
+
+export type NationalCategory = "nordeste" | "rio" | "norte_centro_oeste" | "outros";
+
+export const NATIONAL_CATEGORY_QUOTAS: Record<Exclude<NationalCategory, "outros">, number> = {
+  nordeste: 4,
+  rio: 2,
+  norte_centro_oeste: 1,
+};
+
+/** Vagas flexíveis nacionais (qualquer destino turístico realmente forte). */
+export const NATIONAL_FLEX_SLOTS = 3;
+
+const RIO_DESTINATIONS = new Set(["RIO", "GIG", "SDU"]);
+
+const NORTE_CENTRO_OESTE_DESTINATIONS = new Set([
+  "BSB", "CGB", "CGR", "MAO", "BEL", "PVH", "RBR", "BVB", "MCP", "STM", "PMW", "GYN",
+]);
+
+export function nationalCategoryOfDestination(iata: string): NationalCategory {
+  const d = iata.trim().toUpperCase();
+  if (RIO_DESTINATIONS.has(d)) return "rio";
+  if (NORTHEAST_DESTINATIONS.has(d)) return "nordeste";
+  if (NORTE_CENTRO_OESTE_DESTINATIONS.has(d)) return "norte_centro_oeste";
+  return "outros";
+}
+
+/**
+ * Teto de qualidade (preço ÷ padrão do mercado) para uma oportunidade
+ * NACIONAL entrar na vitrine. Acima disso a vaga simplesmente fica vazia.
+ */
+export const NATIONAL_QUALITY_MAX_RATIO = 1;
+
+/** Vaga flexível exige oportunidade claramente acima da média. */
+export const NATIONAL_FLEX_MAX_RATIO = 0.8;
 
 /** Máximo de oportunidades do MESMO destino por origem (só com justificativa). */
 export const MAX_PER_DESTINATION = 2;
