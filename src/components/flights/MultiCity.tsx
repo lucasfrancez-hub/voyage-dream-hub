@@ -42,6 +42,7 @@ import {
   isSegmentComplete,
   newSegment,
   validateSegments,
+  type MultiPick,
   type MultiSegmentInput,
 } from "@/lib/multicity";
 import {
@@ -346,17 +347,49 @@ type SegState = {
   error?: string;
 };
 
+/**
+ * Voo indicado no link da promoção (cia + horário de partida). Sem casamento
+ * exato, cai no mais barato do trecho — o cliente nunca vê a lista vazia de
+ * seleção quando o link prometeu um carrinho pronto.
+ */
+function escolherVooDoLink(
+  flights: OnerFlight[],
+  pick: MultiPick | undefined,
+  ui: FlightUi,
+): string | null {
+  if (!pick || !flights.length) return null;
+  const hhmm = (f: OnerFlight) => {
+    const t = f.journey?.departure?.time ?? f.journey?.segments?.[0]?.departure?.time;
+    return t ? `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}` : "";
+  };
+  const cia = (f: OnerFlight) => (ui.airlineOf(f)?.iata ?? "").toUpperCase();
+  const alvoCia = (pick.airline ?? "").toUpperCase();
+
+  const exato = flights.find((f) => (!alvoCia || cia(f) === alvoCia) && (!pick.time || hhmm(f) === pick.time));
+  const porCia = alvoCia ? flights.filter((f) => cia(f) === alvoCia) : [];
+  const maisBarato = (list: OnerFlight[]) =>
+    list.reduce<OnerFlight | null>((a, f) => (!a || f.price.total < a.price.total ? f : a), null);
+
+  const alvo = exato ?? maisBarato(porCia) ?? maisBarato(flights);
+  return alvo?.key ?? null;
+}
+
+
+
 export function MultiCityResults({
   segments,
   pax,
   runToken,
   publicMode = false,
+  preselect,
   ui,
 }: {
   segments: MultiSegmentInput[];
   pax: MultiPax;
   runToken: number;
   publicMode?: boolean;
+  /** Voo já escolhido por trecho (link de promoção multi-trecho). */
+  preselect?: MultiPick[];
   ui: FlightUi;
 }) {
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
@@ -404,12 +437,14 @@ export function MultiCityResults({
           const raw = await search({ data: paxFor(input) });
           if (runRef.current !== run) return;
           const r = ui.normalizeSearchResult(raw);
+          const escolhido = escolherVooDoLink(r?.outbound.flights ?? [], preselect?.[i], ui);
           setSegs((prev) =>
             prev.map((s, idx) =>
               idx === i
                 ? {
                     ...s,
                     result: r,
+                    selectedKey: escolhido ?? s.selectedKey,
                     status: r && r.outbound.flights.length ? "done" : "empty",
                   }
                 : s,

@@ -48,10 +48,12 @@ type VoarSearch = {
   fm?: string;
   /** Viagem multi-trecho: CWB-GRU-2026-09-01_GRU-REC-2026-09-05 */
   ms?: string;
+  /** Voo já escolhido por trecho (cia+horário): AD-1150_LA-0445 */
+  ps?: string;
 };
 
 import { encodeTrail, decodeTrail } from "@/lib/md-trail";
-import { decodeSegments } from "@/lib/multicity";
+import { decodeSegments, decodePicks } from "@/lib/multicity";
 
 
 const MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
@@ -116,6 +118,7 @@ export const Route = createFileRoute("/voar")({
     fol: typeof search.fol === "string" ? search.fol.slice(0, 60) : undefined,
     fm: typeof search.fm === "string" ? search.fm.slice(0, 7) : undefined,
     ms: typeof search.ms === "string" ? search.ms.slice(0, 300) : undefined,
+    ps: typeof search.ps === "string" ? search.ps.slice(0, 120) : undefined,
   }),
 
   loaderDeps: ({ search }) => ({
@@ -180,6 +183,7 @@ function VoarPublicPage() {
           publicMode
           initialMode={hasHotelPreset ? "hotel" : "aereo"}
           multiPreset={hasMulti ? multiPreset : undefined}
+          multiPicks={hasMulti ? (decodePicks(s.ps) ?? undefined) : undefined}
           flightPreset={
             hasPreset
               ? {

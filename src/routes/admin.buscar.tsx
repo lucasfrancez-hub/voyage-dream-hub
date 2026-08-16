@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { VoosPage, NewOrderFromFlightsDialog } from "./admin.voos-teste";
-import type { MultiSegmentInput } from "@/lib/multicity";
+import type { MultiPick, MultiSegmentInput } from "@/lib/multicity";
 import type { FlightPreset } from "./admin.voos-teste";
 import type { HotelPreset } from "./admin.hoteis-teste";
 import type { ComboPick } from "@/lib/combo-selection";
@@ -288,6 +288,7 @@ export function SearchEngine({
   presetRunToken,
   presetFetch,
   multiPreset,
+  multiPicks,
 }: {
   publicMode?: boolean;
   /** Conteúdo abaixo do motor aéreo enquanto não há resultados. */
@@ -303,6 +304,8 @@ export function SearchEngine({
   presetFetch?: () => Promise<unknown>;
   /** Viagem multi-trecho vinda da URL (?ms=...). */
   multiPreset?: MultiSegmentInput[];
+  /** Voo já escolhido por trecho (?ps=...) — abre o carrinho pronto. */
+  multiPicks?: MultiPick[];
 } = {}) {
   const [mode, setMode] = useState<Mode>(initialMode);
 
@@ -461,6 +464,7 @@ export function SearchEngine({
           runToken={flightPresetProp ? (presetRunToken ?? 1) : undefined}
           presetFetch={flightPresetProp ? presetFetch : undefined}
           multiPreset={multiPreset}
+          multiPicks={multiPicks}
         />
       )}
       {mode === "hotel" && (

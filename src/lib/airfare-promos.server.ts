@@ -16,6 +16,8 @@ import {
 } from "@/lib/airfare-conditions";
 import type { OriginMetrics } from "@/lib/airfare-promos.config";
 import { isMetroCode, resolveCity } from "@/lib/iata-lookup";
+import { encodePicks } from "@/lib/multicity";
+
 import { searchFlights, searchInboundFlights } from "@/lib/onertravel.server";
 import { flightHasBaggage, type OnerFlight } from "@/lib/onertravel.types";
 
@@ -65,6 +67,16 @@ function airlineOf(f: OnerFlight) {
   return f.journey?.marketingAirline ?? f.journey?.segments?.[0]?.marketingAirline;
 }
 
+/** Assinatura leve do voo (cia + horário de partida) usada na pré-seleção do motor. */
+function horaPick(f: OnerFlight | null, airline: string | null) {
+  const t = f?.journey?.departure?.time ?? f?.journey?.segments?.[0]?.departure?.time ?? null;
+  const hora = t
+    ? `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`
+    : null;
+  return { airline: airline ?? null, time: hora };
+}
+
+
 export function promoSignature(p: {
   origin_iata: string;
   destination_iata: string;
@@ -86,20 +98,27 @@ export function promoSignature(p: {
  */
 export const MULTI_LEG_MIN_DIFF = 100;
 
-/** Link do motor VIA AIR já aberto em multi-trecho (um cartão por trecho). */
+/**
+ * Link do motor VIA AIR já aberto em multi-trecho, com o voo de CADA trecho
+ * pré-selecionado (`ps`) — o cliente cai direto no carrinho da viagem, sem
+ * precisar escolher ida e volta de novo.
+ */
 export function multiLegSearchUrl(args: {
   origin: string;
   destination: string;
   departureDate: string;
   returnDate: string;
   adults?: number;
+  picks?: { airline: string | null; time: string | null }[];
 }): string {
   const o = args.origin.toUpperCase();
   const d = args.destination.toUpperCase();
   const ms = `${o}-${d}-${args.departureDate}_${d}-${o}-${args.returnDate}`;
   const q = new URLSearchParams({ m: "aereo", ms, ad: String(args.adults ?? 1) });
+  if (args.picks?.some((p) => p.airline || p.time)) q.set("ps", encodePicks(args.picks));
   return `https://pedidos.viaair.tur.br/voar?${q.toString()}`;
 }
+
 
 /** Monta a linha da promoção (sem gravar) a partir dos voos escolhidos. */
 export function buildPromotionRow(args: {
@@ -217,8 +236,10 @@ export function buildPromotionRow(args: {
             departureDate: args.departureDate,
             returnDate: args.returnDate,
             adults: passengers,
+            picks: [horaPick(out, air?.iata ?? null), horaPick(inb, airIn?.iata ?? null)],
           })
         : null,
+
     fare_status: "valida" as const,
     quoted_at: new Date().toISOString(),
     last_checked_at: new Date().toISOString(),
