@@ -186,7 +186,11 @@ type Lead = {
   scope: "nacional" | "internacional";
   reference_price: number | null;
   category_id: number | null;
+  category?: string | null;
+  /** link oficial de itinerary_prices devolvido pela própria API do radar */
+  itinerary_link?: string | null;
   reference_source: string;
+
   /** datas já conhecidas (vindas do feed de promoções) */
   dates: Array<{ departDate: string; returnDate: string | null; price: number | null }>;
   /** campos exigidos pela curadoria */
