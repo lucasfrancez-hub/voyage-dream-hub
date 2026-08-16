@@ -531,8 +531,15 @@ export async function processPendingCandidates(args: {
   let processadasAgora = 0;
   let cancelada = false;
 
-  /** Cancelamento cooperativo: consultado ANTES de reivindicar cada candidata. */
+  /**
+   * Cancelamento cooperativo (checado no mÃ¡ximo a cada 4s, para nÃ£o bater no
+   * banco a cada job) + AbortController que interrompe as consultas em curso.
+   */
+  let ultimaChecagem = 0;
+  let ultimoStatusRunning = true;
   const cancelamentoPedido = async () => {
+    if (Date.now() - ultimaChecagem < 4000) return !ultimoStatusRunning;
+    ultimaChecagem = Date.now();
     try {
       const { data } = await client
         .from("airfare_promo_runs")
@@ -540,53 +547,102 @@ export async function processPendingCandidates(args: {
         .eq("id", runId)
         .maybeSingle();
       const st = (data as { status?: string } | null)?.status;
-      return !st || st !== "running";
+      ultimoStatusRunning = st === "running";
     } catch {
-      return false;
+      /* falha de leitura nÃ£o cancela a execuÃ§Ã£o */
+    }
+    return !ultimoStatusRunning;
+  };
+
+  /** Progresso gravado no mÃ¡ximo 1x/s â a UI reflete cada resultado sem inundar o banco. */
+  let ultimoTouch = 0;
+  const progresso = async (label: string, forcar = false) => {
+    if (!forcar && Date.now() - ultimoTouch < 1000) return;
+    ultimoTouch = Date.now();
+    await touch({
+      phase: "validando",
+      processed: counters.processed,
+      saved: counters.saved,
+      validated: counters.validated,
+      no_result: counters.no_result,
+      error_count: counters.error_count,
+      new_count: counters.new_count,
+      updated_count: counters.updated_count,
+      last_label: label,
+      origin_metrics: metricasSnapshot(),
+      validation_metrics: telemetria(),
+    });
+  };
+
+  const contarFila = async () => {
+    try {
+      const { count } = await client
+        .from("airfare_promo_candidates")
+        .select("id", { count: "exact", head: true })
+        .eq("run_id", runId)
+        .eq("status", "pending");
+      tele.queued = Number(count ?? 0);
+    } catch {
+      /* best-effort */
     }
   };
+  await contarFila();
 
   const worker = async () => {
     while (Date.now() < deadline) {
       if (cancelada || (await cancelamentoPedido())) {
         cancelada = true;
+        abortController.abort();
         return;
       }
       const cand = await claimNext();
       if (!cand) return;
+
+      tele.running++;
+      tele.queued = Math.max(0, tele.queued - 1);
+      const iniciou = Date.now();
+      const saida: { desfecho: Desfecho } = { desfecho: "error" };
       let label = "";
       try {
-        // nenhuma consulta ao motor pode prender a coleta indefinidamente
-        label = await withTimeout(processar(cand), CANDIDATE_TIMEOUT_MS, "candidata");
+        // TIMEOUT INDIVIDUAL: nenhuma consulta prende um worker da fila.
+        label = await withTimeout(processar(cand, saida), CANDIDATE_TIMEOUT_MS, "candidata");
       } catch (err) {
+        const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
+        saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
         counters.error_count++;
         label = `${cand.origin_iata}→${cand.destination_iata}`;
         await setCandidato(cand.id, {
           status: "error",
-          last_error: (err instanceof Error ? err.message : String(err)).slice(0, 400),
+          last_error: msg,
           last_error_step: "worker",
           last_error_at: new Date().toISOString(),
           processed_at: new Date().toISOString(),
         });
+      } finally {
+        tele.running = Math.max(0, tele.running - 1);
       }
-      counters.processed++;
-      processadasAgora++;
-      await touch({
-        phase: "validando",
-        processed: counters.processed,
-        saved: counters.saved,
-        validated: counters.validated,
-        no_result: counters.no_result,
-        error_count: counters.error_count,
-        new_count: counters.new_count,
-        updated_count: counters.updated_count,
-        last_label: label,
-        origin_metrics: metricasSnapshot(),
-      });
+
+      duracoes.push(Date.now() - iniciou);
+      if (saida.desfecho === "requeue") {
+        tele.requeued++;
+        tele.queued++;
+      } else {
+        tele.completed++;
+        if (saida.desfecho === "with_fare") tele.with_fare++;
+        if (saida.desfecho === "without_fare") tele.without_fare++;
+        if (saida.desfecho === "timeout") tele.timeout++;
+        if (saida.desfecho === "error") tele.error++;
+        counters.processed++;
+        processadasAgora++;
+      }
+      await progresso(label, saida.desfecho !== "requeue");
     }
   };
 
+  // FILA GLOBAL: os workers competem pela mesma fila, sem esperar terminar uma
+  // origem para começar outra. Terminou uma validação, começa a próxima.
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  await progresso("", true);
 
   if (cancelada) {
     await touch({ ...counters, origin_metrics: metricasSnapshot() });
