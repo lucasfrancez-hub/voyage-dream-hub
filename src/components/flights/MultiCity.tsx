@@ -374,7 +374,63 @@ function escolherVooDoLink(
   return alvo?.key ?? null;
 }
 
+/** Assinatura forte do voo salvo na cotação (link pronto). */
+export function pickFromFlight(f: OnerFlight, ui: FlightUi): SavedPick {
+  const t = f.journey?.departure?.time ?? f.journey?.segments?.[0]?.departure?.time;
+  const segs = f.journey?.segments ?? [];
+  const chegada = f.journey?.destination?.time ?? segs[segs.length - 1]?.destination?.time;
+  const hhmm = (x?: { hour: number; minute: number }) =>
+    x ? `${String(x.hour).padStart(2, "0")}:${String(x.minute).padStart(2, "0")}` : null;
+  const a = ui.airlineOf(f);
+  return {
+    airline: a?.iata ?? null,
+    airlineName: a?.name ?? null,
+    flightNumber: segs[0]?.flightNumber ?? null,
+    time: hhmm(t),
+    arrival: hhmm(chegada),
+    fareKey: f.key ?? null,
+    total: f.price?.total ?? null,
+    baggage: flightHasBaggage(f),
+  };
+}
 
+/**
+ * Casa o voo salvo com a nova pesquisa: tarifa exata → cia + número do voo →
+ * cia + horário → mais barato da cia → mais barato do trecho. Assim o link
+ * pronto abre sempre a mesma viagem, mesmo depois da tarifa ser reconsultada.
+ */
+function escolherVooSalvo(
+  flights: OnerFlight[],
+  pick: SavedPick | undefined,
+  ui: FlightUi,
+): string | null {
+  if (!pick || !flights.length) return null;
+  const hhmm = (f: OnerFlight) => {
+    const t = f.journey?.departure?.time ?? f.journey?.segments?.[0]?.departure?.time;
+    return t ? `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}` : "";
+  };
+  const cia = (f: OnerFlight) => (ui.airlineOf(f)?.iata ?? "").toUpperCase();
+  const num = (f: OnerFlight) => (f.journey?.segments?.[0]?.flightNumber ?? "").trim();
+  const alvoCia = (pick.airline ?? "").toUpperCase();
+
+  if (pick.fareKey) {
+    const exato = ui.findByAnyKey(flights, pick.fareKey);
+    if (exato) return pick.fareKey;
+  }
+  const porNumero =
+    pick.flightNumber && alvoCia
+      ? flights.find((f) => cia(f) === alvoCia && num(f) === pick.flightNumber)
+      : null;
+  const porHora = flights.find(
+    (f) => (!alvoCia || cia(f) === alvoCia) && (!pick.time || hhmm(f) === pick.time),
+  );
+  const maisBarato = (list: OnerFlight[]) =>
+    list.reduce<OnerFlight | null>((a, f) => (!a || f.price.total < a.price.total ? f : a), null);
+  const porCia = alvoCia ? flights.filter((f) => cia(f) === alvoCia) : [];
+
+  const alvo = porNumero ?? porHora ?? maisBarato(porCia) ?? maisBarato(flights);
+  return alvo?.key ?? null;
+}
 
 export function MultiCityResults({
   segments,
@@ -382,6 +438,8 @@ export function MultiCityResults({
   runToken,
   publicMode = false,
   preselect,
+  savedPicks,
+  quoteToken,
   ui,
 }: {
   segments: MultiSegmentInput[];
@@ -390,8 +448,13 @@ export function MultiCityResults({
   publicMode?: boolean;
   /** Voo já escolhido por trecho (link de promoção multi-trecho). */
   preselect?: MultiPick[];
+  /** Cotação salva no backend: seleção completa, abre direto a tela final. */
+  savedPicks?: SavedPick[];
+  quoteToken?: string;
   ui: FlightUi;
 }) {
+  const linkPronto = !!savedPicks?.length;
+
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const [segs, setSegs] = useState<SegState[]>([]);
   const [active, setActive] = useState(0);
