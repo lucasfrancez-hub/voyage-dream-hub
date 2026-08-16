@@ -945,8 +945,16 @@ function PromocoesAereoPage() {
   const cancelar = useMutation({
     mutationFn: () => cancelColeta(),
     onSuccess: () => {
-      toast.success("Cancelamento solicitado. O que já foi validado continua salvo.");
+      toast.success("Atualização cancelada. O que já foi validado continua salvo.");
+      // o servidor já encerrou a execução — refletimos na hora, sem esperar polling
+      qc.setQueryData(["airfare-promo-run"], (old: unknown) => ({
+        ...(old as Record<string, unknown> | null),
+        status: "cancelada",
+        phase: "cancelada",
+        cancelled_at: new Date().toISOString(),
+      }));
       qc.invalidateQueries({ queryKey: ["airfare-promo-run"] });
+      qc.invalidateQueries({ queryKey: ["airfare-promos"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
