@@ -1,0 +1,1 @@
+ALTER TABLE public.airfare_promo_runs ADD COLUMN IF NOT EXISTS worker_lease_until timestamptz;
