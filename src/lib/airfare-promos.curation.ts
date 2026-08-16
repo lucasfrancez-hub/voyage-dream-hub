@@ -53,6 +53,8 @@ export type CurationResult<T extends CurationInput = CurationInput> = {
   selected: T[];
   decisions: Array<CurationDecision<T>>;
   eligible: number;
+  /** quantas elegíveis realmente entraram no ranking (deve ser = eligible) */
+  ranked?: number;
   excluded: number;
 };
 
