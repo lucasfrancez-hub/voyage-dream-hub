@@ -226,8 +226,10 @@ export function buildPromotionRow(args: {
             departureDate: args.departureDate,
             returnDate: args.returnDate,
             adults: passengers,
+            picks: [horaPick(out, air?.iata ?? null), horaPick(inb, airIn?.iata ?? null)],
           })
         : null,
+
     fare_status: "valida" as const,
     quoted_at: new Date().toISOString(),
     last_checked_at: new Date().toISOString(),
