@@ -86,20 +86,27 @@ export function promoSignature(p: {
  */
 export const MULTI_LEG_MIN_DIFF = 100;
 
-/** Link do motor VIA AIR já aberto em multi-trecho (um cartão por trecho). */
+/**
+ * Link do motor VIA AIR já aberto em multi-trecho, com o voo de CADA trecho
+ * pré-selecionado (`ps`) — o cliente cai direto no carrinho da viagem, sem
+ * precisar escolher ida e volta de novo.
+ */
 export function multiLegSearchUrl(args: {
   origin: string;
   destination: string;
   departureDate: string;
   returnDate: string;
   adults?: number;
+  picks?: { airline: string | null; time: string | null }[];
 }): string {
   const o = args.origin.toUpperCase();
   const d = args.destination.toUpperCase();
   const ms = `${o}-${d}-${args.departureDate}_${d}-${o}-${args.returnDate}`;
   const q = new URLSearchParams({ m: "aereo", ms, ad: String(args.adults ?? 1) });
+  if (args.picks?.some((p) => p.airline || p.time)) q.set("ps", encodePicks(args.picks));
   return `https://pedidos.viaair.tur.br/voar?${q.toString()}`;
 }
+
 
 /** Monta a linha da promoção (sem gravar) a partir dos voos escolhidos. */
 export function buildPromotionRow(args: {
