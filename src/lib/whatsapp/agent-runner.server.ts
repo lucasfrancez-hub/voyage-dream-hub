@@ -1272,7 +1272,7 @@ export async function runAgent(input: {
     const mapa = await blocoFluxoParaPrompt().catch(() => "");
     const fluxoBlock = mapa ? `\n\n${mapa}` : "";
 
-    const system =
+    let system =
       (centralAgent
         ? buildCentralPrompt(
             centralAgent.nome,
