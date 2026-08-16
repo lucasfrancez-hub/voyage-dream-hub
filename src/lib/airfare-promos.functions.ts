@@ -13,7 +13,7 @@ async function assertAdmin(ctx: { supabase: any; userId: string }) {
 }
 
 const PROMO_COLUMNS =
-  "id,signature,scope,status,fare_status,origin_iata,origin_city,destination_iata,destination_city,airline_iata,airline_name,airline_logo,departure_date,return_date,is_round_trip,stops,has_checked_baggage,cabin_class,passengers,fare_price,taxes,total_price,price_per_passenger,interest_free_installments,interest_free_installment_value,airline_rule,extended_max_installments,extended_installment_value_12x,extended_markup_12x,extended_total_12x,extended_options,search_key,outbound_fare_id,outbound_itinerary_id,inbound_fare_id,inbound_itinerary_id,cart_url,short_url,quoted_at,last_checked_at,reference_source,reference_price,reference_collected_at,price_difference,price_difference_percent,unavailable_at,cycle_state,cycle_changed_fields,cycle_state_at,cycle_day";
+  "id,signature,scope,status,fare_status,origin_iata,origin_city,destination_iata,destination_city,airline_iata,airline_name,airline_logo,departure_date,return_date,is_round_trip,stops,has_checked_baggage,cabin_class,passengers,fare_price,taxes,total_price,price_per_passenger,interest_free_installments,interest_free_installment_value,airline_rule,extended_max_installments,extended_installment_value_12x,extended_markup_12x,extended_total_12x,extended_options,search_key,outbound_fare_id,outbound_itinerary_id,inbound_fare_id,inbound_itinerary_id,is_multi_leg,multi_leg_url,multi_leg_savings,inbound_search_key,inbound_airline_iata,inbound_airline_name,inbound_airline_logo,cart_url,short_url,quoted_at,last_checked_at,reference_source,reference_price,reference_collected_at,price_difference,price_difference_percent,unavailable_at,cycle_state,cycle_changed_fields,cycle_state_at,cycle_day";
 
 const ARCHIVE_COLUMNS = `${PROMO_COLUMNS},archived_at,archived_reason,archived_cycle_day,created_at`;
 
@@ -498,6 +498,25 @@ export const refreshAirfarePromotion = createServerFn({ method: "POST" })
   });
 
 /** Cria o carrinho na operadora e o link curto Via Air da promoção. */
+/** Cria o link curto rastreável da promoção (usado no WhatsApp e nos posts). */
+async function criarShortLink(
+  context: { supabase: { from: (t: string) => any } },
+  targetUrl: string,
+  promo: { origin_iata: string; destination_iata: string },
+): Promise<string | null> {
+  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+  let slug = "";
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  for (let i = 0; i < 6; i++) slug += alphabet[bytes[i]! % alphabet.length];
+  const { error } = await context.supabase.from("short_links").insert({
+    slug,
+    target_url: targetUrl,
+    label: `Promo ${promo.origin_iata}-${promo.destination_iata}`,
+  });
+  return error ? null : `https://pedidos.viaair.tur.br/l/${slug}`;
+}
+
 export const generatePromotionLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -516,6 +535,32 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
     if (!data.force && promo.cart_url && promo.short_url) {
       return { cart_url: promo.cart_url, short_url: promo.short_url, reused: true };
     }
+    // MULTI-TRECHO (nacional, ida e volta em companhias diferentes):
+    // não existe carrinho único na operadora — o link abre o motor VIA AIR
+    // em multi-trecho e o cliente compra cada trecho pelo Comprar Viagem.
+    if (promo.is_multi_leg) {
+      const { multiLegSearchUrl } = await import("@/lib/airfare-promos.server");
+      const destino =
+        promo.multi_leg_url ??
+        (promo.return_date
+          ? multiLegSearchUrl({
+              origin: promo.origin_iata,
+              destination: promo.destination_iata,
+              departureDate: promo.departure_date,
+              returnDate: promo.return_date,
+              adults: promo.passengers || 1,
+            })
+          : null);
+      if (!destino) throw new Error("Promoção multi-trecho sem data de volta.");
+      const short = await criarShortLink(context, destino, promo);
+      const { error: mErr } = await context.supabase
+        .from("airfare_promotions")
+        .update({ cart_url: destino, multi_leg_url: destino, short_url: short })
+        .eq("id", data.id);
+      if (mErr) throw new Error(mErr.message);
+      return { cart_url: destino, short_url: short, reused: false };
+    }
+
     if (!promo.search_key || !promo.outbound_fare_id || !promo.outbound_itinerary_id) {
       throw new Error("Tarifa sem chaves de busca. Atualize a promoção antes de gerar o link.");
     }
@@ -578,19 +623,7 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
       cart = await montarCarrinho();
     }
 
-    const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
-    let slug = "";
-    const bytes = new Uint8Array(6);
-    crypto.getRandomValues(bytes);
-    for (let i = 0; i < 6; i++) slug += alphabet[bytes[i]! % alphabet.length];
-
-    let short: string | null = null;
-    const { error: slErr } = await context.supabase.from("short_links").insert({
-      slug,
-      target_url: cart.url,
-      label: `Promo ${promo.origin_iata}-${promo.destination_iata}`,
-    });
-    if (!slErr) short = `https://pedidos.viaair.tur.br/l/${slug}`;
+    const short = await criarShortLink(context, cart.url, promo);
 
     const { error: upErr } = await context.supabase
       .from("airfare_promotions")

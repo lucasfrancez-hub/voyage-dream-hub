@@ -73,7 +73,11 @@ export const Route = createFileRoute("/admin/promocoes-aereo")({
 });
 
 type Promo = PromoRow & {
+  is_multi_leg?: boolean | null;
+  inbound_airline_name?: string | null;
+  multi_leg_url?: string | null;
   id: string;
+
   scope: string;
   status: string;
   fare_status: string;
@@ -422,7 +426,16 @@ function PromoCard({
             )}
             <span className="truncate text-xs font-semibold text-foreground/90">
               {promo.airline_name ?? promo.airline_iata ?? "—"}
+              {promo.is_multi_leg && promo.inbound_airline_name
+                ? ` + ${promo.inbound_airline_name}`
+                : ""}
             </span>
+            {promo.is_multi_leg ? (
+              <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                Multi-trecho
+              </span>
+            ) : null}
+
           </span>
           <span className="flex shrink-0 items-center gap-3 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
