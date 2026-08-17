@@ -465,6 +465,10 @@ export async function processPendingCandidates(args: {
   const processar = async (
     cand: CandidateRow,
     saida: { desfecho: Desfecho; responseAt?: number; engineCalls?: number; engineMs?: number },
+    /** sinal DESTE job: o timeout individual aborta as requisições de verdade */
+    jobSignal: AbortSignal = abortController.signal,
+    /** heartbeat: cada resposta do motor renova a "última atividade" */
+    marcarAtividade: () => void = () => {},
   ) => {
     const iniciouEm = Date.now();
     const metrica = metricaDe(cand.origin_iata);
@@ -489,9 +493,10 @@ export async function processPendingCandidates(args: {
         returnDate: cand.return_date,
         markups,
         referencePrice: cand.reference_price != null ? Number(cand.reference_price) : null,
-        signal: abortController.signal,
+        signal: jobSignal,
 
         onEngineTiming: (t) => {
+          marcarAtividade();
           saida.engineCalls = (saida.engineCalls ?? 0) + 1;
           saida.engineMs = (saida.engineMs ?? 0) + t.ms;
           console.log(
