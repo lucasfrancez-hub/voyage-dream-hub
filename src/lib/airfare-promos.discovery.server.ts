@@ -723,7 +723,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         no_result: 0,
         errors: 0,
         avg_seconds: null,
-        radar_status: statusOrigem.get(o)?.status ?? "sem_oportunidades",
+        radar_status: statusOrigem.get(o)?.status ?? "nao_processada",
         radar_note: statusOrigem.get(o)?.note ?? null,
       })),
 
@@ -812,7 +812,8 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         no_result: 0,
         errors: 0,
         avg_seconds: null,
-        radar_status: st?.status ?? (lista.length ? "ok" : "sem_oportunidades"),
+        radar_status:
+          st?.status ?? (lista.length ? "com_oportunidades" : "nao_processada"),
         radar_note: st?.note ?? null,
       });
     }
