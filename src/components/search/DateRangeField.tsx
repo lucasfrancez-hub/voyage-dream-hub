@@ -71,12 +71,14 @@ export function DateRangeField({
       if (!el) return;
       const rect = el.getBoundingClientRect();
       // Largura real do painel (conteúdo do calendário) pra não estourar a borda.
-      const panelWidth = calendarRef.current?.offsetWidth ?? 328;
-      const maxLeft = Math.max(8, window.innerWidth - panelWidth - 8);
+      // Safari iOS: nunca deixar o painel passar da viewport nem das margens.
+      const viewport = document.documentElement.clientWidth || window.innerWidth;
+      const panelWidth = Math.min(calendarRef.current?.offsetWidth ?? 296, viewport - 16);
+      const maxLeft = Math.max(8, viewport - panelWidth - 8);
       setPos({
         top: window.scrollY + rect.bottom + 8,
         left: window.scrollX + Math.min(Math.max(8, rect.left), maxLeft),
-        width: rect.width,
+        width: panelWidth,
       });
     };
     // A largura do calendário agora é determinística; uma única medição após o
@@ -196,7 +198,7 @@ export function DateRangeField({
         )}
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex w-full min-w-0 justify-center overflow-hidden">
         <Calendar
           mode="range"
           locale={ptBR}
@@ -206,12 +208,12 @@ export function DateRangeField({
           selected={{ from, to }}
           onSelect={handleSelect}
           disabled={disabledDates}
-          className="pointer-events-auto"
+          className="pointer-events-auto w-full max-w-full p-2 sm:p-3"
         />
       </div>
 
 
-      <div className="flex items-center justify-between gap-2 border-t border-border/50 px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/50 px-3 py-2.5 sm:px-4">
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => onChange("", "")}>
           Limpar
         </Button>
@@ -259,9 +261,9 @@ export function DateRangeField({
                   position: "absolute",
                   top: pos.top,
                   left: pos.left,
-                  width: 296,
+                  width: pos.width || 296,
                 }}
-                className="z-[100] box-border flex max-w-[calc(100vw-16px)] flex-col overflow-visible rounded-2xl border border-border/60 bg-popover shadow-2xl"
+                className="z-[100] box-border flex max-w-[calc(100vw-16px)] flex-col overflow-hidden rounded-2xl border border-border/60 bg-popover shadow-2xl"
 
               >
                 {panel(true)}
@@ -289,7 +291,10 @@ export function DateRangeField({
 
       <PopoverContent
         align="start"
-        className="w-[min(20rem,calc(100vw-2rem))] rounded-2xl border-border/60 bg-popover/95 p-0 shadow-2xl backdrop-blur-xl"
+        sideOffset={8}
+        avoidCollisions
+        collisionPadding={12}
+        className="w-[min(20rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border-border/60 bg-popover/95 p-0 shadow-2xl backdrop-blur-xl"
       >
         {panel(false)}
       </PopoverContent>
