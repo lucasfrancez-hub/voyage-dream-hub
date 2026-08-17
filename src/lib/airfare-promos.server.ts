@@ -990,7 +990,7 @@ export async function collectAirfarePromotions(opts?: {
         notaRadar =
           progress.stage === "leads"
             ? `Descoberta ${progress.originsDone}/${progress.originsTotal} origens · ${progress.leads} oportunidades`
-            : `Datas reais — ${progress.leads} oportunidades no radar`;
+            : `Consultando oportunidades ${progress.datesTotal ?? progress.leads}/${progress.datesTotal ?? progress.leads} · Datas reais ${progress.datesDone ?? 0}/${progress.datesTotal ?? progress.leads}`;
         await touch({
           phase: "descobrindo",
           discovery_state: state as never,
@@ -1049,7 +1049,7 @@ export async function collectAirfarePromotions(opts?: {
       origin_metrics: descoberta.metrics as never,
       radar_note:
         p?.stage === "datas"
-          ? `Descoberta em andamento — buscando datas reais (${p.leads} oportunidades)`
+          ? `Consultando oportunidades ${p.datesTotal ?? p.leads}/${p.datesTotal ?? p.leads} · Datas reais ${p.datesDone ?? 0}/${p.datesTotal ?? p.leads}`
           : `Descoberta em andamento — ${p?.originsDone ?? 0}/${p?.originsTotal ?? 0} origens · ${p?.leads ?? 0} oportunidades`,
     });
     return {

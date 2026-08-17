@@ -4,6 +4,7 @@ import {
   diffFare,
   fitCandidateTimeoutToBudget,
 } from "@/lib/airfare-promos.worker.server";
+import { datesProgress } from "@/lib/airfare-promos.discovery.server";
 
 const base = {
   total_price: 1180,
@@ -40,5 +41,23 @@ describe("orçamento do worker autônomo", () => {
 
   it("não reserva candidata quando nem a janela operacional mínima cabe", () => {
     expect(fitCandidateTimeoutToBudget(110_000, 84_999)).toBeNull();
+  });
+});
+
+describe("checkpoint de datas reais", () => {
+  it("preserva o total e retoma da próxima oportunidade pendente", () => {
+    const pendingLeads = Array.from({ length: 17 }, (_, i) => ({ signature: `rota-${i}` }));
+    expect(datesProgress({ pendingLeads: pendingLeads as never, datesTotal: 55, datesDone: 38 })).toEqual({
+      done: 38,
+      total: 55,
+    });
+  });
+
+  it("recupera o progresso de checkpoints antigos sem voltar a zero", () => {
+    const pendingLeads = Array.from({ length: 16 }, (_, i) => ({ signature: `rota-${i}` }));
+    expect(datesProgress({ pendingLeads: pendingLeads as never, datesTotal: 20 })).toEqual({
+      done: 4,
+      total: 20,
+    });
   });
 });

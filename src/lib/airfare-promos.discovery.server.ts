@@ -179,7 +179,14 @@ export type DiscoveryResult = {
   /** Checkpoint serializável do progresso (gravado em airfare_promo_runs). */
   state?: DiscoveryState | null;
   /** Progresso real (origens concluídas / total) para a UI. */
-  progress?: { originsDone: number; originsTotal: number; leads: number; stage: string };
+  progress?: {
+    originsDone: number;
+    originsTotal: number;
+    leads: number;
+    stage: string;
+    datesDone?: number;
+    datesTotal?: number;
+  };
 };
 
 /**
@@ -208,7 +215,21 @@ export type DiscoveryState = {
   /** etapa `datas`: métricas de curadoria já calculadas */
   metrics?: OriginMetrics[];
   dedupTotal?: number;
+  /** total original da fila de datas; não diminui entre retomadas */
+  datesTotal?: number;
+  /** oportunidades de datas já tentadas, com ou sem oferta encontrada */
+  datesDone?: number;
 };
+
+export function datesProgress(state: Pick<DiscoveryState, "pendingLeads" | "datesTotal" | "datesDone">): {
+  done: number;
+  total: number;
+} {
+  const pending = state.pendingLeads?.length ?? 0;
+  const total = Math.max(state.datesTotal ?? pending, pending);
+  const done = Math.min(total, Math.max(state.datesDone ?? total - pending, 0));
+  return { done, total };
+}
 
 /** Oportunidade em nível de DESTINO, antes de escolher as datas. */
 type Lead = {
@@ -415,17 +436,21 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       originsTotal: totalOrigens,
       leads: contarLeads(),
       stage,
+      ...(stage === "datas" ? datesProgress(snapshot(stage, extra)) : {}),
     },
   });
 
   const gravarCheckpoint = async (stage: "leads" | "datas", extra?: Partial<DiscoveryState>) => {
     if (!opts?.onCheckpoint) return;
+    const state = snapshot(stage, extra);
+    const datas = stage === "datas" ? datesProgress(state) : null;
     try {
-      await opts.onCheckpoint(snapshot(stage, extra), {
+      await opts.onCheckpoint(state, {
         originsDone: originsDone.size,
         originsTotal: totalOrigens,
         leads: contarLeads(),
         stage,
+        ...(datas ? { datesDone: datas.done, datesTotal: datas.total } : {}),
       });
     } catch {
       /* checkpoint é best-effort: nunca derruba a descoberta */
@@ -729,33 +754,51 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   const pendentesSalvos = retomada?.stage === "datas" ? (retomada.pendingLeads ?? null) : null;
   const todosLeads = pendentesSalvos ?? curados;
   const restantesFila = [...todosLeads];
+  const datesTotal = retomada?.stage === "datas"
+    ? Math.max(retomada.datesTotal ?? 0, (retomada.datesDone ?? 0) + todosLeads.length)
+    : todosLeads.length;
+  let datesDone = retomada?.stage === "datas"
+    ? Math.min(retomada.datesDone ?? Math.max(0, datesTotal - todosLeads.length), datesTotal)
+    : 0;
 
-  progresso(`Buscando datas reais de ${todosLeads.length} oportunidades selecionadas...`);
-  const LOTE = 4;
-  for (let i = 0; i < todosLeads.length; i += LOTE) {
+  // Marca a transição ANTES da primeira chamada externa. Se a invocação morrer
+  // no meio, a retomada nunca volta ao checkpoint de `leads`.
+  await gravarCheckpoint("datas", {
+    pendingLeads: restantesFila,
+    candidates: selecionadas,
+    metrics,
+    dedupTotal,
+    datesTotal,
+    datesDone,
+  });
+  progresso(`Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`);
+
+  // Uma oportunidade por checkpoint. O antigo lote de quatro só confirmava o
+  // avanço depois que TODAS terminavam; expirar durante o lote fazia as quatro
+  // primeiras serem consultadas novamente na próxima invocação.
+  while (restantesFila.length > 0) {
     if (cancelada) break;
     if (radarDeadline - Date.now() < BATCH_MIN_MS) {
-      // sem margem para mais um lote: grava progresso e encerra controlado
       await gravarCheckpoint("datas", {
         pendingLeads: restantesFila,
         candidates: selecionadas,
         metrics,
         dedupTotal,
+        datesTotal,
+        datesDone,
       });
       return parcial("datas", {
         pendingLeads: restantesFila,
         candidates: selecionadas,
         metrics,
         dedupTotal,
+        datesTotal,
+        datesDone,
       });
     }
-    const lote = todosLeads.slice(i, i + LOTE);
-    progresso(
-      `Datas reais — ${Math.min(i + LOTE, todosLeads.length)}/${todosLeads.length} oportunidades`,
-    );
-    await mapLimit(lote, LOTE, async (lead: Lead) => {
-
-    if (cancelada || !lead.itinerary_link) return;
+    const lead = restantesFila[0];
+    if (!lead) break;
+    progresso(`Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`);
     let ofertas: Array<{
       departDate: string;
       returnDate: string | null;
@@ -766,8 +809,12 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       provider: string | null;
       externalUrl: string | null;
     }> = [];
-    if (!semTempo()) {
+    if (!cancelada && lead.itinerary_link && !semTempo()) {
       try {
+        // Uma rota lenta não recebe todo o orçamento restante nem bloqueia as
+        // seguintes. O adaptador ainda pode fazer seu retry curto dentro deste
+        // teto, mas a rota entra apenas uma vez nesta fila.
+        const deadlineDaRota = Math.min(radarDeadline, Date.now() + 15_000);
         const res = await radarOpportunitiesForLead(
           {
             source: "melhores_destinos",
@@ -783,7 +830,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
             collectedAt,
           },
           datesPerRoute,
-          { cancel, deadline: radarDeadline },
+          { cancel, deadline: deadlineDaRota },
         );
         ofertas = res
           .filter((o) => isFuture(o.departureDate))
@@ -800,15 +847,14 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       } catch (e) {
         if (e instanceof RadarCancelledError) {
           cancelada = true;
-          return;
+        } else {
+          radarErrors++;
+          ofertas = [];
         }
-        radarErrors++;
-        ofertas = [];
       }
     }
-    // Sem datas reais do radar a oportunidade é descartada: não inventamos datas.
-    if (!ofertas.length) return;
-
+    // Sem datas reais do radar a oportunidade é descartada: não inventamos
+    // datas. Mesmo assim a tentativa é confirmada e não volta à fila.
     for (const d of ofertas.slice(0, datesPerRoute)) {
       selecionadas.push({
         signature: candidateSignature({
@@ -839,17 +885,17 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         radar_external_url: d.externalUrl,
       });
     }
-    });
-    for (const l of lote) {
-      const idx = restantesFila.findIndex((r) => r.signature === l.signature);
-      if (idx >= 0) restantesFila.splice(idx, 1);
-    }
+    restantesFila.shift();
+    datesDone++;
     await gravarCheckpoint("datas", {
       pendingLeads: restantesFila,
       candidates: selecionadas,
       metrics,
       dedupTotal,
+      datesTotal,
+      datesDone,
     });
+    progresso(`Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`);
   }
 
 
