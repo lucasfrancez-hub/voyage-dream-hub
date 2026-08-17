@@ -9,6 +9,7 @@
  * Nada aqui altera o fluxo atual de ida e volta / só ida.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { FiltersAside } from "@/components/search/FiltersAside";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -92,6 +93,7 @@ export type FlightUi = {
     loading?: boolean;
     priceRange?: { minPrice: number; maxPrice: number } | null;
   }>;
+  activeCount?: (f: any) => number;
   EMPTY_FILTERS: any;
   applyFilters: (list: OnerFlight[], f: any) => OnerFlight[];
   cityCodes: Set<string>;
@@ -683,7 +685,10 @@ export function MultiCityResults({
 
       {atual && !prontoParaResumo && (
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-          <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+          <FiltersAside
+            count={ui.activeCount ? ui.activeCount(filtroAtual) : 0}
+            className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1"
+          >
             <ui.FiltersPanel
               title={`Filtros • Trecho ${active + 1}`}
               flights={todosVoos}
@@ -691,7 +696,7 @@ export function MultiCityResults({
               onChange={(f) => setFilters((prev) => ({ ...prev, [active]: f }))}
               priceRange={atual.result?.outbound.priceRange ?? null}
             />
-          </aside>
+          </FiltersAside>
         <section className="space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-lg font-semibold">
