@@ -1786,9 +1786,22 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
       // lote em andamento em outra invocação
       if (parada < 90_000) return { resumed: false as const, reason: "validando" };
     }
+
+    // NADA PENDENTE, MAS TAMBÉM NADA VALIDADO: a fila foi zerada por mortes de
+    // worker, não por validação. Ressuscita as candidatas e volta a trabalhar
+    // imediatamente, em vez de encerrar a execução com 0 validadas.
+    if (run.phase === "validando") {
+      const revive = await reviveWorkerKilledCandidates(client, run.id);
+      if (revive.revived > 0) {
+        const res = await processPendingCandidates({ runId: run.id, budgetMs });
+        return { resumed: true as const, runId: run.id, reason: "revividas", ...res };
+      }
+    }
+
     await finalizePromoRun(run.id);
     return { resumed: false as const, reason: "finalizada" };
   }
+
 
   // LEASE: com orçamento de vários minutos, o cron de 1 minuto dispararia
   // invocações sobrepostas e multiplicaria a carga no motor. Só uma invocação
