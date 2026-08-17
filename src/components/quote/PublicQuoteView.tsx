@@ -721,6 +721,59 @@ function ParcelamentoModal({
   );
 }
 
+function ResumoTimeline({
+  itens,
+}: {
+  itens: Array<{ key: string; dia: string | null; tipo: string; titulo: string; sub: string | null }>;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const drag = useRef<{ x: number; left: number; ativo: boolean }>({ x: 0, left: 0, ativo: false });
+
+  const onDown = (e: React.PointerEvent) => {
+    const el = ref.current;
+    if (!el) return;
+    drag.current = { x: e.clientX, left: el.scrollLeft, ativo: true };
+    el.classList.add("is-dragging");
+  };
+  const onMove = (e: React.PointerEvent) => {
+    const el = ref.current;
+    if (!el || !drag.current.ativo) return;
+    el.scrollLeft = drag.current.left - (e.clientX - drag.current.x);
+  };
+  const finish = () => {
+    drag.current.ativo = false;
+    ref.current?.classList.remove("is-dragging");
+  };
+
+  return (
+    <div
+      className="vq-resumo-scroll"
+      ref={ref}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={finish}
+      onPointerLeave={finish}
+    >
+      <div className="vq-resumo-line" style={{ gridTemplateColumns: `repeat(${itens.length}, minmax(170px, 1fr))` }}>
+        {itens.map((r, i) => {
+          const Icon =
+            r.tipo === "voo" ? IconPlane : r.tipo === "hotel" ? IconHotel
+              : (SIMPLE_ICONS[r.tipo as keyof typeof SIMPLE_ICONS] ?? IconTransfer);
+          return (
+            <div className="vq-resumo-stop" key={r.key}>
+              <span className="vq-resumo-date">{r.dia ? dataCurta(r.dia) : "A definir"}</span>
+              <span className={`vq-resumo-dot${r.tipo === "voo" ? " is-alt" : ""}`}><Icon /></span>
+              <strong>{r.titulo}</strong>
+              {r.sub ? <small>{r.sub}</small> : null}
+              {i === 0 ? null : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PaymentBox({ quote }: { quote: PublicQuote }) {
   const metodos = quote.payment.methods;
   const [tab, setTab] = useState<"CARD" | "BOLETO" | "PIX">(metodos[0] ?? "CARD");
@@ -1093,7 +1146,8 @@ function QuoteBody({
     };
   }, [quote.destination]);
 
-  const heroImage = fotoDestino || hotels.map((h) => h.photos?.[0]).find(Boolean) || heroFallback.url;
+  // Hero sempre é a foto do destino (nunca a foto de um hotel do roteiro).
+  const heroImage = fotoDestino || heroFallback.url;
 
 
   const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
@@ -1344,21 +1398,7 @@ function QuoteBody({
               </div>
               <span className="vq-tag">{resumo.length} etapa(s)</span>
             </div>
-            <div className="vq-resumo">
-              {resumo.map((r) => {
-                const Icon =
-                  r.tipo === "voo" ? IconPlane : r.tipo === "hotel" ? IconHotel
-                    : (SIMPLE_ICONS[r.tipo as keyof typeof SIMPLE_ICONS] ?? IconTransfer);
-                return (
-                  <div className="vq-resumo-item" key={r.key}>
-                    <span className="vq-resumo-icon"><Icon /></span>
-                    <strong>{r.titulo}</strong>
-                    {r.sub ? <small>{r.sub}</small> : null}
-                    <small className="vq-resumo-data">{r.dia ? dataCurta(r.dia) : "Data a definir"}</small>
-                  </div>
-                );
-              })}
-            </div>
+            <ResumoTimeline itens={resumo} />
           </section>
         ) : null}
 
