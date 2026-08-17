@@ -1069,14 +1069,15 @@ export async function processPendingCandidates(args: {
 
   const worker = async (workerId: number) => {
     // Sai antes do fim do orçamento: nada de aceitar trabalho que não cabe.
-    while (Date.now() < deadline - custoMaximoCandidata) {
+    while (Date.now() < deadline - CUSTO_MINIMO_MS) {
       if (cancelada || abortController.signal.aborted || (await cancelamentoPedido())) {
         cancelada = true;
         abortController.abort();
         return;
       }
-      const cand = await claimNext(workerId);
-      if (!cand) return;
+      const reserva = await claimNext(workerId);
+      if (!reserva) return;
+      const { cand, timeoutMs } = reserva;
 
 
       tele.running++;
@@ -1098,8 +1099,8 @@ export async function processPendingCandidates(args: {
       const onGlobalAbort = () => abortarJob("cancelado:execucao");
       abortController.signal.addEventListener("abort", onGlobalAbort, { once: true });
       const timerJob = setTimeout(
-        () => abortarJob(`timeout:candidata:${CANDIDATE_TIMEOUT_MS}ms`),
-        CANDIDATE_TIMEOUT_MS,
+        () => abortarJob(`timeout:candidata:${timeoutMs}ms`),
+        timeoutMs,
       );
 
       emVoo.set(workerId, {
@@ -1109,6 +1110,7 @@ export async function processPendingCandidates(args: {
         startedAt: iniciou,
         lastActivity: iniciou,
         attempt: tentativa,
+        timeoutMs,
         status: "VALIDATING",
       });
       const marcarAtividade = () => {
@@ -1120,12 +1122,13 @@ export async function processPendingCandidates(args: {
         // Rede de segurança: se nem o abort soltar (código travado fora de I/O),
         // a promessa é descartada e o slot volta para a fila mesmo assim.
         label = await withTimeout(
-          processar(cand, saida, jobCtrl.signal, marcarAtividade),
-          CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS,
+          processar(cand, saida, jobCtrl.signal, marcarAtividade, timeoutMs),
+          timeoutMs + WATCHDOG_GRACE_MS,
           "candidata",
           abortController.signal,
         );
       } catch (err) {
+
         const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
         // cancelamento da EXECUÇÃO: não marcamos a candidata como erro
         if (abortController.signal.aborted || /^cancelado:execucao/i.test(msg)) {
