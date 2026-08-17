@@ -68,6 +68,12 @@ function ddmmyyyy(iso: string) {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Navega a aba atual (Page.navigate) e dá um tempo pro contexto reconstruir. */
+async function navegar(cdp: ExpediaCdp, url: string) {
+  await cdp.send("Page.navigate", { url }).catch(() => null);
+  await sleep(2500);
+}
+
 /** Autocomplete de estações/cidades. */
 export async function omioSugerir(termo: string, locale = "en"): Promise<OmioPosition[]> {
   const url = suggesterUrl(termo, locale);
@@ -171,13 +177,14 @@ export async function omioBuscar(input: {
 
     if (!searchId) {
       diag.push(`POST não redirecionou (última URL: ${urlResultados || "desconhecida"}) — tentando GET`);
-      await cdp.navigate(searchTriggerGetUrl(params));
+      await navegar(cdp, searchTriggerGetUrl(params));
       ({ searchId, url: urlResultados } = await aguardarSearchId(12));
     }
 
     if (!searchId) {
       diag.push("GET também não redirecionou — tentando deep link de resultados");
-      await cdp.navigate(
+      await navegar(
+        cdp,
         deepLinkResultsUrl({
           departureFk: input.origemId,
           arrivalFk: input.destinoId,
