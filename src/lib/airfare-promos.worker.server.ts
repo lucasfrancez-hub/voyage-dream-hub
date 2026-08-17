@@ -398,7 +398,10 @@ export async function processPendingCandidates(args: {
   /** Cancelar interrompe novos jobs E aborta o que já está em voo. */
   const abortController = new AbortController();
 
-  await releaseStaleClaims(client, runId);
+  // RECUPERAÇÃO OBRIGATÓRIA antes de qualquer novo claim.
+  const recuperacao = await recoverOrphanClaims(client, runId, PROMO_VALIDATION_MAX_ATTEMPTS);
+  let claimsRecusadosPorOrcamento = 0;
+
 
   const { data: run } = await client
     .from("airfare_promo_runs")
