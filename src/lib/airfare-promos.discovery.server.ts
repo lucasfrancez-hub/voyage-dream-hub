@@ -779,7 +779,20 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         radar_external_url: d.externalUrl,
       });
     }
-  });
+    });
+    for (const l of lote) {
+      const idx = restantesFila.findIndex((r) => r.signature === l.signature);
+      if (idx >= 0) restantesFila.splice(idx, 1);
+    }
+    await gravarCheckpoint("datas", {
+      pendingLeads: restantesFila,
+      candidates: selecionadas,
+      metrics,
+      dedupTotal,
+    });
+  }
+
+
 
   // dedup final por assinatura (origem|destino|datas)
   const finais = new Map<string, PromoCandidate>();
