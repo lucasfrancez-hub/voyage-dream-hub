@@ -67,15 +67,34 @@ type QuoteRow = {
   end_date: string | null;
 };
 
+/** Garante que a opção existe (e com todos os arrays) dentro do normalized. */
+export function garantirOpcao(normalized: NormalizedQuote, optionNumber: number): NormalizedOption {
+  let opt = normalized.options.find((o) => o.optionNumber === optionNumber);
+  if (!opt) {
+    opt = emptyOption(optionNumber);
+    opt.label = `Opção ${optionNumber}`;
+    opt.currency = normalized.currency ?? "BRL";
+    normalized.options.push(opt);
+  }
+  opt.hotels ??= [];
+  opt.flights ??= [];
+  opt.services ??= [];
+  opt.transfers ??= [];
+  opt.activities ??= [];
+  opt.tickets ??= [];
+  opt.insurance ??= [];
+  opt.cars ??= [];
+  return opt;
+}
+
 /**
- * Carrega o orçamento, aplica a mutação na opção pedida e grava tudo de volta.
- * Recalcula o total da opção (soma dos itens) e o total do orçamento.
+ * Carrega o orçamento, aplica a mutação no normalized inteiro e grava de volta,
+ * recalculando o total de cada opção e o total do orçamento.
  */
-export async function mutateQuoteOption(
+export async function mutateQuoteNormalized(
   quoteId: string,
-  optionNumber: number,
-  mutate: (opt: NormalizedOption, normalized: NormalizedQuote) => void,
-): Promise<{ total: number; optionTotal: number }> {
+  mutate: (normalized: NormalizedQuote) => void,
+): Promise<{ total: number; options: NormalizedOption[] }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { syncQuoteOptions } = await import("./import.server");
 
@@ -100,32 +119,18 @@ export async function mutateQuoteOption(
     normalized.options = [base];
   }
 
-  let opt = normalized.options.find((o) => o.optionNumber === optionNumber);
-  if (!opt) {
-    opt = emptyOption(optionNumber);
-    opt.label = `Opção ${optionNumber}`;
-    opt.currency = normalized.currency ?? "BRL";
-    normalized.options.push(opt);
+  mutate(normalized);
+
+  for (const o of normalized.options) {
+    garantirOpcao(normalized, o.optionNumber);
+    const soma = somaOpcao(o);
+    o.total = soma > 0 ? soma : (o.total ?? null);
+    o.currency ??= "BRL";
   }
-  // Garante os arrays mesmo em orçamentos antigos gravados sem eles.
-  opt.hotels ??= [];
-  opt.flights ??= [];
-  opt.services ??= [];
-  opt.transfers ??= [];
-  opt.activities ??= [];
-  opt.tickets ??= [];
-  opt.insurance ??= [];
-  opt.cars ??= [];
-
-  mutate(opt, normalized);
-
-  const optionTotal = somaOpcao(opt);
-  opt.total = optionTotal > 0 ? optionTotal : (opt.total ?? null);
-  opt.currency ??= "BRL";
   normalized.options.sort((a, b) => a.optionNumber - b.optionNumber);
   espelharTopo(normalized);
 
-  const totalOrcamento = Number(normalized.options[0]?.total ?? optionTotal ?? 0);
+  const totalOrcamento = Number(normalized.options[0]?.total ?? 0);
   normalized.total = totalOrcamento || null;
 
   const { error: upErr } = await supabaseAdmin
@@ -140,8 +145,24 @@ export async function mutateQuoteOption(
   if (upErr) throw new Error(upErr.message);
 
   await syncQuoteOptions(quoteId, normalized);
-  return { total: totalOrcamento, optionTotal };
+  return { total: totalOrcamento, options: normalized.options };
 }
+
+/** Carrega o orçamento, aplica a mutação na opção pedida e grava tudo de volta. */
+export async function mutateQuoteOption(
+  quoteId: string,
+  optionNumber: number,
+  mutate: (opt: NormalizedOption, normalized: NormalizedQuote) => void,
+): Promise<{ total: number; optionTotal: number }> {
+  let optionTotal = 0;
+  const r = await mutateQuoteNormalized(quoteId, (normalized) => {
+    const opt = garantirOpcao(normalized, optionNumber);
+    mutate(opt, normalized);
+  });
+  optionTotal = Number(r.options.find((o) => o.optionNumber === optionNumber)?.total ?? 0);
+  return { total: r.total, optionTotal };
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Leitura de documento por IA                                         */
