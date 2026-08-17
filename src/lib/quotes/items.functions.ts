@@ -254,3 +254,30 @@ export const removerOpcaoOrcamento = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+/** Altera apenas o valor (total) de um item — usado na aba Financeiro. */
+export const atualizarValorItemOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        quoteId: z.string().uuid(),
+        optionNumber: z.number().int().min(1).max(20).default(1),
+        kind: KindSchema,
+        index: z.number().int().min(0),
+        total: z.number().min(0).max(10_000_000).nullable(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context.supabase as never, context.userId);
+    const { mutateQuoteOption } = await import("./items.server");
+
+    return mutateQuoteOption(data.quoteId, data.optionNumber, (opt) => {
+      const lista =
+        data.kind === "hotel" ? opt.hotels : data.kind === "flight" ? opt.flights : opt.services;
+      const item = lista[data.index] as { total?: number | null } | undefined;
+      if (!item) throw new Error("Item não encontrado");
+      item.total = data.total;
+    });
+  });

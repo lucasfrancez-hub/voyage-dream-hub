@@ -24,6 +24,7 @@ import { QuoteItemsToolbar } from "@/components/quotes/QuoteItemsToolbar";
 import { QuoteItemFormDialog, type QuoteItemKind } from "@/components/quotes/QuoteItemFormDialog";
 import {
   removerItemOrcamento, criarOpcaoOrcamento, renomearOpcaoOrcamento, removerOpcaoOrcamento,
+  atualizarValorItemOrcamento,
 } from "@/lib/quotes/items.functions";
 import type { NormalizedFlight, NormalizedGenericItem, NormalizedHotel } from "@/lib/quotes/types";
 import { AirlineLogo } from "@/components/AirlineLogo";
@@ -175,7 +176,21 @@ function QuoteDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro na opção"),
   });
 
+  const atualizarValor = useServerFn(atualizarValorItemOrcamento);
+  const [valorEdit, setValorEdit] = useState<{ kind: QuoteItemKind; index: number; valor: string } | null>(null);
+  const valorMutation = useMutation({
+    mutationFn: (v: { kind: QuoteItemKind; index: number; total: number | null }) =>
+      atualizarValor({ data: { quoteId: id, optionNumber: optNum, kind: v.kind, index: v.index, total: v.total } }),
+    onSuccess: () => {
+      setValorEdit(null);
+      toast.success("Valor atualizado");
+      recarregarItens();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar valor"),
+  });
+
   const removerItem = useServerFn(removerItemOrcamento);
+
 
   const recarregarItens = () => {
     void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] });
@@ -221,26 +236,36 @@ function QuoteDetailPage() {
   const somaHoteis = hoteis.reduce((a, h) => a + Number(h.total ?? 0), 0);
   const somaVoos = voos.reduce((a, f) => a + Number(f.total ?? 0), 0);
   const somaServicos = servicos.reduce((a, s) => a + Number(s.total ?? 0), 0);
-  const linhasFinanceiro: Array<{ item: string; tipo: string; periodo: string; total: number }> = [
-    ...hoteis.map((h) => ({
+  const linhasFinanceiro: Array<{
+    item: string; tipo: string; periodo: string; total: number;
+    kind: QuoteItemKind | null; index: number;
+  }> = [
+    ...hoteis.map((h, i) => ({
       item: h.name,
       tipo: "Hospedagem",
       periodo: `${dt(h.checkin)} → ${dt(h.checkout)}`,
       total: Number(h.total ?? 0),
+      kind: "hotel" as QuoteItemKind,
+      index: i,
     })),
-    ...voos.map((f) => ({
+    ...voos.map((f, i) => ({
       item: `${f.airline ?? "Voo"} — ${f.fromIata ?? "—"} → ${f.toIata ?? "—"}`,
       tipo: f.direction === "INBOUND" ? "Aéreo (volta)" : "Aéreo (ida)",
       periodo: dt(f.departure),
       total: Number(f.total ?? 0),
+      kind: "flight" as QuoteItemKind,
+      index: i,
     })),
-    ...servicos.map((s) => ({
+    ...servicos.map((s, i) => ({
       item: s.name,
       tipo: "Serviço",
       periodo: s.date ? dt(s.date) : "—",
       total: Number(s.total ?? 0),
+      kind: i < servicosProprios ? ("service" as QuoteItemKind) : null,
+      index: i,
     })),
   ];
+
 
 
   if (isLoading) {
@@ -831,14 +856,58 @@ function QuoteDetailPage() {
                   {linhasFinanceiro.length === 0 && (
                     <tr><td colSpan={4} className="py-6 text-center text-xs text-muted-foreground">Nenhum item neste orçamento.</td></tr>
                   )}
-                  {linhasFinanceiro.map((l, i) => (
-                    <tr key={i} className="border-b border-border/50">
-                      <td className="py-2 px-2 text-xs">{l.item}</td>
-                      <td className="py-2 px-2 text-xs">{l.tipo}</td>
-                      <td className="py-2 px-2 text-xs">{l.periodo}</td>
-                      <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(l.total)}</td>
-                    </tr>
-                  ))}
+                  {linhasFinanceiro.map((l, i) => {
+                    const editando =
+                      !!l.kind && valorEdit?.kind === l.kind && valorEdit?.index === l.index;
+                    const salvar = () => {
+                      if (!l.kind) return;
+                      const bruto = (valorEdit?.valor ?? "").trim().replace(/\./g, "").replace(",", ".");
+                      const n = bruto === "" ? null : Number(bruto);
+                      if (n != null && !Number.isFinite(n)) { toast.error("Valor inválido"); return; }
+                      valorMutation.mutate({ kind: l.kind, index: l.index, total: n });
+                    };
+                    return (
+                      <tr key={i} className="border-b border-border/50">
+                        <td className="py-2 px-2 text-xs">{l.item}</td>
+                        <td className="py-2 px-2 text-xs">{l.tipo}</td>
+                        <td className="py-2 px-2 text-xs">{l.periodo}</td>
+                        <td className="py-2 px-2 text-right text-xs font-semibold">
+                          {editando ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Input
+                                autoFocus
+                                inputMode="decimal"
+                                className="h-8 w-28 text-right"
+                                value={valorEdit?.valor ?? ""}
+                                onChange={(e) => setValorEdit({ kind: l.kind!, index: l.index, valor: e.target.value })}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") salvar();
+                                  if (e.key === "Escape") setValorEdit(null);
+                                }}
+                              />
+                              <Button size="sm" className="h-8" disabled={valorMutation.isPending} onClick={salvar}>OK</Button>
+                              <Button size="sm" variant="ghost" className="h-8" onClick={() => setValorEdit(null)}>×</Button>
+                            </span>
+                          ) : l.kind ? (
+                            <button
+                              type="button"
+                              title="Clique para alterar o valor"
+                              className="inline-flex items-center gap-1 rounded px-1.5 py-1 hover:bg-muted"
+                              onClick={() =>
+                                setValorEdit({ kind: l.kind!, index: l.index, valor: l.total ? String(l.total) : "" })
+                              }
+                            >
+                              {formatBRL(l.total)}
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </button>
+                          ) : (
+                            formatBRL(l.total)
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+
                 </tbody>
                 <tfoot>
                   <tr>
