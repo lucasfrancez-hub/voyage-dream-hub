@@ -202,9 +202,9 @@ function TesteCheckoutOwnerPage() {
 
 
   const gravarMut = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       addLog({ ok: true, texto: "passageiros enviados" });
-      return gravar({
+      const r = await gravar({
         data: {
           cartId: cartId!,
           token: token!,
@@ -227,20 +227,32 @@ function TesteCheckoutOwnerPage() {
           })),
         },
       });
+      if (!r.success) return { r, confirmado: false };
+      setStatus("Aguardando processamento dos passageiros...");
+      await aguardar((c) => c.checkoutPronto, "Aguardando processamento dos passageiros");
+      return { r, confirmado: true };
     },
-    onSuccess: (r) => {
-      if (r.success && r.checkoutUrl) {
-        addLog({ ok: true, texto: "passageiros gravados" });
-        setCheckout(r.checkoutUrl);
-        addLog({ ok: true, texto: "checkout final criado", detalhe: r.checkoutUrl });
-      } else {
-        logErro("Falha ao gravar passageiros", r.call);
+    onSuccess: ({ r, confirmado }) => {
+      if (!r.success || !r.checkoutUrl) {
+        setStatus(null);
+        return logErro("Falha ao gravar passageiros", r.call);
       }
+      addLog({ ok: true, texto: "passageiros gravados" });
+      if (confirmado) {
+        setStatus("Checkout pronto");
+        addLog({ ok: true, texto: "Owner confirmou passageiros — checkout pronto" });
+      }
+      setCheckout(r.checkoutUrl);
+      addLog({ ok: true, texto: "checkout final criado", detalhe: r.checkoutUrl });
     },
-    onError: (e: Error) => logErro(e.message),
+    onError: (e: Error) => {
+      setStatus(null);
+      logErro(e.message);
+    },
   });
 
-  const resumo = carrinhoMut.data?.resumo ?? null;
+  const resumo = ultimaConsulta?.resumo ?? carrinhoMut.data?.resumo ?? null;
+
   const podeConsultar = Boolean(cartId && token);
   const copiar = async (url: string) => {
     await navigator.clipboard.writeText(url);
