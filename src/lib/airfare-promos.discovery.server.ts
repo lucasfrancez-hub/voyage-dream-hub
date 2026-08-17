@@ -265,13 +265,13 @@ type DiscoverOptions = {
 };
 
 /** margem mínima para começar mais uma origem/lote sem morrer no meio */
-// A invocação real vive bem menos que o orçamento teórico (mede-se ~25-30s).
-// Por isso a fatia de cada origem é curta: o que importa é FECHAR a origem e
-// gravar o checkpoint dentro da invocação, não varrer tudo de uma vez.
+// O checkpoint permite processar poucas origens por invocação sem perder
+// progresso. A fatia precisa comportar ao menos um timeout de rede (12s),
+// backoff e uma segunda tentativa; 14s tornava o retry impossível.
 const SLICE_MIN_MS = 10_000;
 const BATCH_MIN_MS = 10_000;
-/** teto de tempo de UMA origem (o radar responde em ~3-8s por origem) */
-const ORIGIN_SLICE_MAX_MS = 14_000;
+/** Mesmo prazo usado pelo diagnóstico isolado, agora também no fluxo real. */
+const ORIGIN_SLICE_MAX_MS = 25_000;
 
 /**
  * Descoberta 100% via API JSON do Melhores Destinos (radar).

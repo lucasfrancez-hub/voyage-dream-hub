@@ -70,7 +70,6 @@ export const Route = createFileRoute("/api/public/hooks/airfare-promos")({
           // DIAGNÓSTICO do radar no runtime real (sem criar execução nem gravar nada).
           if (body.trigger === "radar_diag") {
             const radar = await import("@/lib/melhores-destinos.radar-api.server");
-            radar.resetRadarMetrics();
             const origem = (body as { origin?: string }).origin ?? "MGF";
             const t0 = Date.now();
             let erro: string | null = null;
