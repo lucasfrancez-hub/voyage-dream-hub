@@ -488,3 +488,28 @@
   border-left: 2px solid rgba(19, 93, 156, 0.18);
 }
 .vq-roteiro-voos .vq-roteiro-num svg { width: 14px; height: 14px; }
+
+/* Boleto — submenus, grade 5x2 e modal de detalhamento */
+.vq-subtabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.vq-subtab { border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 9px 14px; font-size: 13px; font-weight: 800; color: #63738a; cursor: pointer; }
+.vq-subtab[data-active="true"] { border-color: var(--orange); color: #9a4e09; background: #fff8f0; box-shadow: 0 0 0 2px rgba(243,154,54,.14); }
+
+.vq-modal-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(8,28,46,.45); backdrop-filter: blur(3px); display: grid; place-items: center; padding: 16px; }
+.vq-modal { width: 100%; max-width: 520px; background: #fff; border: 1px solid #dbe5ee; border-radius: 20px; box-shadow: 0 22px 60px rgba(15,36,60,.22); overflow: hidden; max-height: 86vh; display: flex; flex-direction: column; }
+.vq-modal-head { padding: 18px 20px 14px; border-bottom: 1px solid #edf1f5; display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.vq-modal-head h3 { margin: 0; font-size: 18px; color: var(--blue); }
+.vq-modal-head p { margin: 5px 0 0; font-size: 12px; color: var(--muted); }
+.vq-modal-close { width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 18px; color: #66768c; cursor: pointer; }
+.vq-modal-schedule { padding: 8px 18px 14px; overflow: auto; }
+.vq-modal-row { display: grid; grid-template-columns: 1.15fr .85fr .85fr; gap: 10px; align-items: center; padding: 11px 2px; border-bottom: 1px solid #edf1f5; }
+.vq-modal-row:last-child { border-bottom: 0; }
+.vq-modal-row .label { font-weight: 800; font-size: 13px; }
+.vq-modal-row .date { color: #66778d; font-size: 12px; }
+.vq-modal-row .value { text-align: right; font-weight: 900; color: var(--blue); font-size: 12px; }
+.vq-modal-foot { padding: 14px 20px 18px; border-top: 1px solid #edf1f5; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #fafcff; }
+.vq-modal-foot small { color: var(--muted); }
+.vq-modal-btn { border: 0; border-radius: 12px; background: var(--blue); color: #fff; padding: 11px 16px; font-weight: 800; cursor: pointer; }
+@media (max-width: 560px) {
+  .vq-modal-row { grid-template-columns: 1fr auto; }
+  .vq-modal-row .value { grid-column: 2; text-align: right; }
+}
