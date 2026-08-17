@@ -178,6 +178,8 @@ export function ItemDialog({
     [siblings, kind]
   );
 
+  const [moneyRaw, setMoneyRaw] = useState<Record<string, string>>({});
+
   useMemo(() => {
     setTitle(initial?.title ?? "");
     setLocator(initial?.supplier_locator ?? "");
@@ -229,7 +231,6 @@ export function ItemDialog({
   const setField = (k: string, v: string | boolean) => setDetails((p) => ({ ...p, [k]: v }));
   // Enquanto o usuário digita, preservamos exatamente o que ele escreveu (com vírgula/ponto).
   // O valor normalizado só é gravado em `details`, e o texto cru some ao fechar/salvar.
-  const [moneyRaw, setMoneyRaw] = useState<Record<string, string>>({});
   const setMoneyField = (k: string, v: string) => {
     const limpo = v.replace(/[^\d.,]/g, "");
     setMoneyRaw((p) => ({ ...p, [k]: limpo }));
