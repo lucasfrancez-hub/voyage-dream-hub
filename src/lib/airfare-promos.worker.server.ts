@@ -523,6 +523,8 @@ export async function processPendingCandidates(args: {
     }));
 
 
+  let orfaosAgora = 0;
+
   const telemetria = (): ValidationTelemetry => ({
     concurrency,
     ...tele,
@@ -531,11 +533,16 @@ export async function processPendingCandidates(args: {
       : null,
     p95_duration_ms: percentil(duracoes, 95),
     failures: falhas.slice(0, 10),
+    // "Em processamento agora" = SOMENTE jobs com heartbeat vivo nesta invocação.
     in_flight: heartbeat(),
     candidate_timeout_ms: CANDIDATE_TIMEOUT_MS,
+    orphans: orfaosAgora,
+    recovered: recuperacao.recovered,
+    dead_worker_failures: recuperacao.failed,
+    claims_skipped_budget: claimsRecusadosPorOrcamento,
     updated_at: new Date().toISOString(),
-
   });
+
 
 
 
