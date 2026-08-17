@@ -3,6 +3,8 @@
  * A frase é aleatória, mas estável por orçamento (seed = publicId).
  */
 
+import { nomeDestino } from "./destination-name";
+
 function hash(seed: string): number {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {
@@ -13,9 +15,7 @@ function hash(seed: string): number {
 }
 
 function limpaDestino(destino?: string | null): string | null {
-  const d = (destino ?? "").split(/[-–—,(]/)[0].trim();
-  if (!d || /^sua viagem$/i.test(d)) return null;
-  return d;
+  return nomeDestino(destino);
 }
 
 /**

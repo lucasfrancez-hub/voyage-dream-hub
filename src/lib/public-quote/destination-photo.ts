@@ -6,8 +6,10 @@
 
 const cache = new Map<string, string | null>();
 
+import { nomeDestino } from "./destination-name";
+
 function limparDestino(destino: string): string {
-  return destino
+  return (nomeDestino(destino) ?? destino)
     .replace(/\s*[-–—/|]\s*.*$/, "")
     .replace(/\(.*?\)/g, "")
     .replace(/\b(aeroporto|internacional|brasil|br)\b/gi, "")
@@ -30,6 +32,25 @@ async function buscarWiki(lang: string, termo: string): Promise<string | null> {
   }
 }
 
+/** Última tentativa: pesquisa na Wikipédia e usa a imagem do 1º resultado. */
+async function buscarPorPesquisa(lang: string, termo: string): Promise<string | null> {
+  try {
+    const r = await fetch(
+      `https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=1&gsrsearch=${encodeURIComponent(
+        termo,
+      )}&prop=pageimages&piprop=original`,
+    );
+    if (!r.ok) return null;
+    const j: any = await r.json();
+    const pages = j?.query?.pages ? Object.values(j.query.pages) : [];
+    const src: string | undefined = (pages[0] as any)?.original?.source;
+    if (!src || /\.svg($|\?)/i.test(src)) return null;
+    return src;
+  } catch {
+    return null;
+  }
+}
+
 export async function fotoDoDestino(destino?: string | null): Promise<string | null> {
   const base = limparDestino(destino ?? "");
   if (!base) return null;
@@ -38,7 +59,8 @@ export async function fotoDoDestino(destino?: string | null): Promise<string | n
   let url =
     (await buscarWiki("pt", base)) ??
     (await buscarWiki("pt", `${base} (cidade)`)) ??
-    (await buscarWiki("en", base));
+    (await buscarWiki("en", base)) ??
+    (await buscarPorPesquisa("pt", base));
 
   cache.set(base, url);
   return url;
