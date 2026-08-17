@@ -125,7 +125,13 @@ export function AirportAutocomplete({
   return (
     <div ref={boxRef} className="relative">
       <Input
-        className={className}
+        /* O valor é IATA (maiúsculo), mas o texto de apoio é frase normal e
+           menor — no mobile o placeholder em caixa alta estourava o campo. */
+        className={cn(
+          "placeholder:text-xs placeholder:font-medium placeholder:normal-case placeholder:tracking-normal sm:placeholder:text-sm",
+          className,
+        )}
+
         value={text}
         placeholder={placeholder}
         autoComplete="off"
