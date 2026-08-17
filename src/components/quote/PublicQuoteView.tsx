@@ -944,12 +944,11 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
                 ))}
               </div>
               <p className="vq-boleto-note">
-                A entrada é paga na contratação e a quitação total acontece até 30 dias antes da
-                viagem
+                Quitação deve ocorrer até 30 dias antes da viagem
                 {boleto.untilTravel?.lastDueDate
                   ? ` (${brDateIso(boleto.untilTravel.lastDueDate)})`
                   : ""}
-                . Clique em uma opção para ver todas as datas.
+                . Clique em uma opção para ver todas as datas de vencimento.
               </p>
             </>
           ) : null}
