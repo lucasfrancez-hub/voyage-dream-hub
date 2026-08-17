@@ -185,6 +185,8 @@ export function ItemDialog({
     const d0 = cleanDetails(initial?.details);
     if (kind === "hotel" && !d0.guests && guestsFromPax) d0.guests = guestsFromPax;
     setDetails(d0);
+    setMoneyRaw({});
+
     preservedExtrasRef.current = extractExtras(initial?.details);
     preservedSiblingExtrasRef.current = kind === "flight"
       ? Object.fromEntries((siblings ?? []).filter((s) => s.id).map((s) => [s.id!, extractExtras(s.details)]))
