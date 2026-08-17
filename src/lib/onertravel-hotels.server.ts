@@ -140,6 +140,21 @@ export const hotelSearchInput = z.object({
 });
 
 function buildLoc(p: z.infer<typeof hotelSearchInput>) {
+  // Aéreo + Hotel: contexto /combined/hotel com a MESMA searchKey da jornada.
+  if (p.combinedKey) {
+    return combinedHotelHref({
+      combinedKey: p.combinedKey,
+      pointId: p.pointId,
+      pointType: p.pointType,
+      checkIn: p.checkIn,
+      checkOut: p.checkOut,
+      rooms: p.rooms.map((r) => ({
+        numberOfAdults: r.adults,
+        numberOfChilds: r.children,
+        agesOfChild: r.childrenAges,
+      })),
+    });
+  }
   const q = new URLSearchParams({
     numberOfAdults: String(p.rooms.reduce((a, r) => a + r.adults, 0)),
     numberOfChild: String(p.rooms.reduce((a, r) => a + r.children, 0)),
