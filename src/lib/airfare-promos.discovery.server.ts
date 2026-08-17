@@ -285,16 +285,37 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
 
   // ------------------------------------------------------------------
   // 1) RADAR — categorias → destinos monitorados de cada origem
+  //    Cada origem recebe uma FATIA JUSTA do orçamento de leads: assim as
+  //    últimas da lista (GIG, BSB, POA) nunca ficam sem tempo de varredura.
   // ------------------------------------------------------------------
   let radarErrors = 0;
+  /** status de cada origem configurada nesta execução (nada some em silêncio) */
+  const statusOrigem = new Map<string, { status: string; note: string | null }>();
+  for (const o of PRIORITY_ORIGINS) statusOrigem.set(o, { status: "nao_processada", note: null });
+
+  const totalOrigens = PRIORITY_ORIGINS.length;
+  let indiceOrigem = 0;
   for (const origem of PRIORITY_ORIGINS) {
-    if (cancelada || semTempoLeads()) break;
+    indiceOrigem++;
+    if (cancelada) {
+      statusOrigem.set(origem, { status: "nao_processada", note: "execução cancelada" });
+      continue;
+    }
+    if (semTempoLeads()) {
+      statusOrigem.set(origem, { status: "sem_tempo", note: "orçamento de radar esgotado antes desta origem" });
+      console.warn(`[airfare-radar] WARNING origem ${origem} habilitada, mas não entrou no radar: sem tempo`);
+      continue;
+    }
+    // fatia justa: tempo restante ÷ origens restantes
+    const restantes = Math.max(1, totalOrigens - indiceOrigem + 1);
+    const fatia = Math.max(20_000, Math.floor((leadsDeadline - Date.now()) / restantes));
+    const deadlineOrigem = Math.min(leadsDeadline, Date.now() + fatia);
     progresso(`Radar de oportunidades — ${origem}...`);
     try {
       const leads = await radarLeadsForOrigin(origem, {
         cancel,
         onProgress: progresso,
-        deadline: leadsDeadline,
+        deadline: deadlineOrigem,
       });
       for (const l of leads) {
         addLead({
@@ -311,14 +332,24 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
           dates: [],
         });
       }
+      const encontradas = pool.get(origem)?.size ?? 0;
+      statusOrigem.set(origem, {
+        status: encontradas ? "ok" : "sem_oportunidades",
+        note: encontradas ? null : `radar respondeu com ${leads.length} lead(s) aproveitável(is) para esta origem`,
+      });
     } catch (e) {
       if (e instanceof RadarCancelledError) {
         cancelada = true;
+        statusOrigem.set(origem, { status: "nao_processada", note: "execução cancelada" });
         break;
       }
       radarErrors++;
+      const msg = e instanceof Error ? e.message.slice(0, 200) : String(e).slice(0, 200);
+      statusOrigem.set(origem, { status: "erro_radar", note: msg });
+      console.warn(`[airfare-radar] WARNING origem ${origem} falhou no radar: ${msg}`);
     }
   }
+
 
   // §15 — se o atalho por origem não devolver nada, percorre o caminho
   // oficial da API: categorias → destinos → origens do destino → itinerário.
