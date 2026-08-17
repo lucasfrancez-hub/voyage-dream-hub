@@ -14,7 +14,7 @@ import {
   quotesToExtendedOptions,
   type MarkupTable,
 } from "@/lib/airfare-conditions";
-import type { OriginMetrics } from "@/lib/airfare-promos.config";
+import { INVOCATION_BUDGET_MS, type OriginMetrics } from "@/lib/airfare-promos.config";
 import { isMetroCode, resolveCity } from "@/lib/iata-lookup";
 import { encodePicks } from "@/lib/multicity";
 

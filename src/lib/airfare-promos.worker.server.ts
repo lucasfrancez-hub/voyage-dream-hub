@@ -30,7 +30,10 @@ type AnyClient = { from: (t: string) => any };
  * o cron do minuto seguinte entre lotes. Agora cada invocação trabalha por
  * vários minutos seguidos (com lease para o cron não sobrepor execuções).
  */
-export const WORKER_BUDGET_MS = Number(process.env["AIRFARE_WORKER_BUDGET_MS"] ?? 240_000);
+import { INVOCATION_BUDGET_MS } from "@/lib/airfare-promos.config";
+
+/** orçamento do worker = vida útil real da invocação (nunca acima) */
+export const WORKER_BUDGET_MS = INVOCATION_BUDGET_MS;
 
 /** Margem do lease além do orçamento (tolerância de finalização). */
 const WORKER_LEASE_SLACK_MS = 30_000;

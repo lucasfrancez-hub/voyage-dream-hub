@@ -299,5 +299,5 @@ export type OriginMetrics = {
  * (descoberta e validação) usa esse teto e grava checkpoint antes de encerrar.
  */
 export const INVOCATION_BUDGET_MS = Number(
-  process.env["AIRFARE_WORKER_BUDGET_MS"] ?? 100_000,
+  (typeof process !== "undefined" ? process.env?.["AIRFARE_WORKER_BUDGET_MS"] : undefined) ?? 100_000,
 );
