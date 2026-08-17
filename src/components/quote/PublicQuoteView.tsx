@@ -1228,6 +1228,7 @@ function QuoteBody({
 
   type Secao = { id: string; label: string; Icon: (p: { className?: string }) => ReactElement };
   const secoes: Secao[] = [];
+  if (resumo.length) secoes.push({ id: "resumo", label: "Resumo da viagem", Icon: IconCalendar });
   if (quote.itinerary) {
     if (roteiro.length)
       secoes.push({ id: "roteiro", label: "Roteiro completo", Icon: IconCalendar });
