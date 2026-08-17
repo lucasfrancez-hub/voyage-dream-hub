@@ -213,16 +213,21 @@ async function poll(
   let roundsWithFlights = 0;
 
   for (let i = 0; i < maxRounds; i++) {
+    if (signal?.aborted) throw new Error("cancelado:motor");
 
     let changed = false;
     let haveMore = false;
     let page = 1;
     do {
-      const res = await fetch(`${SERVERLESS}/api/flight/v1/search/${path}`, {
-        method: "POST",
-        headers: headers(loc),
-        body: JSON.stringify({ ...body, page }),
-      });
+      const res = await fetchMotor(
+        `${SERVERLESS}/api/flight/v1/search/${path}`,
+        {
+          method: "POST",
+          headers: headers(loc),
+          body: JSON.stringify({ ...body, page }),
+        },
+        signal,
+      );
       if (!res.ok) break;
       try {
         const json = (await res.json()) as {
@@ -249,7 +254,7 @@ async function poll(
       } catch {
         break;
       }
-    } while (haveMore && page <= 50);
+    } while (haveMore && page <= 50 && !signal?.aborted);
 
     stable = changed ? 0 : stable + 1;
     if (acc.size > 0) roundsWithFlights++;
@@ -261,8 +266,9 @@ async function poll(
       stable >= STABLE_ROUNDS;
     if (enough || Date.now() - startedAt > TIME_BUDGET_MS) break;
 
-    if (i + 1 < maxRounds) await sleep(GAP_MS);
+    if (i + 1 < maxRounds) await sleepCancelavel(GAP_MS, signal);
   }
+
 
   const flights = [...acc.entries()]
     .map(([signature, flight]) => {
