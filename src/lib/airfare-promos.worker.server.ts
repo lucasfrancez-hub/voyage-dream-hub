@@ -385,7 +385,10 @@ export async function processPendingCandidates(args: {
       : null,
     p95_duration_ms: percentil(duracoes, 95),
     failures: falhas.slice(0, 10),
+    in_flight: heartbeat(),
+    candidate_timeout_ms: CANDIDATE_TIMEOUT_MS,
     updated_at: new Date().toISOString(),
+
   });
 
 
