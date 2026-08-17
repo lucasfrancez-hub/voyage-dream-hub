@@ -470,6 +470,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       escolhidasPorOrigem.push({ origem, leads: res.selected, scope });
     }
 
+    const st = statusOrigem.get(origem);
     metrics.push({
       origin: origem,
       discovered: lista.length,
@@ -484,7 +485,16 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       no_result: 0,
       errors: 0,
       avg_seconds: null,
+      radar_status: st?.status ?? (lista.length ? "ok" : "sem_oportunidades"),
+      radar_note: st?.note ?? null,
     });
+    if (!lista.length) {
+      console.warn(
+        `[airfare-radar] WARNING origem ${origem} habilitada, mas sem oportunidades: ` +
+          `status=${st?.status ?? "sem_oportunidades"} motivo=${st?.note ?? "radar não retornou leads para esta origem"}`,
+      );
+    }
+
   }
 
   // ------------------------------------------------------------------
