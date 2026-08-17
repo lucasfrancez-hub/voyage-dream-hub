@@ -116,6 +116,9 @@ export function rowToQuote(row: any): PublicQuote {
     passengers: row.passengers ?? { adults: 1, children: 0, infants: 0, label: "1 adulto" },
     products: row.products ?? {},
     options: extra.options ?? undefined,
+    itinerary:
+      extra.itinerary === true ||
+      (Array.isArray(extra.options) && extra.options.some((o: any) => o?.itinerary === true)),
     payment: row.payment,
     totals: row.totals,
     summary: row.summary ?? [],
