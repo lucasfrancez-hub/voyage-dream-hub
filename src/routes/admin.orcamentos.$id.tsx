@@ -16,8 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { quoteStatusBadge, quoteOriginBadge, quoteExternalId } from "@/lib/quotes/labels";
 import { displayAgentName } from "@/lib/public-quote/agents";
+import { quoteHeadline } from "@/lib/public-quote/headline";
 import {
-  converterOrcamentoEmPedido, gerarLinkOrcamento, reprocessarImportacao,
+  converterOrcamentoEmPedido, gerarLinkOrcamento, reprocessarImportacao, definirTituloOrcamento,
 } from "@/lib/quotes/quotes.functions";
 import type { NormalizedOption, NormalizedQuote } from "@/lib/quotes/types";
 import { confirmThen } from "@/lib/confirm";
@@ -280,7 +281,28 @@ function QuoteDetailPage() {
     })),
   ];
 
-
+  // Título comercial: mesmo texto que aparece no hero do link público.
+  const tituloPublico =
+    normalized?.headline?.trim() ||
+    quoteHeadline({
+      type: quote?.total != null ? undefined : undefined,
+      destination: quote?.destination ?? null,
+      title: quote?.title ?? null,
+      hasHotel: hoteis.length > 0,
+      hasFlight: voos.length > 0,
+      hasServices: servicos.length > 0,
+    });
+  const [tituloEdit, setTituloEdit] = useState<string | null>(null);
+  const salvarTitulo = useServerFn(definirTituloOrcamento);
+  const tituloMutation = useMutation({
+    mutationFn: (headline: string) => salvarTitulo({ data: { quoteId: id, headline } }),
+    onSuccess: () => {
+      toast.success("Título atualizado");
+      setTituloEdit(null);
+      void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar o título"),
+  });
 
   if (isLoading) {
     return (
