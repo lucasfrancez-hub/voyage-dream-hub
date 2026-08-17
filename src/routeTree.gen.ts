@@ -57,6 +57,7 @@ import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-paga
 import { Route as AdminMelhoresDestinosRouteImport } from './routes/admin.melhores-destinos'
 import { Route as AdminMetricasRouteImport } from './routes/admin.metricas'
 import { Route as AdminMotorFrtRouteImport } from './routes/admin.motor-frt'
+import { Route as AdminMotorTremRouteImport } from './routes/admin.motor-trem'
 import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
@@ -403,6 +404,11 @@ const AdminMetricasRoute = AdminMetricasRouteImport.update({
 const AdminMotorFrtRoute = AdminMotorFrtRouteImport.update({
   id: '/motor-frt',
   path: '/motor-frt',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMotorTremRoute = AdminMotorTremRouteImport.update({
+  id: '/motor-trem',
+  path: '/motor-trem',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminNotasFiscaisRoute = AdminNotasFiscaisRouteImport.update({
@@ -1025,6 +1031,7 @@ export interface FileRoutesByFullPath {
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/metricas': typeof AdminMetricasRoute
   '/admin/motor-frt': typeof AdminMotorFrtRoute
+  '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1180,6 +1187,7 @@ export interface FileRoutesByTo {
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/metricas': typeof AdminMetricasRoute
   '/admin/motor-frt': typeof AdminMotorFrtRoute
+  '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1338,6 +1346,7 @@ export interface FileRoutesById {
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/metricas': typeof AdminMetricasRoute
   '/admin/motor-frt': typeof AdminMotorFrtRoute
+  '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1497,6 +1506,7 @@ export interface FileRouteTypes {
     | '/admin/melhores-destinos'
     | '/admin/metricas'
     | '/admin/motor-frt'
+    | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
@@ -1652,6 +1662,7 @@ export interface FileRouteTypes {
     | '/admin/melhores-destinos'
     | '/admin/metricas'
     | '/admin/motor-frt'
+    | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
@@ -1809,6 +1820,7 @@ export interface FileRouteTypes {
     | '/admin/melhores-destinos'
     | '/admin/metricas'
     | '/admin/motor-frt'
+    | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
     | '/admin/pagamentos'
@@ -2343,6 +2355,13 @@ declare module '@tanstack/react-router' {
       path: '/motor-frt'
       fullPath: '/admin/motor-frt'
       preLoaderRoute: typeof AdminMotorFrtRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/motor-trem': {
+      id: '/admin/motor-trem'
+      path: '/motor-trem'
+      fullPath: '/admin/motor-trem'
+      preLoaderRoute: typeof AdminMotorTremRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/notas-fiscais': {
@@ -3136,6 +3155,7 @@ interface AdminRouteChildren {
   AdminMelhoresDestinosRoute: typeof AdminMelhoresDestinosRoute
   AdminMetricasRoute: typeof AdminMetricasRoute
   AdminMotorFrtRoute: typeof AdminMotorFrtRoute
+  AdminMotorTremRoute: typeof AdminMotorTremRoute
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPagamentosRoute: typeof AdminPagamentosRoute
@@ -3186,6 +3206,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMelhoresDestinosRoute: AdminMelhoresDestinosRoute,
   AdminMetricasRoute: AdminMetricasRoute,
   AdminMotorFrtRoute: AdminMotorFrtRoute,
+  AdminMotorTremRoute: AdminMotorTremRoute,
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPagamentosRoute: AdminPagamentosRoute,
