@@ -155,7 +155,7 @@ function ComparativoReferencia({ promo }: { promo: Promo }) {
     <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-[11px] font-bold uppercase tracking-tight text-muted-foreground">
-          Ref. Melhores Destinos
+          Ref. Outros Sites
         </span>
         <span className="text-xs font-bold text-foreground">{brl(ref)}</span>
       </div>
@@ -1136,7 +1136,8 @@ function PromocoesAereoPage() {
       {info && info.radar_available !== false && (info.fallback_count ?? 0) > 0 ? (
         <p className="mt-3 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
           {info.fallback_count} oportunidade(s) desta execução vieram de complemento interno (sem
-          referência do Melhores Destinos).
+          referência de outros sites).
+
         </p>
       ) : null}
 
