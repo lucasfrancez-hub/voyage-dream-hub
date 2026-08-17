@@ -242,15 +242,16 @@ export function buildCamilaTools(conversation: WaConversation) {
         }
         if (confirmado_para_este_destino !== true || !confirmacaoEnviada) {
           const faltando: string[] = [];
-          if (!origem) faltando.push("origem");
-          if (!periodo) faltando.push("período/noites");
-          faltando.push("quantidade de passageiros");
+          if (!origem) faltando.push("cidade de saída");
+          if (!periodo) faltando.push("período/mês");
+          faltando.push("quantidade de noites");
           return {
             encontrados: 0,
             faltam_dados: true,
             confirmacao_ainda_nao_enviada: !confirmacaoEnviada,
             campos_faltando: faltando,
-            instrucao: `NÃO pesquise nem mande card ainda. Mesmo que os dados já apareçam no histórico, esta é uma NOVA solicitação. Mande EXATAMENTE 2 balões e espere a resposta: (1) "Claro! Para ${destino}, continuam sendo as mesmas ${"{quantidade}"} pessoas saindo de ${origem ?? "qual cidade"}?" — troque {quantidade} pelo número de passageiros já dito na conversa; (2) "Vocês têm alguma data específica em mente? E mais ou menos quantas noites gostariam de ficar? Se estiverem flexíveis, posso procurar o período com melhor custo-benefício." NUNCA empilhe alternativas com "ou ... ou ..." na mesma frase. Depois da resposta dele, mande a transição ("Perfeito! Vou verificar as opções de ${destino} com essas condições e já te mostro 😊") e só então chame buscar_pacotes com confirmado_para_este_destino=true.`,
+            instrucao: `NÃO pesquise nem mande card ainda. Antes, mande UM balão curto perguntando SOMENTE o que ainda falta: ${faltando.join(", ")}. É PROIBIDO repetir ou reconfirmar qualquer dado que o cliente já informou nesta conversa (não escreva "continuam sendo as mesmas", "continua saindo de..." para algo que ele acabou de dizer). Respeite a concordância: se for 1 passageiro fale no singular ("você"), nunca "vocês". Nada de empilhar alternativas com "ou ... ou ...". Depois que ele responder, mande a transição ("Perfeito! Vou verificar as opções de ${destino} e já te mostro 😊") e só então chame buscar_pacotes com confirmado_para_este_destino=true.`,
+
           };
         }
 
