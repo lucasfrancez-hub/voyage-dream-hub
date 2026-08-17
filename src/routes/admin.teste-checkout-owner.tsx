@@ -70,6 +70,20 @@ const passageiroVazio = (): Passageiro => ({
 
 type LogItem = { ok: boolean; texto: string; detalhe?: string };
 
+function fmtData(v: string | null | undefined): string {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  const temHora = /\d{2}:\d{2}/.test(v);
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    ...(temHora ? { hour: "2-digit", minute: "2-digit" } : {}),
+  });
+}
+
+
 function LogLinha({ item }: { item: LogItem }) {
   return (
     <li className="flex flex-col gap-0.5 py-1">
