@@ -577,6 +577,13 @@ export async function processPendingCandidates(args: {
       counters.error_count++;
       metrica.errors++;
       registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
+      registrarFalha(cand, {
+        message: upErr.message,
+        step: "gravacao",
+        duration_ms: Date.now() - iniciouEm,
+        attempts: tentativasFeitas,
+      });
+
       await setCandidato(cand.id, {
         status: "error",
         last_error: upErr.message.slice(0, 400),
