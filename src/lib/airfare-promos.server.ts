@@ -251,8 +251,60 @@ export function buildPromotionRow(args: {
 /** Timeout duro por chamada ao motor (nenhuma consulta prende a coleta). */
 export const ENGINE_CALL_TIMEOUT_MS = 60_000;
 
-/** Timeout total por candidata (ida + volta + gravação). */
-export const CANDIDATE_TIMEOUT_MS = 100_000;
+/**
+ * TIMEOUT ADAPTATIVO POR CANDIDATA.
+ *
+ * O valor fixo de 100s cortava consultas legítimas: o p95 do motor está
+ * praticamente em 100s, ou seja, metade das rotas lentas virava "timeout"
+ * mesmo estando prestes a responder. Agora o limite depende do TRABALHO real
+ * da candidata (ida x ida-e-volta, nacional x internacional), da tentativa e
+ * do desempenho observado do motor NA PRÓPRIA EXECUÇÃO.
+ */
+export const CANDIDATE_TIMEOUT_BASE = {
+  nacional_ida: 110_000,
+  nacional_ida_volta: 135_000,
+  internacional_ida: 140_000,
+  internacional_ida_volta: 165_000,
+} as const;
+
+/** Menor timeout possível — base do cálculo da janela mínima de claim. */
+export const CANDIDATE_TIMEOUT_FLOOR_MS = CANDIDATE_TIMEOUT_BASE.nacional_ida;
+
+/** Teto absoluto: consulta realmente travada não pode virar espera eterna. */
+export const CANDIDATE_TIMEOUT_MAX_MS = 190_000;
+
+/** Compatibilidade: valor de referência quando não há candidata no contexto. */
+export const CANDIDATE_TIMEOUT_MS = CANDIDATE_TIMEOUT_BASE.nacional_ida_volta;
+
+/** Acima desta fração do próprio timeout a consulta é "lenta, mas concluída". */
+export const SLOW_RESPONSE_RATIO = 0.75;
+
+export function candidateTimeoutMs(
+  cand: { scope?: string | null; return_date?: string | null; attempts?: number | null },
+  /** p95 observado (ms) das validações já concluídas nesta execução */
+  observedP95?: number | null,
+): number {
+  const intl = (cand.scope ?? "nacional").toLowerCase() === "internacional";
+  const idaVolta = !!cand.return_date;
+  const base = intl
+    ? idaVolta
+      ? CANDIDATE_TIMEOUT_BASE.internacional_ida_volta
+      : CANDIDATE_TIMEOUT_BASE.internacional_ida
+    : idaVolta
+      ? CANDIDATE_TIMEOUT_BASE.nacional_ida_volta
+      : CANDIDATE_TIMEOUT_BASE.nacional_ida;
+
+  // Adaptação ao motor: se o p95 real subiu, o limite acompanha (1,4x o p95).
+  const adaptativo = observedP95 && observedP95 > 0 ? Math.ceil(observedP95 * 1.4) : 0;
+
+  // Retentativa recebe folga extra: a rota já mostrou que é lenta.
+  const tentativa = Math.max(0, Number(cand.attempts ?? 0));
+  const fatorRetry = 1 + Math.min(tentativa, 2) * 0.15;
+
+  const alvo = Math.max(base, adaptativo) * fatorRetry;
+  return Math.round(Math.min(CANDIDATE_TIMEOUT_MAX_MS, Math.max(CANDIDATE_TIMEOUT_FLOOR_MS, alvo)));
+}
+
 
 export function withTimeout<T>(
   p: Promise<T>,
