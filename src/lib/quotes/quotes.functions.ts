@@ -337,3 +337,49 @@ export const criarOrcamentoManual = createServerFn({ method: "POST" })
     await syncQuoteOptions(created.id, normalized);
     return { quoteId: created.id };
   });
+
+/** Define o título comercial do orçamento (o mesmo exibido no link público). */
+export const definirTituloOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ quoteId: z.string().uuid(), headline: z.string().trim().max(160) }).parse(i),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { buildPublicQuoteFromImported } = await import("./to-public-quote.server");
+    const { refreshPublicQuote } = await import("@/lib/public-quote/store.server");
+
+    const { data: quote } = await supabaseAdmin
+      .from("quotes")
+      .select("*")
+      .eq("id", data.quoteId)
+      .maybeSingle();
+    if (!quote) throw new Error("Orçamento não encontrado");
+
+    const normalized = quote.normalized as unknown as import("./types").NormalizedQuote;
+    const headline = data.headline.trim() || null;
+    const atualizado = { ...(normalized ?? {}), headline } as import("./types").NormalizedQuote;
+
+    await supabaseAdmin
+      .from("quotes")
+      .update({
+        title: headline ?? quote.title,
+        normalized: atualizado as unknown as never,
+        updated_at: new Date().toISOString(),
+      } as never)
+      .eq("id", quote.id);
+
+    // Se o link público já existe, regrava com o novo título.
+    if (quote.public_quote_id && atualizado?.options?.length) {
+      const dto = buildPublicQuoteFromImported({
+        normalized: atualizado,
+        title: headline ?? quote.title,
+        headline,
+        clientName: quote.client_name,
+        agentName: displayAgentName(quote.consultant ?? null),
+      });
+      await refreshPublicQuote(String(quote.public_quote_id), dto as never);
+    }
+
+    return { ok: true, headline };
+  });
