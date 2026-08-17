@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, Hotel, Plane, Package, DollarSign, Users, ExternalLink, Printer,
-  Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2,
+  Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,7 +22,9 @@ import { confirmThen } from "@/lib/confirm";
 import { HotelTripAdvisorDialog } from "@/components/quotes/HotelTripAdvisorDialog";
 import { QuoteItemsToolbar } from "@/components/quotes/QuoteItemsToolbar";
 import { QuoteItemFormDialog, type QuoteItemKind } from "@/components/quotes/QuoteItemFormDialog";
-import { removerItemOrcamento } from "@/lib/quotes/items.functions";
+import {
+  removerItemOrcamento, criarOpcaoOrcamento, renomearOpcaoOrcamento, removerOpcaoOrcamento,
+} from "@/lib/quotes/items.functions";
 import type { NormalizedFlight, NormalizedGenericItem, NormalizedHotel } from "@/lib/quotes/types";
 import { AirlineLogo } from "@/components/AirlineLogo";
 import { findAirline } from "@/lib/airlines";
@@ -139,7 +141,42 @@ function QuoteDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao reprocessar"),
   });
 
+  const criarOpcao = useServerFn(criarOpcaoOrcamento);
+  const renomearOpcao = useServerFn(renomearOpcaoOrcamento);
+  const removerOpcao = useServerFn(removerOpcaoOrcamento);
+  const [renomear, setRenomear] = useState<{ optionNumber: number; label: string } | null>(null);
+
+  const opcaoMutation = useMutation({
+    mutationFn: async (v:
+      | { acao: "criar"; copiarDe?: number }
+      | { acao: "renomear"; optionNumber: number; label: string }
+      | { acao: "remover"; optionNumber: number }) => {
+      if (v.acao === "criar") return criarOpcao({ data: { quoteId: id, copiarDe: v.copiarDe ?? null } });
+      if (v.acao === "renomear") {
+        await renomearOpcao({ data: { quoteId: id, optionNumber: v.optionNumber, label: v.label } });
+        return { optionNumber: v.optionNumber };
+      }
+      await removerOpcao({ data: { quoteId: id, optionNumber: v.optionNumber } });
+      return { optionNumber: null as number | null };
+    },
+    onSuccess: (r, v) => {
+      if (v.acao === "criar") {
+        setOptionNumber(r.optionNumber ?? null);
+        toast.success(v.copiarDe ? "Opção duplicada" : "Opção criada");
+      } else if (v.acao === "renomear") {
+        setRenomear(null);
+        toast.success("Opção renomeada");
+      } else {
+        setOptionNumber(null);
+        toast.success("Opção removida");
+      }
+      recarregarItens();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro na opção"),
+  });
+
   const removerItem = useServerFn(removerItemOrcamento);
+
   const recarregarItens = () => {
     void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] });
     void qc.invalidateQueries({ queryKey: ["admin", "quotes", "list"] });
@@ -407,26 +444,97 @@ function QuoteDetailPage() {
       </div>
 
       {/* Opções comerciais */}
-      {options.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {options.map((o) => {
-            const active = (option?.optionNumber ?? 0) === o.optionNumber;
-            return (
-              <button
-                key={o.optionNumber}
-                type="button"
-                onClick={() => setOptionNumber(o.optionNumber)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  active ? "bg-brand-orange text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"
-                }`}
+      <div className="flex flex-wrap items-center gap-2">
+        {options.map((o) => {
+          const active = (option?.optionNumber ?? 0) === o.optionNumber;
+          return (
+            <button
+              key={o.optionNumber}
+              type="button"
+              onClick={() => setOptionNumber(o.optionNumber)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                active ? "bg-brand-orange text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {o.label ?? `Opção ${o.optionNumber}`}
+              {o.total ? <span className="ml-2 tabular-nums">{formatBRL(Number(o.total))}</span> : null}
+            </button>
+          );
+        })}
+
+        <Button
+          variant="outline" size="sm" className="gap-1.5 rounded-full"
+          disabled={opcaoMutation.isPending}
+          onClick={() => opcaoMutation.mutate({ acao: "criar" })}
+        >
+          <Plus className="h-3.5 w-3.5" /> Nova opção
+        </Button>
+
+        {option && (
+          <>
+            <Button
+              variant="ghost" size="sm" className="gap-1.5 rounded-full text-muted-foreground"
+              disabled={opcaoMutation.isPending}
+              onClick={() => opcaoMutation.mutate({ acao: "criar", copiarDe: option.optionNumber })}
+            >
+              <Copy className="h-3.5 w-3.5" /> Duplicar
+            </Button>
+            <Button
+              variant="ghost" size="sm" className="gap-1.5 rounded-full text-muted-foreground"
+              disabled={opcaoMutation.isPending}
+              onClick={() => {
+                const atual = option.label ?? `Opção ${option.optionNumber}`;
+                setRenomear({ optionNumber: option.optionNumber, label: atual });
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" /> Renomear
+            </Button>
+            {options.length > 1 && (
+              <Button
+                variant="ghost" size="sm" className="gap-1.5 rounded-full text-destructive"
+                disabled={opcaoMutation.isPending}
+                onClick={() =>
+                  confirmThen(
+                    `Remover a ${option.label ?? `opção ${option.optionNumber}`} e todos os seus itens?`,
+                    () => opcaoMutation.mutate({ acao: "remover", optionNumber: option.optionNumber }),
+                  )
+                }
               >
-                {o.label ?? `Opção ${o.optionNumber}`}
-                {o.total ? <span className="ml-2 tabular-nums">{formatBRL(Number(o.total))}</span> : null}
-              </button>
-            );
-          })}
+                <Trash2 className="h-3.5 w-3.5" /> Remover opção
+              </Button>
+            )}
+          </>
+        )}
+      </div>
+
+      {renomear && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+          <Input
+            value={renomear.label}
+            autoFocus
+            className="h-9 max-w-xs"
+            placeholder="Nome da opção (ex.: Opção econômica)"
+            onChange={(e) => setRenomear({ ...renomear, label: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && renomear.label.trim()) {
+                opcaoMutation.mutate({ acao: "renomear", optionNumber: renomear.optionNumber, label: renomear.label.trim() });
+              }
+              if (e.key === "Escape") setRenomear(null);
+            }}
+          />
+          <Button
+            size="sm"
+            disabled={!renomear.label.trim() || opcaoMutation.isPending}
+            onClick={() =>
+              opcaoMutation.mutate({ acao: "renomear", optionNumber: renomear.optionNumber, label: renomear.label.trim() })
+            }
+          >
+            Salvar
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setRenomear(null)}>Cancelar</Button>
         </div>
       )}
+
 
       {/* Itens */}
       <Tabs defaultValue="hospedagem">

@@ -175,3 +175,82 @@ export const aplicarItensExtraidos = createServerFn({ method: "POST" })
       opt.services.push(...(data.services as never[]));
     });
   });
+
+/* ------------------------------------------------------------------ */
+/* Opções do orçamento (várias propostas dentro do mesmo orçamento)     */
+/* ------------------------------------------------------------------ */
+
+/** Cria uma nova opção (em branco ou duplicando outra). */
+export const criarOpcaoOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        quoteId: z.string().uuid(),
+        label: z.string().trim().max(80).nullish(),
+        /** Número da opção a duplicar; ausente = opção vazia. */
+        copiarDe: z.number().int().min(1).max(20).nullish(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context.supabase as never, context.userId);
+    const { mutateQuoteNormalized, garantirOpcao } = await import("./items.server");
+
+    let novoNumero = 1;
+    await mutateQuoteNormalized(data.quoteId, (normalized) => {
+      if (normalized.options.length >= 20) throw new Error("Limite de 20 opções por orçamento");
+      novoNumero = Math.max(0, ...normalized.options.map((o) => o.optionNumber)) + 1;
+      const nova = garantirOpcao(normalized, novoNumero);
+      const base = data.copiarDe
+        ? normalized.options.find((o) => o.optionNumber === data.copiarDe)
+        : null;
+      if (base) {
+        const copia = JSON.parse(JSON.stringify(base)) as typeof base;
+        Object.assign(nova, copia, { optionNumber: novoNumero, total: null });
+      }
+      nova.label = data.label?.trim() || `Opção ${novoNumero}`;
+    });
+    return { optionNumber: novoNumero };
+  });
+
+/** Renomeia uma opção. */
+export const renomearOpcaoOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        quoteId: z.string().uuid(),
+        optionNumber: z.number().int().min(1).max(20),
+        label: z.string().trim().min(1).max(80),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context.supabase as never, context.userId);
+    const { mutateQuoteNormalized } = await import("./items.server");
+    await mutateQuoteNormalized(data.quoteId, (normalized) => {
+      const opt = normalized.options.find((o) => o.optionNumber === data.optionNumber);
+      if (!opt) throw new Error("Opção não encontrada");
+      opt.label = data.label;
+    });
+    return { ok: true };
+  });
+
+/** Remove uma opção inteira (não deixa o orçamento sem nenhuma). */
+export const removerOpcaoOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ quoteId: z.string().uuid(), optionNumber: z.number().int().min(1).max(20) }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context.supabase as never, context.userId);
+    const { mutateQuoteNormalized } = await import("./items.server");
+    await mutateQuoteNormalized(data.quoteId, (normalized) => {
+      if (normalized.options.length <= 1) throw new Error("O orçamento precisa ter ao menos uma opção");
+      const idx = normalized.options.findIndex((o) => o.optionNumber === data.optionNumber);
+      if (idx < 0) throw new Error("Opção não encontrada");
+      normalized.options.splice(idx, 1);
+    });
+    return { ok: true };
+  });
