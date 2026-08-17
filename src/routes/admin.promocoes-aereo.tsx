@@ -927,7 +927,7 @@ function PromocoesAereoPage() {
     if (parado < 20_000) return;
     if (Date.now() - ultimaRetomada.current < 20_000) return;
     ultimaRetomada.current = Date.now();
-    void retomar({ data: {} }).catch(() => {});
+    void retomar().catch(() => {});
   }, [run, retomar]);
 
   const runStatusValue = (run as { status?: string } | null)?.status ?? "";
