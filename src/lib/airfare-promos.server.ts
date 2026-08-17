@@ -52,7 +52,9 @@ function iso(d: Date): string {
 }
 
 /** Datas pesquisadas por rota: saídas futuras com 7 noites. */
-export function defaultDatePairs(offsets = [45, 75]): Array<{ departureDate: string; returnDate: string }> {
+export function defaultDatePairs(
+  offsets = [45, 75],
+): Array<{ departureDate: string; returnDate: string }> {
   const base = new Date();
   return offsets.map((off) => {
     const out = new Date(base);
@@ -70,12 +72,9 @@ function airlineOf(f: OnerFlight) {
 /** Assinatura leve do voo (cia + horário de partida) usada na pré-seleção do motor. */
 function horaPick(f: OnerFlight | null, airline: string | null) {
   const t = f?.journey?.departure?.time ?? f?.journey?.segments?.[0]?.departure?.time ?? null;
-  const hora = t
-    ? `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`
-    : null;
+  const hora = t ? `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}` : null;
   return { airline: airline ?? null, time: hora };
 }
-
 
 export function promoSignature(p: {
   origin_iata: string;
@@ -84,7 +83,13 @@ export function promoSignature(p: {
   return_date: string | null;
   airline_iata: string | null;
 }): string {
-  return [p.origin_iata, p.destination_iata, p.departure_date, p.return_date ?? "-", p.airline_iata ?? "-"]
+  return [
+    p.origin_iata,
+    p.destination_iata,
+    p.departure_date,
+    p.return_date ?? "-",
+    p.airline_iata ?? "-",
+  ]
     .join("|")
     .toUpperCase();
 }
@@ -118,7 +123,6 @@ export function multiLegSearchUrl(args: {
   if (args.picks?.some((p) => p.airline || p.time)) q.set("ps", encodePicks(args.picks));
   return `https://pedidos.viaair.tur.br/voar?${q.toString()}`;
 }
-
 
 /** Monta a linha da promoção (sem gravar) a partir dos voos escolhidos. */
 export function buildPromotionRow(args: {
@@ -169,7 +173,9 @@ export function buildPromotionRow(args: {
     ? getAirfarePaymentConditions({ total, passengers, airline: airIn, extendedOptions })
     : null;
   const cond =
-    condIn && condIn.interestFree.installments < condOut.interestFree.installments ? condIn : condOut;
+    condIn && condIn.interestFree.installments < condOut.interestFree.installments
+      ? condIn
+      : condOut;
 
   const q12 = quotes.find((q) => q.installments === 12) ?? quotes[quotes.length - 1] ?? null;
 
@@ -243,7 +249,6 @@ export function buildPromotionRow(args: {
     fare_status: "valida" as const,
     quoted_at: new Date().toISOString(),
     last_checked_at: new Date().toISOString(),
-
   };
   return row;
 }
@@ -304,7 +309,6 @@ export function candidateTimeoutMs(
   const alvo = Math.max(base, adaptativo) * fatorRetry;
   return Math.round(Math.min(CANDIDATE_TIMEOUT_MAX_MS, Math.max(CANDIDATE_TIMEOUT_FLOOR_MS, alvo)));
 }
-
 
 export function withTimeout<T>(
   p: Promise<T>,
@@ -395,8 +399,6 @@ export async function quoteRoute(args: {
   onEngineTiming?: EngineTimingSink;
   /** Orçamento total desta candidata (ms) — define o prazo interno de combinações. */
   budgetMs?: number;
-
-
 }) {
   const { route, departureDate, returnDate } = args;
   const abortou = () => {
@@ -576,7 +578,9 @@ export async function quoteRoute(args: {
           triggered_by_reference: gatilhoReferencia,
           roundtrip_best_total: Number(melhorTotal.toFixed(2)),
           roundtrip_airline: airlineOf(melhorOut)?.iata ?? null,
-          roundtrip_same_airline_total: Number.isFinite(mesmaTotal) ? Number(mesmaTotal.toFixed(2)) : null,
+          roundtrip_same_airline_total: Number.isFinite(mesmaTotal)
+            ? Number(mesmaTotal.toFixed(2))
+            : null,
           conventional_total: Number(baseTotal.toFixed(2)),
           conventional_airline: airlineOf(baseOut)?.iata ?? null,
           outbound_best_total: perna ? Number((perna.out.price.total ?? 0).toFixed(2)) : null,
@@ -608,11 +612,8 @@ export async function quoteRoute(args: {
       }
     }
 
-
     if (!inb) return null;
   }
-
-
 
   return buildPromotionRow({
     route,
@@ -657,7 +658,11 @@ async function quoteOneWayLegs(args: {
         "somente_ida",
         () =>
           withTimeout(
-            searchFlights({ ...base, departureDate, returnDate: null } as never, "normal", args.signal),
+            searchFlights(
+              { ...base, departureDate, returnDate: null } as never,
+              "normal",
+              args.signal,
+            ),
             ENGINE_CALL_TIMEOUT_MS,
             "multi:ida",
             args.signal,
@@ -707,7 +712,6 @@ async function quoteOneWayLegs(args: {
     return null;
   }
 }
-
 
 /** Considera travada/abandonada uma execução parada há mais de 45 minutos. */
 const RUN_STALE_MS = 45 * 60 * 1000;
@@ -867,20 +871,15 @@ export async function collectAirfarePromotions(opts?: {
   trigger?: "manual" | "cron" | "resume";
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { discoverCandidates, candidateSignature } = await import(
-    "@/lib/airfare-promos.discovery.server"
-  );
-  const { PROMO_VALIDATION_CONCURRENCY, maxOpportunitiesForOrigin } = await import(
-    "@/lib/airfare-promos.config"
-  );
+  const { discoverCandidates, candidateSignature } =
+    await import("@/lib/airfare-promos.discovery.server");
+  const { PROMO_VALIDATION_CONCURRENCY, maxOpportunitiesForOrigin } =
+    await import("@/lib/airfare-promos.config");
   type Metrics = OriginMetrics;
   const db = supabaseAdmin as unknown as AnyClient;
   const markups = await loadMarkups(db);
   const runId = opts?.runId;
-  const concurrency = Math.min(
-    Math.max(opts?.concurrency ?? PROMO_VALIDATION_CONCURRENCY, 1),
-    4,
-  );
+  const concurrency = Math.min(Math.max(opts?.concurrency ?? PROMO_VALIDATION_CONCURRENCY, 1), 4);
   const startedAt = new Date().toISOString();
 
   const counters = {
@@ -906,8 +905,17 @@ export async function collectAirfarePromotions(opts?: {
       // O progresso NUNCA pode sumir em silêncio (ex.: coluna nova ainda fora do
       // cache da API). Loga e regrava sem os campos novos, para pelo menos
       // manter o heartbeat/nota vivos.
-      console.warn("[airfare-radar] falha ao gravar progresso:", error.message, Object.keys(patch).join(","));
-      const { discovery_state: _s, discovery_origins_done: _d, discovery_origins_total: _t, ...resto } = patch as Record<string, unknown>;
+      console.warn(
+        "[airfare-radar] falha ao gravar progresso:",
+        error.message,
+        Object.keys(patch).join(","),
+      );
+      const {
+        discovery_state: _s,
+        discovery_origins_done: _d,
+        discovery_origins_total: _t,
+        ...resto
+      } = patch as Record<string, unknown>;
       if (Object.keys(resto).length) {
         await db
           .from("airfare_promo_runs")
@@ -915,15 +923,30 @@ export async function collectAirfarePromotions(opts?: {
           .eq("id", runId);
       }
     } catch (e) {
-      console.warn("[airfare-radar] erro inesperado ao gravar progresso:", e instanceof Error ? e.message : String(e));
+      console.warn(
+        "[airfare-radar] erro inesperado ao gravar progresso:",
+        e instanceof Error ? e.message : String(e),
+      );
     }
   };
 
-
-  await touch({ phase: "descobrindo", total: 0, processed: 0, saved: 0, radar_note: "Consultando radar de oportunidades..." });
+  await touch({
+    phase: "descobrindo",
+    total: 0,
+    processed: 0,
+    saved: 0,
+    radar_note: "Consultando radar de oportunidades...",
+  });
   console.info(
     "[airfare-radar]",
-    JSON.stringify({ trigger: opts?.trigger ?? "desconhecido", run_id: runId ?? null, radar_adapter: "melhores-destinos.radar-api.server", lock_status: runId ? "adquirido" : "sem_run", queue_status: "aguardando_descoberta", api_started: true }),
+    JSON.stringify({
+      trigger: opts?.trigger ?? "desconhecido",
+      run_id: runId ?? null,
+      radar_adapter: "melhores-destinos.radar-api.server",
+      lock_status: runId ? "adquirido" : "sem_run",
+      queue_status: "aguardando_descoberta",
+      api_started: true,
+    }),
   );
 
   // cancelamento cooperativo: checado inclusive durante espera/backoff do radar
@@ -990,7 +1013,7 @@ export async function collectAirfarePromotions(opts?: {
         notaRadar =
           progress.stage === "leads"
             ? `Descoberta ${progress.originsDone}/${progress.originsTotal} origens · ${progress.leads} oportunidades`
-            : `Datas reais — ${progress.leads} oportunidades no radar`;
+            : `Consultando oportunidades ${progress.datesTotal ?? progress.leads}/${progress.datesTotal ?? progress.leads} · Datas reais ${progress.datesDone ?? 0}/${progress.datesTotal ?? progress.leads}`;
         await touch({
           phase: "descobrindo",
           discovery_state: state as never,
@@ -1006,7 +1029,6 @@ export async function collectAirfarePromotions(opts?: {
   } finally {
     clearInterval(batimento);
   }
-
 
   if (descoberta.cancelled || (await pediuCancelamento())) {
     const agora = new Date().toISOString();
@@ -1049,7 +1071,7 @@ export async function collectAirfarePromotions(opts?: {
       origin_metrics: descoberta.metrics as never,
       radar_note:
         p?.stage === "datas"
-          ? `Descoberta em andamento — buscando datas reais (${p.leads} oportunidades)`
+          ? `Consultando oportunidades ${p.datesTotal ?? p.leads}/${p.datesTotal ?? p.leads} · Datas reais ${p.datesDone ?? 0}/${p.datesTotal ?? p.leads}`
           : `Descoberta em andamento — ${p?.originsDone ?? 0}/${p?.originsTotal ?? 0} origens · ${p?.leads ?? 0} oportunidades`,
     });
     return {
@@ -1082,8 +1104,13 @@ export async function collectAirfarePromotions(opts?: {
       run_id: runId ?? null,
       radar_adapter: "melhores-destinos.radar-api.server",
       api_started: true,
-      categories_received: (descoberta.sourceMetrics as Record<string, unknown> | undefined)?.["md_categories_received"] ?? 0,
-      routes_found: (descoberta.sourceMetrics as Record<string, unknown> | undefined)?.["md_routes_received"] ?? 0,
+      categories_received:
+        (descoberta.sourceMetrics as Record<string, unknown> | undefined)?.[
+          "md_categories_received"
+        ] ?? 0,
+      routes_found:
+        (descoberta.sourceMetrics as Record<string, unknown> | undefined)?.["md_routes_received"] ??
+        0,
       candidates_after_dedupe: descoberta.dedupedTotal,
       candidates_selected: descoberta.candidates.length,
       radar_errors: descoberta.radarErrors,
@@ -1127,8 +1154,6 @@ export async function collectAirfarePromotions(opts?: {
 
   const metricasSnapshot = () =>
     [...metricasPorOrigem.values()].sort((a, b) => a.origin.localeCompare(b.origin));
-
-
 
   // 2) SEM FALLBACK ARTIFICIAL.
   //    A única fonte de oportunidades do automático é a camada interna do
@@ -1227,6 +1252,3 @@ export async function collectAirfarePromotions(opts?: {
     origin_metrics: metricasSnapshot(),
   };
 }
-
-
-

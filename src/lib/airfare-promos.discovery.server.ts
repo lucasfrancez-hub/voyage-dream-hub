@@ -11,13 +11,10 @@
  */
 import { scopeOfRoute } from "@/lib/br-airports";
 import {
-
   MAX_EXTRA_ORIGINS,
   PRIORITY_ORIGINS,
-
   isPriorityOrigin,
   isOriginAllowedForScope,
-
   maxOpportunitiesForOrigin,
   type OriginMetrics,
 } from "@/lib/airfare-promos.config";
@@ -48,10 +45,8 @@ export type PromoCandidate = {
   radar_external_url?: string | null;
 };
 
-
 /** Origens que precisam estar sempre representadas na curadoria (config central). */
 export { PRIORITY_ORIGINS_NACIONAL, PRIORITY_ORIGINS_HUB } from "@/lib/airfare-promos.config";
-
 
 /** Sementes usadas só para garantir cobertura das origens prioritárias. */
 export const PRIORITY_SEEDS: Array<{
@@ -61,21 +56,74 @@ export const PRIORITY_SEEDS: Array<{
   destinationCity: string;
   scope: "nacional" | "internacional";
 }> = [
-  { origin: "MGF", originCity: "Maringá", destination: "GRU", destinationCity: "São Paulo", scope: "nacional" },
-  { origin: "LDB", originCity: "Londrina", destination: "GRU", destinationCity: "São Paulo", scope: "nacional" },
-  { origin: "CWB", originCity: "Curitiba", destination: "GIG", destinationCity: "Rio de Janeiro", scope: "nacional" },
-  { origin: "CAC", originCity: "Cascavel", destination: "GRU", destinationCity: "São Paulo", scope: "nacional" },
-  { origin: "IGU", originCity: "Foz do Iguaçu", destination: "GRU", destinationCity: "São Paulo", scope: "nacional" },
-  { origin: "GRU", originCity: "São Paulo", destination: "LIS", destinationCity: "Lisboa", scope: "internacional" },
-  { origin: "GIG", originCity: "Rio de Janeiro", destination: "MCO", destinationCity: "Orlando", scope: "internacional" },
-  { origin: "BSB", originCity: "Brasília", destination: "EZE", destinationCity: "Buenos Aires", scope: "internacional" },
-  { origin: "CWB", originCity: "Curitiba", destination: "SCL", destinationCity: "Santiago", scope: "internacional" },
+  {
+    origin: "MGF",
+    originCity: "Maringá",
+    destination: "GRU",
+    destinationCity: "São Paulo",
+    scope: "nacional",
+  },
+  {
+    origin: "LDB",
+    originCity: "Londrina",
+    destination: "GRU",
+    destinationCity: "São Paulo",
+    scope: "nacional",
+  },
+  {
+    origin: "CWB",
+    originCity: "Curitiba",
+    destination: "GIG",
+    destinationCity: "Rio de Janeiro",
+    scope: "nacional",
+  },
+  {
+    origin: "CAC",
+    originCity: "Cascavel",
+    destination: "GRU",
+    destinationCity: "São Paulo",
+    scope: "nacional",
+  },
+  {
+    origin: "IGU",
+    originCity: "Foz do Iguaçu",
+    destination: "GRU",
+    destinationCity: "São Paulo",
+    scope: "nacional",
+  },
+  {
+    origin: "GRU",
+    originCity: "São Paulo",
+    destination: "LIS",
+    destinationCity: "Lisboa",
+    scope: "internacional",
+  },
+  {
+    origin: "GIG",
+    originCity: "Rio de Janeiro",
+    destination: "MCO",
+    destinationCity: "Orlando",
+    scope: "internacional",
+  },
+  {
+    origin: "BSB",
+    originCity: "Brasília",
+    destination: "EZE",
+    destinationCity: "Buenos Aires",
+    scope: "internacional",
+  },
+  {
+    origin: "CWB",
+    originCity: "Curitiba",
+    destination: "SCL",
+    destinationCity: "Santiago",
+    scope: "internacional",
+  },
 ];
 
 export function scopeOf(origin: string, destination: string): "nacional" | "internacional" {
   return scopeOfRoute(origin, destination);
 }
-
 
 /** Assinatura da OPORTUNIDADE (sem companhia) — usada para deduplicar a fila. */
 export function candidateSignature(p: {
@@ -84,7 +132,9 @@ export function candidateSignature(p: {
   departure_date: string;
   return_date: string | null;
 }): string {
-  return [p.origin_iata, p.destination_iata, p.departure_date, p.return_date ?? "-"].join("|").toUpperCase();
+  return [p.origin_iata, p.destination_iata, p.departure_date, p.return_date ?? "-"]
+    .join("|")
+    .toUpperCase();
 }
 
 function iso(d: Date) {
@@ -179,7 +229,14 @@ export type DiscoveryResult = {
   /** Checkpoint serializável do progresso (gravado em airfare_promo_runs). */
   state?: DiscoveryState | null;
   /** Progresso real (origens concluídas / total) para a UI. */
-  progress?: { originsDone: number; originsTotal: number; leads: number; stage: string };
+  progress?: {
+    originsDone: number;
+    originsTotal: number;
+    leads: number;
+    stage: string;
+    datesDone?: number;
+    datesTotal?: number;
+  };
 };
 
 /**
@@ -208,7 +265,23 @@ export type DiscoveryState = {
   /** etapa `datas`: métricas de curadoria já calculadas */
   metrics?: OriginMetrics[];
   dedupTotal?: number;
+  /** total original da fila de datas; não diminui entre retomadas */
+  datesTotal?: number;
+  /** oportunidades de datas já tentadas, com ou sem oferta encontrada */
+  datesDone?: number;
 };
+
+export function datesProgress(
+  state: Pick<DiscoveryState, "pendingLeads" | "datesTotal" | "datesDone">,
+): {
+  done: number;
+  total: number;
+} {
+  const pending = state.pendingLeads?.length ?? 0;
+  const total = Math.max(state.datesTotal ?? pending, pending);
+  const done = Math.min(total, Math.max(state.datesDone ?? total - pending, 0));
+  return { done, total };
+}
 
 /** Oportunidade em nível de DESTINO, antes de escolher as datas. */
 type Lead = {
@@ -260,7 +333,14 @@ type DiscoverOptions = {
   /** gravação do checkpoint depois de cada origem/lote concluído */
   onCheckpoint?: (
     state: DiscoveryState,
-    progress: { originsDone: number; originsTotal: number; leads: number; stage: string },
+    progress: {
+      originsDone: number;
+      originsTotal: number;
+      leads: number;
+      stage: string;
+      datesDone?: number;
+      datesTotal?: number;
+    },
   ) => void | Promise<void>;
 };
 
@@ -283,7 +363,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     radarLeadsForOrigin,
     radarLeadsByCategory,
     radarOpportunitiesForLead,
-    mapLimit,
     resetRadarMetrics,
     radarSourceMetrics,
     RadarCancelledError,
@@ -310,9 +389,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   const pool = new Map<string, Map<string, Lead>>();
   let brutas = retomada?.brutas ?? 0;
   const originsDone = new Set<string>(retomada?.originsDone ?? []);
-  const originAttempts = new Map<string, number>(
-    Object.entries(retomada?.originAttempts ?? {}),
-  );
+  const originAttempts = new Map<string, number>(Object.entries(retomada?.originAttempts ?? {}));
   if (retomada) {
     for (const [origem, leads] of Object.entries(retomada.pool ?? {})) {
       pool.set(origem, new Map(leads.map((l) => [l.destination_iata, l])));
@@ -322,7 +399,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   const contarLeads = () => [...pool.values()].reduce((acc, m) => acc + m.size, 0);
   const serializarPool = (): Record<string, Lead[]> =>
     Object.fromEntries([...pool.entries()].map(([o, m]) => [o, [...m.values()]]));
-
 
   const addLead = (lead: Omit<Lead, "signature" | "departure_date" | "return_date">) => {
     brutas++;
@@ -415,17 +491,21 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       originsTotal: totalOrigens,
       leads: contarLeads(),
       stage,
+      ...(stage === "datas" ? datesProgress(snapshot(stage, extra)) : {}),
     },
   });
 
   const gravarCheckpoint = async (stage: "leads" | "datas", extra?: Partial<DiscoveryState>) => {
     if (!opts?.onCheckpoint) return;
+    const state = snapshot(stage, extra);
+    const datas = stage === "datas" ? datesProgress(state) : null;
     try {
-      await opts.onCheckpoint(snapshot(stage, extra), {
+      await opts.onCheckpoint(state, {
         originsDone: originsDone.size,
         originsTotal: totalOrigens,
         leads: contarLeads(),
         stage,
+        ...(datas ? { datesDone: datas.done, datesTotal: datas.total } : {}),
       });
     } catch {
       /* checkpoint é best-effort: nunca derruba a descoberta */
@@ -445,7 +525,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
 
   let indiceOrigem = 0;
   for (const origem of ordemOrigens) {
-
     indiceOrigem++;
     if (originsDone.has(origem)) continue;
     if (cancelada) {
@@ -459,8 +538,13 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       return parcial("leads");
     }
     if (semTempoLeads()) {
-      statusOrigem.set(origem, { status: "sem_tempo", note: "orçamento de radar esgotado antes desta origem" });
-      console.warn(`[airfare-radar] WARNING origem ${origem} habilitada, mas não entrou no radar: sem tempo`);
+      statusOrigem.set(origem, {
+        status: "sem_tempo",
+        note: "orçamento de radar esgotado antes desta origem",
+      });
+      console.warn(
+        `[airfare-radar] WARNING origem ${origem} habilitada, mas não entrou no radar: sem tempo`,
+      );
       continue;
     }
     // fatia justa: tempo restante ÷ origens restantes
@@ -527,7 +611,9 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       const encontradas = pool.get(origem)?.size ?? 0;
       statusOrigem.set(origem, {
         status: encontradas ? "ok" : "sem_oportunidades",
-        note: encontradas ? null : `radar respondeu com ${leads.length} lead(s) aproveitável(is) para esta origem`,
+        note: encontradas
+          ? null
+          : `radar respondeu com ${leads.length} lead(s) aproveitável(is) para esta origem`,
       });
     } catch (e) {
       if (e instanceof RadarCancelledError) {
@@ -554,7 +640,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     originsDone.add(origem);
     await gravarCheckpoint("leads");
   }
-
 
   // §15 — se o atalho por origem não devolver nada, percorre o caminho
   // oficial da API: categorias → destinos → origens do destino → itinerário.
@@ -624,7 +709,10 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       radarErrors,
       radarLeads: 0,
       fallbackCount: 0,
-      sourceMetrics: { ...radarSourceMetrics(), radar_adapter: "melhores-destinos.radar-api.server" },
+      sourceMetrics: {
+        ...radarSourceMetrics(),
+        radar_adapter: "melhores-destinos.radar-api.server",
+      },
       cancelled: cancelada,
       radarError: (radarSourceMetrics() as { lastError?: string | null }).lastError ?? null,
       radarErrorStage: radarErrors ? "radar" : "sem_oportunidades",
@@ -635,88 +723,76 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   // 2/3) CURADORIA POR ESCOPO — o corte de N por origem acontece aqui,
   //      depois de percorrer TODAS as oportunidades descobertas.
   // ------------------------------------------------------------------
-  const metrics: OriginMetrics[] = [];
+  const retomandoDatas = retomada?.stage === "datas";
+  const metrics: OriginMetrics[] = retomandoDatas ? [...(retomada.metrics ?? [])] : [];
   const auditoria: CurationDecision<PromoCandidate>[] = [];
-  const escolhidasPorOrigem: Array<{ origem: string; leads: Lead[]; scope: "nacional" | "internacional" }> = [];
+  const escolhidasPorOrigem: Array<{
+    origem: string;
+    leads: Lead[];
+    scope: "nacional" | "internacional";
+  }> = [];
 
-  // TODAS as origens configuradas entram no relatório — mesmo com zero
-  // oportunidades — para nunca sumirem em silêncio do acompanhamento.
-  const origens = [...new Set<string>([...PRIORITY_ORIGINS, ...pool.keys()])].sort((a, b) => {
-    const pa = isPriorityOrigin(a) ? 0 : 1;
-    const pb = isPriorityOrigin(b) ? 0 : 1;
-    return pa - pb || a.localeCompare(b);
-  });
+  let dedupTotal = retomandoDatas ? (retomada.dedupTotal ?? contarLeads()) : 0;
 
-
-  let extrasUsadas = 0;
-  let dedupTotal = 0;
-  for (const origem of origens) {
-    const prioritaria = isPriorityOrigin(origem);
-    if (!prioritaria) {
-      if (extrasUsadas >= MAX_EXTRA_ORIGINS) continue;
-      extrasUsadas++;
-    }
-    const lista = [...(pool.get(origem)?.values() ?? [])];
-    dedupTotal += lista.length;
-    const limite = maxOpportunitiesForOrigin(origem);
-
-    let elegiveis = 0;
-    let excluidas = 0;
-    let selNacional = 0;
-    let selInternacional = 0;
-
-    for (const scope of ["nacional", "internacional"] as const) {
-      if (!isOriginAllowedForScope(origem, scope)) continue;
-      const grupo = lista.filter((l) => l.scope === scope);
-      if (!grupo.length) continue;
-      // limite por ORIGEM e por ESCOPO (10 nacionais + 10 internacionais)
-      const res = curateOrigin(origem, grupo, limite);
-      console.log(
-        `[airfare-curadoria] ${origem}/${scope} total_coletado=${grupo.length} ` +
-          `total_elegivel=${res.eligible} total_enviado_ranking=${res.eligible} ` +
-          `total_ranqueado=${res.ranked ?? res.eligible} total_selecionado=${res.selected.length} ` +
-          `total_descartado=${res.eligible + res.excluded - res.selected.length} limite=${limite}`,
-      );
-      const motivos = new Map<string, number>();
-      for (const d of res.decisions) {
-        if (d.status === "selecionada") continue;
-        motivos.set(d.reason, (motivos.get(d.reason) ?? 0) + 1);
-      }
-      if (motivos.size) {
-        console.log(`[airfare-curadoria] ${origem}/${scope} motivo_descarte=`, Object.fromEntries(motivos));
-      }
-      elegiveis += res.eligible;
-      excluidas += res.excluded;
-      if (scope === "nacional") selNacional += res.selected.length;
-      else selInternacional += res.selected.length;
-      escolhidasPorOrigem.push({ origem, leads: res.selected, scope });
-    }
-
-    const st = statusOrigem.get(origem);
-    metrics.push({
-      origin: origem,
-      discovered: lista.length,
-      deduped: lista.length,
-      eligible: elegiveis,
-      excluded: excluidas,
-      selected: selNacional + selInternacional,
-      selected_nacional: selNacional,
-      selected_internacional: selInternacional,
-      validated: 0,
-      with_price: 0,
-      no_result: 0,
-      errors: 0,
-      avg_seconds: null,
-      radar_status: st?.status ?? (lista.length ? "ok" : "sem_oportunidades"),
-      radar_note: st?.note ?? null,
+  // Na retomada de `datas`, a fila e as métricas já estão fechadas no
+  // checkpoint. Recalcular toda a curadoria aqui não alterava o resultado e
+  // consumia orçamento antes de continuar a próxima oportunidade pendente.
+  if (!retomandoDatas) {
+    // TODAS as origens configuradas entram no relatório — mesmo com zero
+    // oportunidades — para nunca sumirem em silêncio do acompanhamento.
+    const origens = [...new Set<string>([...PRIORITY_ORIGINS, ...pool.keys()])].sort((a, b) => {
+      const pa = isPriorityOrigin(a) ? 0 : 1;
+      const pb = isPriorityOrigin(b) ? 0 : 1;
+      return pa - pb || a.localeCompare(b);
     });
-    if (!lista.length) {
-      console.warn(
-        `[airfare-radar] WARNING origem ${origem} habilitada, mas sem oportunidades: ` +
-          `status=${st?.status ?? "sem_oportunidades"} motivo=${st?.note ?? "radar não retornou leads para esta origem"}`,
-      );
-    }
 
+    let extrasUsadas = 0;
+    for (const origem of origens) {
+      const prioritaria = isPriorityOrigin(origem);
+      if (!prioritaria) {
+        if (extrasUsadas >= MAX_EXTRA_ORIGINS) continue;
+        extrasUsadas++;
+      }
+      const lista = [...(pool.get(origem)?.values() ?? [])];
+      dedupTotal += lista.length;
+      const limite = maxOpportunitiesForOrigin(origem);
+
+      let elegiveis = 0;
+      let excluidas = 0;
+      let selNacional = 0;
+      let selInternacional = 0;
+
+      for (const scope of ["nacional", "internacional"] as const) {
+        if (!isOriginAllowedForScope(origem, scope)) continue;
+        const grupo = lista.filter((l) => l.scope === scope);
+        if (!grupo.length) continue;
+        const res = curateOrigin(origem, grupo, limite);
+        elegiveis += res.eligible;
+        excluidas += res.excluded;
+        if (scope === "nacional") selNacional += res.selected.length;
+        else selInternacional += res.selected.length;
+        escolhidasPorOrigem.push({ origem, leads: res.selected, scope });
+      }
+
+      const st = statusOrigem.get(origem);
+      metrics.push({
+        origin: origem,
+        discovered: lista.length,
+        deduped: lista.length,
+        eligible: elegiveis,
+        excluded: excluidas,
+        selected: selNacional + selInternacional,
+        selected_nacional: selNacional,
+        selected_internacional: selInternacional,
+        validated: 0,
+        with_price: 0,
+        no_result: 0,
+        errors: 0,
+        avg_seconds: null,
+        radar_status: st?.status ?? (lista.length ? "ok" : "sem_oportunidades"),
+        radar_note: st?.note ?? null,
+      });
+    }
   }
 
   // ------------------------------------------------------------------
@@ -724,38 +800,81 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   //    Processada em LOTES com checkpoint: o que não couber no orçamento
   //    fica gravado como `pendingLeads` e é retomado na próxima invocação.
   // ------------------------------------------------------------------
-  const selecionadas: PromoCandidate[] = [...(retomada?.stage === "datas" ? (retomada.candidates ?? []) : [])];
+  const selecionadas: PromoCandidate[] = [
+    ...(retomada?.stage === "datas" ? (retomada.candidates ?? []) : []),
+  ];
   const curados = escolhidasPorOrigem.flatMap((g) => g.leads);
   const pendentesSalvos = retomada?.stage === "datas" ? (retomada.pendingLeads ?? null) : null;
   const todosLeads = pendentesSalvos ?? curados;
   const restantesFila = [...todosLeads];
+  const datesTotal =
+    retomada?.stage === "datas"
+      ? Math.max(retomada.datesTotal ?? 0, (retomada.datesDone ?? 0) + todosLeads.length)
+      : todosLeads.length;
+  let datesDone =
+    retomada?.stage === "datas"
+      ? Math.min(retomada.datesDone ?? Math.max(0, datesTotal - todosLeads.length), datesTotal)
+      : 0;
 
-  progresso(`Buscando datas reais de ${todosLeads.length} oportunidades selecionadas...`);
-  const LOTE = 4;
-  for (let i = 0; i < todosLeads.length; i += LOTE) {
+  // Marca a transição ANTES da primeira chamada externa. Se a invocação morrer
+  // no meio, a retomada nunca volta ao checkpoint de `leads`.
+  await gravarCheckpoint("datas", {
+    pendingLeads: restantesFila,
+    candidates: selecionadas,
+    metrics,
+    dedupTotal,
+    datesTotal,
+    datesDone,
+  });
+  progresso(
+    `Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`,
+  );
+
+  // Uma oportunidade por checkpoint. O antigo lote de quatro só confirmava o
+  // avanço depois que TODAS terminavam; expirar durante o lote fazia as quatro
+  // primeiras serem consultadas novamente na próxima invocação.
+  while (restantesFila.length > 0) {
     if (cancelada) break;
     if (radarDeadline - Date.now() < BATCH_MIN_MS) {
-      // sem margem para mais um lote: grava progresso e encerra controlado
       await gravarCheckpoint("datas", {
         pendingLeads: restantesFila,
         candidates: selecionadas,
         metrics,
         dedupTotal,
+        datesTotal,
+        datesDone,
       });
       return parcial("datas", {
         pendingLeads: restantesFila,
         candidates: selecionadas,
         metrics,
         dedupTotal,
+        datesTotal,
+        datesDone,
       });
     }
-    const lote = todosLeads.slice(i, i + LOTE);
+    const lead = restantesFila[0];
+    if (!lead) break;
     progresso(
-      `Datas reais — ${Math.min(i + LOTE, todosLeads.length)}/${todosLeads.length} oportunidades`,
+      `Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`,
     );
-    await mapLimit(lote, LOTE, async (lead: Lead) => {
-
-    if (cancelada || !lead.itinerary_link) return;
+    // Confirma a retirada ANTES da chamada externa. Assim uma morte abrupta
+    // nunca consulta a mesma rota de novo na retomada. O custo dessa garantia
+    // é conservador: se o processo morrer exatamente durante a chamada, a rota
+    // é considerada tentada e o próximo ciclo diário poderá reencontrá-la.
+    restantesFila.shift();
+    datesDone++;
+    await gravarCheckpoint("datas", {
+      pendingLeads: restantesFila,
+      candidates: selecionadas,
+      metrics,
+      dedupTotal,
+      datesTotal,
+      datesDone,
+    });
+    progresso(
+      `Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`,
+    );
     let ofertas: Array<{
       departDate: string;
       returnDate: string | null;
@@ -766,8 +885,12 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       provider: string | null;
       externalUrl: string | null;
     }> = [];
-    if (!semTempo()) {
+    if (!cancelada && lead.itinerary_link && !semTempo()) {
       try {
+        // Uma rota lenta não recebe todo o orçamento restante nem bloqueia as
+        // seguintes. O adaptador ainda pode fazer seu retry curto dentro deste
+        // teto, mas a rota entra apenas uma vez nesta fila.
+        const deadlineDaRota = Math.min(radarDeadline, Date.now() + 15_000);
         const res = await radarOpportunitiesForLead(
           {
             source: "melhores_destinos",
@@ -783,7 +906,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
             collectedAt,
           },
           datesPerRoute,
-          { cancel, deadline: radarDeadline },
+          { cancel, deadline: deadlineDaRota },
         );
         ofertas = res
           .filter((o) => isFuture(o.departureDate))
@@ -800,15 +923,14 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       } catch (e) {
         if (e instanceof RadarCancelledError) {
           cancelada = true;
-          return;
+        } else {
+          radarErrors++;
+          ofertas = [];
         }
-        radarErrors++;
-        ofertas = [];
       }
     }
-    // Sem datas reais do radar a oportunidade é descartada: não inventamos datas.
-    if (!ofertas.length) return;
-
+    // Sem datas reais do radar a oportunidade é descartada: não inventamos
+    // datas. Mesmo assim a tentativa é confirmada e não volta à fila.
     for (const d of ofertas.slice(0, datesPerRoute)) {
       selecionadas.push({
         signature: candidateSignature({
@@ -839,20 +961,17 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         radar_external_url: d.externalUrl,
       });
     }
-    });
-    for (const l of lote) {
-      const idx = restantesFila.findIndex((r) => r.signature === l.signature);
-      if (idx >= 0) restantesFila.splice(idx, 1);
-    }
+    // Segundo checkpoint persiste apenas o resultado encontrado. A posição da
+    // fila já foi confirmada antes da rede e não pode regredir.
     await gravarCheckpoint("datas", {
       pendingLeads: restantesFila,
       candidates: selecionadas,
       metrics,
       dedupTotal,
+      datesTotal,
+      datesDone,
     });
   }
-
-
 
   // dedup final por assinatura (origem|destino|datas)
   const finais = new Map<string, PromoCandidate>();
@@ -875,9 +994,11 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     radarErrorStage: null,
     partial: false,
     state: null,
-    progress: { originsDone: originsDone.size, originsTotal: totalOrigens, leads: radarLeads, stage: "concluida" },
+    progress: {
+      originsDone: originsDone.size,
+      originsTotal: totalOrigens,
+      leads: radarLeads,
+      stage: "concluida",
+    },
   };
 }
-
-
-
