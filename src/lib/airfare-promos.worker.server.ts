@@ -53,9 +53,10 @@ const WATCHDOG_TICK_MS = 5_000;
  * LEASE POR CANDIDATA. `processing` sozinho não prova nada: se a invocação
  * morre (kill da plataforma), a linha ficaria presa. O lease é renovado por
  * heartbeat enquanto o processo está vivo; quando ele morre, o lease vence e a
- * próxima invocação recupera a candidata.
+ * próxima invocação recupera a candidata. Como o timeout agora é ADAPTATIVO,
+ * o lease acompanha o timeout real daquela candidata.
  */
-const CANDIDATE_LEASE_MS = CANDIDATE_TIMEOUT_MS + 60_000;
+const leaseMsPara = (timeoutMs: number) => timeoutMs + 60_000;
 
 /** Frequência de renovação do lease/heartbeat no banco. */
 const HEARTBEAT_TICK_MS = 15_000;
@@ -65,6 +66,17 @@ const HEARTBEAT_TICK_MS = 15_000;
  * restante da invocação (raiz do problema: claim tardio → worker morto).
  */
 const CLAIM_SAFETY_MS = 20_000;
+
+/**
+ * JANELA MÍNIMA DE CLAIM — recalculada automaticamente a partir do timeout da
+ * candidata. Aumentar o timeout NUNCA pode voltar a matar o worker no meio da
+ * consulta: quem não cabe no tempo restante simplesmente não é reservado.
+ */
+const custoDaCandidata = (timeoutMs: number) => timeoutMs + WATCHDOG_GRACE_MS + CLAIM_SAFETY_MS;
+
+/** Menor custo possível — abaixo disso nem a candidata mais barata cabe. */
+const CUSTO_MINIMO_MS = custoDaCandidata(CANDIDATE_TIMEOUT_FLOOR_MS);
+
 
 
 
