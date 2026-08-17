@@ -343,19 +343,97 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   // 1) RADAR — categorias → destinos monitorados de cada origem
   //    Cada origem recebe uma FATIA JUSTA do orçamento de leads: assim as
   //    últimas da lista (GIG, BSB, POA) nunca ficam sem tempo de varredura.
+  //    Depois de CADA origem o progresso vira checkpoint: se a invocação
+  //    morrer, a próxima continua da origem seguinte.
   // ------------------------------------------------------------------
-  let radarErrors = 0;
+  let radarErrors = retomada?.radarErrors ?? 0;
   /** status de cada origem configurada nesta execução (nada some em silêncio) */
   const statusOrigem = new Map<string, { status: string; note: string | null }>();
   for (const o of PRIORITY_ORIGINS) statusOrigem.set(o, { status: "nao_processada", note: null });
+  for (const [o, st] of Object.entries(retomada?.statusOrigem ?? {})) statusOrigem.set(o, st);
 
   const totalOrigens = PRIORITY_ORIGINS.length;
+
+  const snapshot = (stage: "leads" | "datas", extra?: Partial<DiscoveryState>): DiscoveryState => ({
+    v: 1,
+    stage,
+    collectedAt,
+    brutas,
+    radarErrors,
+    originsDone: [...originsDone],
+    statusOrigem: Object.fromEntries(statusOrigem),
+    pool: serializarPool(),
+    ...extra,
+  });
+
+  const metricasParciais = (): OriginMetrics[] =>
+    PRIORITY_ORIGINS.map((o) => ({
+      origin: o,
+      discovered: pool.get(o)?.size ?? 0,
+      deduped: pool.get(o)?.size ?? 0,
+      eligible: 0,
+      excluded: 0,
+      selected: 0,
+      selected_nacional: 0,
+      selected_internacional: 0,
+      validated: 0,
+      with_price: 0,
+      no_result: 0,
+      errors: 0,
+      avg_seconds: null,
+      radar_status: statusOrigem.get(o)?.status ?? "nao_processada",
+      radar_note: statusOrigem.get(o)?.note ?? null,
+    }));
+
+  const parcial = (stage: "leads" | "datas", extra?: Partial<DiscoveryState>): DiscoveryResult => ({
+    candidates: [],
+    discoveredTotal: brutas,
+    dedupedTotal: contarLeads(),
+    metrics: metricasParciais(),
+    decisions: [],
+    radarAvailable: contarLeads() > 0,
+    radarErrors,
+    radarLeads: contarLeads(),
+    fallbackCount: 0,
+    sourceMetrics: { ...radarSourceMetrics(), radar_adapter: "melhores-destinos.radar-api.server" },
+    cancelled: cancelada,
+    partial: true,
+    state: snapshot(stage, extra),
+    progress: {
+      originsDone: originsDone.size,
+      originsTotal: totalOrigens,
+      leads: contarLeads(),
+      stage,
+    },
+  });
+
+  const gravarCheckpoint = async (stage: "leads" | "datas", extra?: Partial<DiscoveryState>) => {
+    if (!opts?.onCheckpoint) return;
+    try {
+      await opts.onCheckpoint(snapshot(stage, extra), {
+        originsDone: originsDone.size,
+        originsTotal: totalOrigens,
+        leads: contarLeads(),
+        stage,
+      });
+    } catch {
+      /* checkpoint é best-effort: nunca derruba a descoberta */
+    }
+  };
+
   let indiceOrigem = 0;
   for (const origem of PRIORITY_ORIGINS) {
     indiceOrigem++;
+    if (originsDone.has(origem)) continue;
     if (cancelada) {
       statusOrigem.set(origem, { status: "nao_processada", note: "execução cancelada" });
       continue;
+    }
+    // Sem margem para concluir mais uma origem: grava e devolve o controle.
+    // A próxima invocação (cron ou manual) retoma exatamente daqui.
+    if (radarDeadline - Date.now() < SLICE_MIN_MS) {
+      await gravarCheckpoint("leads");
+      return parcial("leads");
     }
     if (semTempoLeads()) {
       statusOrigem.set(origem, { status: "sem_tempo", note: "orçamento de radar esgotado antes desta origem" });
@@ -366,7 +444,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     const restantes = Math.max(1, totalOrigens - indiceOrigem + 1);
     const fatia = Math.max(20_000, Math.floor((leadsDeadline - Date.now()) / restantes));
     const deadlineOrigem = Math.min(leadsDeadline, Date.now() + fatia);
-    progresso(`Radar de oportunidades — ${origem}...`);
+    progresso(`Radar de oportunidades — ${origem} (${indiceOrigem}/${totalOrigens})...`);
     try {
       const leads = await radarLeadsForOrigin(origem, {
         cancel,
@@ -401,6 +479,8 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       }
       if (e instanceof RadarDeadlineError) {
         statusOrigem.set(origem, { status: "sem_tempo", note: "prazo reservado para esta origem esgotado" });
+        originsDone.add(origem);
+        await gravarCheckpoint("leads");
         continue;
       }
       radarErrors++;
@@ -408,6 +488,8 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       statusOrigem.set(origem, { status: "erro_radar", note: msg });
       console.warn(`[airfare-radar] WARNING origem ${origem} falhou no radar: ${msg}`);
     }
+    originsDone.add(origem);
+    await gravarCheckpoint("leads");
   }
 
 
