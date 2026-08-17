@@ -236,13 +236,14 @@ export function scheduleBoletoAteViagem(
   return valores.map((amount, i) => {
     const ultima = i === parcelas - 1;
     let date = i === 0 ? contratacao : isoMaisDias(contratacao, 30 * i);
+    // A última parcela respeita o vencimento mensal normal; só é antecipada
+    // quando esse vencimento cairia dentro da janela de 30 dias antes da viagem.
     if (ultima && lastDueDate && parcelas > 1 && date > lastDueDate) date = lastDueDate;
-    if (ultima && lastDueDate && parcelas > 1) date = lastDueDate;
     return {
       number: i + 1,
       date,
       amount,
-      label: i === 0 ? "Entrada (1º pagamento)" : ultima ? "Quitação final" : `${i + 1}ª parcela`,
+      label: i === 0 ? "Entrada (1º pagamento)" : `${i + 1}ª parcela`,
     };
   });
 }
