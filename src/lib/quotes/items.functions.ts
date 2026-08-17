@@ -7,6 +7,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import type { ExtractedQuoteItems, ItemKind } from "./items.server";
 
+export type { ExtractedQuoteItems } from "./items.server";
+
 const HotelSchema = z.object({
   name: z.string().trim().min(1).max(160),
   city: z.string().trim().max(120).nullish(),

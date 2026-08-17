@@ -15,8 +15,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/format";
-import { aplicarItensExtraidos, lerArquivoOrcamento } from "@/lib/quotes/items.functions";
-import type { ExtractedQuoteItems } from "@/lib/quotes/items.server";
+import { aplicarItensExtraidos, lerArquivoOrcamento, type ExtractedQuoteItems } from "@/lib/quotes/items.functions";
 import type { QuoteItemKind } from "./QuoteItemFormDialog";
 
 const MAX_BYTES = 12 * 1024 * 1024;

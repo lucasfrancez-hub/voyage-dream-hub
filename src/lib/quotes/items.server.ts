@@ -8,8 +8,15 @@
  *
  * SERVER-ONLY.
  */
-import { emptyOption, type NormalizedFlight, type NormalizedGenericItem, type NormalizedHotel, type NormalizedOption, type NormalizedQuote } from "./types";
-import { emptyQuote } from "./types";
+import {
+  emptyOption,
+  emptyQuote,
+  type NormalizedFlight,
+  type NormalizedGenericItem,
+  type NormalizedHotel,
+  type NormalizedOption,
+  type NormalizedQuote,
+} from "./types";
 
 export type ItemKind = "hotel" | "flight" | "service";
 
