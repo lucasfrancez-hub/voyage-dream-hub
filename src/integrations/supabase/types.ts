@@ -7855,14 +7855,29 @@ export type Database = {
           central_slug: string | null
           created_at: string
           display_name: string | null
+          fraud_analysis_active: boolean
           fraud_clusters: Json
+          fraud_critical_flags: Json
           fraud_last_evaluation: string | null
+          fraud_manual_overrides: Json
+          fraud_outcome: string | null
+          fraud_outcome_at: string | null
+          fraud_outcome_by: string | null
+          fraud_outcome_note: string | null
+          fraud_payment_meta: Json
           fraud_reducers: Json
+          fraud_risk_confidence: number
           fraud_risk_level: string
+          fraud_risk_max_score: number
+          fraud_risk_persistence: number
           fraud_risk_score: number
+          fraud_risk_trend: string
+          fraud_risk_velocity: string
+          fraud_score_at_transfer: number | null
           fraud_signals: Json
           fraud_summary: string | null
           fraud_transfer_at: string | null
+          fraud_transfer_reason: string | null
           fraud_transfer_required: boolean
           funnel_stage: string | null
           id: string
@@ -7903,14 +7918,29 @@ export type Database = {
           central_slug?: string | null
           created_at?: string
           display_name?: string | null
+          fraud_analysis_active?: boolean
           fraud_clusters?: Json
+          fraud_critical_flags?: Json
           fraud_last_evaluation?: string | null
+          fraud_manual_overrides?: Json
+          fraud_outcome?: string | null
+          fraud_outcome_at?: string | null
+          fraud_outcome_by?: string | null
+          fraud_outcome_note?: string | null
+          fraud_payment_meta?: Json
           fraud_reducers?: Json
+          fraud_risk_confidence?: number
           fraud_risk_level?: string
+          fraud_risk_max_score?: number
+          fraud_risk_persistence?: number
           fraud_risk_score?: number
+          fraud_risk_trend?: string
+          fraud_risk_velocity?: string
+          fraud_score_at_transfer?: number | null
           fraud_signals?: Json
           fraud_summary?: string | null
           fraud_transfer_at?: string | null
+          fraud_transfer_reason?: string | null
           fraud_transfer_required?: boolean
           funnel_stage?: string | null
           id?: string
@@ -7951,14 +7981,29 @@ export type Database = {
           central_slug?: string | null
           created_at?: string
           display_name?: string | null
+          fraud_analysis_active?: boolean
           fraud_clusters?: Json
+          fraud_critical_flags?: Json
           fraud_last_evaluation?: string | null
+          fraud_manual_overrides?: Json
+          fraud_outcome?: string | null
+          fraud_outcome_at?: string | null
+          fraud_outcome_by?: string | null
+          fraud_outcome_note?: string | null
+          fraud_payment_meta?: Json
           fraud_reducers?: Json
+          fraud_risk_confidence?: number
           fraud_risk_level?: string
+          fraud_risk_max_score?: number
+          fraud_risk_persistence?: number
           fraud_risk_score?: number
+          fraud_risk_trend?: string
+          fraud_risk_velocity?: string
+          fraud_score_at_transfer?: number | null
           fraud_signals?: Json
           fraud_summary?: string | null
           fraud_transfer_at?: string | null
+          fraud_transfer_reason?: string | null
           fraud_transfer_required?: boolean
           funnel_stage?: string | null
           id?: string
@@ -8543,12 +8588,17 @@ export type Database = {
       wa_fraud_evaluations: {
         Row: {
           clusters_detected: Json
+          confidence_after: number | null
+          confidence_before: number | null
           conversation_id: string
+          critical_flags: Json
           evaluated_at: string
           id: string
           level_after: string
           level_before: string | null
+          max_score: number | null
           message_id: string | null
+          note: string | null
           reducers_added: Json
           risk_after: number
           risk_before: number | null
@@ -8557,16 +8607,24 @@ export type Database = {
           signals_snapshot: Json
           source: string
           summary: string | null
+          transfer_reason: string | null
           transfer_triggered: boolean
+          trend: string | null
+          velocity: string | null
         }
         Insert: {
           clusters_detected?: Json
+          confidence_after?: number | null
+          confidence_before?: number | null
           conversation_id: string
+          critical_flags?: Json
           evaluated_at?: string
           id?: string
           level_after: string
           level_before?: string | null
+          max_score?: number | null
           message_id?: string | null
+          note?: string | null
           reducers_added?: Json
           risk_after: number
           risk_before?: number | null
@@ -8575,16 +8633,24 @@ export type Database = {
           signals_snapshot?: Json
           source?: string
           summary?: string | null
+          transfer_reason?: string | null
           transfer_triggered?: boolean
+          trend?: string | null
+          velocity?: string | null
         }
         Update: {
           clusters_detected?: Json
+          confidence_after?: number | null
+          confidence_before?: number | null
           conversation_id?: string
+          critical_flags?: Json
           evaluated_at?: string
           id?: string
           level_after?: string
           level_before?: string | null
+          max_score?: number | null
           message_id?: string | null
+          note?: string | null
           reducers_added?: Json
           risk_after?: number
           risk_before?: number | null
@@ -8593,11 +8659,105 @@ export type Database = {
           signals_snapshot?: Json
           source?: string
           summary?: string | null
+          transfer_reason?: string | null
           transfer_triggered?: boolean
+          trend?: string | null
+          velocity?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "wa_fraud_evaluations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_fraud_events: {
+        Row: {
+          confidence: number | null
+          conversation_id: string
+          created_at: string
+          created_by: string | null
+          detail: string | null
+          id: string
+          kind: string
+          label: string
+          level: string | null
+          payload: Json
+          score: number | null
+        }
+        Insert: {
+          confidence?: number | null
+          conversation_id: string
+          created_at?: string
+          created_by?: string | null
+          detail?: string | null
+          id?: string
+          kind: string
+          label: string
+          level?: string | null
+          payload?: Json
+          score?: number | null
+        }
+        Update: {
+          confidence?: number | null
+          conversation_id?: string
+          created_at?: string
+          created_by?: string | null
+          detail?: string | null
+          id?: string
+          kind?: string
+          label?: string
+          level?: string | null
+          payload?: Json
+          score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_fraud_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_fraud_reviews: {
+        Row: {
+          action: string
+          conversation_id: string
+          created_at: string
+          id: string
+          note: string | null
+          reviewer: string | null
+          score_at_review: number | null
+          signal_code: string | null
+        }
+        Insert: {
+          action: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          reviewer?: string | null
+          score_at_review?: number | null
+          signal_code?: string | null
+        }
+        Update: {
+          action?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          reviewer?: string | null
+          score_at_review?: number | null
+          signal_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_fraud_reviews_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "wa_conversations"
