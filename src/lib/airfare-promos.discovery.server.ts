@@ -479,7 +479,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         }),
         new Promise<never>((_, reject) =>
           setTimeout(
-            () => reject(new RadarDeadlineError(`prazo da origem ${origem} esgotado`)),
+            () => reject(new RadarDeadlineError()),
             Math.max(5_000, deadlineOrigem - Date.now() + 5_000),
           ),
         ),
