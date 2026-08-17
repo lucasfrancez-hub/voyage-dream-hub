@@ -346,6 +346,22 @@ function TesteCheckoutOwnerPage() {
             {carrinhoMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Consultar"}
           </Button>
         </div>
+        {status ? (
+          <div className="flex items-center gap-2 text-sm">
+            {carrinhoMut.isPending || gravarMut.isPending ? (
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            ) : null}
+            <span
+              className={
+                status === "Carrinho pronto" || status === "Checkout pronto"
+                  ? "text-emerald-600"
+                  : "text-muted-foreground"
+              }
+            >
+              {status}
+            </span>
+          </div>
+        ) : null}
         {resumo ? (
           <div className="grid gap-2 text-sm sm:grid-cols-2">
             <div>cartId: {resumo.cartId ?? "—"}</div>
@@ -359,29 +375,41 @@ function TesteCheckoutOwnerPage() {
               Trecho: {resumo.origem ?? "—"} → {resumo.destino ?? "—"}
             </div>
             <div>
-              Datas: {resumo.ida ?? "—"} {resumo.volta ? `· ${resumo.volta}` : ""}
+              Datas: {fmtData(resumo.ida)} {resumo.volta ? `· ${fmtData(resumo.volta)}` : ""}
             </div>
             <div>
-              Preço: {resumo.total ?? "—"} {resumo.moeda ?? ""}
+              Preço:{" "}
+              {resumo.total != null
+                ? resumo.total.toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: resumo.moeda === "USD" ? "USD" : "BRL",
+                  })
+                : "—"}
             </div>
             <div>Parcelamento: {resumo.parcelas ?? "—"}</div>
+            {resumo.faltando.length ? (
+              <div className="sm:col-span-2 text-amber-600">
+                Pendente na Owner: {resumo.faltando.join(", ")}
+              </div>
+            ) : null}
             <div className="sm:col-span-2 space-y-1">
               {resumo.voos.map((v, i) => (
                 <div key={i} className="text-muted-foreground">
-                  {v.trecho} · {v.data} · {v.cia} {v.voo}
+                  {v.trecho} · {fmtData(v.data)} · {v.cia} {v.voo}
                 </div>
               ))}
             </div>
           </div>
         ) : null}
-        {carrinhoMut.data ? (
+        {ultimaConsulta ? (
           <details className="text-xs">
             <summary className="cursor-pointer text-muted-foreground">Retorno bruto</summary>
             <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-2">
-              {carrinhoMut.data.payloadJson}
+              {ultimaConsulta.payloadJson}
             </pre>
           </details>
         ) : null}
+
       </section>
 
       {/* 5 e 6. Passageiros */}
