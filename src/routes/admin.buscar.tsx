@@ -22,6 +22,8 @@ import { CarrosPage } from "./admin.carros";
 import { ExclusivosPage } from "./admin.exclusivos";
 import { SegurosPage } from "./admin.seguros";
 import { DateRangeField } from "@/components/search/DateRangeField";
+import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
+
 import { PublicEngineProvider } from "@/lib/public-engine";
 
 
