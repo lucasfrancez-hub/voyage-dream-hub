@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { resetEmbedHeight, resizeEmbedForFloatingElement } from "@/lib/embed-resize";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 
 const toISO = (d: Date) => format(d, "yyyy-MM-dd");
@@ -38,6 +39,7 @@ export function DateRangeField({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
   const [focus, setFocus] = useState<"start" | "end">("start");
   const [embedded, setEmbedded] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -83,15 +85,20 @@ export function DateRangeField({
     };
     // A largura do calendário agora é determinística; uma única medição após o
     // commit basta. O ResizeObserver do utilitário acompanha mudanças reais.
-    const raf = window.requestAnimationFrame(() => {
+    const measure = () => {
       update();
-      resizeEmbedForFloatingElement(calendarRef.current, 32, embedResizeOwner.current);
-    });
+      resizeEmbedForFloatingElement(calendarRef.current, 40, embedResizeOwner.current);
+    };
+    // Safari iOS renderiza o calendário em mais de um frame: remedimos algumas
+    // vezes pra o iframe crescer até caber o painel inteiro (sem corte).
+    const raf = window.requestAnimationFrame(measure);
+    const timers = [80, 200, 400, 700].map((ms) => window.setTimeout(measure, ms));
 
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => {
       window.cancelAnimationFrame(raf);
+      timers.forEach((t) => window.clearTimeout(t));
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
     };
@@ -168,7 +175,7 @@ export function DateRangeField({
 
   const panel = (compact: boolean) => (
     <>
-      <div className="flex items-center gap-2 border-b border-border/50 px-4 py-2.5 text-xs">
+      <div className="flex shrink-0 items-center gap-2 border-b border-border/50 px-4 py-2.5 text-xs">
         <span
           className={cn(
             "rounded-full px-2 py-1 font-semibold",
@@ -198,7 +205,7 @@ export function DateRangeField({
         )}
       </div>
 
-      <div className="flex w-full min-w-0 justify-center overflow-hidden">
+      <div className="flex w-full min-w-0 flex-1 justify-center overflow-y-auto overscroll-contain">
         <Calendar
           mode="range"
           locale={ptBR}
@@ -213,7 +220,7 @@ export function DateRangeField({
       </div>
 
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/50 px-3 py-2.5 sm:px-4">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border/50 px-3 py-2.5 sm:px-4">
         <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => onChange("", "")}>
           Limpar
         </Button>
@@ -240,6 +247,36 @@ export function DateRangeField({
     </>
   );
 
+  // No celular (fora do iframe) o popover fica preso/cortado dentro do card da
+  // busca — abrimos como bottom sheet ocupando a viewport toda.
+  if (isMobile && !embedded) {
+    return (
+      <>
+        <div ref={anchorRef} className={cn("grid grid-cols-2 gap-2", className)}>
+          {trigger("start")}
+          {trigger("end")}
+        </div>
+        {open &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div className="fixed inset-0 z-[2147483000] flex items-end justify-center">
+              <div
+                className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+                onClick={() => setOpen(false)}
+              />
+              <div
+                role="dialog"
+                className="relative flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-border/60 bg-popover shadow-2xl pb-[env(safe-area-inset-bottom)]"
+              >
+                {panel(true)}
+              </div>
+            </div>,
+            document.body,
+          )}
+      </>
+    );
+  }
+
   // Dentro de um iframe (widget do site) o popover seria cortado pelas bordas.
   // Renderizamos num portal no body e pedimos ao WordPress pra aumentar o iframe.
   if (embedded) {
@@ -263,7 +300,7 @@ export function DateRangeField({
                   left: pos.left,
                   width: pos.width || 296,
                 }}
-                className="z-[100] box-border flex max-w-[calc(100vw-16px)] flex-col overflow-hidden rounded-2xl border border-border/60 bg-popover shadow-2xl"
+                className="z-[100] box-border flex max-w-[calc(100vw-16px)] flex-col rounded-2xl border border-border/60 bg-popover shadow-2xl"
 
               >
                 {panel(true)}
