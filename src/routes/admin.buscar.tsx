@@ -10,6 +10,7 @@ import type { MultiPick, MultiSegmentInput } from "@/lib/multicity";
 import type { FlightPreset } from "./admin.voos-teste";
 import type { HotelPreset } from "./admin.hoteis-teste";
 import type { ComboPick } from "@/lib/combo-selection";
+import { newCombinedKey } from "@/lib/combined-journey";
 import { useServerFn } from "@tanstack/react-start";
 import {
   onerCreateComboCart,
