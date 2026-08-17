@@ -44,6 +44,24 @@ const WATCHDOG_GRACE_MS = 15_000;
 /** Frequência do watchdog de workers. */
 const WATCHDOG_TICK_MS = 5_000;
 
+/**
+ * LEASE POR CANDIDATA. `processing` sozinho não prova nada: se a invocação
+ * morre (kill da plataforma), a linha ficaria presa. O lease é renovado por
+ * heartbeat enquanto o processo está vivo; quando ele morre, o lease vence e a
+ * próxima invocação recupera a candidata.
+ */
+const CANDIDATE_LEASE_MS = CANDIDATE_TIMEOUT_MS + 60_000;
+
+/** Frequência de renovação do lease/heartbeat no banco. */
+const HEARTBEAT_TICK_MS = 15_000;
+
+/**
+ * Margem de segurança para NÃO aceitar trabalho que não cabe no orçamento
+ * restante da invocação (raiz do problema: claim tardio → worker morto).
+ */
+const CLAIM_SAFETY_MS = 20_000;
+
+
 
 /**
  * Retry NÃO bloqueia worker: a candidata que falhou volta para o FIM da fila
@@ -70,7 +88,16 @@ export type ValidationTelemetry = {
   in_flight?: WorkerHeartbeat[];
   /** timeout individual configurado (ms) — o painel usa para apontar travamento */
   candidate_timeout_ms?: number;
+  /** claims sem heartbeat vivo (órfãos aguardando recuperação) */
+  orphans?: number;
+  /** leases recuperados nesta invocação (workers que morreram antes) */
+  recovered?: number;
+  /** candidatas encerradas por esgotar tentativas após mortes de worker */
+  dead_worker_failures?: number;
+  /** claims recusados por não caber no orçamento restante da invocação */
+  claims_skipped_budget?: number;
   updated_at: string;
+
 };
 
 /** Heartbeat de um worker — permite saber exatamente onde o processo congelou. */
@@ -218,20 +245,136 @@ async function db(): Promise<AnyClient> {
   return supabaseAdmin as unknown as AnyClient;
 }
 
-/** Devolve à fila as candidatas presas em `processing`. */
-async function releaseStaleClaims(client: AnyClient, runId: string) {
-  const limite = new Date(Date.now() - CLAIM_STALE_MS).toISOString();
+export type OrphanRecovery = {
+  recovered: number;
+  failed: number;
+  ids: string[];
+};
+
+/**
+ * RECUPERAÇÃO OBRIGATÓRIA NO INÍCIO DE CADA INVOCAÇÃO.
+ *
+ * Procura candidatas em `processing` cujo LEASE venceu (o processo que fez o
+ * claim morreu). Cada uma:
+ *  - conta como TENTATIVA FRACASSADA (attempts += 1 — nunca volta com 0);
+ *  - registra que a execução anterior morreu (last_error/last_error_step);
+ *  - volta para `pending` (prioridade penalizada) se ainda houver tentativa;
+ *  - encerra como `error` quando o limite de tentativas foi atingido.
+ */
+export async function recoverOrphanClaims(
+  client: AnyClient,
+  runId: string,
+  maxAttempts: number,
+): Promise<OrphanRecovery> {
+  const agora = Date.now();
+  const nowIso = new Date(agora).toISOString();
+  const legado = new Date(agora - CLAIM_STALE_MS).toISOString();
+  const out: OrphanRecovery = { recovered: 0, failed: 0, ids: [] };
+
   try {
-    await client
+    const { data } = await client
       .from("airfare_promo_candidates")
-      .update({ status: "pending", claimed_at: null })
+      .select("id,attempts,priority,origin_iata,destination_iata,claimed_at,lease_expires_at,dead_workers")
       .eq("run_id", runId)
       .eq("status", "processing")
-      .lt("claimed_at", limite);
+      .limit(500);
+
+    const linhas = (data ?? []) as Array<{
+      id: string;
+      attempts: number | null;
+      priority: number | null;
+      origin_iata: string;
+      destination_iata: string;
+      claimed_at: string | null;
+      lease_expires_at: string | null;
+      dead_workers: number | null;
+    }>;
+
+    for (const l of linhas) {
+      // lease vivo = worker vivo. Linha antiga (sem coluna preenchida) só é
+      // considerada órfã depois do limite legado de claim.
+      const leaseVenceu = l.lease_expires_at
+        ? new Date(l.lease_expires_at).getTime() < agora
+        : !l.claimed_at || l.claimed_at < legado;
+      if (!leaseVenceu) continue;
+
+      const tentativas = Number(l.attempts ?? 0) + 1; // morte do worker CONTA como tentativa
+      const mortes = Number(l.dead_workers ?? 0) + 1;
+      const motivo = `worker_morto:lease_expirado (invocação anterior encerrada sem finalizar)`;
+
+      if (tentativas < maxAttempts) {
+        await client
+          .from("airfare_promo_candidates")
+          .update({
+            status: "pending",
+            claimed_at: null,
+            lease_expires_at: null,
+            heartbeat_at: null,
+            worker_token: null,
+            attempts: tentativas,
+            dead_workers: mortes,
+            priority: Number(l.priority ?? 0) + REQUEUE_PRIORITY_STEP,
+            last_error: motivo,
+            last_error_step: "worker_morto",
+            last_error_at: nowIso,
+          })
+          .eq("id", l.id)
+          .eq("status", "processing");
+        out.recovered++;
+      } else {
+        await client
+          .from("airfare_promo_candidates")
+          .update({
+            status: "error",
+            claimed_at: null,
+            lease_expires_at: null,
+            heartbeat_at: null,
+            worker_token: null,
+            attempts: tentativas,
+            dead_workers: mortes,
+            last_error: `${motivo} — limite de tentativas atingido`,
+            last_error_step: "worker_morto",
+            last_error_at: nowIso,
+            processed_at: nowIso,
+          })
+          .eq("id", l.id)
+          .eq("status", "processing");
+        out.failed++;
+      }
+      out.ids.push(l.id);
+      console.warn(
+        "[airfare-lease-recuperado]",
+        JSON.stringify({
+          oportunidade: l.id,
+          rota: `${l.origin_iata}->${l.destination_iata}`,
+          tentativas,
+          mortes_worker: mortes,
+          desfecho: tentativas < maxAttempts ? "requeue" : "error",
+        }),
+      );
+    }
+  } catch (err) {
+    console.warn("[airfare-lease-recuperado] falha", err);
+  }
+
+  return out;
+}
+
+/** Quantos claims estão sem heartbeat vivo AGORA (órfãos aguardando recuperação). */
+async function contarOrfaos(client: AnyClient, runId: string): Promise<number> {
+  try {
+    const { count } = await client
+      .from("airfare_promo_candidates")
+      .select("id", { count: "exact", head: true })
+      .eq("run_id", runId)
+      .eq("status", "processing")
+      .lt("lease_expires_at", new Date().toISOString());
+    return Number(count ?? 0);
   } catch {
-    /* best-effort */
+    return 0;
   }
 }
+
 
 /**
  * Processa a fila pendente de uma execução, respeitando o orçamento de tempo.
@@ -255,7 +398,10 @@ export async function processPendingCandidates(args: {
   /** Cancelar interrompe novos jobs E aborta o que já está em voo. */
   const abortController = new AbortController();
 
-  await releaseStaleClaims(client, runId);
+  // RECUPERAÇÃO OBRIGATÓRIA antes de qualquer novo claim.
+  const recuperacao = await recoverOrphanClaims(client, runId, PROMO_VALIDATION_MAX_ATTEMPTS);
+  let claimsRecusadosPorOrcamento = 0;
+
 
   const { data: run } = await client
     .from("airfare_promo_runs")
@@ -377,6 +523,8 @@ export async function processPendingCandidates(args: {
     }));
 
 
+  let orfaosAgora = 0;
+
   const telemetria = (): ValidationTelemetry => ({
     concurrency,
     ...tele,
@@ -385,11 +533,16 @@ export async function processPendingCandidates(args: {
       : null,
     p95_duration_ms: percentil(duracoes, 95),
     failures: falhas.slice(0, 10),
+    // "Em processamento agora" = SOMENTE jobs com heartbeat vivo nesta invocação.
     in_flight: heartbeat(),
     candidate_timeout_ms: CANDIDATE_TIMEOUT_MS,
+    orphans: orfaosAgora,
+    recovered: recuperacao.recovered,
+    dead_worker_failures: recuperacao.failed,
+    claims_skipped_budget: claimsRecusadosPorOrcamento,
     updated_at: new Date().toISOString(),
-
   });
+
 
 
 
@@ -407,11 +560,22 @@ export async function processPendingCandidates(args: {
 
   const setCandidato = async (id: string, patch: Record<string, unknown>) => {
     try {
-      await client.from("airfare_promo_candidates").update(patch).eq("id", id);
+      // Qualquer saída de `processing` libera o lease — nenhum resto de reserva
+      // pode fazer a candidata parecer "em processamento".
+      const st = patch["status"];
+      const final =
+        typeof st === "string" && st !== "processing"
+          ? { lease_expires_at: null, heartbeat_at: null, worker_token: null }
+          : {};
+      await client
+        .from("airfare_promo_candidates")
+        .update({ ...patch, ...final })
+        .eq("id", id);
     } catch {
       /* best-effort */
     }
   };
+
 
   const markups: MarkupTable = await loadMarkups(client);
 
@@ -437,8 +601,32 @@ export async function processPendingCandidates(args: {
   })();
 
 
-  /** Reserva atomicamente a próxima candidata pendente (evita duplo trabalho). */
-  const claimNext = async (): Promise<CandidateRow | null> => {
+  /** Token desta invocação — identifica o dono do lease de cada candidata. */
+  const invocationToken = `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+  /** Tempo mínimo que precisa sobrar para aceitar mais uma candidata. */
+  const custoMaximoCandidata = CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS + CLAIM_SAFETY_MS;
+
+  /**
+   * Reserva atomicamente a próxima candidata pendente (evita duplo trabalho)
+   * e grava o LEASE (validade + heartbeat + dono). Recusa o claim quando o
+   * tempo restante da invocação não comporta uma validação inteira.
+   */
+  const claimNext = async (workerId: number): Promise<CandidateRow | null> => {
+    const restante = deadline - Date.now();
+    if (restante < custoMaximoCandidata) {
+      claimsRecusadosPorOrcamento++;
+      console.log(
+        "[airfare-claim-recusado]",
+        JSON.stringify({
+          worker: workerId,
+          restante_ms: restante,
+          minimo_ms: custoMaximoCandidata,
+          motivo: "orcamento_insuficiente_para_nova_candidata",
+        }),
+      );
+      return null;
+    }
     for (let tentativa = 0; tentativa < 5; tentativa++) {
       const { data } = await client
         .from("airfare_promo_candidates")
@@ -450,9 +638,16 @@ export async function processPendingCandidates(args: {
         .limit(1)
         .maybeSingle();
       if (!data) return null;
+      const agoraIso = new Date().toISOString();
       const { data: claimed } = await client
         .from("airfare_promo_candidates")
-        .update({ status: "processing", claimed_at: new Date().toISOString() })
+        .update({
+          status: "processing",
+          claimed_at: agoraIso,
+          heartbeat_at: agoraIso,
+          lease_expires_at: new Date(Date.now() + CANDIDATE_LEASE_MS).toISOString(),
+          worker_token: `${invocationToken}#${workerId}`,
+        })
         .eq("id", (data as CandidateRow).id)
         .eq("status", "pending")
         .select("id")
@@ -461,6 +656,7 @@ export async function processPendingCandidates(args: {
     }
     return null;
   };
+
 
   const processar = async (
     cand: CandidateRow,
@@ -769,16 +965,29 @@ export async function processPendingCandidates(args: {
     }
   };
   await contarFila();
+  orfaosAgora = await contarOrfaos(client, runId);
+  if (recuperacao.recovered || recuperacao.failed) {
+    console.warn(
+      "[airfare-recuperacao-inicial]",
+      JSON.stringify({
+        run: runId,
+        devolvidas_para_fila: recuperacao.recovered,
+        encerradas_por_limite: recuperacao.failed,
+      }),
+    );
+  }
 
   const worker = async (workerId: number) => {
-    while (Date.now() < deadline) {
+    // Sai antes do fim do orçamento: nada de aceitar trabalho que não cabe.
+    while (Date.now() < deadline - custoMaximoCandidata) {
       if (cancelada || abortController.signal.aborted || (await cancelamentoPedido())) {
         cancelada = true;
         abortController.abort();
         return;
       }
-      const cand = await claimNext();
+      const cand = await claimNext(workerId);
       if (!cand) return;
+
 
       tele.running++;
       tele.queued = Math.max(0, tele.queued - 1);
@@ -955,6 +1164,31 @@ export async function processPendingCandidates(args: {
     }
   }, WATCHDOG_TICK_MS);
 
+  /**
+   * HEARTBEAT DO LEASE — enquanto o processo estiver vivo, cada candidata em
+   * voo tem o lease renovado no banco. Se a invocação morrer, os leases vencem
+   * e a próxima invocação recupera as candidatas (com attempts incrementado).
+   */
+  const heartbeatTimer = setInterval(() => {
+    void (async () => {
+      const jobs = [...emVoo.values()];
+      const validade = new Date(Date.now() + CANDIDATE_LEASE_MS).toISOString();
+      const agoraIso = new Date().toISOString();
+      for (const j of jobs) {
+        try {
+          await client
+            .from("airfare_promo_candidates")
+            .update({ heartbeat_at: agoraIso, lease_expires_at: validade })
+            .eq("id", j.cand.id)
+            .eq("status", "processing");
+        } catch {
+          /* best-effort */
+        }
+      }
+      orfaosAgora = await contarOrfaos(client, runId);
+    })();
+  }, HEARTBEAT_TICK_MS);
+
   // FILA GLOBAL: os workers competem pela mesma fila, sem esperar terminar uma
   // origem para começar outra. Terminou uma validação, começa a próxima.
   try {
@@ -962,7 +1196,9 @@ export async function processPendingCandidates(args: {
   } finally {
     clearInterval(vigia);
     clearInterval(watchdog);
+    clearInterval(heartbeatTimer);
   }
+
 
   if (!cancelada) await progresso("", true);
 

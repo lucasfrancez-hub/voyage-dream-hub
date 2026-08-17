@@ -151,13 +151,16 @@ export type Database = {
           attempts: number
           claimed_at: string | null
           created_at: string
+          dead_workers: number
           departure_date: string
           destination_city: string | null
           destination_iata: string
+          heartbeat_at: string | null
           id: string
           last_error: string | null
           last_error_at: string | null
           last_error_step: string | null
+          lease_expires_at: string | null
           origin_city: string | null
           origin_iata: string
           priority: number
@@ -181,18 +184,22 @@ export type Database = {
           signature: string
           status: string
           updated_at: string
+          worker_token: string | null
         }
         Insert: {
           attempts?: number
           claimed_at?: string | null
           created_at?: string
+          dead_workers?: number
           departure_date: string
           destination_city?: string | null
           destination_iata: string
+          heartbeat_at?: string | null
           id?: string
           last_error?: string | null
           last_error_at?: string | null
           last_error_step?: string | null
+          lease_expires_at?: string | null
           origin_city?: string | null
           origin_iata: string
           priority?: number
@@ -216,18 +223,22 @@ export type Database = {
           signature: string
           status?: string
           updated_at?: string
+          worker_token?: string | null
         }
         Update: {
           attempts?: number
           claimed_at?: string | null
           created_at?: string
+          dead_workers?: number
           departure_date?: string
           destination_city?: string | null
           destination_iata?: string
+          heartbeat_at?: string | null
           id?: string
           last_error?: string | null
           last_error_at?: string | null
           last_error_step?: string | null
+          lease_expires_at?: string | null
           origin_city?: string | null
           origin_iata?: string
           priority?: number
@@ -251,6 +262,7 @@ export type Database = {
           signature?: string
           status?: string
           updated_at?: string
+          worker_token?: string | null
         }
         Relationships: [
           {
