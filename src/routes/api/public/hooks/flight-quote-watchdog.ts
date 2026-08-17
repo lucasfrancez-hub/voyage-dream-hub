@@ -61,6 +61,17 @@ export const Route = createFileRoute("/api/public/hooks/flight-quote-watchdog")(
         } catch (e) {
           console.warn("[watchdog] varredura de envios presos falhou:", (e as Error)?.message ?? e);
         }
+        try {
+          // 0.2) Balões de texto da IA salvos no banco mas nunca entregues à
+          //      Meta (worker morreu entre o insert e o envio). Reenvia.
+          const { sweepBaloesNaoEnviados } = await import(
+            "@/lib/whatsapp/baloes-nao-enviados.server"
+          );
+          await sweepBaloesNaoEnviados();
+        } catch (e) {
+          console.warn("[watchdog] varredura de balões não enviados falhou:", (e as Error)?.message ?? e);
+        }
+
         let turnos: unknown = null;
         try {
           // 0.5) Turno travado: cliente respondeu e nada saiu. Reexecuta pelo
