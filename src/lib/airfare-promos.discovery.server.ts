@@ -556,14 +556,27 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     const deadlineOrigem = Math.min(leadsDeadline, Date.now() + fatia);
     progresso(`Radar de oportunidades — ${origem} (${indiceOrigem}/${totalOrigens})...`);
 
-    // Origem que já derrubou a invocação duas vezes não pode travar a fila:
-    // fica registrada como timeout e a descoberta segue para a próxima.
+    // Fatia menor que uma tentativa de rede viável (timeout de 12s + folga)
+    // NÃO conta como tentativa: seria abandonar a origem por falta de tempo,
+    // não por falha do radar. Ela volta para a fila da próxima invocação.
+    if (fatia < ORIGIN_ATTEMPT_MIN_MS) {
+      statusOrigem.set(origem, {
+        status: "sem_tempo",
+        note: "fatia curta demais para consultar o radar — será varrida na retomada",
+      });
+      await gravarCheckpoint("leads");
+      continue;
+    }
+
+    // Origem que já derrubou a invocação N vezes não pode travar a fila:
+    // fica registrada como TIMEOUT (nunca como "sem oportunidades") e a
+    // descoberta segue para a próxima.
     const tentativas = (originAttempts.get(origem) ?? 0) + 1;
     originAttempts.set(origem, tentativas);
-    if (tentativas > 2) {
+    if (tentativas > MAX_ORIGIN_ATTEMPTS) {
       statusOrigem.set(origem, {
-        status: "timeout",
-        note: "radar não respondeu dentro do prazo em 2 tentativas",
+        status: "timeout_radar",
+        note: `radar não respondeu dentro do prazo em ${MAX_ORIGIN_ATTEMPTS} tentativas — origem não foi pesquisada`,
       });
       originsDone.add(origem);
       await gravarCheckpoint("leads");
@@ -572,6 +585,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     // A tentativa vira checkpoint ANTES da chamada: se a invocação morrer no
     // meio, a próxima sabe que esta origem já foi tentada.
     await gravarCheckpoint("leads");
+
 
     const escoposDaOrigem = (["nacional", "internacional"] as const).filter((s) =>
       isOriginAllowedForScope(origem, s),
