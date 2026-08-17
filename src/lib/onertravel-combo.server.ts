@@ -130,6 +130,16 @@ export async function buildComboCart(
       eventId: null,
     },
   ];
+  // Último recurso: algumas jornadas exigem a chave combinada no corpo.
+  if (data.combinedKey) {
+    bodies.push({
+      flight: flightBlock,
+      hotel: hotelBlock,
+      searchBookingKey: data.combinedKey,
+      affiliateTag: null,
+      eventId: null,
+    });
+  }
 
   let cartId = "";
   let lastStatus = 0;
