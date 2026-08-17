@@ -185,16 +185,39 @@ const num = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-/** Resumo do carrinho Owner (data.flight / data.orderSummary). */
+/** Resumo do carrinho Owner (data.flight / data.orderSummary).
+ *  Mapeia os campos específicos do payload Owner:
+ *  - Trechos: data.flight.journeys
+ *  - Origem: journeys[0].departure
+ *  - Destino final: journeys[último].destination
+ *  - Datas: journeys[].departure.date / destination.date
+ *  - Valor: data.flight.price.totalPrice
+ *  - Parcelamento: data.orderSummary.installments
+ *  - Passageiros: data.flight.price.passengerCount / farePassengerPrices
+ */
 export function resumirCarrinho(payload: unknown): CarrinhoResumo {
   const d = (pick(payload, "data") ?? payload) as Record<string, unknown>;
   const flight = (pick(d, "flight") ?? {}) as Record<string, unknown>;
   const orderSummary = (pick(d, "orderSummary") ?? {}) as Record<string, unknown>;
+  const price = (pick(flight, "price") ?? {}) as Record<string, unknown>;
 
-  const journeys = arr(
-    pick(flight, "journeys") ?? pick(d, "journeys", "itineraries", "flight.itineraries"),
-  );
+  const iataDe = (v: unknown): string => {
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    const o = v as Record<string, unknown>;
+    return String(
+      pick(o, "iata", "code", "airportCode", "iataCode", "locationCode") ?? "",
+    );
+  };
 
+  const dataDe = (v: unknown): string => {
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    const o = v as Record<string, unknown>;
+    return String(pick(o, "date", "dateTime", "iso", "dateTimeClient") ?? "");
+  };
+
+  const journeys = arr(pick(flight, "journeys"));
   const voos: CarrinhoResumo["voos"] = [];
   const datasPorJornada: string[] = [];
   const pontas: Array<{ de: string; para: string }> = [];
@@ -204,39 +227,25 @@ export function resumirCarrinho(payload: unknown): CarrinhoResumo {
     let primeiroDe = "";
     let ultimoPara = "";
     let primeiraData = "";
+
     for (const s of segmentos) {
-      const de = String(
-        pick(
-          s,
-          "departureAirport.iata",
-          "departureAirport.code",
-          "departure.iata",
-          "departureIata",
-          "origin.iata",
-          "origin",
-          "from",
-        ) ?? "?",
-      );
-      const para = String(
-        pick(
-          s,
-          "arrivalAirport.iata",
-          "arrivalAirport.code",
-          "arrival.iata",
-          "arrivalIata",
-          "destination.iata",
-          "destination",
-          "to",
-        ) ?? "?",
-      );
+      const de = iataDe(pick(s, "departureAirport", "departure", "origin", "from"));
+      const para = iataDe(pick(s, "arrivalAirport", "arrival", "destination", "to"));
       const data = String(
-        pick(s, "departureDate", "departureDateTime", "departure.date", "departureAt") ?? "",
+        pick(
+          s,
+          "departure.date",
+          "departureDate",
+          "departureDateTime",
+          "departureAt",
+          "departure",
+        ) ?? "",
       );
       if (!primeiroDe) primeiroDe = de;
       if (!primeiraData) primeiraData = data;
       ultimoPara = para;
       voos.push({
-        trecho: `${de} → ${para}`,
+        trecho: `${de || "?"} → ${para || "?"}`,
         data,
         cia: String(
           pick(s, "airline.name", "airlineName", "marketingAirline.name", "marketingAirline", "airline") ??
@@ -245,44 +254,83 @@ export function resumirCarrinho(payload: unknown): CarrinhoResumo {
         voo: String(pick(s, "flightNumber", "number", "flight") ?? ""),
       });
     }
+
     if (!segmentos.length) {
-      primeiroDe = String(pick(j, "departureAirport.iata", "origin", "from") ?? "");
-      ultimoPara = String(pick(j, "arrivalAirport.iata", "destination", "to") ?? "");
-      primeiraData = String(pick(j, "departureDate", "departureDateTime") ?? "");
+      primeiroDe = iataDe(pick(j, "departureAirport", "departure", "origin", "from"));
+      ultimoPara = iataDe(pick(j, "arrivalAirport", "destination", "to"));
+      primeiraData = dataDe(pick(j, "departure", "departureDate", "departureDateTime"));
       if (primeiroDe || ultimoPara) {
-        voos.push({ trecho: `${primeiroDe || "?"} → ${ultimoPara || "?"}`, data: primeiraData, cia: "", voo: "" });
+        voos.push({
+          trecho: `${primeiroDe || "?"} → ${ultimoPara || "?"}`,
+          data: primeiraData,
+          cia: "",
+          voo: "",
+        });
       }
     }
-    datasPorJornada.push(primeiraData);
-    pontas.push({ de: primeiroDe, para: ultimoPara });
+
+    datasPorJornada.push(primeiraData || dataDe(pick(j, "departure")));
+    pontas.push({
+      de: primeiroDe || iataDe(pick(j, "departure")),
+      para: ultimoPara || iataDe(pick(j, "destination")),
+    });
   }
 
-  // Passageiros: contagem por tipo (flight.passengers / orderSummary.passengers / quantidades)
+  // Passageiros: contagem por tipo (preferência: price.passengerCount / farePassengerPrices)
+  const passengerCount = pick(price, "passengerCount") as Record<string, unknown> | undefined;
+  const farePassengerPrices = arr(pick(price, "farePassengerPrices"));
   const paxLista = arr(
     pick(flight, "passengers") ?? pick(orderSummary, "passengers") ?? pick(d, "passengers"),
   );
-  const contaTipo = (codigos: string[]) =>
-    paxLista.filter((p) => {
-      const t = String(
-        pick(p, "passengerTypeCode", "typeCode", "type", "passengerType") ?? "",
-      ).toUpperCase();
-      return codigos.includes(t);
-    }).length;
+
+  const contaTipo = (codigos: string[]) => {
+    // 1. passengerCount (ex: { ADT: 1, CHD: 0, INF: 0 })
+    if (passengerCount) {
+      let total = 0;
+      for (const c of codigos) {
+        const v = passengerCount[c];
+        if (v != null) total += Number(v) || 0;
+      }
+      if (total > 0) return total;
+    }
+    // 2. farePassengerPrices (ex: [{ passengerType: "ADT", count: 1, ... }])
+    if (farePassengerPrices.length) {
+      const total = farePassengerPrices
+        .filter((p) => {
+          const t = String(
+            pick(p, "passengerType", "passengerTypeCode", "typeCode", "type") ?? "",
+          ).toUpperCase();
+          return codigos.includes(t);
+        })
+        .reduce((sum, p) => sum + (num(pick(p, "count", "quantity", "passengerCount")) ?? 0), 0);
+      if (total > 0) return total;
+    }
+    // 3. lista de passageiros
+    if (paxLista.length) {
+      return paxLista.filter((p) => {
+        const t = String(
+          pick(p, "passengerTypeCode", "typeCode", "type", "passengerType") ?? "",
+        ).toUpperCase();
+        return codigos.includes(t);
+      }).length;
+    }
+    return null;
+  };
 
   const adultos =
-    (paxLista.length ? contaTipo(["ADT", "ADULT", "1"]) : null) ??
+    contaTipo(["ADT", "ADULT", "1"]) ??
     num(pick(flight, "adults") ?? pick(d, "adults", "passengersQuantity.adults"));
   const criancas =
-    (paxLista.length ? contaTipo(["CHD", "CNN", "CHILD", "2"]) : null) ??
+    contaTipo(["CHD", "CNN", "CHILD", "2"]) ??
     num(pick(flight, "children") ?? pick(d, "children", "passengersQuantity.children"));
   const bebes =
-    (paxLista.length ? contaTipo(["INF", "INFANT", "3"]) : null) ??
+    contaTipo(["INF", "INFANT", "3"]) ??
     num(pick(flight, "infants") ?? pick(d, "infants", "passengersQuantity.infants"));
 
-  const price = (pick(flight, "price") ?? pick(d, "price") ?? {}) as Record<string, unknown>;
   const total =
     num(pick(price, "totalPrice", "total", "totalAmount", "amount")) ??
-    num(pick(orderSummary, "totalPrice", "total", "totalAmount"));
+    num(pick(orderSummary, "totalPrice", "total", "totalAmount")) ??
+    num(pick(d, "totalPrice", "total", "totalAmount"));
 
   const installments = arr(pick(orderSummary, "installments") ?? pick(d, "installments"));
   let parcelas: string | null = null;
@@ -314,7 +362,7 @@ export function resumirCarrinho(payload: unknown): CarrinhoResumo {
     cartExpired,
     cartType: (pick(d, "cartType", "type") as string) ?? null,
     origem: pontas[0]?.de || null,
-    destino: pontas[0]?.para || null,
+    destino: pontas[pontas.length - 1]?.para || null,
     ida: datasPorJornada[0] || null,
     volta: datasPorJornada.length > 1 ? (datasPorJornada[datasPorJornada.length - 1] || null) : null,
     adultos,
