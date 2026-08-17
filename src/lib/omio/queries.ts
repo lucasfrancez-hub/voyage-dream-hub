@@ -87,8 +87,72 @@ export function submitSearchScript(params: {
   })()`;
 }
 
-/** Lê o searchId da URL atual da página de resultados. */
+/** Mesma busca, mas por GET — usada como plano B quando o POST não redireciona. */
+export function searchTriggerGetUrl(params: {
+  departureFk: string;
+  arrivalFk: string;
+  departureDate: string; // dd/mm/yyyy
+  passengerAges: number[];
+  currency: string;
+  locale: string;
+  travelMode: string;
+}) {
+  const q = new URLSearchParams({
+    departure_fk: params.departureFk,
+    arrival_fk: params.arrivalFk,
+    departure_date: params.departureDate,
+    travel_mode: params.travelMode,
+    user_currency: params.currency,
+    user_locale: params.locale,
+  });
+  params.passengerAges.forEach((age, i) => q.append(`passengerages[${i}]`, String(age)));
+  return `${OMIO_BASE}/growth/search-trigger/search?${q.toString()}`;
+}
+
+/** Deep link público de resultados (plano C). */
+export function deepLinkResultsUrl(params: {
+  departureFk: string;
+  arrivalFk: string;
+  departureDate: string; // dd/mm/yyyy
+  travelMode: string;
+  locale: string;
+}) {
+  const q = new URLSearchParams({
+    departurePosition: params.departureFk,
+    arrivalPosition: params.arrivalFk,
+    departureDate: params.departureDate,
+    locale: params.locale,
+    searchMode: params.travelMode,
+  });
+  return `${OMIO_BASE}/search-frontend/results?${q.toString()}`;
+}
+
+/**
+ * Lê o estado atual da aba: URL, searchId (em qualquer formato conhecido),
+ * título e se estamos numa tela de desafio do Cloudflare.
+ */
 export const readSearchIdScript = `(() => {
-  const m = location.pathname.match(/\\/results\\/([A-Za-z0-9]+)/);
-  return JSON.stringify({ url: location.href, searchId: m ? m[1] : null });
+  try {
+    const href = location.href;
+    let searchId = null;
+    const fromPath = location.pathname.match(/\\/results\\/([A-Za-z0-9_-]{6,})/);
+    if (fromPath) searchId = fromPath[1];
+    if (!searchId) {
+      const q = new URLSearchParams(location.search);
+      searchId = q.get("search_id") || q.get("searchId") || null;
+    }
+    if (!searchId) {
+      const m = document.documentElement.innerHTML.match(/"search_?[Ii]d"\\s*:\\s*"([A-Za-z0-9_-]{6,})"/);
+      if (m) searchId = m[1];
+    }
+    const title = document.title || "";
+    const body = (document.body && document.body.innerText ? document.body.innerText : "").slice(0, 400);
+    const challenge = /just a moment|checking your browser|attention required|cf-browser-verification/i.test(
+      title + " " + body,
+    );
+    return JSON.stringify({ url: href, searchId: searchId, title: title, challenge: challenge, preview: body });
+  } catch (e) {
+    return JSON.stringify({ url: "", searchId: null, title: "", challenge: false, preview: String(e) });
+  }
 })()`;
+
