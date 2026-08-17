@@ -183,6 +183,20 @@ export async function omioBuscar(input: {
       travelMode: modo,
     };
 
+    await cdp.send("Network.enable").catch(() => null);
+    let networkSearchId: string | null = null;
+    const stopNetworkCapture = cdp.on("Network.requestWillBeSent", (event) => {
+      if (!event || typeof event !== "object") return;
+      const request = (event as { request?: { url?: unknown; postData?: unknown } }).request;
+      const haystack = `${typeof request?.url === "string" ? request.url : ""}\n${
+        typeof request?.postData === "string" ? request.postData : ""
+      }`;
+      const match = haystack.match(/[?&]search_(?:id|Id)=([A-Za-z0-9_-]{6,})/i)
+        ?? haystack.match(/\/results\/([A-Za-z0-9_-]{6,})/i)
+        ?? haystack.match(/"search_?[Ii]d"\s*:\s*"([A-Za-z0-9_-]{6,})"/i);
+      if (match?.[1]) networkSearchId = decodeURIComponent(match[1]);
+    });
+
     const estado = async () => {
       const raw = await cdp.evaluate<string>(readSearchIdScript);
       if (!raw) return null;
@@ -211,9 +225,9 @@ export async function omioBuscar(input: {
           diag.push(`Cloudflare exibindo desafio ("${st.title}") — aguardando resolver`);
           continue;
         }
-        if (st.searchId) return { searchId: st.searchId, url: st.url };
+        if (st.searchId || networkSearchId) return { searchId: st.searchId ?? networkSearchId, url: st.url };
       }
-      return { searchId: null as string | null, url: ultimaUrl };
+      return { searchId: networkSearchId, url: ultimaUrl };
     };
 
     const paginaInicial = await aguardarPaginaOmio(cdp, diag, 8);
@@ -262,6 +276,7 @@ export async function omioBuscar(input: {
       if (st?.preview) diag.push(`Conteúdo da página: ${st.preview.slice(0, 200)}`);
       return { searchId: "", urlResultados: urlResultados || "", resultados: [], diagnostico: diag };
     }
+    stopNetworkCapture();
     diag.push(`searchId=${searchId}`);
 
     let resultados = normalizarResultados(null, searchId, modo);
