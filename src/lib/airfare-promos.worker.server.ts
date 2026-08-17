@@ -915,17 +915,54 @@ export async function processPendingCandidates(args: {
         processadasAgora++;
       }
       if (cancelada || abortController.signal.aborted) return;
-      await progresso(label, saida.desfecho !== "requeue");
+      // "Última processada" só muda em estado FINAL — requeue continua "em processamento".
+      await progresso(saida.desfecho === "requeue" ? null : label, saida.desfecho !== "requeue");
     }
   };
+
+  /**
+   * WATCHDOG DOS WORKERS — 1 rota travada não pode congelar a fila inteira.
+   * Se um job passa do timeout + folga sem atividade, abortamos a requisição
+   * de verdade; o worker cai no catch, grava estado final (ou volta para a
+   * fila) e puxa imediatamente a próxima oportunidade.
+   */
+  const watchdog = setInterval(() => {
+    const agora = Date.now();
+    for (const j of emVoo.values()) {
+      const parado = agora - j.lastActivity;
+      const vivo = agora - j.startedAt;
+      if (j.status === "ABORTING") continue;
+      if (vivo > CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS || parado > CANDIDATE_TIMEOUT_MS) {
+        console.warn(
+          "[airfare-watchdog]",
+          JSON.stringify({
+            worker: j.workerId,
+            rota: `${j.cand.origin_iata}->${j.cand.destination_iata}`,
+            oportunidade: j.cand.id,
+            status: j.status,
+            iniciado: new Date(j.startedAt).toISOString(),
+            ultima_atividade: new Date(j.lastActivity).toISOString(),
+            tempo_ms: vivo,
+            sem_resposta_ms: parado,
+            limite_ms: CANDIDATE_TIMEOUT_MS,
+            acao: "abortando_e_liberando_slot",
+          }),
+        );
+        j.status = "ABORTING";
+        j.ctrl.abort(new Error(`timeout:watchdog:${vivo}ms`));
+      }
+    }
+  }, WATCHDOG_TICK_MS);
 
   // FILA GLOBAL: os workers competem pela mesma fila, sem esperar terminar uma
   // origem para começar outra. Terminou uma validação, começa a próxima.
   try {
-    await Promise.all(Array.from({ length: concurrency }, () => worker()));
+    await Promise.all(Array.from({ length: concurrency }, (_, i) => worker(i + 1)));
   } finally {
     clearInterval(vigia);
+    clearInterval(watchdog);
   }
+
   if (!cancelada) await progresso("", true);
 
   if (cancelada) {
