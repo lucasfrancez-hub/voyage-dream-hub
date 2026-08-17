@@ -877,9 +877,17 @@ export async function collectAirfarePromotions(opts?: {
   // 1) RADAR: oportunidades do Melhores Destinos (descoberta ilimitada,
   //    seleção de até N por origem — ver airfare-promos.config.ts)
   let descoberta: Awaited<ReturnType<typeof discoverCandidates>>;
+  // A etapa de radar NUNCA pode passar do orçamento da invocação: se passar,
+  // a invocação morre no meio da descoberta, nada é gravado e o cron reinicia
+  // a descoberta do zero para sempre (execução travada em "descobrindo").
+  // Com o teto abaixo a descoberta sempre termina, grava o que achou e a fila
+  // segue para validação — o cache do radar faz a próxima passada ir além.
+  const orcamentoInvocacao = opts?.budgetMs ?? 240_000;
+  const orcamentoRadar = Math.max(60_000, Math.floor(orcamentoInvocacao * 0.6));
   try {
     descoberta = await discoverCandidates({
       maxCandidates: opts?.maxCandidates ?? 600,
+      radarBudgetMs: orcamentoRadar,
       cancel: pediuCancelamento,
       onProgress: (msg) => {
         notaRadar = msg;
@@ -888,6 +896,7 @@ export async function collectAirfarePromotions(opts?: {
   } finally {
     clearInterval(batimento);
   }
+
 
   if (descoberta.cancelled || (await pediuCancelamento())) {
     const agora = new Date().toISOString();
