@@ -282,6 +282,11 @@ export type OriginMetrics = {
   no_result: number;
   errors: number;
   avg_seconds: number | null;
+  /** ok | sem_oportunidades | erro_radar | sem_tempo | nao_processada */
+  radar_status?: string;
+  /** explicação técnica quando a origem não trouxe nada */
+  radar_note?: string | null;
 };
+
 
 
