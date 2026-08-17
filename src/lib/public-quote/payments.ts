@@ -171,7 +171,97 @@ export function buildPayment(params: {
   };
 }
 
+/* ─────────── agenda de vencimentos do boleto (usada no modal público) ─────────── */
 
+export type ParcelaAgendada = {
+  number: number;
+  /** ISO YYYY-MM-DD */
+  date: string | null;
+  amount: number;
+  label: string;
+};
+
+function isoHoje(): string {
+  const d = new Date();
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+    .toISOString()
+    .slice(0, 10);
+}
+
+/** Soma dias a uma data ISO (YYYY-MM-DD). */
+export function isoMaisDias(iso: string, dias: number): string {
+  const m = iso.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return iso;
+  const base = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return new Date(base + dias * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** Divide o total em n parcelas, ajustando centavos na última. */
+function dividir(total: number, n: number): number[] {
+  const base = Math.floor((total * 100) / n) / 100;
+  const parcelas = Array.from({ length: n }, () => base);
+  parcelas[n - 1] = round2(total - base * (n - 1));
+  return parcelas;
+}
+
+/**
+ * Boleto financiado: a 1ª parcela vence 30 dias após a contratação e as
+ * demais seguem mensalmente (a cada 30 dias).
+ */
+export function scheduleBoletoFinanciado(
+  total: number,
+  parcelas: number,
+  contratacao = isoHoje(),
+): ParcelaAgendada[] {
+  const valores = dividir(round2(total), parcelas);
+  return valores.map((amount, i) => ({
+    number: i + 1,
+    date: isoMaisDias(contratacao, 30 * (i + 1)),
+    amount,
+    label: `${i + 1}ª parcela`,
+  }));
+}
+
+/**
+ * Boleto até a data da viagem: entrada na contratação (valor de uma parcela),
+ * demais mensais, e a última sempre até 30 dias antes do embarque.
+ */
+export function scheduleBoletoAteViagem(
+  total: number,
+  parcelas: number,
+  lastDueDate?: string | null,
+  contratacao = isoHoje(),
+): ParcelaAgendada[] {
+  const valores = dividir(round2(total), parcelas);
+  return valores.map((amount, i) => {
+    const ultima = i === parcelas - 1;
+    let date = i === 0 ? contratacao : isoMaisDias(contratacao, 30 * i);
+    if (ultima && lastDueDate && parcelas > 1 && date > lastDueDate) date = lastDueDate;
+    if (ultima && lastDueDate && parcelas > 1) date = lastDueDate;
+    return {
+      number: i + 1,
+      date,
+      amount,
+      label: i === 0 ? "Entrada (1º pagamento)" : ultima ? "Quitação final" : `${i + 1}ª parcela`,
+    };
+  });
+}
+
+/** Opções de parcelamento do boleto até a data da viagem (1x até o máximo). */
+export function boletoAteViagemOpcoes(total: number, maxParcelas: number): Installment[] {
+  const out: Installment[] = [];
+  for (let n = 1; n <= Math.max(1, Math.min(BOLETO_MAX_INSTALLMENTS, maxParcelas)); n++) {
+    out.push({ number: n, amount: round2(total / n), total: round2(total), interestFree: true });
+  }
+  return out;
+}
+
+/** "2026-08-17" -> "17/08/2026" */
+export function brDateIso(iso?: string | null): string {
+  if (!iso) return "—";
+  const m = iso.match(/(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "—";
+}
 
 
 export function brl(n: number): string {

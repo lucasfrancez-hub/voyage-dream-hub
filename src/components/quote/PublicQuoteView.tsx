@@ -7,7 +7,14 @@ import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import heroFallback from "@/assets/hero-destino.jpg.asset.json";
 import { airlineLogo } from "@/lib/airlines";
-import { brl } from "@/lib/public-quote/payments";
+import {
+  boletoAteViagemOpcoes,
+  brDateIso,
+  brl,
+  scheduleBoletoAteViagem,
+  scheduleBoletoFinanciado,
+  type ParcelaAgendada,
+} from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
 import { agentPhoto, agentProfile } from "@/lib/public-quote/agents";
 import { formatRoom } from "@/lib/public-quote/room-label";
@@ -675,6 +682,45 @@ function brandFace(brand: string) {
   );
 }
 
+/** Modal com todas as datas e valores do parcelamento escolhido. */
+function ParcelamentoModal({
+  titulo,
+  parcelas,
+  onClose,
+}: {
+  titulo: string;
+  parcelas: ParcelaAgendada[];
+  onClose: () => void;
+}) {
+  const ultima = parcelas[parcelas.length - 1];
+  return (
+    <div className="vq-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <div className="vq-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="vq-modal-head">
+          <div>
+            <h3>Detalhes do parcelamento</h3>
+            <p>{titulo} • {parcelas.length} {parcelas.length === 1 ? "pagamento" : "pagamentos"}</p>
+          </div>
+          <button type="button" className="vq-modal-close" onClick={onClose} aria-label="Fechar">×</button>
+        </div>
+        <div className="vq-modal-schedule">
+          {parcelas.map((p) => (
+            <div className="vq-modal-row" key={p.number}>
+              <span className="label">{p.label}</span>
+              <span className="date">{brDateIso(p.date)}</span>
+              <span className="value">{brl(p.amount)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="vq-modal-foot">
+          <small>Quitação final até {brDateIso(ultima?.date ?? null)}</small>
+          <button type="button" className="vq-modal-btn" onClick={onClose}>Fechar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PaymentBox({ quote }: { quote: PublicQuote }) {
   const metodos = quote.payment.methods;
   const [tab, setTab] = useState<"CARD" | "BOLETO" | "PIX">(metodos[0] ?? "CARD");
@@ -683,7 +729,35 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
   const pix = quote.payment.pix;
   const [brand, setBrand] = useState(cartao.brands[0] ?? "VISA");
   const [instCartao, setInstCartao] = useState<number | null>(null);
-  const [instBoleto, setInstBoleto] = useState<number | null>(null);
+
+  const temFinanciado = boleto.installments.length > 0;
+  const temAteViagem = !!boleto.untilTravel?.enabled;
+  const [modo, setModo] = useState<"FIN" | "VIAGEM">(temFinanciado ? "FIN" : "VIAGEM");
+  const [detalhe, setDetalhe] = useState<{ titulo: string; parcelas: ParcelaAgendada[] } | null>(null);
+
+  const totalBoleto = boleto.installments[0]?.total ?? boleto.untilTravel?.total ?? 0;
+  const opcoesAteViagem = useMemo(
+    () =>
+      boleto.untilTravel?.enabled
+        ? boletoAteViagemOpcoes(boleto.untilTravel.total, boleto.untilTravel.installments)
+        : [],
+    [boleto.untilTravel],
+  );
+
+  const abrirFinanciado = (n: number) =>
+    setDetalhe({
+      titulo: "Boleto financiado",
+      parcelas: scheduleBoletoFinanciado(totalBoleto, n),
+    });
+  const abrirAteViagem = (n: number) =>
+    setDetalhe({
+      titulo: "Boleto até a data da viagem",
+      parcelas: scheduleBoletoAteViagem(
+        boleto.untilTravel?.total ?? totalBoleto,
+        n,
+        boleto.untilTravel?.lastDueDate ?? null,
+      ),
+    });
 
   return (
     <div className="vq-card vq-paybox">
@@ -745,44 +819,86 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
 
       {tab === "BOLETO" ? (
         <div className="vq-boleto-box">
-          {boleto.installments.length ? (
+          <div className="vq-subtabs">
+            {temFinanciado ? (
+              <button
+                type="button"
+                className="vq-subtab"
+                data-active={modo === "FIN"}
+                onClick={() => setModo("FIN")}
+              >
+                Financiado
+              </button>
+            ) : null}
+            {temAteViagem ? (
+              <button
+                type="button"
+                className="vq-subtab"
+                data-active={modo === "VIAGEM"}
+                onClick={() => setModo("VIAGEM")}
+              >
+                Até a data da viagem
+              </button>
+            ) : null}
+          </div>
+
+          {modo === "FIN" && temFinanciado ? (
             <>
-              <p className="vq-boleto-title">Boleto parcelado (financiado)</p>
+              <p className="vq-boleto-title">Escolha a quantidade de pagamentos</p>
               <div className="vq-installments">
                 {boleto.installments.map((i) => (
                   <div
                     key={i.number}
-                    className={`vq-inst${instBoleto === i.number ? " is-selected" : ""}`}
-                    onClick={() => setInstBoleto(i.number)}
+                    className="vq-inst"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => abrirFinanciado(i.number)}
+                    onKeyDown={(e) => e.key === "Enter" && abrirFinanciado(i.number)}
                   >
-                    <span>{i.number}x<span className="vq-no-interest">sem juros</span></span>
+                    <span>
+                      {i.number}x
+                      {i.interestFree ? <span className="vq-no-interest">sem juros</span> : null}
+                    </span>
                     <strong>{brl(i.amount)}</strong>
                   </div>
                 ))}
               </div>
+              <p className="vq-boleto-note">
+                A 1ª parcela vence 30 dias após a contratação e as demais seguem mensalmente.
+                Clique em uma opção para ver todas as datas.
+              </p>
             </>
           ) : null}
 
-          {boleto.untilTravel?.enabled ? (
-            <div className="vq-boleto-ate">
-              <p className="vq-boleto-title">Boleto até a data da viagem</p>
-              <div className="vq-inst is-selected" style={{ cursor: "default" }}>
-                <span>
-                  {boleto.untilTravel.installments}x
-                  <span className="vq-no-interest">sem juros</span>
-                </span>
-                <strong>{brl(boleto.untilTravel.parcela)}</strong>
+          {modo === "VIAGEM" && temAteViagem ? (
+            <>
+              <p className="vq-boleto-title">Escolha a quantidade de pagamentos</p>
+              <div className="vq-installments">
+                {opcoesAteViagem.map((i) => (
+                  <div
+                    key={i.number}
+                    className="vq-inst"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => abrirAteViagem(i.number)}
+                    onKeyDown={(e) => e.key === "Enter" && abrirAteViagem(i.number)}
+                  >
+                    <span>
+                      {i.number}x<span className="vq-no-interest">sem juros</span>
+                    </span>
+                    <strong>{brl(i.amount)}</strong>
+                  </div>
+                ))}
               </div>
               <p className="vq-boleto-note">
-                Entrada de {brl(boleto.untilTravel.entrada)} na contratação e mais{" "}
-                {boleto.untilTravel.installments - 1}x de {brl(boleto.untilTravel.parcela)}. A
-                quitação total acontece até 30 dias antes da viagem
-                {boleto.untilTravel.lastDueDate
-                  ? ` (${boleto.untilTravel.lastDueDate.split("-").reverse().join("/")})`
+                A entrada é paga na contratação e a quitação total acontece até 30 dias antes da
+                viagem
+                {boleto.untilTravel?.lastDueDate
+                  ? ` (${brDateIso(boleto.untilTravel.lastDueDate)})`
                   : ""}
-                .
+                . Clique em uma opção para ver todas as datas.
               </p>
-            </div>
+            </>
           ) : null}
         </div>
       ) : null}
@@ -798,6 +914,14 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
             <strong>{brl(pix.total)}</strong>
           </div>
         </div>
+      ) : null}
+
+      {detalhe ? (
+        <ParcelamentoModal
+          titulo={detalhe.titulo}
+          parcelas={detalhe.parcelas}
+          onClose={() => setDetalhe(null)}
+        />
       ) : null}
     </div>
   );
