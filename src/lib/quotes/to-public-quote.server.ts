@@ -8,10 +8,12 @@ import { cityLabel } from "@/lib/iata-lookup";
 import { findAirline } from "@/lib/airlines";
 import { buildPayment } from "@/lib/public-quote/payments";
 import {
+  MAX_CONNECTION_HOURS,
   directionsFor,
   durationBetween,
   isTrocaDeAeroporto,
   legLabel,
+  parseStamp,
   splitIntoLegs,
   type LegInputSegment,
 } from "@/lib/public-quote/flight-legs";
