@@ -662,12 +662,9 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   //    fica gravado como `pendingLeads` e é retomado na próxima invocação.
   // ------------------------------------------------------------------
   const selecionadas: PromoCandidate[] = [...(retomada?.stage === "datas" ? (retomada.candidates ?? []) : [])];
-  const jaProcessados = new Set<string>(
-    retomada?.stage === "datas" ? [] : [],
-  );
   const curados = escolhidasPorOrigem.flatMap((g) => g.leads);
   const pendentesSalvos = retomada?.stage === "datas" ? (retomada.pendingLeads ?? null) : null;
-  const todosLeads = (pendentesSalvos ?? curados).filter((l) => !jaProcessados.has(l.signature));
+  const todosLeads = pendentesSalvos ?? curados;
   const restantesFila = [...todosLeads];
 
   progresso(`Buscando datas reais de ${todosLeads.length} oportunidades selecionadas...`);
