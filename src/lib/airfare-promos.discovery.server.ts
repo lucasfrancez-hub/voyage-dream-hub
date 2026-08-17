@@ -11,13 +11,10 @@
  */
 import { scopeOfRoute } from "@/lib/br-airports";
 import {
-
   MAX_EXTRA_ORIGINS,
   PRIORITY_ORIGINS,
-
   isPriorityOrigin,
   isOriginAllowedForScope,
-
   maxOpportunitiesForOrigin,
   type OriginMetrics,
 } from "@/lib/airfare-promos.config";
@@ -48,10 +45,8 @@ export type PromoCandidate = {
   radar_external_url?: string | null;
 };
 
-
 /** Origens que precisam estar sempre representadas na curadoria (config central). */
 export { PRIORITY_ORIGINS_NACIONAL, PRIORITY_ORIGINS_HUB } from "@/lib/airfare-promos.config";
-
 
 /** Sementes usadas só para garantir cobertura das origens prioritárias. */
 export const PRIORITY_SEEDS: Array<{
@@ -61,21 +56,74 @@ export const PRIORITY_SEEDS: Array<{
   destinationCity: string;
   scope: "nacional" | "internacional";
 }> = [
-  { origin: "MGF", originCity: "Maringá", destination: "GRU", destinationCity: "São Paulo", scope: "nacional" },
-  { origin: "LDB", originCity: "Londrina", destination: "GRU", destinationCity: "São Paulo", scope: "nacional" },
-  { origin: "CWB", originCity: "Curitiba", destination: "GIG", destinationCity: "Rio de Janeiro", scope: "nacional" },
-  { origin: "CAC", originCity: "Cascavel", destination: "GRU", destinationCity: "São Paulo", scope: "nacional" },
-  { origin: "IGU", originCity: "Foz do Iguaçu", destination: "GRU", destinationCity: "São Paulo", scope: "nacional" },
-  { origin: "GRU", originCity: "São Paulo", destination: "LIS", destinationCity: "Lisboa", scope: "internacional" },
-  { origin: "GIG", originCity: "Rio de Janeiro", destination: "MCO", destinationCity: "Orlando", scope: "internacional" },
-  { origin: "BSB", originCity: "Brasília", destination: "EZE", destinationCity: "Buenos Aires", scope: "internacional" },
-  { origin: "CWB", originCity: "Curitiba", destination: "SCL", destinationCity: "Santiago", scope: "internacional" },
+  {
+    origin: "MGF",
+    originCity: "Maringá",
+    destination: "GRU",
+    destinationCity: "São Paulo",
+    scope: "nacional",
+  },
+  {
+    origin: "LDB",
+    originCity: "Londrina",
+    destination: "GRU",
+    destinationCity: "São Paulo",
+    scope: "nacional",
+  },
+  {
+    origin: "CWB",
+    originCity: "Curitiba",
+    destination: "GIG",
+    destinationCity: "Rio de Janeiro",
+    scope: "nacional",
+  },
+  {
+    origin: "CAC",
+    originCity: "Cascavel",
+    destination: "GRU",
+    destinationCity: "São Paulo",
+    scope: "nacional",
+  },
+  {
+    origin: "IGU",
+    originCity: "Foz do Iguaçu",
+    destination: "GRU",
+    destinationCity: "São Paulo",
+    scope: "nacional",
+  },
+  {
+    origin: "GRU",
+    originCity: "São Paulo",
+    destination: "LIS",
+    destinationCity: "Lisboa",
+    scope: "internacional",
+  },
+  {
+    origin: "GIG",
+    originCity: "Rio de Janeiro",
+    destination: "MCO",
+    destinationCity: "Orlando",
+    scope: "internacional",
+  },
+  {
+    origin: "BSB",
+    originCity: "Brasília",
+    destination: "EZE",
+    destinationCity: "Buenos Aires",
+    scope: "internacional",
+  },
+  {
+    origin: "CWB",
+    originCity: "Curitiba",
+    destination: "SCL",
+    destinationCity: "Santiago",
+    scope: "internacional",
+  },
 ];
 
 export function scopeOf(origin: string, destination: string): "nacional" | "internacional" {
   return scopeOfRoute(origin, destination);
 }
-
 
 /** Assinatura da OPORTUNIDADE (sem companhia) — usada para deduplicar a fila. */
 export function candidateSignature(p: {
@@ -84,7 +132,9 @@ export function candidateSignature(p: {
   departure_date: string;
   return_date: string | null;
 }): string {
-  return [p.origin_iata, p.destination_iata, p.departure_date, p.return_date ?? "-"].join("|").toUpperCase();
+  return [p.origin_iata, p.destination_iata, p.departure_date, p.return_date ?? "-"]
+    .join("|")
+    .toUpperCase();
 }
 
 function iso(d: Date) {
@@ -221,7 +271,9 @@ export type DiscoveryState = {
   datesDone?: number;
 };
 
-export function datesProgress(state: Pick<DiscoveryState, "pendingLeads" | "datesTotal" | "datesDone">): {
+export function datesProgress(
+  state: Pick<DiscoveryState, "pendingLeads" | "datesTotal" | "datesDone">,
+): {
   done: number;
   total: number;
 } {
@@ -337,9 +389,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   const pool = new Map<string, Map<string, Lead>>();
   let brutas = retomada?.brutas ?? 0;
   const originsDone = new Set<string>(retomada?.originsDone ?? []);
-  const originAttempts = new Map<string, number>(
-    Object.entries(retomada?.originAttempts ?? {}),
-  );
+  const originAttempts = new Map<string, number>(Object.entries(retomada?.originAttempts ?? {}));
   if (retomada) {
     for (const [origem, leads] of Object.entries(retomada.pool ?? {})) {
       pool.set(origem, new Map(leads.map((l) => [l.destination_iata, l])));
@@ -349,7 +399,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   const contarLeads = () => [...pool.values()].reduce((acc, m) => acc + m.size, 0);
   const serializarPool = (): Record<string, Lead[]> =>
     Object.fromEntries([...pool.entries()].map(([o, m]) => [o, [...m.values()]]));
-
 
   const addLead = (lead: Omit<Lead, "signature" | "departure_date" | "return_date">) => {
     brutas++;
@@ -476,7 +525,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
 
   let indiceOrigem = 0;
   for (const origem of ordemOrigens) {
-
     indiceOrigem++;
     if (originsDone.has(origem)) continue;
     if (cancelada) {
@@ -490,8 +538,13 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       return parcial("leads");
     }
     if (semTempoLeads()) {
-      statusOrigem.set(origem, { status: "sem_tempo", note: "orçamento de radar esgotado antes desta origem" });
-      console.warn(`[airfare-radar] WARNING origem ${origem} habilitada, mas não entrou no radar: sem tempo`);
+      statusOrigem.set(origem, {
+        status: "sem_tempo",
+        note: "orçamento de radar esgotado antes desta origem",
+      });
+      console.warn(
+        `[airfare-radar] WARNING origem ${origem} habilitada, mas não entrou no radar: sem tempo`,
+      );
       continue;
     }
     // fatia justa: tempo restante ÷ origens restantes
@@ -558,7 +611,9 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       const encontradas = pool.get(origem)?.size ?? 0;
       statusOrigem.set(origem, {
         status: encontradas ? "ok" : "sem_oportunidades",
-        note: encontradas ? null : `radar respondeu com ${leads.length} lead(s) aproveitável(is) para esta origem`,
+        note: encontradas
+          ? null
+          : `radar respondeu com ${leads.length} lead(s) aproveitável(is) para esta origem`,
       });
     } catch (e) {
       if (e instanceof RadarCancelledError) {
@@ -585,7 +640,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     originsDone.add(origem);
     await gravarCheckpoint("leads");
   }
-
 
   // §15 — se o atalho por origem não devolver nada, percorre o caminho
   // oficial da API: categorias → destinos → origens do destino → itinerário.
@@ -655,7 +709,10 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       radarErrors,
       radarLeads: 0,
       fallbackCount: 0,
-      sourceMetrics: { ...radarSourceMetrics(), radar_adapter: "melhores-destinos.radar-api.server" },
+      sourceMetrics: {
+        ...radarSourceMetrics(),
+        radar_adapter: "melhores-destinos.radar-api.server",
+      },
       cancelled: cancelada,
       radarError: (radarSourceMetrics() as { lastError?: string | null }).lastError ?? null,
       radarErrorStage: radarErrors ? "radar" : "sem_oportunidades",
@@ -668,7 +725,11 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   // ------------------------------------------------------------------
   const metrics: OriginMetrics[] = [];
   const auditoria: CurationDecision<PromoCandidate>[] = [];
-  const escolhidasPorOrigem: Array<{ origem: string; leads: Lead[]; scope: "nacional" | "internacional" }> = [];
+  const escolhidasPorOrigem: Array<{
+    origem: string;
+    leads: Lead[];
+    scope: "nacional" | "internacional";
+  }> = [];
 
   // TODAS as origens configuradas entram no relatório — mesmo com zero
   // oportunidades — para nunca sumirem em silêncio do acompanhamento.
@@ -677,7 +738,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     const pb = isPriorityOrigin(b) ? 0 : 1;
     return pa - pb || a.localeCompare(b);
   });
-
 
   let extrasUsadas = 0;
   let dedupTotal = 0;
@@ -714,7 +774,10 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         motivos.set(d.reason, (motivos.get(d.reason) ?? 0) + 1);
       }
       if (motivos.size) {
-        console.log(`[airfare-curadoria] ${origem}/${scope} motivo_descarte=`, Object.fromEntries(motivos));
+        console.log(
+          `[airfare-curadoria] ${origem}/${scope} motivo_descarte=`,
+          Object.fromEntries(motivos),
+        );
       }
       elegiveis += res.eligible;
       excluidas += res.excluded;
@@ -747,7 +810,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
           `status=${st?.status ?? "sem_oportunidades"} motivo=${st?.note ?? "radar não retornou leads para esta origem"}`,
       );
     }
-
   }
 
   // ------------------------------------------------------------------
@@ -755,17 +817,21 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   //    Processada em LOTES com checkpoint: o que não couber no orçamento
   //    fica gravado como `pendingLeads` e é retomado na próxima invocação.
   // ------------------------------------------------------------------
-  const selecionadas: PromoCandidate[] = [...(retomada?.stage === "datas" ? (retomada.candidates ?? []) : [])];
+  const selecionadas: PromoCandidate[] = [
+    ...(retomada?.stage === "datas" ? (retomada.candidates ?? []) : []),
+  ];
   const curados = escolhidasPorOrigem.flatMap((g) => g.leads);
   const pendentesSalvos = retomada?.stage === "datas" ? (retomada.pendingLeads ?? null) : null;
   const todosLeads = pendentesSalvos ?? curados;
   const restantesFila = [...todosLeads];
-  const datesTotal = retomada?.stage === "datas"
-    ? Math.max(retomada.datesTotal ?? 0, (retomada.datesDone ?? 0) + todosLeads.length)
-    : todosLeads.length;
-  let datesDone = retomada?.stage === "datas"
-    ? Math.min(retomada.datesDone ?? Math.max(0, datesTotal - todosLeads.length), datesTotal)
-    : 0;
+  const datesTotal =
+    retomada?.stage === "datas"
+      ? Math.max(retomada.datesTotal ?? 0, (retomada.datesDone ?? 0) + todosLeads.length)
+      : todosLeads.length;
+  let datesDone =
+    retomada?.stage === "datas"
+      ? Math.min(retomada.datesDone ?? Math.max(0, datesTotal - todosLeads.length), datesTotal)
+      : 0;
 
   // Marca a transição ANTES da primeira chamada externa. Se a invocação morrer
   // no meio, a retomada nunca volta ao checkpoint de `leads`.
@@ -777,7 +843,9 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     datesTotal,
     datesDone,
   });
-  progresso(`Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`);
+  progresso(
+    `Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`,
+  );
 
   // Uma oportunidade por checkpoint. O antigo lote de quatro só confirmava o
   // avanço depois que TODAS terminavam; expirar durante o lote fazia as quatro
@@ -804,7 +872,9 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     }
     const lead = restantesFila[0];
     if (!lead) break;
-    progresso(`Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`);
+    progresso(
+      `Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`,
+    );
     // Confirma a retirada ANTES da chamada externa. Assim uma morte abrupta
     // nunca consulta a mesma rota de novo na retomada. O custo dessa garantia
     // é conservador: se o processo morrer exatamente durante a chamada, a rota
@@ -819,7 +889,9 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       datesTotal,
       datesDone,
     });
-    progresso(`Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`);
+    progresso(
+      `Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`,
+    );
     let ofertas: Array<{
       departDate: string;
       returnDate: string | null;
@@ -918,8 +990,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     });
   }
 
-
-
   // dedup final por assinatura (origem|destino|datas)
   const finais = new Map<string, PromoCandidate>();
   for (const c of selecionadas) if (!finais.has(c.signature)) finais.set(c.signature, c);
@@ -941,9 +1011,11 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     radarErrorStage: null,
     partial: false,
     state: null,
-    progress: { originsDone: originsDone.size, originsTotal: totalOrigens, leads: radarLeads, stage: "concluida" },
+    progress: {
+      originsDone: originsDone.size,
+      originsTotal: totalOrigens,
+      leads: radarLeads,
+      stage: "concluida",
+    },
   };
 }
-
-
-
