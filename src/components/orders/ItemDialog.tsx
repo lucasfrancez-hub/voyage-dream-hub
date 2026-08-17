@@ -413,7 +413,9 @@ export function ItemDialog({
                 <Label>{kind === "hotel" ? "Nome do hotel" : "Serviço"}</Label>
                 {kind === "hotel" ? (
                   <HotelAutocomplete
+                    key={`hotel-${initial?.id ?? "novo"}-${open ? "on" : "off"}`}
                     value={title}
+
                     onChangeText={setTitle}
                     onSelect={(h: HotelSelection) => {
                       setDetails((p) => {
