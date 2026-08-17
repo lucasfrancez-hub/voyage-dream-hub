@@ -489,9 +489,9 @@ function TesteCheckoutOwnerPage() {
               Payload enviado / resposta
             </summary>
             <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-2">
-              {gravarMut.data.payloadEnviado}
+              {gravarMut.data.r.payloadEnviado}
               {"\n\n"}
-              {gravarMut.data.respostaJson}
+              {gravarMut.data.r.respostaJson}
             </pre>
           </details>
         ) : null}
