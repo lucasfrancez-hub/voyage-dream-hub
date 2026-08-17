@@ -364,7 +364,7 @@ export async function recoverOrphanClaims(
       const motivo = `worker_morto:lease_expirado (invocação anterior encerrada sem finalizar)`;
 
 
-      if (tentativas < maxAttempts) {
+      if (mortes <= MAX_WORKER_DEATHS) {
         await client
           .from("airfare_promo_candidates")
           .update({
@@ -394,7 +394,7 @@ export async function recoverOrphanClaims(
             worker_token: null,
             attempts: tentativas,
             dead_workers: mortes,
-            last_error: `${motivo} — limite de tentativas atingido`,
+            last_error: `${motivo} — ${MAX_WORKER_DEATHS} mortes de worker seguidas`,
             last_error_step: "worker_morto",
             last_error_at: nowIso,
             processed_at: nowIso,
@@ -411,9 +411,10 @@ export async function recoverOrphanClaims(
           rota: `${l.origin_iata}->${l.destination_iata}`,
           tentativas,
           mortes_worker: mortes,
-          desfecho: tentativas < maxAttempts ? "requeue" : "error",
+          desfecho: mortes <= MAX_WORKER_DEATHS ? "requeue" : "error",
         }),
       );
+
     }
   } catch (err) {
     console.warn("[airfare-lease-recuperado] falha", err);
