@@ -175,7 +175,21 @@ function QuoteDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro na opção"),
   });
 
+  const atualizarValor = useServerFn(atualizarValorItemOrcamento);
+  const [valorEdit, setValorEdit] = useState<{ kind: QuoteItemKind; index: number; valor: string } | null>(null);
+  const valorMutation = useMutation({
+    mutationFn: (v: { kind: QuoteItemKind; index: number; total: number | null }) =>
+      atualizarValor({ data: { quoteId: id, optionNumber: optNumRef.current, kind: v.kind, index: v.index, total: v.total } }),
+    onSuccess: () => {
+      setValorEdit(null);
+      toast.success("Valor atualizado");
+      recarregarItens();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar valor"),
+  });
+
   const removerItem = useServerFn(removerItemOrcamento);
+
 
   const recarregarItens = () => {
     void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] });
