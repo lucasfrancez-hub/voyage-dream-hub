@@ -1165,8 +1165,46 @@ function PromocoesAereoPage() {
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
             Iniciada às {horaBR(info.started_at).split(", ")[1] ?? "—"}
-            {info.last_label ? ` • Última oportunidade processada: ${info.last_label}` : ""}
+            {info.last_label ? ` • Última oportunidade concluída: ${info.last_label}` : ""}
           </p>
+
+          {/* HEARTBEAT: o que cada worker está validando NESTE momento */}
+          {info.validation_metrics?.in_flight?.length ? (
+            (() => {
+              const limite = info.validation_metrics.candidate_timeout_ms ?? 100_000;
+              const jobs = info.validation_metrics.in_flight;
+              const travados = jobs.filter((j) => j.elapsed_ms > limite);
+              return (
+                <div className="mt-2 rounded-xl border border-border/60 bg-card/60 px-3 py-2">
+                  <p className="text-[11px] font-bold text-foreground">Em processamento agora</p>
+                  <ul className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                    {jobs.map((j) => (
+                      <li key={`${j.worker_id}-${j.opportunity_id}`} className="flex flex-wrap gap-x-2">
+                        <span className="font-medium text-foreground">
+                          #{j.worker_id} {j.origin}→{j.destination}
+                        </span>
+                        <span>{Math.round(j.elapsed_ms / 1000)}s</span>
+                        <span>tentativa {j.attempt}</span>
+                        {j.status === "ABORTING" ? (
+                          <span className="text-destructive">liberando (timeout)</span>
+                        ) : j.elapsed_ms > limite ? (
+                          <span className="text-destructive">acima do limite</span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                  {travados.length ? (
+                    <p className="mt-1 text-[11px] font-bold text-destructive">
+                      ⚠ Validação travada detectada — {travados.length} rota(s) acima do tempo
+                      limite; o watchdog está liberando os workers.
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })()
+          ) : null}
+
+
 
           {/* Fila de validação em paralelo (concorrência controlada) */}
           {info.validation_metrics ? (
