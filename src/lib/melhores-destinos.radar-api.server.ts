@@ -31,6 +31,13 @@ export class RadarCancelledError extends Error {
   }
 }
 
+export class RadarDeadlineError extends Error {
+  constructor() {
+    super("Prazo da etapa do radar esgotado");
+    this.name = "RadarDeadlineError";
+  }
+}
+
 export type RadarCancel = () => boolean | Promise<boolean>;
 
 /* ------------------------------------------------------------------ *
@@ -118,11 +125,17 @@ async function esperar(ms: number, cancel?: RadarCancel) {
 }
 
 /** Fila única: uma requisição por vez, com ritmo entre chamadas. */
-function enfileirar<T>(cancel: RadarCancel | undefined, fn: () => Promise<T>): Promise<T> {
+function enfileirar<T>(
+  cancel: RadarCancel | undefined,
+  deadline: number | undefined,
+  fn: () => Promise<T>,
+): Promise<T> {
   const proxima = fila.then(async () => {
     await checarCancelamento(cancel);
+    if (deadline && Date.now() >= deadline) throw new RadarDeadlineError();
     const alvo = ultimaChamada + GAP_MS - Date.now();
     if (alvo > 0) await esperar(alvo, cancel);
+    if (deadline && Date.now() >= deadline) throw new RadarDeadlineError();
     try {
       radarMetrics.externalCalls++;
       return await fn();
@@ -134,7 +147,7 @@ function enfileirar<T>(cancel: RadarCancel | undefined, fn: () => Promise<T>): P
   return proxima as Promise<T>;
 }
 
-type GetOptions = { ttlMs?: number; cancel?: RadarCancel; etapa?: string };
+type GetOptions = { ttlMs?: number; cancel?: RadarCancel; etapa?: string; deadline?: number };
 
 /** GET JSON com cache, coalescência, fila, retry limitado e backoff. */
 async function getJson<T>(url: string, opts: GetOptions = {}): Promise<T> {
@@ -149,28 +162,43 @@ async function getJson<T>(url: string, opts: GetOptions = {}): Promise<T> {
   }
 
   const emVoo = inflight.get(url);
-  if (emVoo) return emVoo as Promise<T>;
+  if (emVoo) {
+    if (!opts.deadline) return emVoo as Promise<T>;
+    const restante = opts.deadline - Date.now();
+    if (restante <= 0) throw new RadarDeadlineError();
+    return Promise.race([
+      emVoo as Promise<T>,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new RadarDeadlineError()), restante)),
+    ]);
+  }
 
   const p = (async () => {
     let ultimo: unknown = null;
     for (let tentativa = 0; tentativa < MAX_TRIES; tentativa++) {
+      const restanteAntes = opts.deadline ? opts.deadline - Date.now() : Infinity;
+      if (restanteAntes <= 0) throw new RadarDeadlineError();
       if (tentativa > 0) {
         radarMetrics.retries++;
-        await esperar(BACKOFF_MS[tentativa - 1] ?? 3_000, opts.cancel);
+        const backoff = BACKOFF_MS[tentativa - 1] ?? 3_000;
+        // Não inicia uma nova tentativa que já não cabe no prazo da etapa.
+        if (restanteAntes <= backoff + 500) throw new RadarDeadlineError();
+        await esperar(backoff, opts.cancel);
       }
       await checarCancelamento(opts.cancel);
       try {
-        const res = await enfileirar(opts.cancel, () =>
-          fetch(url, {
+        const res = await enfileirar(opts.cancel, opts.deadline, () => {
+          const restante = opts.deadline ? opts.deadline - Date.now() : TIMEOUT_MS;
+          if (restante <= 0) throw new RadarDeadlineError();
+          return fetch(url, {
             headers: {
               "user-agent": UA,
               accept: "application/json, text/plain, */*",
               "accept-language": "pt-BR,pt;q=0.9,en;q=0.8",
               referer: `${SITE}/`,
             },
-            signal: AbortSignal.timeout(TIMEOUT_MS),
-          }),
-        );
+            signal: AbortSignal.timeout(Math.max(1, Math.min(TIMEOUT_MS, restante))),
+          });
+        });
         if (res.ok) {
           const json = (await res.json()) as T;
           radarMetrics.ok++;
@@ -182,7 +210,7 @@ async function getJson<T>(url: string, opts: GetOptions = {}): Promise<T> {
         logErro(url, res.status, etapa, `HTTP ${res.status}`);
         ultimo = new Error(`Melhores Destinos respondeu ${res.status}`);
       } catch (e) {
-        if (e instanceof RadarCancelledError) throw e;
+        if (e instanceof RadarCancelledError || e instanceof RadarDeadlineError) throw e;
         radarMetrics.networkErrors++;
         const msg = e instanceof Error ? e.message : String(e);
         logErro(url, null, etapa, msg);
@@ -377,7 +405,7 @@ type RawDate = {
 /** Etapa 1 — categorias (opcionalmente já filtradas pela origem). */
 export async function radarCategories(
   origin?: string,
-  opts?: { cancel?: RadarCancel },
+  opts?: { cancel?: RadarCancel; deadline?: number },
 ): Promise<RadarCategory[]> {
   const params = new URLSearchParams();
   if (origin) params.set("from_iata_code", origin.toUpperCase());
@@ -385,6 +413,7 @@ export async function radarCategories(
   const json = await getJson<RawCategories>(url, {
     ttlMs: RADAR_TTL.categories,
     cancel: opts?.cancel,
+    deadline: opts?.deadline,
     etapa: "categories",
   });
   const cats = (json.categories ?? []).map((c) => {
@@ -459,7 +488,7 @@ export async function radarLeadsForOrigin(
 
   let categorias: RadarCategory[] = [];
   try {
-    categorias = await radarCategories(from, { cancel });
+    categorias = await radarCategories(from, { cancel, deadline: opts?.deadline });
   } catch (e) {
     if (e instanceof RadarCancelledError) throw e;
     // falha real da fonte precisa aparecer no diagnóstico (não vira lista vazia)
@@ -478,6 +507,7 @@ export async function radarLeadsForOrigin(
       json = await getJson<RawCategories>(`${TWD}/categories?${params}`, {
         ttlMs: RADAR_TTL.cities,
         cancel,
+        deadline: opts?.deadline,
         etapa: "categories:cities",
       });
     } catch (e) {
@@ -547,7 +577,7 @@ export async function radarLeadsByCategory(
 
   let categorias: RadarCategory[] = [];
   try {
-    categorias = await radarCategories(undefined, { cancel });
+    categorias = await radarCategories(undefined, { cancel, deadline: opts?.deadline });
   } catch (e) {
     if (e instanceof RadarCancelledError) throw e;
     throw e;
@@ -562,6 +592,7 @@ export async function radarLeadsByCategory(
       destinos = await getJson<RawCategories>(cat.link, {
         ttlMs: RADAR_TTL.cities,
         cancel,
+        deadline: opts?.deadline,
         etapa: "categories:destinations",
       });
     } catch (e) {
@@ -581,6 +612,7 @@ export async function radarLeadsByCategory(
         origens = await getJson<RawCategories>(destino.link, {
           ttlMs: RADAR_TTL.cities,
           cancel,
+          deadline: opts?.deadline,
           etapa: "categories:origins",
         });
       } catch (e) {
@@ -658,7 +690,7 @@ const MESES: Record<string, number> = {
 export async function radarOpportunitiesForLead(
   lead: RadarLead,
   count = 1,
-  opts?: { cancel?: RadarCancel; maxMonths?: number },
+  opts?: { cancel?: RadarCancel; maxMonths?: number; deadline?: number },
 ): Promise<RadarOpportunity[]> {
   const cancel = opts?.cancel;
   let itinerario: RawItinerary;
@@ -666,6 +698,7 @@ export async function radarOpportunitiesForLead(
     itinerario = await getJson<RawItinerary>(lead.itineraryLink, {
       ttlMs: RADAR_TTL.offers,
       cancel,
+      deadline: opts?.deadline,
       etapa: "itinerary_prices",
     });
   } catch (e) {
@@ -698,6 +731,7 @@ export async function radarOpportunitiesForLead(
         const det = await getJson<RawItinerary>(mes.dates_link, {
           ttlMs: RADAR_TTL.offers,
           cancel,
+          deadline: opts?.deadline,
           etapa: "itinerary_prices:dates",
         });
         datas = (Array.isArray(det?.months) ? det.months : []).flatMap((m) =>
