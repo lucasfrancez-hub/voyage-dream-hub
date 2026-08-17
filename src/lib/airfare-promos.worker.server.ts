@@ -42,6 +42,20 @@ const WORKER_LEASE_SLACK_MS = 30_000;
 /** Candidata presa em `processing` volta para a fila depois disso. */
 const CLAIM_STALE_MS = 6 * 60 * 1000;
 
+/**
+ * Quantas mortes de worker (kill da plataforma) uma candidata suporta antes de
+ * ser encerrada como erro. É um limite SEPARADO de `attempts` — morrer por
+ * fim de invocação não é falha da candidata nem do motor.
+ */
+const MAX_WORKER_DEATHS = 6;
+
+/**
+ * Ressuscitação: candidatas encerradas SÓ por morte de worker voltam para a
+ * fila enquanto a execução ainda tiver rodadas de recuperação disponíveis.
+ */
+const MAX_REVIVE_ROUNDS = 3;
+
+
 /** Execução sem nenhuma atualização por esse tempo é considerada travada. */
 export const RUN_STALE_MS = 45 * 60 * 1000;
 
