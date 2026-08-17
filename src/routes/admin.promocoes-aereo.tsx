@@ -998,6 +998,9 @@ function PromocoesAereoPage() {
           no_result: number;
           errors: number;
           avg_seconds: number | null;
+          radar_status?: string;
+          radar_note?: string | null;
+
         }>
       | null;
 
