@@ -998,6 +998,9 @@ function PromocoesAereoPage() {
           no_result: number;
           errors: number;
           avg_seconds: number | null;
+          radar_status?: string;
+          radar_note?: string | null;
+
         }>
       | null;
 
@@ -1021,7 +1024,20 @@ function PromocoesAereoPage() {
       requeued?: number;
       avg_duration_ms?: number | null;
       p95_duration_ms?: number | null;
+      failures?: Array<{
+        origin: string;
+        destination: string;
+        scope?: string;
+        motive?: string;
+        motive_label?: string;
+        step?: string;
+        message?: string;
+        duration_ms?: number;
+        attempts?: number;
+        timeout?: boolean;
+      }>;
     } | null;
+
     last_label: string | null;
     started_at: string;
     finished_at: string | null;
@@ -1176,6 +1192,27 @@ function PromocoesAereoPage() {
             </div>
           ) : null}
 
+          {info.validation_metrics?.failures?.length ? (
+            <div className="mt-2 rounded-xl border border-destructive/40 bg-destructive/5 px-3 py-2 text-[11px]">
+              <p className="font-bold text-destructive">Últimas falhas</p>
+              <ul className="mt-1 space-y-1 text-muted-foreground">
+                {info.validation_metrics.failures.map((f, i) => (
+                  <li key={`${f.origin}-${f.destination}-${i}`}>
+                    <span className="font-bold text-foreground">
+                      {f.origin} → {f.destination}
+                    </span>{" "}
+                    <span>({f.scope === "internacional" ? "internacional" : "nacional"})</span> •{" "}
+                    {f.motive_label ?? f.motive ?? "falha"} • etapa: {f.step ?? "—"} •{" "}
+                    {f.duration_ms ? `${Math.round(f.duration_ms / 100) / 10}s` : "—"} •{" "}
+                    {f.attempts ?? 1} tentativa(s)
+                    {f.message ? <span className="block opacity-80">{f.message}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+
           {info.origin_metrics?.length ? (
             <div className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               {info.origin_metrics.map((m) => (
@@ -1203,6 +1240,19 @@ function PromocoesAereoPage() {
                     <span>Sem tarifa: {m.no_result}</span>
                     {m.errors ? <span className="text-destructive">Erros: {m.errors}</span> : null}
                   </div>
+                  {m.radar_status && m.radar_status !== "ok" ? (
+                    <p className="mt-1 text-[10px] text-amber-600 dark:text-amber-400">
+                      {m.radar_status === "sem_tempo"
+                        ? "Não varrida: tempo do radar esgotado"
+                        : m.radar_status === "erro_radar"
+                          ? "Falha no radar"
+                          : m.radar_status === "nao_processada"
+                            ? "Não processada nesta execução"
+                            : "Radar sem oportunidades"}
+                      {m.radar_note ? ` — ${m.radar_note}` : ""}
+                    </p>
+                  ) : null}
+
 
                 </div>
               ))}

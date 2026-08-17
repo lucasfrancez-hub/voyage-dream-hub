@@ -57,11 +57,46 @@ export type ValidationTelemetry = {
   requeued: number;
   avg_duration_ms: number | null;
   p95_duration_ms: number | null;
+  /** detalhamento das últimas falhas (origem, destino, motivo técnico...) */
+  failures?: ValidationFailure[];
   updated_at: string;
 };
 
+/** Falha individual de validação — nunca vira "sem tarifa". */
+export type ValidationFailure = {
+  origin: string;
+  destination: string;
+  scope: "nacional" | "internacional" | string;
+  /** timeout | http | rate_limit | parsing | motor_vazio | indisponivel | erro */
+  motive: string;
+  motive_label: string;
+  step: string;
+  message: string;
+  duration_ms: number;
+  attempts: number;
+  timeout: boolean;
+  at: string;
+};
+
+const MAX_FAILURES_TRACKED = 40;
+
+/** Classifica a causa real da falha a partir da mensagem técnica. */
+export function classifyFailure(msg: string): { motive: string; label: string } {
+  const m = (msg || "").toLowerCase();
+  if (/timeout|tempo esgotado|timed out|abort/.test(m)) return { motive: "timeout", label: "Tempo esgotado" };
+  if (/429|rate.?limit|too many requests/.test(m)) return { motive: "rate_limit", label: "Bloqueio/limite de requisições" };
+  if (/50[0-9]|http\s*5/.test(m)) return { motive: "http_5xx", label: "Erro no motor (HTTP 5xx)" };
+  if (/40[0-9]|http\s*4|unauthorized|forbidden/.test(m)) return { motive: "http_4xx", label: "Erro de requisição (HTTP 4xx)" };
+  if (/json|parse|unexpected token|cheerio|selector/.test(m)) return { motive: "parsing", label: "Erro de leitura da resposta" };
+  if (/vazio|empty|sem resposta|no data/.test(m)) return { motive: "motor_vazio", label: "Motor respondeu vazio" };
+  if (/econn|network|fetch failed|socket|dns|enotfound/.test(m)) return { motive: "indisponivel", label: "Indisponibilidade temporária" };
+  if (/gravacao|insert|update|duplicate/.test(m)) return { motive: "gravacao", label: "Erro ao gravar a promoção" };
+  return { motive: "erro", label: "Falha técnica na consulta" };
+}
+
 /** Desfecho de UMA validação na fila. */
 type Desfecho = "with_fare" | "without_fare" | "timeout" | "error" | "requeue";
+
 
 function percentil(valores: number[], p: number): number | null {
   if (!valores.length) return null;
@@ -265,6 +300,31 @@ export async function processPendingCandidates(args: {
     requeued: 0,
   };
 
+  const falhas: ValidationFailure[] = [];
+
+  const registrarFalha = (
+    cand: { origin_iata: string; destination_iata: string; scope: string },
+    dados: { message: string; step: string; duration_ms: number; attempts: number },
+  ) => {
+    const { motive, label } = classifyFailure(dados.message);
+    const item: ValidationFailure = {
+      origin: cand.origin_iata,
+      destination: cand.destination_iata,
+      scope: cand.scope,
+      motive,
+      motive_label: label,
+      step: dados.step,
+      message: dados.message.slice(0, 300),
+      duration_ms: dados.duration_ms,
+      attempts: dados.attempts,
+      timeout: motive === "timeout",
+      at: new Date().toISOString(),
+    };
+    falhas.unshift(item);
+    if (falhas.length > MAX_FAILURES_TRACKED) falhas.length = MAX_FAILURES_TRACKED;
+    console.warn("[airfare-falha]", JSON.stringify(item));
+  };
+
   const telemetria = (): ValidationTelemetry => ({
     concurrency,
     ...tele,
@@ -272,8 +332,10 @@ export async function processPendingCandidates(args: {
       ? Math.round(duracoes.reduce((a, b) => a + b, 0) / duracoes.length)
       : null,
     p95_duration_ms: percentil(duracoes, 95),
+    failures: falhas.slice(0, 10),
     updated_at: new Date().toISOString(),
   });
+
 
 
 
@@ -407,6 +469,13 @@ export async function processPendingCandidates(args: {
       saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
       counters.error_count++;
       metrica.errors++;
+      registrarFalha(cand, {
+        message: msg,
+        step: "motor_viaair",
+        duration_ms: Date.now() - iniciouEm,
+        attempts: tentativasFeitas,
+      });
+
       await setCandidato(cand.id, {
         status: "error",
         attempts: tentativasFeitas,
@@ -508,6 +577,13 @@ export async function processPendingCandidates(args: {
       counters.error_count++;
       metrica.errors++;
       registrarTempo(cand.origin_iata, Date.now() - iniciouEm);
+      registrarFalha(cand, {
+        message: upErr.message,
+        step: "gravacao",
+        duration_ms: Date.now() - iniciouEm,
+        attempts: tentativasFeitas,
+      });
+
       await setCandidato(cand.id, {
         status: "error",
         last_error: upErr.message.slice(0, 400),
@@ -667,6 +743,14 @@ export async function processPendingCandidates(args: {
         saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
         counters.error_count++;
         label = `${cand.origin_iata}→${cand.destination_iata}`;
+        registrarFalha(cand, {
+          message: msg,
+          step: "fila_worker",
+          duration_ms: Date.now() - iniciou,
+          attempts: Number(cand.attempts ?? 0) + 1,
+        });
+        metricaDe(cand.origin_iata).errors++;
+
         await setCandidato(cand.id, {
           status: "error",
           last_error: msg,
