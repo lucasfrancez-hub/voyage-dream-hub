@@ -755,6 +755,8 @@ export async function processPendingCandidates(args: {
     jobSignal: AbortSignal = abortController.signal,
     /** heartbeat: cada resposta do motor renova a "última atividade" */
     marcarAtividade: () => void = () => {},
+    /** orçamento adaptativo desta candidata (ms) */
+    budgetMs: number = CANDIDATE_TIMEOUT_MS,
   ) => {
     const iniciouEm = Date.now();
     const metrica = metricaDe(cand.origin_iata);
@@ -780,6 +782,7 @@ export async function processPendingCandidates(args: {
         markups,
         referencePrice: cand.reference_price != null ? Number(cand.reference_price) : null,
         signal: jobSignal,
+        budgetMs,
 
         onEngineTiming: (t) => {
           marcarAtividade();
@@ -1271,7 +1274,8 @@ export async function processPendingCandidates(args: {
       const parado = agora - j.lastActivity;
       const vivo = agora - j.startedAt;
       if (j.status === "ABORTING") continue;
-      if (vivo > CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS || parado > CANDIDATE_TIMEOUT_MS) {
+      const limiteJob = j.timeoutMs || CANDIDATE_TIMEOUT_MS;
+      if (vivo > limiteJob + WATCHDOG_GRACE_MS || parado > limiteJob) {
         console.warn(
           "[airfare-watchdog]",
           JSON.stringify({
@@ -1283,7 +1287,7 @@ export async function processPendingCandidates(args: {
             ultima_atividade: new Date(j.lastActivity).toISOString(),
             tempo_ms: vivo,
             sem_resposta_ms: parado,
-            limite_ms: CANDIDATE_TIMEOUT_MS,
+            limite_ms: limiteJob,
             acao: "abortando_e_liberando_slot",
           }),
         );
@@ -1301,9 +1305,9 @@ export async function processPendingCandidates(args: {
   const heartbeatTimer = setInterval(() => {
     void (async () => {
       const jobs = [...emVoo.values()];
-      const validade = new Date(Date.now() + CANDIDATE_LEASE_MS).toISOString();
       const agoraIso = new Date().toISOString();
       for (const j of jobs) {
+        const validade = new Date(Date.now() + leaseMsPara(j.timeoutMs || CANDIDATE_TIMEOUT_MS)).toISOString();
         try {
           await client
             .from("airfare_promo_candidates")
