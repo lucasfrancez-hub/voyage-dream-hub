@@ -214,7 +214,11 @@ export async function ownerGetCart(cartId: string, token: string) {
     method: "GET",
     token,
   });
-  return { call: r.call, payload: r.body, resumo: r.body ? resumirCarrinho(r.body) : null };
+  return {
+    call: r.call,
+    payloadJson: r.raw ? r.raw.slice(0, 20_000) : "",
+    resumo: r.body ? resumirCarrinho(r.body) : null,
+  };
 }
 
 export type PassageiroOwner = {
@@ -244,8 +248,8 @@ export async function ownerSavePassengers(
   return {
     success: Boolean(r.body?.success) && r.call.ok,
     call: r.call,
-    payloadEnviado: body,
-    resposta: r.body,
+    payloadEnviado: JSON.stringify(body, null, 2),
+    respostaJson: r.raw.slice(0, 5_000),
   };
 }
 
