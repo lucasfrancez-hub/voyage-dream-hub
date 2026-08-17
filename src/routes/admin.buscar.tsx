@@ -22,6 +22,8 @@ import { CarrosPage } from "./admin.carros";
 import { ExclusivosPage } from "./admin.exclusivos";
 import { SegurosPage } from "./admin.seguros";
 import { DateRangeField } from "@/components/search/DateRangeField";
+import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
+
 import { PublicEngineProvider } from "@/lib/public-engine";
 
 
@@ -165,11 +167,14 @@ function ComboForm({
   setForm,
   onSearch,
   disabled,
+  publicMode = false,
 }: {
   form: ComboForm;
   setForm: (f: ComboForm) => void;
   onSearch: () => void;
   disabled: boolean;
+  /** Motor público (sem login): o autocomplete usa a consulta aberta. */
+  publicMode?: boolean;
 }) {
   return (
     <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
@@ -179,12 +184,14 @@ function ComboForm({
             <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
               <MapPin className="h-3 w-3" /> Origem
             </Label>
-            <Input
-              className="h-11 text-base font-semibold uppercase"
-              maxLength={3}
+            {/* MESMO autocomplete da aba Aéreo (cidade/aeroporto → IATA). */}
+            <AirportAutocomplete
               value={form.departureIata}
-              onChange={(e) => setForm({ ...form, departureIata: e.target.value.toUpperCase() })}
+              publicMode={publicMode}
+              isDeparture
               placeholder="De onde sairemos?"
+              className="h-11 text-sm font-semibold uppercase sm:text-base"
+              onSelect={(iata) => setForm({ ...form, departureIata: iata })}
             />
           </div>
           <button
@@ -202,12 +209,13 @@ function ComboForm({
             <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
               <ArrowLeftRight className="h-3 w-3" /> Destino
             </Label>
-            <Input
-              className="h-11 text-base font-semibold uppercase"
-              maxLength={3}
+            <AirportAutocomplete
               value={form.arrivalIata}
-              onChange={(e) => setForm({ ...form, arrivalIata: e.target.value.toUpperCase() })}
+              publicMode={publicMode}
+              isDeparture={false}
               placeholder="Para onde vamos?"
+              className="h-11 text-sm font-semibold uppercase sm:text-base"
+              onSelect={(iata) => setForm({ ...form, arrivalIata: iata })}
             />
           </div>
         </div>
@@ -215,13 +223,13 @@ function ComboForm({
 
         <div className="space-y-1">
           <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-            <CalendarDays className="h-3 w-3" /> Ida / check-in — Volta / check-out
+            <CalendarDays className="h-3 w-3" /> Ida e volta
           </Label>
           <DateRangeField
             departureDate={form.departureDate}
             returnDate={form.returnDate}
             allowOneWay={false}
-            labels={{ start: "Ida / check-in", end: "Volta / check-out" }}
+            labels={{ start: "Ida", end: "Volta" }}
             onChange={(departureDate, returnDate) => setForm({ ...form, departureDate, returnDate })}
           />
         </div>
@@ -232,6 +240,7 @@ function ComboForm({
           </Button>
         </div>
       </div>
+
 
       <div className="mt-3 grid gap-3 border-t border-border/60 pt-3 md:grid-cols-[1.4fr_auto]">
         <div className="space-y-1">
@@ -511,6 +520,7 @@ export function SearchEngine({
                   setCartLinks([]);
                 }}
                 disabled={!comboReady}
+                publicMode={publicMode}
               />
 
               {runToken > 0 && (
