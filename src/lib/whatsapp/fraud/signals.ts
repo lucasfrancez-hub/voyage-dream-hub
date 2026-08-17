@@ -25,6 +25,7 @@ export type FraudSignalCode =
   | "REPEATED_PATTERN"
   | "EVASIVE_ANSWERS"
   | "PASSENGER_SWAP"
+  | "INTERNATIONAL_SHORT_STAY"
   | "AUTOMATED_TEXT_PATTERN";
 
 export type FraudReducerCode =
