@@ -429,6 +429,8 @@ export function SearchEngine({
       toast.error("Informe origem, destino, ida e volta");
       return;
     }
+    // Uma jornada = uma searchKey só, usada no /combined/flight e no /combined/hotel.
+    setCombinedKey(newCombinedKey());
     setRunToken((t) => t + 1);
   }
 
