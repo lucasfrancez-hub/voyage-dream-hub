@@ -125,6 +125,59 @@ function buildFilter(f: OnerOperatorFilters) {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Espera cancelável: um abort libera na hora, sem segurar o worker. */
+function sleepCancelavel(ms: number, signal?: AbortSignal) {
+  if (!signal) return sleep(ms);
+  return new Promise<void>((resolve) => {
+    const t = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    function onAbort() {
+      clearTimeout(t);
+      resolve();
+    }
+    if (signal.aborted) return onAbort();
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/** Timeout padrão de UMA requisição HTTP ao motor (nunca fica pendurada). */
+const FETCH_TIMEOUT_MS = Number(process.env["ONER_FETCH_TIMEOUT_MS"] ?? 20_000);
+
+/**
+ * fetch com CANCELAMENTO REAL: aborta por timeout próprio e também quando o
+ * chamador aborta. Sem isso uma requisição pendurada no fornecedor continuava
+ * viva depois do timeout do worker, consumindo conexões e travando a fila.
+ */
+async function fetchMotor(
+  url: string,
+  init: RequestInit,
+  signal?: AbortSignal,
+  timeoutMs = FETCH_TIMEOUT_MS,
+): Promise<Response> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(new Error(`timeout:http:${timeoutMs}ms`)), timeoutMs);
+  const onAbort = () => ctrl.abort(new Error("cancelado:motor"));
+  if (signal) {
+    if (signal.aborted) {
+      clearTimeout(t);
+      throw new Error("cancelado:motor");
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+  }
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } catch (e) {
+    if (signal?.aborted) throw new Error("cancelado:motor");
+    if (ctrl.signal.aborted) throw new Error(`timeout:http:${timeoutMs}ms`);
+    throw e;
+  } finally {
+    clearTimeout(t);
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+
 export type PollSpeed = "normal" | "fast";
 
 async function poll(
@@ -133,7 +186,9 @@ async function poll(
   body: Record<string, unknown>,
   maxRounds = 30,
   speed: PollSpeed = "normal",
+  signal?: AbortSignal,
 ): Promise<OnerLegResult> {
+
   const acc = new Map<string, OnerFlight>();
   // Todas as tarifas vistas para o MESMO voo (mesma assinatura). A operadora
   // combina ida+volta por tarifa/fornecedor: a mais barata às vezes não tem
