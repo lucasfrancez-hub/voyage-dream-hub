@@ -590,8 +590,32 @@ export async function processPendingCandidates(args: {
   })();
 
 
-  /** Reserva atomicamente a próxima candidata pendente (evita duplo trabalho). */
-  const claimNext = async (): Promise<CandidateRow | null> => {
+  /** Token desta invocação — identifica o dono do lease de cada candidata. */
+  const invocationToken = `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+  /** Tempo mínimo que precisa sobrar para aceitar mais uma candidata. */
+  const custoMaximoCandidata = CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS + CLAIM_SAFETY_MS;
+
+  /**
+   * Reserva atomicamente a próxima candidata pendente (evita duplo trabalho)
+   * e grava o LEASE (validade + heartbeat + dono). Recusa o claim quando o
+   * tempo restante da invocação não comporta uma validação inteira.
+   */
+  const claimNext = async (workerId: number): Promise<CandidateRow | null> => {
+    const restante = deadline - Date.now();
+    if (restante < custoMaximoCandidata) {
+      claimsRecusadosPorOrcamento++;
+      console.log(
+        "[airfare-claim-recusado]",
+        JSON.stringify({
+          worker: workerId,
+          restante_ms: restante,
+          minimo_ms: custoMaximoCandidata,
+          motivo: "orcamento_insuficiente_para_nova_candidata",
+        }),
+      );
+      return null;
+    }
     for (let tentativa = 0; tentativa < 5; tentativa++) {
       const { data } = await client
         .from("airfare_promo_candidates")
@@ -603,9 +627,16 @@ export async function processPendingCandidates(args: {
         .limit(1)
         .maybeSingle();
       if (!data) return null;
+      const agoraIso = new Date().toISOString();
       const { data: claimed } = await client
         .from("airfare_promo_candidates")
-        .update({ status: "processing", claimed_at: new Date().toISOString() })
+        .update({
+          status: "processing",
+          claimed_at: agoraIso,
+          heartbeat_at: agoraIso,
+          lease_expires_at: new Date(Date.now() + CANDIDATE_LEASE_MS).toISOString(),
+          worker_token: `${invocationToken}#${workerId}`,
+        })
         .eq("id", (data as CandidateRow).id)
         .eq("status", "pending")
         .select("id")
@@ -614,6 +645,7 @@ export async function processPendingCandidates(args: {
     }
     return null;
   };
+
 
   const processar = async (
     cand: CandidateRow,
