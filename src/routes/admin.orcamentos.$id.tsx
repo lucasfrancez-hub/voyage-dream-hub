@@ -7,6 +7,7 @@ import {
   Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
