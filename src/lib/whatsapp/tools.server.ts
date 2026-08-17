@@ -314,8 +314,16 @@ export function buildCamilaTools(conversation: WaConversation) {
       inputSchema: z.object({
         slug: z.string().describe("slug do pacote (vem de buscar_pacotes)"),
         quantidade_adultos: z.number().int().nullable().describe("adultos para calcular Pix total; padrão = base_occupancy (geralmente 2)"),
+        origem_cliente: z
+          .string()
+          .nullable()
+          .describe("OBRIGATÓRIO: cidade de saída que ESTE cliente informou nesta conversa (ex: 'Vitória'). Nunca invente nem use a origem do pacote."),
+        mes_desejado: z
+          .string()
+          .nullable()
+          .describe("OBRIGATÓRIO quando o cliente citou período: mês/período pedido por ele (ex: 'novembro', '11', '2026-11')."),
       }),
-      execute: async ({ slug, quantidade_adultos }) => {
+      execute: async ({ slug, quantidade_adultos, origem_cliente, mes_desejado }) => {
         const { data: pkg } = await supabaseAdmin
           .from("packages")
           .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active, services, supplier_name")
@@ -333,7 +341,51 @@ export function buildCamilaTools(conversation: WaConversation) {
 
         if (!pkg || !pkg.is_active) return { error: "Pacote não encontrado ou inativo" };
 
+        /* ── TRAVA DE CONSISTÊNCIA ────────────────────────────────────────────
+           O folder não pode sair com origem ou período diferentes do que o
+           cliente informou nesta conversa (bug real: cliente de Vitória
+           recebendo pacote saindo de Maringá/Curitiba). */
+        const norm = (s: string) =>
+          s
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .trim();
+        if (origem_cliente && String(origem_cliente).trim().length >= 2) {
+          const oCli = norm(String(origem_cliente));
+          const oPkg = norm(String((pkg as any).origin ?? ""));
+          if (oPkg && !oPkg.includes(oCli) && !oCli.includes(oPkg)) {
+            return {
+              bloqueado: true,
+              motivo: "origem_divergente",
+              origem_do_cliente: origem_cliente,
+              origem_do_pacote: (pkg as any).origin,
+              instrucao: `NÃO envie este folder. O cliente sai de ${origem_cliente} e este pacote sai de ${(pkg as any).origin}. Nunca troque a cidade de embarque do cliente. Busque pacote com a origem correta; se não existir, avise o cliente que não há pacote pronto saindo de ${origem_cliente} e ofereça montar personalizado com o time Comercial (chamando escalar_para_humano com todo o contexto).`,
+            };
+          }
+        }
+        const MESES = ["janeiro","fevereiro","marco","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+        if (mes_desejado && String(mes_desejado).trim()) {
+          const alvo = norm(String(mes_desejado));
+          let mesAlvo = MESES.findIndex((m) => alvo.includes(m)) + 1;
+          if (!mesAlvo) {
+            const m = alvo.match(/(?:^|-)(\d{1,2})(?:$|-)/);
+            if (m) mesAlvo = Number(m[1]);
+          }
+          const mesPkg = (pkg as any).going_date ? Number(String((pkg as any).going_date).slice(5, 7)) : 0;
+          if (mesAlvo && mesPkg && mesAlvo !== mesPkg) {
+            return {
+              bloqueado: true,
+              motivo: "periodo_divergente",
+              mes_pedido: MESES[mesAlvo - 1],
+              data_do_pacote: (pkg as any).going_date,
+              instrucao: `NÃO envie este folder. O cliente pediu ${MESES[mesAlvo - 1]} e este pacote sai em ${(pkg as any).going_date}. Nunca altere o período pedido por conta própria. Procure pacote no mês correto; se não houver, diga isso ao cliente e ofereça montar personalizado com o Comercial.`,
+            };
+          }
+        }
+
         const qtd = quantidade_adultos && quantidade_adultos > 0 ? quantidade_adultos : (pkg.base_occupancy ?? 2);
+
         const priceP = Number(pkg.price_per_person) || 0;
         const total = priceP * qtd;
         const pixTotal = total * 0.95;
