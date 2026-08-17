@@ -2526,7 +2526,6 @@ function ServiceReservationCard({
 
 
 
-}
 
 // =========== Contract ===========
 function ContractTab({ detail }: { detail: OrderDetail }) {
