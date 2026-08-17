@@ -34,6 +34,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { createOrder } from "@/lib/orders.functions";
+import { FiltersAside } from "@/components/search/FiltersAside";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { DestinationAutocomplete } from "@/components/search/DestinationAutocomplete";
 import {
@@ -1324,9 +1325,9 @@ export function HoteisPage({
 
         {result && !mut.isPending && (
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-            <aside className="lg:sticky lg:top-4 lg:self-start">
+            <FiltersAside count={activeCount(filters)} className="lg:sticky lg:top-4 lg:self-start">
               <FiltersPanel hotels={result.hotels} filters={filters} onChange={setFilters} />
-            </aside>
+            </FiltersAside>
 
             <div className="space-y-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">

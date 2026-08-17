@@ -53,6 +53,7 @@ import {
 } from "@/lib/onertravel-public.functions";
 import { createPublicFlightLead } from "@/lib/public-lead.functions";
 import { DateRangeField } from "@/components/search/DateRangeField";
+import { FiltersAside } from "@/components/search/FiltersAside";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { installmentLabel } from "@/lib/flight-installments";
 import {
@@ -336,7 +337,7 @@ export function applyFilters(list: OnerFlight[], f: Filters) {
   });
 }
 
-function activeCount(f: Filters) {
+export function activeCount(f: Filters) {
   return (
     (f.onlyBaggage ? 1 : 0) +
     (f.maxStops !== 2 ? 1 : 0) +
@@ -1938,6 +1939,7 @@ export function VoosPage({
       normalizeSearchResult,
       findByAnyKey,
       FiltersPanel,
+      activeCount,
       EMPTY_FILTERS,
       applyFilters,
       cityCodes: CITY_CODES,
@@ -2555,7 +2557,10 @@ export function VoosPage({
         {!multiOn && result && !novaBusca && (
           <div className={`grid gap-6 ${showSummary ? "" : "lg:grid-cols-[280px_1fr]"}`}>
             {!showSummary && (
-              <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+              <FiltersAside
+                count={activeCount(inboundPhase ? inFilters : outFilters)}
+                className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-1"
+              >
                 {!inboundPhase ? (
                   <FiltersPanel
                     title={isRoundTrip ? "Filtros da ida" : "Filtros"}
@@ -2577,7 +2582,7 @@ export function VoosPage({
                     />
                   )
                 )}
-              </aside>
+              </FiltersAside>
             )}
 
             <div className="space-y-6">

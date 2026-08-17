@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { FiltersAside } from "@/components/search/FiltersAside";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -1171,7 +1172,7 @@ export function CarrosPage({
 
         {result && (
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-            <aside className="self-start overflow-hidden rounded-[24px] border border-border/50 bg-card/60 backdrop-blur-xl">
+            <FiltersAside count={activeFilterCount} className="self-start overflow-hidden rounded-[24px] border border-border/50 bg-card/60 backdrop-blur-xl">
               <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold">Filtros</span>
@@ -1386,7 +1387,7 @@ export function CarrosPage({
                   </section>
                 )}
               </div>
-            </aside>
+            </FiltersAside>
 
 
             <section className="space-y-3">
