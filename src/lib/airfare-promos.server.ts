@@ -458,7 +458,7 @@ export async function quoteRoute(args: {
     // companhias diferentes só é usada quando economiza de verdade (regra do
     // multi-trecho, abaixo) — e apenas em voos NACIONAIS.
     const MAX_COMBINACOES = 5;
-    const prazo = Date.now() + CANDIDATE_TIMEOUT_MS * 0.7;
+    const prazo = Date.now() + (args.budgetMs ?? CANDIDATE_TIMEOUT_MS) * 0.7;
     let melhorTotal = Number.POSITIVE_INFINITY;
     let melhorOut: OnerFlight | null = null;
     let melhorIn: OnerFlight | null = null;
