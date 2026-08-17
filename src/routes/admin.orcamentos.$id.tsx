@@ -776,6 +776,23 @@ function QuoteDetailPage() {
         />
       )}
 
+      {itemEdit && (
+        <QuoteItemFormDialog
+          open
+          onOpenChange={(v) => { if (!v) setItemEdit(null); }}
+          quoteId={id}
+          optionNumber={optNum}
+          kind={itemEdit.kind}
+          index={itemEdit.index}
+          hotel={itemEdit.hotel ?? null}
+          flight={itemEdit.flight ?? null}
+          service={itemEdit.service ?? null}
+          onSaved={recarregarItens}
+        />
+      )}
+
+
+
     </div>
   );
 }
