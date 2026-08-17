@@ -657,13 +657,44 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   }
 
   // ------------------------------------------------------------------
-  // 4) DATAS/OFERTAS REAIS — só para as escolhidas (consulta cara)
+  // 4) DATAS/OFERTAS REAIS — só para as escolhidas (consulta cara).
+  //    Processada em LOTES com checkpoint: o que não couber no orçamento
+  //    fica gravado como `pendingLeads` e é retomado na próxima invocação.
   // ------------------------------------------------------------------
-  const selecionadas: PromoCandidate[] = [];
-  const todosLeads = escolhidasPorOrigem.flatMap((g) => g.leads);
+  const selecionadas: PromoCandidate[] = [...(retomada?.stage === "datas" ? (retomada.candidates ?? []) : [])];
+  const jaProcessados = new Set<string>(
+    retomada?.stage === "datas" ? [] : [],
+  );
+  const curados = escolhidasPorOrigem.flatMap((g) => g.leads);
+  const pendentesSalvos = retomada?.stage === "datas" ? (retomada.pendingLeads ?? null) : null;
+  const todosLeads = (pendentesSalvos ?? curados).filter((l) => !jaProcessados.has(l.signature));
+  const restantesFila = [...todosLeads];
 
   progresso(`Buscando datas reais de ${todosLeads.length} oportunidades selecionadas...`);
-  await mapLimit(todosLeads, 4, async (lead: Lead) => {
+  const LOTE = 4;
+  for (let i = 0; i < todosLeads.length; i += LOTE) {
+    if (cancelada) break;
+    if (radarDeadline - Date.now() < BATCH_MIN_MS) {
+      // sem margem para mais um lote: grava progresso e encerra controlado
+      await gravarCheckpoint("datas", {
+        pendingLeads: restantesFila,
+        candidates: selecionadas,
+        metrics,
+        dedupTotal,
+      });
+      return parcial("datas", {
+        pendingLeads: restantesFila,
+        candidates: selecionadas,
+        metrics,
+        dedupTotal,
+      });
+    }
+    const lote = todosLeads.slice(i, i + LOTE);
+    progresso(
+      `Datas reais — ${Math.min(i + LOTE, todosLeads.length)}/${todosLeads.length} oportunidades`,
+    );
+    await mapLimit(lote, LOTE, async (lead: Lead) => {
+
     if (cancelada || !lead.itinerary_link) return;
     let ofertas: Array<{
       departDate: string;
