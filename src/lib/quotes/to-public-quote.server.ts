@@ -392,7 +392,7 @@ export function buildPublicQuoteFromImported(params: {
     summary: options[0] ? optionSummary(options[0]) : [],
     agent: params.agentName
       ? {
-          name: params.agentName,
+          name: displayAgentName(params.agentName) ?? params.agentName,
           photoUrl: agentPhoto(params.agentName),
           phone: null,
           whatsapp: null,
