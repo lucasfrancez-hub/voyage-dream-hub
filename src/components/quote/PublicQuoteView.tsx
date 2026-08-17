@@ -974,27 +974,20 @@ function QuoteBody({
 
   const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
 
-  /** Ida e volta: os voos sempre aparecem primeiro, fora da linha do tempo. */
-  const voosPrimeiro = useMemo(
-    () => legs.some((l, i) => direcaoLeg(l, i, legs.length) === "INBOUND"),
-    [legs],
-  );
-
   /** Roteiro: tudo em ordem cronológica (voo, hotel, serviços, por dia). */
   const roteiro = useMemo(() => {
     if (!quote.itinerary) return [] as RoteiroEntrada[];
     const out: RoteiroEntrada[] = [];
-    if (!voosPrimeiro) {
-      legs.forEach((leg, i) => {
-        const dep = leg.segments?.[0]?.departure ?? null;
-        out.push({
-          key: `voo-${i}`,
-          dia: diaDe(dep),
-          ord: ordDe(dep, "00:00"),
-          node: <FlightLegCard leg={leg} direction={direcaoLeg(leg, i, legs.length)} />,
-        });
+    legs.forEach((leg, i) => {
+      const dep = leg.segments?.[0]?.departure ?? null;
+      out.push({
+        key: `voo-${i}`,
+        dia: diaDe(dep),
+        ord: ordDe(dep, "00:00"),
+        node: <FlightLegCard leg={leg} direction={direcaoLeg(leg, i, legs.length)} />,
       });
-    }
+    });
+
 
     hotels.forEach((h) => {
       out.push({
@@ -1023,7 +1016,7 @@ function QuoteBody({
       });
     }
     return out.sort((a, b) => a.ord - b.ord);
-  }, [quote.itinerary, legs, hotels, p, voosPrimeiro]);
+  }, [quote.itinerary, legs, hotels, p]);
 
   const roteiroDias = useMemo(() => {
     const mapa: Array<{ dia: string | null; itens: RoteiroEntrada[] }> = [];
@@ -1042,8 +1035,9 @@ function QuoteBody({
   type Secao = { id: string; label: string; Icon: (p: { className?: string }) => ReactElement };
   const secoes: Secao[] = [];
   if (quote.itinerary) {
-    if (roteiro.length || (voosPrimeiro && legs.length))
-      secoes.push({ id: "roteiro", label: "Roteiro", Icon: IconCalendar });
+    if (roteiro.length)
+      secoes.push({ id: "roteiro", label: "Roteiro completo", Icon: IconCalendar });
+
   } else {
     if (hotels.length) secoes.push({ id: "hospedagem", label: "Hospedagem", Icon: IconHotel });
     if (legs.length) secoes.push({ id: "voos", label: "Voos", Icon: IconPlane });
@@ -1147,7 +1141,7 @@ function QuoteBody({
         </section>
 
         {quote.itinerary ? (
-          roteiro.length || (voosPrimeiro && legs.length) ? (
+          roteiro.length ? (
             <section className="vq-section" id="roteiro">
               <div className="vq-section-head">
                 <div>
@@ -1156,25 +1150,8 @@ function QuoteBody({
                 </div>
                 <span className="vq-tag">{roteiroDias.length} dia(s)</span>
               </div>
-              {voosPrimeiro && legs.length ? (
-                <div className="vq-roteiro-voos">
-                  <div className="vq-roteiro-head">
-                    <span className="vq-roteiro-num">
-                      <IconPlane />
-                    </span>
-                    <strong>Voos — ida e volta</strong>
-                  </div>
-                  <div className="vq-roteiro-itens">
-                    {legs.map((leg, i) => (
-                      <FlightLegCard
-                        key={`voo-${i}`}
-                        leg={leg}
-                        direction={direcaoLeg(leg, i, legs.length)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+
+
               <div className="vq-roteiro">
                 {roteiroDias.map((d, i) => (
                   <div className="vq-roteiro-dia" key={d.dia ?? `sem-data-${i}`}>
