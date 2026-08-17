@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { combinedFlightHref } from "@/lib/combined-journey";
 import {
   flightSignature,
   type OnerFareOption,
@@ -68,6 +69,8 @@ export const flightSearchInput = z.object({
   departureIsCity: z.boolean().default(false),
   arrivalIsCity: z.boolean().default(false),
   searchKey: z.string().nullish(),
+  /** Jornada Aéreo + Hotel: chave única compartilhada com a busca de hotel. */
+  combinedKey: z.string().nullish(),
   filters: OperatorFilters.default(DEFAULT_FILTERS),
 });
 
@@ -83,6 +86,21 @@ type SearchData = z.infer<typeof flightSearchInput>;
 type InboundData = z.infer<typeof inboundSearchInput>;
 
 function buildLocationHref(data: SearchData | InboundData) {
+  // Aéreo + Hotel: a operadora usa a página /combined/flight e a MESMA
+  // searchKey de jornada usada na busca de hotel.
+  if (data.combinedKey) {
+    return combinedFlightHref({
+      combinedKey: data.combinedKey,
+      departureDate: data.departureDate,
+      returnDate: data.returnDate ?? null,
+      stations: [
+        { departureStation: data.departureIata, arrivalStation: data.arrivalIata },
+      ],
+      adults: data.adults,
+      children: data.children,
+      infants: data.infants,
+    });
+  }
   const q = new URLSearchParams({
     departureDate: `${data.departureDate}T00:00:00.000Z`,
     isRoundTrip: String(!!data.returnDate),

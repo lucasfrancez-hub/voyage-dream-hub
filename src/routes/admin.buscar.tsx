@@ -10,6 +10,7 @@ import type { MultiPick, MultiSegmentInput } from "@/lib/multicity";
 import type { FlightPreset } from "./admin.voos-teste";
 import type { HotelPreset } from "./admin.hoteis-teste";
 import type { ComboPick } from "@/lib/combo-selection";
+import { newCombinedKey } from "@/lib/combined-journey";
 import { useServerFn } from "@tanstack/react-start";
 import {
   onerCreateComboCart,
@@ -327,6 +328,8 @@ export function SearchEngine({
 
   const [combo, setCombo] = useState<ComboForm>(COMBO_INITIAL);
   const [runToken, setRunToken] = useState(0);
+  /** Chave única da jornada Aéreo + Hotel (voo e hotel usam a MESMA). */
+  const [combinedKey, setCombinedKey] = useState<string | null>(null);
   const [step, setStep] = useState<ComboStep>(1);
   const [flightPick, setFlightPick] = useState<ComboPick | null>(null);
   const [hotelPick, setHotelPick] = useState<ComboPick | null>(null);
@@ -349,7 +352,11 @@ export function SearchEngine({
       // Aéreo + hotel juntos: UM único carrinho /viaair/combined/cart
       if (flightPick?.flightBooking && hotelPick?.hotelBooking) {
         const r = await createComboCart({
-          data: { flight: flightPick.flightBooking, hotel: hotelPick.hotelBooking },
+          data: {
+            flight: flightPick.flightBooking,
+            hotel: hotelPick.hotelBooking,
+            combinedKey,
+          },
         });
         if (publicMode) {
           window.location.href = r.url;
@@ -423,6 +430,8 @@ export function SearchEngine({
       toast.error("Informe origem, destino, ida e volta");
       return;
     }
+    // Uma jornada = uma searchKey só, usada no /combined/flight e no /combined/hotel.
+    setCombinedKey(newCombinedKey());
     setRunToken((t) => t + 1);
   }
 
@@ -537,6 +546,7 @@ export function SearchEngine({
               <div className={step === 1 ? "" : "hidden"}>
                 <VoosPage
                   hideForm
+                  combinedKey={combinedKey}
                   preset={flightPreset}
                   runToken={runToken}
                   onComboSelect={(pick) => {
@@ -550,6 +560,7 @@ export function SearchEngine({
               <div className={step === 2 ? "" : "hidden"}>
                 <HoteisPage
                   hideForm
+                  combinedKey={combinedKey}
                   preset={hotelPreset}
                   runToken={runToken}
                   onComboSelect={(pick) => {

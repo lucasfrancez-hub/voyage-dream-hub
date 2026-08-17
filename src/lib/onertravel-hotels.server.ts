@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { combinedHotelHref } from "@/lib/combined-journey";
 
 /**
  * Hotéis na operadora Öner Travel (Comprar Viagem / VIA AIR).
@@ -127,6 +128,8 @@ export const hotelSearchInput = z.object({
   perPage: z.number().int().min(1).max(50).default(20),
   /** Reaproveita uma busca já iniciada (paginação "ver mais"). */
   searchKey: z.string().nullish(),
+  /** Jornada Aéreo + Hotel: chave única compartilhada com a busca de voo. */
+  combinedKey: z.string().nullish(),
 
   hotelName: z.string().default(""),
   stars: z.array(z.number().int().min(1).max(5)).default([]),
@@ -137,6 +140,21 @@ export const hotelSearchInput = z.object({
 });
 
 function buildLoc(p: z.infer<typeof hotelSearchInput>) {
+  // Aéreo + Hotel: contexto /combined/hotel com a MESMA searchKey da jornada.
+  if (p.combinedKey) {
+    return combinedHotelHref({
+      combinedKey: p.combinedKey,
+      pointId: p.pointId,
+      pointType: p.pointType,
+      checkIn: p.checkIn,
+      checkOut: p.checkOut,
+      rooms: p.rooms.map((r) => ({
+        numberOfAdults: r.adults,
+        numberOfChilds: r.children,
+        agesOfChild: r.childrenAges,
+      })),
+    });
+  }
   const q = new URLSearchParams({
     numberOfAdults: String(p.rooms.reduce((a, r) => a + r.adults, 0)),
     numberOfChild: String(p.rooms.reduce((a, r) => a + r.children, 0)),

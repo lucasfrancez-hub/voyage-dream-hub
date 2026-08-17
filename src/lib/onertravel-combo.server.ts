@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { combinedCartUrl } from "@/lib/combined-journey";
 
 const API = "https://api.onertravel.com";
 const INSTITUTION_ID = "23";
@@ -61,6 +62,8 @@ export type ComboHotelBookingData = z.infer<typeof ComboHotelBooking>;
 export const ComboCartInput = z.object({
   flight: ComboFlightBooking,
   hotel: ComboHotelBooking,
+  /** Chave única da jornada combinada (mesma usada nas duas pesquisas). */
+  combinedKey: z.string().nullish(),
 });
 
 /** URL de contexto (a operadora usa isso para montar a busca da página). */
@@ -82,7 +85,8 @@ function comboHotelHref(d: z.infer<typeof ComboCartInput>): string {
     endDate: `${d.hotel.checkOut}T00:00:00Z`,
     isPackage: "false",
     source: "h",
-    searchKey: d.hotel.searchKey,
+    // Jornada combinada: a chave da jornada manda; sem ela, a da busca de hotel.
+    searchKey: d.combinedKey || d.hotel.searchKey,
   });
   q.set("rooms", encodeURIComponent(rooms));
   q.set("stations", encodeURIComponent(stations));
@@ -127,6 +131,16 @@ export async function buildComboCart(
       eventId: null,
     },
   ];
+  // Último recurso: algumas jornadas exigem a chave combinada no corpo.
+  if (data.combinedKey) {
+    bodies.push({
+      flight: flightBlock,
+      hotel: hotelBlock,
+      searchBookingKey: data.combinedKey,
+      affiliateTag: null,
+      eventId: null,
+    });
+  }
 
   let cartId = "";
   let lastStatus = 0;
@@ -153,8 +167,5 @@ export async function buildComboCart(
     );
   }
 
-  return {
-    cartId,
-    url: `https://www.comprarviagem.com.br/viaair/combined/cart?cartId=${cartId}&source=p`,
-  };
+  return { cartId, url: combinedCartUrl(cartId) };
 }
