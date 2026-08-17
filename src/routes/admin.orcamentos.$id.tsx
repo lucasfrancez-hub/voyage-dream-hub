@@ -24,6 +24,7 @@ import { QuoteItemsToolbar } from "@/components/quotes/QuoteItemsToolbar";
 import { QuoteItemFormDialog, type QuoteItemKind } from "@/components/quotes/QuoteItemFormDialog";
 import {
   removerItemOrcamento, criarOpcaoOrcamento, renomearOpcaoOrcamento, removerOpcaoOrcamento,
+  atualizarValorItemOrcamento,
 } from "@/lib/quotes/items.functions";
 import type { NormalizedFlight, NormalizedGenericItem, NormalizedHotel } from "@/lib/quotes/types";
 import { AirlineLogo } from "@/components/AirlineLogo";
@@ -179,7 +180,7 @@ function QuoteDetailPage() {
   const [valorEdit, setValorEdit] = useState<{ kind: QuoteItemKind; index: number; valor: string } | null>(null);
   const valorMutation = useMutation({
     mutationFn: (v: { kind: QuoteItemKind; index: number; total: number | null }) =>
-      atualizarValor({ data: { quoteId: id, optionNumber: optNumRef.current, kind: v.kind, index: v.index, total: v.total } }),
+      atualizarValor({ data: { quoteId: id, optionNumber: optNum, kind: v.kind, index: v.index, total: v.total } }),
     onSuccess: () => {
       setValorEdit(null);
       toast.success("Valor atualizado");
