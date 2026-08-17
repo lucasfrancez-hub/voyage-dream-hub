@@ -113,12 +113,16 @@ export type HotelProduct = {
   reviewsCount?: number | null;
   location: HotelLocation | null;
   mapsUrl: string | null;
+  /** Data ISO do check-in, usada para ordenar no modo roteiro. */
+  sortDate?: string | null;
 };
 
 export type SimpleProduct = {
   id: string;
   title: string;
   summary: string | null;
+  /** Data ISO usada para ordenar no modo roteiro. */
+  sortDate?: string | null;
   photo?: string | null;
   details: Array<{ label: string; value: string }>;
   description?: string | null;
@@ -193,6 +197,8 @@ export type QuoteOption = {
   totals: QuoteTotals;
   payment: PaymentConfiguration;
   summary?: QuoteSummaryLine[];
+  /** Opção é um roteiro: exibir tudo em ordem cronológica. */
+  itinerary?: boolean;
 };
 
 export type QuoteTotals = {
@@ -222,6 +228,8 @@ export type PublicQuote = {
   payment: PaymentConfiguration;
   totals: QuoteTotals;
   summary: QuoteSummaryLine[];
+  /** Roteiro: exibir produtos em ordem cronológica em vez de por categoria. */
+  itinerary?: boolean;
   agent?: QuoteAgent | null;
   source?: {
     type: "MANUAL" | "BRUNO" | "PAULA" | "SYSTEM";

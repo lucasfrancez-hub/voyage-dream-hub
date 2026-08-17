@@ -121,6 +121,24 @@ function periodoLabel(q: PublicQuote): string | null {
   return a;
 }
 
+/* ─────────────────────── roteiro ─────────────────────── */
+
+type RoteiroEntrada = { key: string; dia: string | null; ord: number; node: ReactElement };
+
+/** Dia "AAAA-MM-DD" de qualquer formato. */
+function diaDe(v?: string | null): string | null {
+  const m = String(v ?? "").match(/(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+}
+
+/** Ordem cronológica; itens sem data vão para o fim. */
+function ordDe(v?: string | null, horaPadrao = "00:00"): number {
+  const dia = diaDe(v);
+  if (!dia) return Number.MAX_SAFE_INTEGER;
+  const hora = String(v ?? "").match(/(\d{2}):(\d{2})/);
+  return tsMin(`${dia} ${hora ? `${hora[1]}:${hora[2]}` : horaPadrao}`) ?? Number.MAX_SAFE_INTEGER;
+}
+
 /* ───────────────────────── voos ───────────────────────── */
 
 function direcaoLeg(leg: FlightLeg, index: number, total: number): string | null {
@@ -927,6 +945,57 @@ function QuoteBody({
 
   const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
 
+  /** Roteiro: tudo em ordem cronológica (voo, hotel, serviços, por dia). */
+  const roteiro = useMemo(() => {
+    if (!quote.itinerary) return [] as RoteiroEntrada[];
+    const out: RoteiroEntrada[] = [];
+    legs.forEach((leg, i) => {
+      const dep = leg.segments?.[0]?.departure ?? null;
+      out.push({
+        key: `voo-${i}`,
+        dia: diaDe(dep),
+        ord: ordDe(dep, "00:00"),
+        node: <FlightLegCard leg={leg} direction={direcaoLeg(leg, i, legs.length)} />,
+      });
+    });
+    hotels.forEach((h) => {
+      out.push({
+        key: `hotel-${h.id}`,
+        dia: diaDe(h.sortDate),
+        ord: ordDe(h.sortDate, "14:00"),
+        node: <HotelCard hotel={h} />,
+      });
+    });
+    const grupos: Array<[SimpleProduct[] | undefined, keyof typeof SIMPLE_ICONS]> = [
+      [p.transfers, "transfer"],
+      [p.cars, "car"],
+      [p.activities, "activity"],
+      [p.tickets, "ticket"],
+      [p.services, "service"],
+      [p.insurance, "insurance"],
+    ];
+    for (const [lista, kind] of grupos) {
+      (lista ?? []).forEach((item) => {
+        out.push({
+          key: `${kind}-${item.id}`,
+          dia: diaDe(item.sortDate),
+          ord: ordDe(item.sortDate, "10:00"),
+          node: <SimpleCard item={item} kind={kind} />,
+        });
+      });
+    }
+    return out.sort((a, b) => a.ord - b.ord);
+  }, [quote.itinerary, legs, hotels, p]);
+
+  const roteiroDias = useMemo(() => {
+    const mapa: Array<{ dia: string | null; itens: RoteiroEntrada[] }> = [];
+    for (const e of roteiro) {
+      const ultimo = mapa[mapa.length - 1];
+      if (ultimo && ultimo.dia === e.dia) ultimo.itens.push(e);
+      else mapa.push({ dia: e.dia, itens: [e] });
+    }
+    return mapa;
+  }, [roteiro]);
 
   const whatsappHref = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
     `Olá! Quero seguir com o orçamento ${quote.publicId} (${quote.title}).`,
@@ -934,15 +1003,19 @@ function QuoteBody({
 
   type Secao = { id: string; label: string; Icon: (p: { className?: string }) => ReactElement };
   const secoes: Secao[] = [];
-  if (hotels.length) secoes.push({ id: "hospedagem", label: "Hospedagem", Icon: IconHotel });
-  if (legs.length) secoes.push({ id: "voos", label: "Voos", Icon: IconPlane });
-  if (quote.products.cars?.length) secoes.push({ id: "carro", label: "Carro", Icon: IconCar });
-  if (quote.products.activities?.length)
-    secoes.push({ id: "passeios", label: "Passeios", Icon: IconActivity });
-  if (quote.products.tickets?.length)
-    secoes.push({ id: "ingressos", label: "Ingressos", Icon: IconTicket });
-  if (quote.products.transfers?.length || quote.products.services?.length)
-    secoes.push({ id: "servicos", label: "Serviços", Icon: IconTransfer });
+  if (quote.itinerary) {
+    if (roteiro.length) secoes.push({ id: "roteiro", label: "Roteiro", Icon: IconCalendar });
+  } else {
+    if (hotels.length) secoes.push({ id: "hospedagem", label: "Hospedagem", Icon: IconHotel });
+    if (legs.length) secoes.push({ id: "voos", label: "Voos", Icon: IconPlane });
+    if (quote.products.cars?.length) secoes.push({ id: "carro", label: "Carro", Icon: IconCar });
+    if (quote.products.activities?.length)
+      secoes.push({ id: "passeios", label: "Passeios", Icon: IconActivity });
+    if (quote.products.tickets?.length)
+      secoes.push({ id: "ingressos", label: "Ingressos", Icon: IconTicket });
+    if (quote.products.transfers?.length || quote.products.services?.length)
+      secoes.push({ id: "servicos", label: "Serviços", Icon: IconTransfer });
+  }
   secoes.push({ id: "valores", label: "Valores", Icon: IconMoney });
 
   const [ativa, setAtiva] = useState<string>(secoes[0]?.id ?? "");
@@ -1034,66 +1107,97 @@ function QuoteBody({
           </div>
         </section>
 
-        {hotels.length ? (
-          <section className="vq-section" id="hospedagem">
-            <div className="vq-section-head">
-              <div>
-                <h2>Hospedagem</h2>
-                <p>Galeria, quarto, comodidades e localização da hospedagem.</p>
+        {quote.itinerary ? (
+          roteiro.length ? (
+            <section className="vq-section" id="roteiro">
+              <div className="vq-section-head">
+                <div>
+                  <h2>Roteiro da viagem</h2>
+                  <p>Tudo em ordem cronológica, dia a dia, do embarque ao retorno.</p>
+                </div>
+                <span className="vq-tag">{roteiroDias.length} dia(s)</span>
               </div>
-              {quote.nights ? <span className="vq-tag">{quote.nights} noites</span> : null}
-            </div>
-            {hotels.map((h) => <HotelCard key={h.id} hotel={h} />)}
-          </section>
-        ) : null}
-
-        {legs.length ? (
-          <section className="vq-section" id="voos">
-            <div className="vq-section-head">
-              <div>
-                <h2>Voos</h2>
-                <p>Companhia, horários, conexões, duração e bagagem de cada trecho.</p>
+              <div className="vq-roteiro">
+                {roteiroDias.map((d, i) => (
+                  <div className="vq-roteiro-dia" key={d.dia ?? `sem-data-${i}`}>
+                    <div className="vq-roteiro-head">
+                      <span className="vq-roteiro-num">{i + 1}</span>
+                      <strong>{d.dia ? dataCurta(d.dia) : "A definir"}</strong>
+                    </div>
+                    <div className="vq-roteiro-itens">
+                      {d.itens.map((e) => (
+                        <div key={e.key}>{e.node}</div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <span className="vq-tag">{quote.tripKind ?? "Itinerário"}</span>
-            </div>
-            <div className="vq-flights-grid" data-cols={legs.length === 1 ? 1 : 2}>
-              {legs.map((leg, i) => (
-                <FlightLegCard key={i} leg={leg} direction={direcaoLeg(leg, i, legs.length)} />
-              ))}
-            </div>
+            </section>
+          ) : null
+        ) : (
+          <>
+            {hotels.length ? (
+              <section className="vq-section" id="hospedagem">
+                <div className="vq-section-head">
+                  <div>
+                    <h2>Hospedagem</h2>
+                    <p>Galeria, quarto, comodidades e localização da hospedagem.</p>
+                  </div>
+                  {quote.nights ? <span className="vq-tag">{quote.nights} noites</span> : null}
+                </div>
+                {hotels.map((h) => <HotelCard key={h.id} hotel={h} />)}
+              </section>
+            ) : null}
 
-          </section>
-        ) : null}
+            {legs.length ? (
+              <section className="vq-section" id="voos">
+                <div className="vq-section-head">
+                  <div>
+                    <h2>Voos</h2>
+                    <p>Companhia, horários, conexões, duração e bagagem de cada trecho.</p>
+                  </div>
+                  <span className="vq-tag">{quote.tripKind ?? "Itinerário"}</span>
+                </div>
+                <div className="vq-flights-grid" data-cols={legs.length === 1 ? 1 : 2}>
+                  {legs.map((leg, i) => (
+                    <FlightLegCard key={i} leg={leg} direction={direcaoLeg(leg, i, legs.length)} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
-        {quote.products.cars?.length ? (
-          <section className="vq-section" id="carro">
-            <div className="vq-section-head"><div><h2>Carro</h2><p>Locação incluída na proposta.</p></div></div>
-            {quote.products.cars.map((c) => <SimpleCard key={c.id} item={c} kind="car" />)}
-          </section>
-        ) : null}
+            {quote.products.cars?.length ? (
+              <section className="vq-section" id="carro">
+                <div className="vq-section-head"><div><h2>Carro</h2><p>Locação incluída na proposta.</p></div></div>
+                {quote.products.cars.map((c) => <SimpleCard key={c.id} item={c} kind="car" />)}
+              </section>
+            ) : null}
 
-        {quote.products.activities?.length ? (
-          <section className="vq-section" id="passeios">
-            <div className="vq-section-head"><div><h2>Passeios</h2><p>Experiências reservadas para a viagem.</p></div></div>
-            {quote.products.activities.map((c) => <SimpleCard key={c.id} item={c} kind="activity" />)}
-          </section>
-        ) : null}
+            {quote.products.activities?.length ? (
+              <section className="vq-section" id="passeios">
+                <div className="vq-section-head"><div><h2>Passeios</h2><p>Experiências reservadas para a viagem.</p></div></div>
+                {quote.products.activities.map((c) => <SimpleCard key={c.id} item={c} kind="activity" />)}
+              </section>
+            ) : null}
 
-        {quote.products.tickets?.length ? (
-          <section className="vq-section" id="ingressos">
-            <div className="vq-section-head"><div><h2>Ingressos</h2><p>Entradas e atrações incluídas.</p></div></div>
-            {quote.products.tickets.map((c) => <SimpleCard key={c.id} item={c} kind="ticket" />)}
-          </section>
-        ) : null}
+            {quote.products.tickets?.length ? (
+              <section className="vq-section" id="ingressos">
+                <div className="vq-section-head"><div><h2>Ingressos</h2><p>Entradas e atrações incluídas.</p></div></div>
+                {quote.products.tickets.map((c) => <SimpleCard key={c.id} item={c} kind="ticket" />)}
+              </section>
+            ) : null}
 
-        {quote.products.transfers?.length || quote.products.services?.length || quote.products.insurance?.length ? (
-          <section className="vq-section" id="servicos">
-            <div className="vq-section-head"><div><h2>Serviços</h2><p>Traslados, seguros e serviços complementares.</p></div></div>
-            {quote.products.transfers?.map((c) => <SimpleCard key={c.id} item={c} kind="transfer" />)}
-            {quote.products.insurance?.map((c) => <SimpleCard key={c.id} item={c} kind="insurance" />)}
-            {quote.products.services?.map((c) => <SimpleCard key={c.id} item={c} kind="service" />)}
-          </section>
-        ) : null}
+            {quote.products.transfers?.length || quote.products.services?.length || quote.products.insurance?.length ? (
+              <section className="vq-section" id="servicos">
+                <div className="vq-section-head"><div><h2>Serviços</h2><p>Traslados, seguros e serviços complementares.</p></div></div>
+                {quote.products.transfers?.map((c) => <SimpleCard key={c.id} item={c} kind="transfer" />)}
+                {quote.products.insurance?.map((c) => <SimpleCard key={c.id} item={c} kind="insurance" />)}
+                {quote.products.services?.map((c) => <SimpleCard key={c.id} item={c} kind="service" />)}
+              </section>
+            ) : null}
+          </>
+        )}
+
 
         <section className="vq-section" id="valores">
           <div className="vq-section-head">

@@ -237,6 +237,29 @@ export const renomearOpcaoOrcamento = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Marca/desmarca a opção como ROTEIRO (exibição cronológica no link público). */
+export const definirRoteiroOpcao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        quoteId: z.string().uuid(),
+        optionNumber: z.number().int().min(1).max(20),
+        itinerary: z.boolean(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context.supabase as never, context.userId);
+    const { mutateQuoteNormalized } = await import("./items.server");
+    await mutateQuoteNormalized(data.quoteId, (normalized) => {
+      const opt = normalized.options.find((o) => o.optionNumber === data.optionNumber);
+      if (!opt) throw new Error("Opção não encontrada");
+      opt.itinerary = data.itinerary;
+    });
+    return { ok: true };
+  });
+
 /** Remove uma opção inteira (não deixa o orçamento sem nenhuma). */
 export const removerOpcaoOrcamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
