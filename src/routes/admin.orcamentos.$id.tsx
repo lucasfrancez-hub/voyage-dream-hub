@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, Hotel, Plane, Package, DollarSign, Users, ExternalLink, Printer,
-  Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil,
+  Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,6 +20,10 @@ import {
 import type { NormalizedOption, NormalizedQuote } from "@/lib/quotes/types";
 import { confirmThen } from "@/lib/confirm";
 import { HotelTripAdvisorDialog } from "@/components/quotes/HotelTripAdvisorDialog";
+import { QuoteItemsToolbar } from "@/components/quotes/QuoteItemsToolbar";
+import { QuoteItemFormDialog, type QuoteItemKind } from "@/components/quotes/QuoteItemFormDialog";
+import { removerItemOrcamento } from "@/lib/quotes/items.functions";
+import type { NormalizedFlight, NormalizedGenericItem, NormalizedHotel } from "@/lib/quotes/types";
 import { AirlineLogo } from "@/components/AirlineLogo";
 import { findAirline } from "@/lib/airlines";
 
@@ -72,6 +76,13 @@ function QuoteDetailPage() {
   const navigate = useNavigate();
   const [optionNumber, setOptionNumber] = useState<number | null>(null);
   const [hotelEdit, setHotelEdit] = useState<{ name: string; city: string | null } | null>(null);
+  const [itemEdit, setItemEdit] = useState<{
+    kind: QuoteItemKind;
+    index: number;
+    hotel?: NormalizedHotel | null;
+    flight?: NormalizedFlight | null;
+    service?: NormalizedGenericItem | null;
+  } | null>(null);
 
   const { data: quote, isLoading } = useQuery({
     queryKey: ["admin", "quoteDetail", id],
@@ -128,6 +139,21 @@ function QuoteDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao reprocessar"),
   });
 
+  const removerItem = useServerFn(removerItemOrcamento);
+  const recarregarItens = () => {
+    void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] });
+    void qc.invalidateQueries({ queryKey: ["admin", "quotes", "list"] });
+  };
+  const removeMutation = useMutation({
+    mutationFn: (v: { kind: QuoteItemKind; index: number; optionNumber: number }) =>
+      removerItem({ data: { quoteId: id, optionNumber: v.optionNumber, kind: v.kind, index: v.index } }),
+    onSuccess: () => {
+      toast.success("Item removido");
+      recarregarItens();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao remover"),
+  });
+
   const normalized = (quote?.normalized ?? null) as NormalizedQuote | null;
   const options: NormalizedOption[] = useMemo(() => normalized?.options ?? [], [normalized]);
   const option: NormalizedOption | null = useMemo(() => {
@@ -145,6 +171,8 @@ function QuoteDetailPage() {
     ...(option?.insurance ?? []),
     ...(option?.cars ?? []),
   ];
+  const servicosProprios = option?.services.length ?? 0;
+  const optNum = option?.optionNumber ?? 1;
   const pax = normalized?.passengers ?? null;
   const nomesPax = pax?.names ?? [];
   const totalPax = (pax?.adults ?? 0) + (pax?.children ?? 0) + (pax?.infants ?? 0);
@@ -411,6 +439,7 @@ function QuoteDetailPage() {
 
         {/* ---------- Hospedagem ---------- */}
         <TabsContent value="hospedagem" className="mt-4 space-y-3">
+          <QuoteItemsToolbar quoteId={id} optionNumber={optNum} kind="hotel" onSaved={recarregarItens} />
           {hoteis.length === 0 && (
             <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
               Nenhuma hospedagem neste orçamento.
@@ -433,8 +462,17 @@ function QuoteDetailPage() {
                     </div>
                   ) : null}
                   <div className="mt-2 flex items-center gap-0.5">
-                    <Button size="sm" variant="ghost" title="Editar" onClick={() => setHotelEdit({ name: h.name, city: h.city ?? null })}>
+                    <Button size="sm" variant="ghost" title="Fotos / TripAdvisor" onClick={() => setHotelEdit({ name: h.name, city: h.city ?? null })}>
+                      <Star className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="ghost" title="Editar hospedagem" onClick={() => setItemEdit({ kind: "hotel", index: i, hotel: h })}>
                       <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="sm" variant="ghost" title="Remover"
+                      onClick={() => confirmThen("Remover esta hospedagem do orçamento?", () => removeMutation.mutate({ kind: "hotel", index: i, optionNumber: optNum }))}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
                   </div>
                 </div>
@@ -481,6 +519,7 @@ function QuoteDetailPage() {
 
         {/* ---------- Aéreo ---------- */}
         <TabsContent value="aereo" className="mt-4 space-y-3">
+          <QuoteItemsToolbar quoteId={id} optionNumber={optNum} kind="flight" onSaved={recarregarItens} />
           {voos.length === 0 && (
             <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
               Nenhum voo neste orçamento.
@@ -512,6 +551,17 @@ function QuoteDetailPage() {
                     <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
                       {f.direction === "INBOUND" ? "Voo de volta" : "Voo de ida"}
                       {typeof f.stops === "number" ? ` · ${f.stops === 0 ? "Direto" : `${f.stops} conexão(ões)`}` : ""}
+                    </div>
+                    <div className="mt-2 flex items-center gap-0.5">
+                      <Button size="sm" variant="ghost" title="Editar voo" onClick={() => setItemEdit({ kind: "flight", index: i, flight: f })}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="sm" variant="ghost" title="Remover"
+                        onClick={() => confirmThen("Remover este voo do orçamento?", () => removeMutation.mutate({ kind: "flight", index: i, optionNumber: optNum }))}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
                     </div>
                   </div>
 
@@ -576,6 +626,7 @@ function QuoteDetailPage() {
 
         {/* ---------- Serviços ---------- */}
         <TabsContent value="servicos" className="mt-4 space-y-3">
+          <QuoteItemsToolbar quoteId={id} optionNumber={optNum} kind="service" onSaved={recarregarItens} />
           {servicos.length === 0 && (
             <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
               Nenhum serviço neste orçamento.
@@ -591,6 +642,19 @@ function QuoteDetailPage() {
                   <div className="mt-1 font-mono text-lg font-bold text-brand-orange tabular-nums">
                     {s.total ? formatBRL(Number(s.total)) : "—"}
                   </div>
+                  {i < servicosProprios && (
+                    <div className="mt-2 flex items-center gap-0.5">
+                      <Button size="sm" variant="ghost" title="Editar serviço" onClick={() => setItemEdit({ kind: "service", index: i, service: s })}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="sm" variant="ghost" title="Remover"
+                        onClick={() => confirmThen("Remover este serviço do orçamento?", () => removeMutation.mutate({ kind: "service", index: i, optionNumber: optNum }))}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className="min-w-0 border-l border-border pl-4">
                   <div className="font-semibold">{s.name}</div>
@@ -711,6 +775,23 @@ function QuoteDetailPage() {
           onLinked={() => { void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] }); }}
         />
       )}
+
+      {itemEdit && (
+        <QuoteItemFormDialog
+          open
+          onOpenChange={(v) => { if (!v) setItemEdit(null); }}
+          quoteId={id}
+          optionNumber={optNum}
+          kind={itemEdit.kind}
+          index={itemEdit.index}
+          hotel={itemEdit.hotel ?? null}
+          flight={itemEdit.flight ?? null}
+          service={itemEdit.service ?? null}
+          onSaved={recarregarItens}
+        />
+      )}
+
+
 
     </div>
   );
