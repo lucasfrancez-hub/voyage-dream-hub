@@ -917,8 +917,8 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
                 ))}
               </div>
               <p className="vq-boleto-note">
-                A 1ª parcela vence 30 dias após a contratação e as demais seguem mensalmente.
-                Clique em uma opção para ver todas as datas.
+                Sujeito à análise de crédito. Clique em uma opção para ver todas as datas de
+                vencimento.
               </p>
             </>
           ) : null}
