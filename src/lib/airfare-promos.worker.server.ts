@@ -965,6 +965,17 @@ export async function processPendingCandidates(args: {
     }
   };
   await contarFila();
+  orfaosAgora = await contarOrfaos(client, runId);
+  if (recuperacao.recovered || recuperacao.failed) {
+    console.warn(
+      "[airfare-recuperacao-inicial]",
+      JSON.stringify({
+        run: runId,
+        devolvidas_para_fila: recuperacao.recovered,
+        encerradas_por_limite: recuperacao.failed,
+      }),
+    );
+  }
 
   const worker = async (workerId: number) => {
     // Sai antes do fim do orçamento: nada de aceitar trabalho que não cabe.
