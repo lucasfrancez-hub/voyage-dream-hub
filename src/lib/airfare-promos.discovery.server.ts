@@ -417,11 +417,14 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   const auditoria: CurationDecision<PromoCandidate>[] = [];
   const escolhidasPorOrigem: Array<{ origem: string; leads: Lead[]; scope: "nacional" | "internacional" }> = [];
 
-  const origens = [...pool.keys()].sort((a, b) => {
+  // TODAS as origens configuradas entram no relatório — mesmo com zero
+  // oportunidades — para nunca sumirem em silêncio do acompanhamento.
+  const origens = [...new Set<string>([...PRIORITY_ORIGINS, ...pool.keys()])].sort((a, b) => {
     const pa = isPriorityOrigin(a) ? 0 : 1;
     const pb = isPriorityOrigin(b) ? 0 : 1;
     return pa - pb || a.localeCompare(b);
   });
+
 
   let extrasUsadas = 0;
   let dedupTotal = 0;
