@@ -457,6 +457,9 @@ export async function processPendingCandidates(args: {
   // RECUPERAÇÃO OBRIGATÓRIA antes de qualquer novo claim.
   const recuperacao = await recoverOrphanClaims(client, runId, PROMO_VALIDATION_MAX_ATTEMPTS);
   let claimsRecusadosPorOrcamento = 0;
+  /** Diagnóstico do último claim (por que o worker não reservou candidata). */
+  let diagnosticoClaim: string | null = null;
+
 
 
   const { data: run } = await client
