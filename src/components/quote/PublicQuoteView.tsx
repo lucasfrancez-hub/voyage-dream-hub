@@ -1140,7 +1140,7 @@ function QuoteBody({
         </section>
 
         {quote.itinerary ? (
-          roteiro.length || (voosPrimeiro && legs.length) ? (
+          roteiro.length ? (
             <section className="vq-section" id="roteiro">
               <div className="vq-section-head">
                 <div>
