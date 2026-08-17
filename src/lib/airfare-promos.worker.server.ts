@@ -88,7 +88,16 @@ export type ValidationTelemetry = {
   in_flight?: WorkerHeartbeat[];
   /** timeout individual configurado (ms) — o painel usa para apontar travamento */
   candidate_timeout_ms?: number;
+  /** claims sem heartbeat vivo (órfãos aguardando recuperação) */
+  orphans?: number;
+  /** leases recuperados nesta invocação (workers que morreram antes) */
+  recovered?: number;
+  /** candidatas encerradas por esgotar tentativas após mortes de worker */
+  dead_worker_failures?: number;
+  /** claims recusados por não caber no orçamento restante da invocação */
+  claims_skipped_budget?: number;
   updated_at: string;
+
 };
 
 /** Heartbeat de um worker — permite saber exatamente onde o processo congelou. */
