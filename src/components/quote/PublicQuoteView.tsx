@@ -745,20 +745,48 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
 
       {tab === "BOLETO" ? (
         <div className="vq-boleto-box">
-          <div className="vq-installments">
-            {boleto.installments.map((i) => (
-              <div
-                key={i.number}
-                className={`vq-inst${instBoleto === i.number ? " is-selected" : ""}`}
-                onClick={() => setInstBoleto(i.number)}
-              >
-                <span>{i.number}x<span className="vq-no-interest">sem juros</span></span>
-                <strong>{brl(i.amount)}</strong>
+          {boleto.installments.length ? (
+            <>
+              <p className="vq-boleto-title">Boleto parcelado (financiado)</p>
+              <div className="vq-installments">
+                {boleto.installments.map((i) => (
+                  <div
+                    key={i.number}
+                    className={`vq-inst${instBoleto === i.number ? " is-selected" : ""}`}
+                    onClick={() => setInstBoleto(i.number)}
+                  >
+                    <span>{i.number}x<span className="vq-no-interest">sem juros</span></span>
+                    <strong>{brl(i.amount)}</strong>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : null}
+
+          {boleto.untilTravel?.enabled ? (
+            <div className="vq-boleto-ate">
+              <p className="vq-boleto-title">Boleto até a data da viagem</p>
+              <div className="vq-inst is-selected" style={{ cursor: "default" }}>
+                <span>
+                  {boleto.untilTravel.installments}x
+                  <span className="vq-no-interest">sem juros</span>
+                </span>
+                <strong>{brl(boleto.untilTravel.parcela)}</strong>
+              </div>
+              <p className="vq-boleto-note">
+                Entrada de {brl(boleto.untilTravel.entrada)} na contratação e mais{" "}
+                {boleto.untilTravel.installments - 1}x de {brl(boleto.untilTravel.parcela)}. A
+                quitação total acontece até 30 dias antes da viagem
+                {boleto.untilTravel.lastDueDate
+                  ? ` (${boleto.untilTravel.lastDueDate.split("-").reverse().join("/")})`
+                  : ""}
+                .
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : null}
+
 
       {tab === "PIX" ? (
         <div>
