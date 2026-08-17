@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { quoteStatusBadge, quoteOriginBadge, quoteExternalId } from "@/lib/quotes/labels";
+import { displayAgentName } from "@/lib/public-quote/agents";
 import {
   converterOrcamentoEmPedido, gerarLinkOrcamento, reprocessarImportacao,
 } from "@/lib/quotes/quotes.functions";
@@ -320,7 +321,7 @@ function QuoteDetailPage() {
             </span>
             {quote.consultant && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                <Users className="h-3 w-3" /> {quote.consultant}
+                <Users className="h-3 w-3" /> {displayAgentName(quote.consultant)}
               </span>
             )}
 
@@ -365,7 +366,7 @@ function QuoteDetailPage() {
               {formatBRL(total).replace("R$", "").trim()}
             </div>
             {quote.consultant && (
-              <div className="mt-1 text-[11px] text-muted-foreground">Consultor: {quote.consultant}</div>
+              <div className="mt-1 text-[11px] text-muted-foreground">Consultor: {displayAgentName(quote.consultant)}</div>
             )}
           </div>
         </div>

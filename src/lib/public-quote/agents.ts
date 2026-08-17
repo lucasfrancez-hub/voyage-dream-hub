@@ -60,3 +60,10 @@ export function agentProfile(name?: string | null): AgentProfile | null {
   return findAgent(name);
 }
 
+/** Nome canônico do consultor para exibição (ex: "Lucas Rocha Francez" → "Lucas Francez"). */
+export function displayAgentName(name?: string | null): string | null {
+  if (!name) return null;
+  return agentProfile(name)?.name ?? name;
+}
+
+

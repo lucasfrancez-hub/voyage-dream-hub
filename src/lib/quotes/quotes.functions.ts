@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { displayAgentName } from "@/lib/public-quote/agents";
+
 
 /** Gera um token permanente para a extensão "Via Air Orçamentos". */
 export const gerarTokenExtensao = createServerFn({ method: "POST" })
@@ -163,9 +165,9 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
     }
 
     // Consultor responsável: prioriza o dono/criador do orçamento e usa quem
-    // está gerando o link apenas como fallback. Assim links antigos ou criados
-    // antes da atribuição continuam saindo com nome e foto corretos.
-    let consultor: string | null = quote.consultant ?? null;
+    // está gerando o link apenas como fallback. Normaliza o nome para o canônico
+    // cadastrado (ex: "Lucas Rocha Francez" → "Lucas Francez") antes de salvar.
+    let consultor: string | null = displayAgentName(quote.consultant ?? null);
     if (!consultor) {
       const responsavelId = quote.owner_user_id ?? context.userId;
       const { data: perfil } = await supabaseAdmin
@@ -175,17 +177,18 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
         .maybeSingle();
       const nome = (perfil as { full_name?: string | null } | null)?.full_name?.trim();
       if (nome) {
-        consultor = nome;
+        consultor = displayAgentName(nome) ?? nome;
         await supabaseAdmin
           .from("quotes")
           .update({
-            consultant: nome,
-            normalized: { ...normalized, agent: nome },
+            consultant: consultor,
+            normalized: { ...normalized, agent: consultor },
             updated_at: new Date().toISOString(),
           } as never)
           .eq("id", quote.id);
       }
     }
+
 
     const dto = buildPublicQuoteFromImported({
       normalized,
