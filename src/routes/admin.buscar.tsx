@@ -351,7 +351,11 @@ export function SearchEngine({
       // Aéreo + hotel juntos: UM único carrinho /viaair/combined/cart
       if (flightPick?.flightBooking && hotelPick?.hotelBooking) {
         const r = await createComboCart({
-          data: { flight: flightPick.flightBooking, hotel: hotelPick.hotelBooking },
+          data: {
+            flight: flightPick.flightBooking,
+            hotel: hotelPick.hotelBooking,
+            combinedKey,
+          },
         });
         if (publicMode) {
           window.location.href = r.url;
