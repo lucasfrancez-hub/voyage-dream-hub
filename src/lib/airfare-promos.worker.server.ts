@@ -245,20 +245,136 @@ async function db(): Promise<AnyClient> {
   return supabaseAdmin as unknown as AnyClient;
 }
 
-/** Devolve à fila as candidatas presas em `processing`. */
-async function releaseStaleClaims(client: AnyClient, runId: string) {
-  const limite = new Date(Date.now() - CLAIM_STALE_MS).toISOString();
+export type OrphanRecovery = {
+  recovered: number;
+  failed: number;
+  ids: string[];
+};
+
+/**
+ * RECUPERAÇÃO OBRIGATÓRIA NO INÍCIO DE CADA INVOCAÇÃO.
+ *
+ * Procura candidatas em `processing` cujo LEASE venceu (o processo que fez o
+ * claim morreu). Cada uma:
+ *  - conta como TENTATIVA FRACASSADA (attempts += 1 — nunca volta com 0);
+ *  - registra que a execução anterior morreu (last_error/last_error_step);
+ *  - volta para `pending` (prioridade penalizada) se ainda houver tentativa;
+ *  - encerra como `error` quando o limite de tentativas foi atingido.
+ */
+export async function recoverOrphanClaims(
+  client: AnyClient,
+  runId: string,
+  maxAttempts: number,
+): Promise<OrphanRecovery> {
+  const agora = Date.now();
+  const nowIso = new Date(agora).toISOString();
+  const legado = new Date(agora - CLAIM_STALE_MS).toISOString();
+  const out: OrphanRecovery = { recovered: 0, failed: 0, ids: [] };
+
   try {
-    await client
+    const { data } = await client
       .from("airfare_promo_candidates")
-      .update({ status: "pending", claimed_at: null })
+      .select("id,attempts,priority,origin_iata,destination_iata,claimed_at,lease_expires_at,dead_workers")
       .eq("run_id", runId)
       .eq("status", "processing")
-      .lt("claimed_at", limite);
+      .limit(500);
+
+    const linhas = (data ?? []) as Array<{
+      id: string;
+      attempts: number | null;
+      priority: number | null;
+      origin_iata: string;
+      destination_iata: string;
+      claimed_at: string | null;
+      lease_expires_at: string | null;
+      dead_workers: number | null;
+    }>;
+
+    for (const l of linhas) {
+      // lease vivo = worker vivo. Linha antiga (sem coluna preenchida) só é
+      // considerada órfã depois do limite legado de claim.
+      const leaseVenceu = l.lease_expires_at
+        ? new Date(l.lease_expires_at).getTime() < agora
+        : !l.claimed_at || l.claimed_at < legado;
+      if (!leaseVenceu) continue;
+
+      const tentativas = Number(l.attempts ?? 0) + 1; // morte do worker CONTA como tentativa
+      const mortes = Number(l.dead_workers ?? 0) + 1;
+      const motivo = `worker_morto:lease_expirado (invocação anterior encerrada sem finalizar)`;
+
+      if (tentativas < maxAttempts) {
+        await client
+          .from("airfare_promo_candidates")
+          .update({
+            status: "pending",
+            claimed_at: null,
+            lease_expires_at: null,
+            heartbeat_at: null,
+            worker_token: null,
+            attempts: tentativas,
+            dead_workers: mortes,
+            priority: Number(l.priority ?? 0) + REQUEUE_PRIORITY_STEP,
+            last_error: motivo,
+            last_error_step: "worker_morto",
+            last_error_at: nowIso,
+          })
+          .eq("id", l.id)
+          .eq("status", "processing");
+        out.recovered++;
+      } else {
+        await client
+          .from("airfare_promo_candidates")
+          .update({
+            status: "error",
+            claimed_at: null,
+            lease_expires_at: null,
+            heartbeat_at: null,
+            worker_token: null,
+            attempts: tentativas,
+            dead_workers: mortes,
+            last_error: `${motivo} — limite de tentativas atingido`,
+            last_error_step: "worker_morto",
+            last_error_at: nowIso,
+            processed_at: nowIso,
+          })
+          .eq("id", l.id)
+          .eq("status", "processing");
+        out.failed++;
+      }
+      out.ids.push(l.id);
+      console.warn(
+        "[airfare-lease-recuperado]",
+        JSON.stringify({
+          oportunidade: l.id,
+          rota: `${l.origin_iata}->${l.destination_iata}`,
+          tentativas,
+          mortes_worker: mortes,
+          desfecho: tentativas < maxAttempts ? "requeue" : "error",
+        }),
+      );
+    }
+  } catch (err) {
+    console.warn("[airfare-lease-recuperado] falha", err);
+  }
+
+  return out;
+}
+
+/** Quantos claims estão sem heartbeat vivo AGORA (órfãos aguardando recuperação). */
+async function contarOrfaos(client: AnyClient, runId: string): Promise<number> {
+  try {
+    const { count } = await client
+      .from("airfare_promo_candidates")
+      .select("id", { count: "exact", head: true })
+      .eq("run_id", runId)
+      .eq("status", "processing")
+      .lt("lease_expires_at", new Date().toISOString());
+    return Number(count ?? 0);
   } catch {
-    /* best-effort */
+    return 0;
   }
 }
+
 
 /**
  * Processa a fila pendente de uma execução, respeitando o orçamento de tempo.
