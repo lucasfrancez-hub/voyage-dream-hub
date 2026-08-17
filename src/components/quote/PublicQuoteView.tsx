@@ -1035,8 +1035,9 @@ function QuoteBody({
   type Secao = { id: string; label: string; Icon: (p: { className?: string }) => ReactElement };
   const secoes: Secao[] = [];
   if (quote.itinerary) {
-    if (roteiro.length || (voosPrimeiro && legs.length))
-      secoes.push({ id: "roteiro", label: "Roteiro", Icon: IconCalendar });
+    if (roteiro.length)
+      secoes.push({ id: "roteiro", label: "Roteiro completo", Icon: IconCalendar });
+
   } else {
     if (hotels.length) secoes.push({ id: "hospedagem", label: "Hospedagem", Icon: IconHotel });
     if (legs.length) secoes.push({ id: "voos", label: "Voos", Icon: IconPlane });
