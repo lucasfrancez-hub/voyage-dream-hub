@@ -478,7 +478,13 @@ export async function radarOrigins(opts?: { cancel?: RadarCancel }): Promise<
  */
 export async function radarLeadsForOrigin(
   origin: string,
-  opts?: { cancel?: RadarCancel; onProgress?: (msg: string) => void; deadline?: number },
+  opts?: {
+    cancel?: RadarCancel;
+    onProgress?: (msg: string) => void;
+    deadline?: number;
+    /** escopos válidos para esta origem (evita gastar a fatia em categorias inúteis) */
+    scopes?: Array<"nacional" | "internacional">;
+  },
 ): Promise<RadarLead[]> {
   const from = origin.trim().toUpperCase();
   const cancel = opts?.cancel;
@@ -494,6 +500,18 @@ export async function radarLeadsForOrigin(
     // falha real da fonte precisa aparecer no diagnóstico (não vira lista vazia)
     throw e;
   }
+
+  // A fatia de tempo por origem é curta: varrer categorias que o escopo da
+  // origem descarta (ex.: "Brasil" num hub internacional) consumia o prazo
+  // inteiro e a origem terminava sem NENHUM lead aproveitável.
+  const escopos = opts?.scopes;
+  if (escopos?.length) {
+    categorias = categorias.filter((c) => escopos.includes(c.national ? "nacional" : "internacional"));
+  }
+  // Internacional primeiro: se o prazo estourar no meio, o que sobra é o
+  // material mais valioso comercialmente.
+  categorias = [...categorias].sort((a, b) => Number(a.national) - Number(b.national));
+
 
   for (const cat of categorias) {
     if (semTempo()) break;
