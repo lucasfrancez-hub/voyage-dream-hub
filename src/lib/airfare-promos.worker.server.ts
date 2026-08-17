@@ -1494,7 +1494,7 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
   const client = await db();
   const { data: run } = await client
     .from("airfare_promo_runs")
-    .select("id,phase,status,updated_at")
+    .select("id,phase,status,updated_at,started_at")
     .in("status", ["running", "cancel_requested"])
     .order("started_at", { ascending: false })
     .limit(1)
@@ -1522,7 +1522,13 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
   if (pendentes === 0) {
     if (run.phase === "descobrindo") {
       // a descoberta ainda está viva (heartbeat recente): não interferir
-      if (parada < DISCOVERY_STALE_MS) {
+      // Execução criada pelo botão "Atualizar agora" cuja invocação morreu
+      // antes do primeiro heartbeat (updated_at == started_at): não faz
+      // sentido esperar 60s de silêncio — assume em 15s.
+      const nuncaEscreveu =
+        new Date(run.updated_at).getTime() <= new Date(run.started_at as string).getTime() + 1000;
+      const limiteParada = nuncaEscreveu ? 15_000 : DISCOVERY_STALE_MS;
+      if (parada < limiteParada) {
         return { resumed: false as const, reason: "descobrindo" };
       }
       // a invocação que fazia a descoberta morreu: RETOMA do último checkpoint
