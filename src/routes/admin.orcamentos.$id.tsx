@@ -139,7 +139,42 @@ function QuoteDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao reprocessar"),
   });
 
+  const criarOpcao = useServerFn(criarOpcaoOrcamento);
+  const renomearOpcao = useServerFn(renomearOpcaoOrcamento);
+  const removerOpcao = useServerFn(removerOpcaoOrcamento);
+  const [renomear, setRenomear] = useState<{ optionNumber: number; label: string } | null>(null);
+
+  const opcaoMutation = useMutation({
+    mutationFn: async (v:
+      | { acao: "criar"; copiarDe?: number }
+      | { acao: "renomear"; optionNumber: number; label: string }
+      | { acao: "remover"; optionNumber: number }) => {
+      if (v.acao === "criar") return criarOpcao({ data: { quoteId: id, copiarDe: v.copiarDe ?? null } });
+      if (v.acao === "renomear") {
+        await renomearOpcao({ data: { quoteId: id, optionNumber: v.optionNumber, label: v.label } });
+        return { optionNumber: v.optionNumber };
+      }
+      await removerOpcao({ data: { quoteId: id, optionNumber: v.optionNumber } });
+      return { optionNumber: null as number | null };
+    },
+    onSuccess: (r, v) => {
+      if (v.acao === "criar") {
+        setOptionNumber(r.optionNumber ?? null);
+        toast.success(v.copiarDe ? "Opção duplicada" : "Opção criada");
+      } else if (v.acao === "renomear") {
+        setRenomear(null);
+        toast.success("Opção renomeada");
+      } else {
+        setOptionNumber(null);
+        toast.success("Opção removida");
+      }
+      recarregarItens();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro na opção"),
+  });
+
   const removerItem = useServerFn(removerItemOrcamento);
+
   const recarregarItens = () => {
     void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] });
     void qc.invalidateQueries({ queryKey: ["admin", "quotes", "list"] });
