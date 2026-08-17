@@ -393,6 +393,9 @@ export async function quoteRoute(args: {
   signal?: AbortSignal;
   /** Diagnóstico: recebe o tempo de cada requisição feita ao motor VIA AIR. */
   onEngineTiming?: EngineTimingSink;
+  /** Orçamento total desta candidata (ms) — define o prazo interno de combinações. */
+  budgetMs?: number;
+
 
 }) {
   const { route, departureDate, returnDate } = args;
