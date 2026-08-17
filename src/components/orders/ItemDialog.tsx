@@ -432,7 +432,9 @@ export function ItemDialog({
                         return next;
                       });
                     }}
+                    initialMode={initial?.title?.trim() ? "manual" : "live"}
                     placeholder="Ex: Copacabana Palace (busca no TripAdvisor)"
+
                   />
                 ) : (
                   <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Traslado, Passeio, Seguro viagem…" />
