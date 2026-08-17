@@ -166,8 +166,5 @@ export async function buildComboCart(
     );
   }
 
-  return {
-    cartId,
-    url: `https://www.comprarviagem.com.br/viaair/combined/cart?cartId=${cartId}&source=p`,
-  };
+  return { cartId, url: combinedCartUrl(cartId) };
 }
