@@ -1036,7 +1036,20 @@ function PromocoesAereoPage() {
         attempts?: number;
         timeout?: boolean;
       }>;
+      candidate_timeout_ms?: number;
+      in_flight?: Array<{
+        worker_id: number;
+        opportunity_id: string;
+        origin: string;
+        destination: string;
+        started_at: string;
+        last_activity_at: string;
+        elapsed_ms: number;
+        attempt: number;
+        status: string;
+      }>;
     } | null;
+
 
     last_label: string | null;
     started_at: string;
