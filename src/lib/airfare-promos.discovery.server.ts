@@ -432,8 +432,20 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     }
   };
 
+  // Ordem de varredura INTERCALADA (hub internacional, regional nacional, ...).
+  // Antes as origens nacionais vinham todas primeiro e consumiam o orçamento
+  // de leads: GRU/GIG/BSB/POA morriam sempre com "prazo esgotado".
+  const hubsInt = PRIORITY_ORIGINS.filter((o) => isOriginAllowedForScope(o, "internacional"));
+  const regionais = PRIORITY_ORIGINS.filter((o) => !hubsInt.includes(o));
+  const ordemOrigens: string[] = [];
+  for (let i = 0; i < Math.max(hubsInt.length, regionais.length); i++) {
+    if (hubsInt[i]) ordemOrigens.push(hubsInt[i]!);
+    if (regionais[i]) ordemOrigens.push(regionais[i]!);
+  }
+
   let indiceOrigem = 0;
-  for (const origem of PRIORITY_ORIGINS) {
+  for (const origem of ordemOrigens) {
+
     indiceOrigem++;
     if (originsDone.has(origem)) continue;
     if (cancelada) {
