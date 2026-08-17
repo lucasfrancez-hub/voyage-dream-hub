@@ -380,6 +380,9 @@ export type Database = {
           deduped: number
           discovered: number
           discovered_raw: number
+          discovery_origins_done: number
+          discovery_origins_total: number
+          discovery_state: Json | null
           error_count: number
           error_message: string | null
           expired_count: number
@@ -413,6 +416,9 @@ export type Database = {
           deduped?: number
           discovered?: number
           discovered_raw?: number
+          discovery_origins_done?: number
+          discovery_origins_total?: number
+          discovery_state?: Json | null
           error_count?: number
           error_message?: string | null
           expired_count?: number
@@ -446,6 +452,9 @@ export type Database = {
           deduped?: number
           discovered?: number
           discovered_raw?: number
+          discovery_origins_done?: number
+          discovery_origins_total?: number
+          discovery_state?: Json | null
           error_count?: number
           error_message?: string | null
           expired_count?: number
