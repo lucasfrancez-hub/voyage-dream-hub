@@ -162,20 +162,27 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
       throw new Error("Orçamento sem produtos/valores reais: reprocesse a importação");
     }
 
-    // Consultor responsável: quem está gerando o link (quando ainda não houver).
+    // Consultor responsável: prioriza o dono/criador do orçamento e usa quem
+    // está gerando o link apenas como fallback. Assim links antigos ou criados
+    // antes da atribuição continuam saindo com nome e foto corretos.
     let consultor: string | null = quote.consultant ?? null;
-    if (!consultor && context?.userId) {
+    if (!consultor) {
+      const responsavelId = quote.owner_user_id ?? context.userId;
       const { data: perfil } = await supabaseAdmin
         .from("profiles")
         .select("full_name")
-        .eq("id", context.userId)
+        .eq("id", responsavelId)
         .maybeSingle();
       const nome = (perfil as { full_name?: string | null } | null)?.full_name?.trim();
       if (nome) {
         consultor = nome;
         await supabaseAdmin
           .from("quotes")
-          .update({ consultant: nome, updated_at: new Date().toISOString() } as never)
+          .update({
+            consultant: nome,
+            normalized: { ...normalized, agent: nome },
+            updated_at: new Date().toISOString(),
+          } as never)
           .eq("id", quote.id);
       }
     }
