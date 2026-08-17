@@ -1048,7 +1048,13 @@ function PromocoesAereoPage() {
         attempt: number;
         status: string;
       }>;
+      updated_at?: string;
+      orphans?: number;
+      recovered?: number;
+      dead_worker_failures?: number;
+      claims_skipped_budget?: number;
     } | null;
+
 
 
     last_label: string | null;
