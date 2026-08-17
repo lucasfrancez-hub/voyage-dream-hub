@@ -285,26 +285,39 @@ export async function loadFraudState(conversationId: string): Promise<FraudState
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data } = await supabaseAdmin
     .from("wa_conversations")
-    .select(
-      "id, fraud_risk_score, fraud_risk_level, fraud_signals, fraud_clusters, fraud_reducers, fraud_summary, fraud_last_evaluation, fraud_transfer_required, fraud_transfer_at",
-    )
+    .select("*")
     .eq("id", conversationId)
     .maybeSingle();
   if (!data) return null;
   const row = data as Record<string, unknown>;
+  const score = Number(row["fraud_risk_score"] ?? 0);
   return {
     conversation_id: conversationId,
-    score: Number(row["fraud_risk_score"] ?? 0),
+    score,
+    max_score: Math.max(score, Number(row["fraud_risk_max_score"] ?? 0)),
+    confidence: Number(row["fraud_risk_confidence"] ?? 0),
     level: (row["fraud_risk_level"] as FraudLevel) ?? "baixo",
-    signals: parseJsonArray<FraudSignal>(row["fraud_signals"]),
+    band: bandFromScore(score),
+    trend: (row["fraud_risk_trend"] as FraudTrend) ?? "estavel",
+    velocity: (row["fraud_risk_velocity"] as FraudVelocity) ?? "leve",
+    persistence: Number(row["fraud_risk_persistence"] ?? 0),
+    signals: parseJsonArray<StoredSignal>(row["fraud_signals"]),
     reducers: parseJsonArray<FraudReducer>(row["fraud_reducers"]),
     clusters: parseJsonArray<FraudCluster>(row["fraud_clusters"]),
+    critical_flags: parseJsonArray<FraudCriticalFlag>(row["fraud_critical_flags"]),
     summary: (row["fraud_summary"] as string | null) ?? null,
     last_evaluation: (row["fraud_last_evaluation"] as string | null) ?? null,
     transfer_required: !!row["fraud_transfer_required"],
     transfer_at: (row["fraud_transfer_at"] as string | null) ?? null,
+    transfer_reason: (row["fraud_transfer_reason"] as string | null) ?? null,
+    score_at_transfer: (row["fraud_score_at_transfer"] as number | null) ?? null,
+    analysis_active: row["fraud_analysis_active"] !== false,
+    payment: (row["fraud_payment_meta"] as FraudPaymentMeta | null) ?? null,
+    overrides: parseJsonArray<ManualOverride>(row["fraud_manual_overrides"]),
+    outcome: (row["fraud_outcome"] as string | null) ?? null,
   };
 }
+
 
 /**
  * Avaliação completa da conversa: contexto inteiro → sinais → clusters →
