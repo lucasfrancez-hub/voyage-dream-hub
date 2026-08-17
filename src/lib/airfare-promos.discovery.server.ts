@@ -288,13 +288,13 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   // ------------------------------------------------------------------
   let radarErrors = 0;
   for (const origem of PRIORITY_ORIGINS) {
-    if (cancelada || semTempo()) break;
+    if (cancelada || semTempoLeads()) break;
     progresso(`Radar de oportunidades — ${origem}...`);
     try {
       const leads = await radarLeadsForOrigin(origem, {
         cancel,
         onProgress: progresso,
-        deadline: radarDeadline,
+        deadline: leadsDeadline,
       });
       for (const l of leads) {
         addLead({
@@ -322,13 +322,13 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
 
   // §15 — se o atalho por origem não devolver nada, percorre o caminho
   // oficial da API: categorias → destinos → origens do destino → itinerário.
-  if (![...pool.values()].some((m) => m.size) && !cancelada && !semTempo()) {
+  if (![...pool.values()].some((m) => m.size) && !cancelada && !semTempoLeads()) {
     progresso("Radar — varrendo categorias e destinos do Melhores Destinos...");
     try {
       const leads = await radarLeadsByCategory([...PRIORITY_ORIGINS], {
         cancel,
         onProgress: progresso,
-        deadline: radarDeadline,
+        deadline: leadsDeadline,
       });
       for (const l of leads) {
         addLead({
@@ -460,7 +460,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   const todosLeads = escolhidasPorOrigem.flatMap((g) => g.leads);
 
   progresso(`Buscando datas reais de ${todosLeads.length} oportunidades selecionadas...`);
-  await mapLimit(todosLeads, 1, async (lead: Lead) => {
+  await mapLimit(todosLeads, 4, async (lead: Lead) => {
     if (cancelada || !lead.itinerary_link) return;
     let ofertas: Array<{
       departDate: string;
