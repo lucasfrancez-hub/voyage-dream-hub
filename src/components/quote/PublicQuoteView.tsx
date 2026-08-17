@@ -995,7 +995,7 @@ function QuoteBody({
       });
     }
     return out.sort((a, b) => a.ord - b.ord);
-  }, [quote.itinerary, legs, hotels, p]);
+  }, [quote.itinerary, legs, hotels, p, voosPrimeiro]);
 
   const roteiroDias = useMemo(() => {
     const mapa: Array<{ dia: string | null; itens: RoteiroEntrada[] }> = [];
