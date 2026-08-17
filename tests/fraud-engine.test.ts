@@ -62,7 +62,7 @@ describe("motor antifraude", () => {
   it("redutores derrubam o risco quando o cliente segue o fluxo oficial", () => {
     const base = detectDeterministicSignals({
       messages: [
-        msg("o link deu erro no meu cartão"),
+        msg("meu cartão deu erro nesse sistema"),
         msg("ah ok, vou tentar de novo por aí"),
         msg("qual o horário do voo e tem bagagem?"),
         msg("tem opção mais barata em outra data?"),
