@@ -485,7 +485,8 @@ export function buildCamilaTools(conversation: WaConversation) {
             motivo: "ocupacao_individual",
             ocupacao_base: ocupBase,
             instrucao:
-              "NÃO envie este folder. O preço deste pacote é por pessoa em apartamento duplo e o cliente vai viajar sozinho. Explique em um balão curto que para 1 pessoa o valor muda por causa do quarto individual, e diga que vai levantar o valor exato com o Comercial. Nunca mostre o valor de 2 adultos para quem viaja sozinho.",
+              "NÃO envie este folder. Nossos pacotes prontos são calculados para 2 adultos e o cliente vai viajar sozinho. Explique isso e CONDUZA, sem pedir permissão: nada de \"quer que eu siga?\". Diga algo como: \"Nossos pacotes prontos disponíveis hoje são calculados para 2 adultos. Como no seu caso é só 1 pessoa, precisamos montar uma cotação personalizada pra te passar o valor certinho. Já vou encaminhar pro nosso time comercial com as informações que você me passou.\" Em seguida transfira para o Comercial levando o briefing completo (origem, destino, período, noites, passageiros), sem fazer o cliente repetir nada.",
+
           };
         }
         const qtd = quantidade_adultos;
