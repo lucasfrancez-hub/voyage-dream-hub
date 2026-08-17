@@ -150,8 +150,26 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
               })
               .eq('id', cob.id)
           }
+          {
+            const { reportOrderPaymentToFraud } = await import(
+              '@/lib/whatsapp/fraud/payment-link.server'
+            )
+            await reportOrderPaymentToFraud({
+              order_id: cob.order_id,
+              meta: {
+                payment_status: event === 'PAYMENT_REFUNDED' ? 'estornado' : 'falhou',
+                payment_method: 'pix',
+                gateway_risk_result: event,
+              },
+              label:
+                event === 'PAYMENT_REFUNDED'
+                  ? 'Pagamento estornado no gateway'
+                  : 'Cobrança cancelada/vencida no gateway',
+            })
+          }
           return Response.json({ ok: true, event })
         }
+
 
         if (!paidEvents.includes(event)) {
           return Response.json({ ok: true, ignored: event })
