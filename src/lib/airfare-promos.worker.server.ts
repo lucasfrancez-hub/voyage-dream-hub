@@ -67,7 +67,17 @@ const HEARTBEAT_TICK_MS = 15_000;
  * Margem de segurança para NÃO aceitar trabalho que não cabe no orçamento
  * restante da invocação (raiz do problema: claim tardio → worker morto).
  */
-const CLAIM_SAFETY_MS = 20_000;
+const CLAIM_SAFETY_MS = 10_000;
+
+/**
+ * A invocação autônoma dura cerca de 100s. Os timeouts nominais do motor
+ * começam em 110s, portanto exigir o timeout nominal inteiro antes do claim
+ * torna matematicamente impossível o cron reservar qualquer candidata.
+ *
+ * Sessenta segundos ainda cobre o tempo observado do motor e, se não bastar,
+ * a candidata volta para a fila para a próxima tentativa/invocação.
+ */
+export const MIN_EFFECTIVE_CANDIDATE_TIMEOUT_MS = 60_000;
 
 /**
  * JANELA MÍNIMA DE CLAIM — recalculada automaticamente a partir do timeout da
@@ -76,8 +86,14 @@ const CLAIM_SAFETY_MS = 20_000;
  */
 const custoDaCandidata = (timeoutMs: number) => timeoutMs + WATCHDOG_GRACE_MS + CLAIM_SAFETY_MS;
 
+export function fitCandidateTimeoutToBudget(configuredTimeoutMs: number, remainingMs: number): number | null {
+  const availableForCandidate = remainingMs - WATCHDOG_GRACE_MS - CLAIM_SAFETY_MS;
+  if (availableForCandidate < MIN_EFFECTIVE_CANDIDATE_TIMEOUT_MS) return null;
+  return Math.min(configuredTimeoutMs, availableForCandidate);
+}
+
 /** Menor custo possível — abaixo disso nem a candidata mais barata cabe. */
-const CUSTO_MINIMO_MS = custoDaCandidata(CANDIDATE_TIMEOUT_FLOOR_MS);
+const CUSTO_MINIMO_MS = custoDaCandidata(MIN_EFFECTIVE_CANDIDATE_TIMEOUT_MS);
 
 
 
@@ -706,10 +722,10 @@ export async function processPendingCandidates(args: {
       if (!data) return null;
 
       const alvo = data as CandidateRow;
-      const timeoutMs = candidateTimeoutMs(alvo, p95Corrente());
-      const custo = custoDaCandidata(timeoutMs);
       const restante = deadline - Date.now();
-      if (restante < custo) {
+      const timeoutConfiguradoMs = candidateTimeoutMs(alvo, p95Corrente());
+      const timeoutMs = fitCandidateTimeoutToBudget(timeoutConfiguradoMs, restante);
+      if (timeoutMs == null) {
         claimsRecusadosPorOrcamento++;
         console.log(
           "[airfare-claim-recusado]",
@@ -717,8 +733,8 @@ export async function processPendingCandidates(args: {
             worker: workerId,
             rota: `${alvo.origin_iata}->${alvo.destination_iata}`,
             restante_ms: restante,
-            timeout_candidata_ms: timeoutMs,
-            minimo_ms: custo,
+            timeout_configurado_ms: timeoutConfiguradoMs,
+            minimo_ms: CUSTO_MINIMO_MS,
             motivo: "orcamento_insuficiente_para_esta_candidata",
           }),
         );

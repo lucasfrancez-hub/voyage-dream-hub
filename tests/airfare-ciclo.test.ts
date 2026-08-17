@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { diffFare, curationDay } from "@/lib/airfare-promos.worker.server";
+import {
+  curationDay,
+  diffFare,
+  fitCandidateTimeoutToBudget,
+} from "@/lib/airfare-promos.worker.server";
 
 const base = {
   total_price: 1180,
@@ -27,4 +31,14 @@ describe("ciclo 06h x 12h", () => {
     expect(d).toEqual(expect.arrayContaining(["baggage", "installment"]));
   });
   it("dia BRT no formato ISO", () => expect(curationDay(new Date("2026-08-13T02:00:00Z"))).toBe("2026-08-12"));
+});
+
+describe("orçamento do worker autônomo", () => {
+  it("reduz o timeout nominal para caber numa invocação de 100s", () => {
+    expect(fitCandidateTimeoutToBudget(135_000, 100_000)).toBe(75_000);
+  });
+
+  it("não reserva candidata quando nem a janela operacional mínima cabe", () => {
+    expect(fitCandidateTimeoutToBudget(110_000, 84_999)).toBeNull();
+  });
 });
