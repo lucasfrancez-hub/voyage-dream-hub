@@ -128,6 +128,8 @@ export const hotelSearchInput = z.object({
   perPage: z.number().int().min(1).max(50).default(20),
   /** Reaproveita uma busca já iniciada (paginação "ver mais"). */
   searchKey: z.string().nullish(),
+  /** Jornada Aéreo + Hotel: chave única compartilhada com a busca de voo. */
+  combinedKey: z.string().nullish(),
 
   hotelName: z.string().default(""),
   stars: z.array(z.number().int().min(1).max(5)).default([]),
