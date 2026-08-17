@@ -220,6 +220,7 @@ function simple(items: NormalizedGenericItem[], prefix: string): SimpleProduct[]
     id: `${prefix}-${idx + 1}`,
     title: normalizeServiceTitle(i.name).title,
     summary: i.date ? brDate(i.date) : null,
+    sortDate: i.date ?? null,
     details: [
       ...(i.quantity ? [{ label: "Quantidade", value: String(i.quantity) }] : []),
       ...(i.total ? [{ label: "Valor", value: brl(i.total) }] : []),
@@ -247,6 +248,7 @@ export function optionToProducts(option: NormalizedOption, occupancy?: string | 
       stars: null,
       place: h.city ?? null,
       photos: h.photos ?? [],
+      sortDate: h.checkin ?? null,
       checkIn: brDate(h.checkin),
       checkOut: brDate(h.checkout),
       occupancy: occupancy ?? null,
@@ -324,6 +326,7 @@ export function optionToPublicOption(
   return {
     optionId: String(option.optionNumber),
     label: option.label ?? `Opção ${option.optionNumber}`,
+    itinerary: option.itinerary === true,
     products: optionToProducts(option, occupancy),
     totals: totalsFor(option, payment),
     payment,
@@ -386,6 +389,7 @@ export function buildPublicQuoteFromImported(params: {
     cabin: primeirasLegs[0]?.cabin ?? null,
     passengers: { adults: adultos, children: criancas, infants: bebes, label: paxLabel },
     products: first?.products ?? {},
+    itinerary: first?.itinerary === true,
     options: publicOptions,
     payment: first?.payment ?? buildPayment({ type, total: 0 }),
     totals: first?.totals ?? { products: 0, taxes: 0, total: 0 },

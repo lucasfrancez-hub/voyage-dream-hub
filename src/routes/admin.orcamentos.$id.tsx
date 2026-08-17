@@ -7,6 +7,7 @@ import {
   Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
@@ -25,6 +26,7 @@ import { QuoteItemsToolbar } from "@/components/quotes/QuoteItemsToolbar";
 import { QuoteItemFormDialog, type QuoteItemKind } from "@/components/quotes/QuoteItemFormDialog";
 import {
   removerItemOrcamento, criarOpcaoOrcamento, renomearOpcaoOrcamento, removerOpcaoOrcamento,
+  definirRoteiroOpcao,
   atualizarValorItemOrcamento,
 } from "@/lib/quotes/items.functions";
 import type { NormalizedFlight, NormalizedGenericItem, NormalizedHotel } from "@/lib/quotes/types";
@@ -147,6 +149,17 @@ function QuoteDetailPage() {
   const renomearOpcao = useServerFn(renomearOpcaoOrcamento);
   const removerOpcao = useServerFn(removerOpcaoOrcamento);
   const [renomear, setRenomear] = useState<{ optionNumber: number; label: string } | null>(null);
+
+  const definirRoteiro = useServerFn(definirRoteiroOpcao);
+  const roteiroMutation = useMutation({
+    mutationFn: (v: { optionNumber: number; itinerary: boolean }) =>
+      definirRoteiro({ data: { quoteId: id, optionNumber: v.optionNumber, itinerary: v.itinerary } }),
+    onSuccess: (_r, v) => {
+      toast.success(v.itinerary ? "Opção marcada como roteiro" : "Modo roteiro desativado");
+      recarregarItens();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar o roteiro"),
+  });
 
   const opcaoMutation = useMutation({
     mutationFn: async (v:
@@ -553,6 +566,16 @@ function QuoteDetailPage() {
             >
               <Pencil className="h-3.5 w-3.5" /> Renomear
             </Button>
+            <label className="ml-1 flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground">
+              <Switch
+                checked={option.itinerary === true}
+                disabled={roteiroMutation.isPending}
+                onCheckedChange={(v) =>
+                  roteiroMutation.mutate({ optionNumber: option.optionNumber, itinerary: v })
+                }
+              />
+              É roteiro? (ordem cronológica)
+            </label>
             {options.length > 1 && (
               <Button
                 variant="ghost" size="sm" className="gap-1.5 rounded-full text-destructive"

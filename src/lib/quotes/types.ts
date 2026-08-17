@@ -73,6 +73,8 @@ export type NormalizedGenericItem = {
 export type NormalizedOption = {
   optionNumber: number;
   label?: string | null;
+  /** Quando true, a opção é um ROTEIRO: exibida em ordem cronológica. */
+  itinerary?: boolean | null;
   startDate?: string | null;
   endDate?: string | null;
   destination?: string | null;
