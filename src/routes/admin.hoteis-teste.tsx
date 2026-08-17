@@ -1011,6 +1011,7 @@ export function HoteisPage({
   onComboSelect,
   publicMode = false,
   externalSearch = false,
+  combinedKey,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1020,6 +1021,8 @@ export function HoteisPage({
   publicMode?: boolean;
   /** No widget, a busca abre /voar em outra aba já pesquisando. */
   externalSearch?: boolean;
+  /** Jornada Aéreo + Hotel: mesma searchKey usada na busca de voo. */
+  combinedKey?: string | null;
 } = {}) {
 
   const searchDest = useServerFn(publicMode ? onerHotelDestinationsPublic : onerHotelDestinations);
@@ -1054,6 +1057,8 @@ export function HoteisPage({
     page: targetPage,
     perPage: PER_PAGE,
     searchKey: searchKey ?? null,
+    // Aéreo + Hotel: a operadora precisa do contexto /combined/hotel.
+    combinedKey: combinedKey ?? null,
     hotelName: "",
     stars: [] as number[],
     priceBegin: null,
