@@ -355,7 +355,9 @@
   .vq-hero { padding: 26px 20px; border-radius: 22px; }
   .vq-hero h1 { font-size: 30px; }
   .vq-hero-grid, .vq-summary-payment, .vq-hotel-grid { grid-template-columns: 1fr; }
-  .vq-details-grid, .vq-installments { grid-template-columns: 1fr; }
+  .vq-details-grid { grid-template-columns: 1fr; }
+  .vq-installments { grid-template-columns: 1fr 1fr; gap: 7px; }
+  .vq-inst { padding: 9px; font-size: 11px; }
   .vq-route { grid-template-columns: 86px 1fr 86px; }
   .vq-seg-journey { grid-template-columns: 1fr; gap: 16px; }
   .vq-seg-side.right { text-align: left; }
