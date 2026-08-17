@@ -12,11 +12,16 @@
 import type { OriginMetrics } from "@/lib/airfare-promos.config";
 import {
   buildPromotionRow,
+  CANDIDATE_TIMEOUT_FLOOR_MS,
+  CANDIDATE_TIMEOUT_MAX_MS,
   CANDIDATE_TIMEOUT_MS,
+  candidateTimeoutMs,
   loadMarkups,
   quoteRoute,
+  SLOW_RESPONSE_RATIO,
   withTimeout,
 } from "@/lib/airfare-promos.server";
+
 import type { MarkupTable } from "@/lib/airfare-conditions";
 
 type AnyClient = { from: (t: string) => any };
