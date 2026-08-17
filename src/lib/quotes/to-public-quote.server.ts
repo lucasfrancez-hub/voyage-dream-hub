@@ -338,6 +338,7 @@ export function optionToPublicOption(
 export function buildPublicQuoteFromImported(params: {
   normalized: NormalizedQuote;
   title?: string | null;
+  headline?: string | null;
   clientName?: string | null;
   agentName?: string | null;
   validUntil?: string | null;
@@ -370,6 +371,7 @@ export function buildPublicQuoteFromImported(params: {
   return {
     type,
     title,
+    headline: params.headline ?? normalized.headline ?? null,
     subtitle:
       publicOptions.length > 1
         ? `${publicOptions.length} opções para você escolher`

@@ -48,6 +48,7 @@ function toRow(q: NewPublicQuote, publicId: string) {
     summary: q.summary as unknown as Record<string, unknown>,
     agent: (q.agent ?? null) as unknown as Record<string, unknown> | null,
     extra: {
+      headline: q.headline ?? null,
       nights: q.nights ?? null,
       tripKind: q.tripKind ?? null,
       cabin: q.cabin ?? null,
@@ -106,6 +107,7 @@ export function rowToQuote(row: any): PublicQuote {
     destination: row.destination,
     startDate: row.start_date,
     endDate: row.end_date,
+    headline: extra.headline ?? null,
     nights: extra.nights ?? null,
     tripKind: extra.tripKind ?? null,
     cabin: extra.cabin ?? null,

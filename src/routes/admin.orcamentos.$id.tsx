@@ -16,8 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { quoteStatusBadge, quoteOriginBadge, quoteExternalId } from "@/lib/quotes/labels";
 import { displayAgentName } from "@/lib/public-quote/agents";
+import { quoteHeadline } from "@/lib/public-quote/headline";
 import {
-  converterOrcamentoEmPedido, gerarLinkOrcamento, reprocessarImportacao,
+  converterOrcamentoEmPedido, gerarLinkOrcamento, reprocessarImportacao, definirTituloOrcamento,
 } from "@/lib/quotes/quotes.functions";
 import type { NormalizedOption, NormalizedQuote } from "@/lib/quotes/types";
 import { confirmThen } from "@/lib/confirm";
@@ -280,7 +281,27 @@ function QuoteDetailPage() {
     })),
   ];
 
-
+  // Título comercial: mesmo texto que aparece no hero do link público.
+  const tituloPublico =
+    normalized?.headline?.trim() ||
+    quoteHeadline({
+      destination: quote?.destination ?? null,
+      title: quote?.title ?? null,
+      hasHotel: hoteis.length > 0,
+      hasFlight: voos.length > 0,
+      hasServices: servicos.length > 0,
+    });
+  const [tituloEdit, setTituloEdit] = useState<string | null>(null);
+  const salvarTitulo = useServerFn(definirTituloOrcamento);
+  const tituloMutation = useMutation({
+    mutationFn: (headline: string) => salvarTitulo({ data: { quoteId: id, headline } }),
+    onSuccess: () => {
+      toast.success("Título atualizado");
+      setTituloEdit(null);
+      void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar o título"),
+  });
 
   if (isLoading) {
     return (
@@ -364,8 +385,25 @@ function QuoteDetailPage() {
               {[quote.client_phone, quote.client_email].filter(Boolean).join(" · ") || "Sem contato informado"}
             </div>
             <div className="mt-4 max-w-xl">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Título da viagem</div>
-              <Input readOnly value={quote.title ?? quote.destination ?? ""} className="mt-1" />
+              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Título da viagem (aparece no link público)
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                <Input
+                  value={tituloEdit ?? tituloPublico}
+                  onChange={(e) => setTituloEdit(e.target.value)}
+                  placeholder={tituloPublico}
+                />
+                {tituloEdit !== null && tituloEdit.trim() !== tituloPublico && (
+                  <Button
+                    size="sm"
+                    disabled={tituloMutation.isPending || tituloEdit.trim().length < 2}
+                    onClick={() => tituloMutation.mutate(tituloEdit.trim())}
+                  >
+                    {tituloMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+                  </Button>
+                )}
+              </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {[quote.origin, quote.destination].filter(Boolean).join(" → ") || "—"} ·{" "}
                 {dt(quote.start_date)} – {dt(quote.end_date)}

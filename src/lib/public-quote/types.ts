@@ -229,6 +229,8 @@ export type PublicQuote = {
   shortUrl?: string | null;
   type: QuoteType;
   title: string;
+  /** Título comercial do hero, definido manualmente no admin. */
+  headline?: string | null;
   subtitle?: string | null;
   origin?: string | null;
   destination?: string | null;

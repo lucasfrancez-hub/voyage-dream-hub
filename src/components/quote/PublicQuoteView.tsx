@@ -954,7 +954,7 @@ function QuoteBody({
     hasFlight: flights.length > 0,
     hasServices,
   };
-  const heroTitle = quoteHeadline({ ...composicao, title: quote.title });
+  const heroTitle = quote.headline?.trim() || quoteHeadline({ ...composicao, title: quote.title });
   const heroTagline = quoteTagline({ ...composicao, seed: quote.publicId });
 
   const [fotoDestino, setFotoDestino] = useState<string | null>(null);
