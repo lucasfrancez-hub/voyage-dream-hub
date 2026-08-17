@@ -61,6 +61,8 @@ export type ComboHotelBookingData = z.infer<typeof ComboHotelBooking>;
 export const ComboCartInput = z.object({
   flight: ComboFlightBooking,
   hotel: ComboHotelBooking,
+  /** Chave única da jornada combinada (mesma usada nas duas pesquisas). */
+  combinedKey: z.string().nullish(),
 });
 
 /** URL de contexto (a operadora usa isso para montar a busca da página). */
@@ -82,7 +84,8 @@ function comboHotelHref(d: z.infer<typeof ComboCartInput>): string {
     endDate: `${d.hotel.checkOut}T00:00:00Z`,
     isPackage: "false",
     source: "h",
-    searchKey: d.hotel.searchKey,
+    // Jornada combinada: a chave da jornada manda; sem ela, a da busca de hotel.
+    searchKey: d.combinedKey || d.hotel.searchKey,
   });
   q.set("rooms", encodeURIComponent(rooms));
   q.set("stations", encodeURIComponent(stations));
