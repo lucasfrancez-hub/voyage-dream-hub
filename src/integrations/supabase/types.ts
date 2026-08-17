@@ -155,14 +155,17 @@ export type Database = {
           departure_date: string
           destination_city: string | null
           destination_iata: string
+          duration_ms: number | null
           heartbeat_at: string | null
           id: string
           last_error: string | null
           last_error_at: string | null
           last_error_step: string | null
           lease_expires_at: string | null
+          motor_ms: number | null
           origin_city: string | null
           origin_iata: string
+          outcome_kind: string | null
           priority: number
           processed_at: string | null
           promotion_id: string | null
@@ -183,6 +186,7 @@ export type Database = {
           scope: string
           signature: string
           status: string
+          timeout_ms: number | null
           updated_at: string
           worker_token: string | null
         }
@@ -194,14 +198,17 @@ export type Database = {
           departure_date: string
           destination_city?: string | null
           destination_iata: string
+          duration_ms?: number | null
           heartbeat_at?: string | null
           id?: string
           last_error?: string | null
           last_error_at?: string | null
           last_error_step?: string | null
           lease_expires_at?: string | null
+          motor_ms?: number | null
           origin_city?: string | null
           origin_iata: string
+          outcome_kind?: string | null
           priority?: number
           processed_at?: string | null
           promotion_id?: string | null
@@ -222,6 +229,7 @@ export type Database = {
           scope?: string
           signature: string
           status?: string
+          timeout_ms?: number | null
           updated_at?: string
           worker_token?: string | null
         }
@@ -233,14 +241,17 @@ export type Database = {
           departure_date?: string
           destination_city?: string | null
           destination_iata?: string
+          duration_ms?: number | null
           heartbeat_at?: string | null
           id?: string
           last_error?: string | null
           last_error_at?: string | null
           last_error_step?: string | null
           lease_expires_at?: string | null
+          motor_ms?: number | null
           origin_city?: string | null
           origin_iata?: string
+          outcome_kind?: string | null
           priority?: number
           processed_at?: string | null
           promotion_id?: string | null
@@ -261,6 +272,7 @@ export type Database = {
           scope?: string
           signature?: string
           status?: string
+          timeout_ms?: number | null
           updated_at?: string
           worker_token?: string | null
         }

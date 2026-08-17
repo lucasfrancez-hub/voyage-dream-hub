@@ -12,11 +12,15 @@
 import type { OriginMetrics } from "@/lib/airfare-promos.config";
 import {
   buildPromotionRow,
+  CANDIDATE_TIMEOUT_FLOOR_MS,
   CANDIDATE_TIMEOUT_MS,
+  candidateTimeoutMs,
   loadMarkups,
   quoteRoute,
+  SLOW_RESPONSE_RATIO,
   withTimeout,
 } from "@/lib/airfare-promos.server";
+
 import type { MarkupTable } from "@/lib/airfare-conditions";
 
 type AnyClient = { from: (t: string) => any };
@@ -48,9 +52,10 @@ const WATCHDOG_TICK_MS = 5_000;
  * LEASE POR CANDIDATA. `processing` sozinho não prova nada: se a invocação
  * morre (kill da plataforma), a linha ficaria presa. O lease é renovado por
  * heartbeat enquanto o processo está vivo; quando ele morre, o lease vence e a
- * próxima invocação recupera a candidata.
+ * próxima invocação recupera a candidata. Como o timeout agora é ADAPTATIVO,
+ * o lease acompanha o timeout real daquela candidata.
  */
-const CANDIDATE_LEASE_MS = CANDIDATE_TIMEOUT_MS + 60_000;
+const leaseMsPara = (timeoutMs: number) => timeoutMs + 60_000;
 
 /** Frequência de renovação do lease/heartbeat no banco. */
 const HEARTBEAT_TICK_MS = 15_000;
@@ -60,6 +65,17 @@ const HEARTBEAT_TICK_MS = 15_000;
  * restante da invocação (raiz do problema: claim tardio → worker morto).
  */
 const CLAIM_SAFETY_MS = 20_000;
+
+/**
+ * JANELA MÍNIMA DE CLAIM — recalculada automaticamente a partir do timeout da
+ * candidata. Aumentar o timeout NUNCA pode voltar a matar o worker no meio da
+ * consulta: quem não cabe no tempo restante simplesmente não é reservado.
+ */
+const custoDaCandidata = (timeoutMs: number) => timeoutMs + WATCHDOG_GRACE_MS + CLAIM_SAFETY_MS;
+
+/** Menor custo possível — abaixo disso nem a candidata mais barata cabe. */
+const CUSTO_MINIMO_MS = custoDaCandidata(CANDIDATE_TIMEOUT_FLOOR_MS);
+
 
 
 
@@ -81,7 +97,23 @@ export type ValidationTelemetry = {
   error: number;
   requeued: number;
   avg_duration_ms: number | null;
+  p90_duration_ms?: number | null;
   p95_duration_ms: number | null;
+  p99_duration_ms?: number | null;
+  max_duration_ms?: number | null;
+  /** amostra usada nas estatísticas de latência */
+  samples?: number;
+  /** RESPOSTA LENTA MAS CONCLUÍDA (>= 75% do próprio timeout) */
+  slow_ok?: number;
+  /** TIMEOUT REAL DO MOTOR (a consulta foi abortada no limite) */
+  engine_timeout?: number;
+  /** FALHA TÉCNICA (HTTP, parsing, gravação, indisponibilidade) */
+  tech_error?: number;
+  /** ROTA SEM TARIFA (motor respondeu, mas não há oferta) */
+  no_fare?: number;
+  /** faixa de timeout adaptativo aplicada nesta execução */
+  timeout_min_ms?: number | null;
+  timeout_max_ms?: number | null;
   /** detalhamento das últimas falhas (origem, destino, motivo técnico...) */
   failures?: ValidationFailure[];
   /** heartbeat: o que cada worker está validando AGORA */
@@ -98,6 +130,8 @@ export type ValidationTelemetry = {
   claims_skipped_budget?: number;
   updated_at: string;
 
+
+
 };
 
 /** Heartbeat de um worker — permite saber exatamente onde o processo congelou. */
@@ -110,9 +144,12 @@ export type WorkerHeartbeat = {
   last_activity_at: string;
   elapsed_ms: number;
   attempt: number;
+  /** timeout adaptativo aplicado a ESTA candidata (ms) */
+  timeout_ms?: number;
   /** VALIDATING | ABORTING */
   status: string;
 };
+
 
 
 /** Falha individual de validação — nunca vira "sem tarifa". */
@@ -470,7 +507,24 @@ export async function processPendingCandidates(args: {
     timeout: 0,
     error: 0,
     requeued: 0,
+    /* SEPARAÇÃO EXIGIDA NO PAINEL — cada desfecho tem significado próprio */
+    slow_ok: 0,
+    engine_timeout: 0,
+    tech_error: 0,
+    no_fare: 0,
   };
+
+  /** Faixa de timeout adaptativo realmente aplicada nesta invocação. */
+  let timeoutMinAplicado: number | null = null;
+  let timeoutMaxAplicado: number | null = null;
+  const registrarTimeoutAplicado = (ms: number) => {
+    timeoutMinAplicado = timeoutMinAplicado == null ? ms : Math.min(timeoutMinAplicado, ms);
+    timeoutMaxAplicado = timeoutMaxAplicado == null ? ms : Math.max(timeoutMaxAplicado, ms);
+  };
+
+  /** p95 corrente — realimenta o timeout adaptativo das próximas candidatas. */
+  const p95Corrente = () => (duracoes.length >= 5 ? percentil(duracoes, 95) : null);
+
 
   const falhas: ValidationFailure[] = [];
 
@@ -505,6 +559,8 @@ export async function processPendingCandidates(args: {
     startedAt: number;
     lastActivity: number;
     attempt: number;
+    /** timeout adaptativo desta candidata */
+    timeoutMs: number;
     status: "VALIDATING" | "ABORTING";
   };
   const emVoo = new Map<number, JobVivo>();
@@ -519,6 +575,7 @@ export async function processPendingCandidates(args: {
       last_activity_at: new Date(j.lastActivity).toISOString(),
       elapsed_ms: Date.now() - j.startedAt,
       attempt: j.attempt,
+      timeout_ms: j.timeoutMs,
       status: j.status,
     }));
 
@@ -531,17 +588,24 @@ export async function processPendingCandidates(args: {
     avg_duration_ms: duracoes.length
       ? Math.round(duracoes.reduce((a, b) => a + b, 0) / duracoes.length)
       : null,
+    p90_duration_ms: percentil(duracoes, 90),
     p95_duration_ms: percentil(duracoes, 95),
+    p99_duration_ms: percentil(duracoes, 99),
+    max_duration_ms: duracoes.length ? Math.max(...duracoes) : null,
+    samples: duracoes.length,
+    timeout_min_ms: timeoutMinAplicado,
+    timeout_max_ms: timeoutMaxAplicado,
     failures: falhas.slice(0, 10),
     // "Em processamento agora" = SOMENTE jobs com heartbeat vivo nesta invocação.
     in_flight: heartbeat(),
-    candidate_timeout_ms: CANDIDATE_TIMEOUT_MS,
+    candidate_timeout_ms: timeoutMaxAplicado ?? CANDIDATE_TIMEOUT_MS,
     orphans: orfaosAgora,
     recovered: recuperacao.recovered,
     dead_worker_failures: recuperacao.failed,
     claims_skipped_budget: claimsRecusadosPorOrcamento,
     updated_at: new Date().toISOString(),
   });
+
 
 
 
@@ -604,25 +668,24 @@ export async function processPendingCandidates(args: {
   /** Token desta invocação — identifica o dono do lease de cada candidata. */
   const invocationToken = `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-  /** Tempo mínimo que precisa sobrar para aceitar mais uma candidata. */
-  const custoMaximoCandidata = CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS + CLAIM_SAFETY_MS;
-
   /**
    * Reserva atomicamente a próxima candidata pendente (evita duplo trabalho)
-   * e grava o LEASE (validade + heartbeat + dono). Recusa o claim quando o
-   * tempo restante da invocação não comporta uma validação inteira.
+   * e grava o LEASE (validade + heartbeat + dono). O CUSTO é calculado com o
+   * TIMEOUT ADAPTATIVO DAQUELA candidata: quem não couber no tempo restante
+   * fica na fila para a próxima invocação — o worker nunca morre no meio.
    */
-  const claimNext = async (workerId: number): Promise<CandidateRow | null> => {
-    const restante = deadline - Date.now();
-    if (restante < custoMaximoCandidata) {
+  const claimNext = async (
+    workerId: number,
+  ): Promise<{ cand: CandidateRow; timeoutMs: number } | null> => {
+    if (deadline - Date.now() < CUSTO_MINIMO_MS) {
       claimsRecusadosPorOrcamento++;
       console.log(
         "[airfare-claim-recusado]",
         JSON.stringify({
           worker: workerId,
-          restante_ms: restante,
-          minimo_ms: custoMaximoCandidata,
-          motivo: "orcamento_insuficiente_para_nova_candidata",
+          restante_ms: deadline - Date.now(),
+          minimo_ms: CUSTO_MINIMO_MS,
+          motivo: "orcamento_insuficiente_para_qualquer_candidata",
         }),
       );
       return null;
@@ -638,6 +701,27 @@ export async function processPendingCandidates(args: {
         .limit(1)
         .maybeSingle();
       if (!data) return null;
+
+      const alvo = data as CandidateRow;
+      const timeoutMs = candidateTimeoutMs(alvo, p95Corrente());
+      const custo = custoDaCandidata(timeoutMs);
+      const restante = deadline - Date.now();
+      if (restante < custo) {
+        claimsRecusadosPorOrcamento++;
+        console.log(
+          "[airfare-claim-recusado]",
+          JSON.stringify({
+            worker: workerId,
+            rota: `${alvo.origin_iata}->${alvo.destination_iata}`,
+            restante_ms: restante,
+            timeout_candidata_ms: timeoutMs,
+            minimo_ms: custo,
+            motivo: "orcamento_insuficiente_para_esta_candidata",
+          }),
+        );
+        return null;
+      }
+
       const agoraIso = new Date().toISOString();
       const { data: claimed } = await client
         .from("airfare_promo_candidates")
@@ -645,17 +729,22 @@ export async function processPendingCandidates(args: {
           status: "processing",
           claimed_at: agoraIso,
           heartbeat_at: agoraIso,
-          lease_expires_at: new Date(Date.now() + CANDIDATE_LEASE_MS).toISOString(),
+          timeout_ms: timeoutMs,
+          lease_expires_at: new Date(Date.now() + leaseMsPara(timeoutMs)).toISOString(),
           worker_token: `${invocationToken}#${workerId}`,
         })
-        .eq("id", (data as CandidateRow).id)
+        .eq("id", alvo.id)
         .eq("status", "pending")
         .select("id")
         .maybeSingle();
-      if (claimed) return data as CandidateRow;
+      if (claimed) {
+        registrarTimeoutAplicado(timeoutMs);
+        return { cand: alvo, timeoutMs };
+      }
     }
     return null;
   };
+
 
 
   const processar = async (
@@ -665,6 +754,8 @@ export async function processPendingCandidates(args: {
     jobSignal: AbortSignal = abortController.signal,
     /** heartbeat: cada resposta do motor renova a "última atividade" */
     marcarAtividade: () => void = () => {},
+    /** orçamento adaptativo desta candidata (ms) */
+    budgetMs: number = CANDIDATE_TIMEOUT_MS,
   ) => {
     const iniciouEm = Date.now();
     const metrica = metricaDe(cand.origin_iata);
@@ -690,6 +781,7 @@ export async function processPendingCandidates(args: {
         markups,
         referencePrice: cand.reference_price != null ? Number(cand.reference_price) : null,
         signal: jobSignal,
+        budgetMs,
 
         onEngineTiming: (t) => {
           marcarAtividade();
@@ -979,14 +1071,15 @@ export async function processPendingCandidates(args: {
 
   const worker = async (workerId: number) => {
     // Sai antes do fim do orçamento: nada de aceitar trabalho que não cabe.
-    while (Date.now() < deadline - custoMaximoCandidata) {
+    while (Date.now() < deadline - CUSTO_MINIMO_MS) {
       if (cancelada || abortController.signal.aborted || (await cancelamentoPedido())) {
         cancelada = true;
         abortController.abort();
         return;
       }
-      const cand = await claimNext(workerId);
-      if (!cand) return;
+      const reserva = await claimNext(workerId);
+      if (!reserva) return;
+      const { cand, timeoutMs } = reserva;
 
 
       tele.running++;
@@ -1008,8 +1101,8 @@ export async function processPendingCandidates(args: {
       const onGlobalAbort = () => abortarJob("cancelado:execucao");
       abortController.signal.addEventListener("abort", onGlobalAbort, { once: true });
       const timerJob = setTimeout(
-        () => abortarJob(`timeout:candidata:${CANDIDATE_TIMEOUT_MS}ms`),
-        CANDIDATE_TIMEOUT_MS,
+        () => abortarJob(`timeout:candidata:${timeoutMs}ms`),
+        timeoutMs,
       );
 
       emVoo.set(workerId, {
@@ -1019,6 +1112,7 @@ export async function processPendingCandidates(args: {
         startedAt: iniciou,
         lastActivity: iniciou,
         attempt: tentativa,
+        timeoutMs,
         status: "VALIDATING",
       });
       const marcarAtividade = () => {
@@ -1030,12 +1124,13 @@ export async function processPendingCandidates(args: {
         // Rede de segurança: se nem o abort soltar (código travado fora de I/O),
         // a promessa é descartada e o slot volta para a fila mesmo assim.
         label = await withTimeout(
-          processar(cand, saida, jobCtrl.signal, marcarAtividade),
-          CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS,
+          processar(cand, saida, jobCtrl.signal, marcarAtividade, timeoutMs),
+          timeoutMs + WATCHDOG_GRACE_MS,
           "candidata",
           abortController.signal,
         );
       } catch (err) {
+
         const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
         // cancelamento da EXECUÇÃO: não marcamos a candidata como erro
         if (abortController.signal.aborted || /^cancelado:execucao/i.test(msg)) {
@@ -1045,11 +1140,12 @@ export async function processPendingCandidates(args: {
         label = `${cand.origin_iata}→${cand.destination_iata}`;
         const foiTimeout = /timeout/i.test(msg) || jobCtrl.signal.aborted;
         registrarFalha(cand, {
-          message: foiTimeout ? `timeout:${CANDIDATE_TIMEOUT_MS}ms sem resposta do motor` : msg,
+          message: foiTimeout ? `timeout:${timeoutMs}ms sem resposta do motor` : msg,
           step: "fila_worker",
           duration_ms: Date.now() - iniciou,
           attempts: tentativa,
         });
+
 
         // ESTADO FINAL OBRIGATÓRIO: ou volta para a fila (ainda há tentativa),
         // ou encerra como timeout/falha. Nunca fica em "processing".
@@ -1111,7 +1207,8 @@ export async function processPendingCandidates(args: {
         }),
       );
 
-      duracoes.push(Date.now() - iniciou);
+      const duracaoTotal = finishedAt - iniciou;
+      duracoes.push(duracaoTotal);
       if (saida.desfecho === "requeue") {
         tele.requeued++;
         tele.queued++;
@@ -1124,6 +1221,40 @@ export async function processPendingCandidates(args: {
         counters.processed++;
         processadasAgora++;
       }
+
+      /* ─── SEPARAÇÃO DOS DESFECHOS (painel) ───
+         timeout real do motor x resposta lenta mas concluída x falha técnica
+         x rota sem tarifa. "Lenta" é sucesso: só sinaliza risco de corte. */
+      const lenta =
+        (saida.desfecho === "with_fare" || saida.desfecho === "without_fare") &&
+        duracaoTotal >= timeoutMs * SLOW_RESPONSE_RATIO;
+      let outcomeKind: string;
+      if (saida.desfecho === "timeout") {
+        outcomeKind = "engine_timeout";
+        tele.engine_timeout++;
+      } else if (saida.desfecho === "error") {
+        outcomeKind = "tech_error";
+        tele.tech_error++;
+      } else if (saida.desfecho === "without_fare") {
+        outcomeKind = lenta ? "no_fare_slow" : "no_fare";
+        tele.no_fare++;
+        if (lenta) tele.slow_ok++;
+      } else if (saida.desfecho === "with_fare") {
+        outcomeKind = lenta ? "validated_slow" : "validated";
+        if (lenta) tele.slow_ok++;
+      } else {
+        outcomeKind = "requeued";
+      }
+
+      if (saida.desfecho !== "requeue") {
+        await setCandidato(cand.id, {
+          duration_ms: duracaoTotal,
+          motor_ms: (saida.responseAt ?? finishedAt) - iniciou,
+          timeout_ms: timeoutMs,
+          outcome_kind: outcomeKind,
+        });
+      }
+
       if (cancelada || abortController.signal.aborted) return;
       // "Última processada" só muda em estado FINAL — requeue continua "em processamento".
       await progresso(saida.desfecho === "requeue" ? null : label, saida.desfecho !== "requeue");
@@ -1142,7 +1273,8 @@ export async function processPendingCandidates(args: {
       const parado = agora - j.lastActivity;
       const vivo = agora - j.startedAt;
       if (j.status === "ABORTING") continue;
-      if (vivo > CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS || parado > CANDIDATE_TIMEOUT_MS) {
+      const limiteJob = j.timeoutMs || CANDIDATE_TIMEOUT_MS;
+      if (vivo > limiteJob + WATCHDOG_GRACE_MS || parado > limiteJob) {
         console.warn(
           "[airfare-watchdog]",
           JSON.stringify({
@@ -1154,7 +1286,7 @@ export async function processPendingCandidates(args: {
             ultima_atividade: new Date(j.lastActivity).toISOString(),
             tempo_ms: vivo,
             sem_resposta_ms: parado,
-            limite_ms: CANDIDATE_TIMEOUT_MS,
+            limite_ms: limiteJob,
             acao: "abortando_e_liberando_slot",
           }),
         );
@@ -1172,9 +1304,9 @@ export async function processPendingCandidates(args: {
   const heartbeatTimer = setInterval(() => {
     void (async () => {
       const jobs = [...emVoo.values()];
-      const validade = new Date(Date.now() + CANDIDATE_LEASE_MS).toISOString();
       const agoraIso = new Date().toISOString();
       for (const j of jobs) {
+        const validade = new Date(Date.now() + leaseMsPara(j.timeoutMs || CANDIDATE_TIMEOUT_MS)).toISOString();
         try {
           await client
             .from("airfare_promo_candidates")
