@@ -225,7 +225,26 @@ export function ItemDialog({
     return s;
   };
   const setField = (k: string, v: string | boolean) => setDetails((p) => ({ ...p, [k]: v }));
-  const setMoneyField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: parseMoneyInput(v) }));
+  // Enquanto o usuário digita, preservamos exatamente o que ele escreveu (com vírgula/ponto).
+  // O valor normalizado só é gravado em `details`, e o texto cru some ao fechar/salvar.
+  const [moneyRaw, setMoneyRaw] = useState<Record<string, string>>({});
+  const setMoneyField = (k: string, v: string) => {
+    const limpo = v.replace(/[^\d.,]/g, "");
+    setMoneyRaw((p) => ({ ...p, [k]: limpo }));
+    setDetails((p) => ({ ...p, [k]: parseMoneyInput(limpo) }));
+  };
+  const moneyValue = (k: string): string => {
+    const raw = moneyRaw[k];
+    if (raw !== undefined) return raw;
+    const v = String(details[k] ?? "");
+    return v ? v.replace(".", ",") : "";
+  };
+  const moneyProps = (k: string) => ({
+    inputMode: "decimal" as const,
+    value: moneyValue(k),
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setMoneyField(k, e.target.value),
+  });
+
   const setSegField = (idx: number, k: string, v: string | boolean) =>
     setExtraSegments((arr) => arr.map((s, i) => (i === idx ? { ...s, details: { ...s.details, [k]: v } } : s)));
   const addSegment = (direction: "outbound" | "return") =>
