@@ -140,7 +140,7 @@ export const converterOrcamentoEmPedido = createServerFn({ method: "POST" })
 export const gerarLinkOrcamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: { quoteId: string }) => z.object({ quoteId: z.string().uuid() }).parse(i))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { buildPublicQuoteFromImported } = await import("./to-public-quote.server");
     const { savePublicQuote, refreshPublicQuote } = await import("@/lib/public-quote/store.server");
@@ -162,12 +162,30 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
       throw new Error("Orçamento sem produtos/valores reais: reprocesse a importação");
     }
 
+    // Consultor responsável: quem está gerando o link (quando ainda não houver).
+    let consultor: string | null = quote.consultant ?? null;
+    if (!consultor && context?.userId) {
+      const { data: perfil } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name")
+        .eq("id", context.userId)
+        .maybeSingle();
+      const nome = (perfil as { full_name?: string | null } | null)?.full_name?.trim();
+      if (nome) {
+        consultor = nome;
+        await supabaseAdmin
+          .from("quotes")
+          .update({ consultant: nome, updated_at: new Date().toISOString() } as never)
+          .eq("id", quote.id);
+      }
+    }
 
     const dto = buildPublicQuoteFromImported({
       normalized,
       title: quote.title,
       clientName: quote.client_name,
-      agentName: quote.consultant,
+      agentName: consultor,
+
     });
     // Já existe link: regrava o mesmo publicId com os dados atuais (opções, valores).
     if (quote.public_quote_id) {
