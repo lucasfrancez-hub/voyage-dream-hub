@@ -41,7 +41,23 @@ function txt(v: unknown): string {
 }
 function num(v: unknown): number | null {
   if (v == null || v === "") return null;
-  const n = Number(String(v).replace(/\./g, "").replace(",", "."));
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  const s = String(v).trim().replace(/[^\d.,-]/g, "");
+  if (!s) return null;
+  const temVirgula = s.includes(",");
+  const temPonto = s.includes(".");
+  let normalizado = s;
+  if (temVirgula && temPonto) {
+    // "11.585,85" → milhar com ponto e decimal com vírgula
+    normalizado = s.replace(/\./g, "").replace(",", ".");
+  } else if (temVirgula) {
+    normalizado = s.replace(",", ".");
+  } else if (temPonto) {
+    // Já normalizado ("11585.85"); só é milhar se houver grupos exatos de 3 dígitos
+    const soMilhar = /^-?\d{1,3}(\.\d{3})+$/.test(s);
+    normalizado = soMilhar ? s.replace(/\./g, "") : s;
+  }
+  const n = Number(normalizado);
   return Number.isFinite(n) ? n : null;
 }
 /** Corta pra caber no input datetime-local. */
