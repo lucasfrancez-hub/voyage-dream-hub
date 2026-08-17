@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, Hotel, Plane, Package, DollarSign, Users, ExternalLink, Printer,
-  Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2,
+  Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,7 +22,9 @@ import { confirmThen } from "@/lib/confirm";
 import { HotelTripAdvisorDialog } from "@/components/quotes/HotelTripAdvisorDialog";
 import { QuoteItemsToolbar } from "@/components/quotes/QuoteItemsToolbar";
 import { QuoteItemFormDialog, type QuoteItemKind } from "@/components/quotes/QuoteItemFormDialog";
-import { removerItemOrcamento } from "@/lib/quotes/items.functions";
+import {
+  removerItemOrcamento, criarOpcaoOrcamento, renomearOpcaoOrcamento, removerOpcaoOrcamento,
+} from "@/lib/quotes/items.functions";
 import type { NormalizedFlight, NormalizedGenericItem, NormalizedHotel } from "@/lib/quotes/types";
 import { AirlineLogo } from "@/components/AirlineLogo";
 import { findAirline } from "@/lib/airlines";
