@@ -373,22 +373,41 @@ export async function lerDocumentoOrcamento(input: {
     tool_choice: { type: "function", function: { name: "return_quote_items" } },
   };
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Lovable-API-Key": apiKey,
-      "X-Lovable-AIG-SDK": "custom-fetch",
-    },
-    body: JSON.stringify(body),
-  });
+  const modelos = ["google/gemini-2.5-pro", "google/gemini-2.5-flash"];
+  let res: Response | null = null;
+  let ultimoTexto = "";
+  let ultimoStatus = 0;
 
-  if (!res.ok) {
-    const texto = await res.text();
-    if (res.status === 429) throw new Error("A IA está ocupada agora. Tente de novo em instantes.");
-    if (res.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos para continuar.");
-    throw new Error(`Falha ao ler o documento (${res.status}): ${texto.slice(0, 200)}`);
+  for (let tentativa = 0; tentativa < 4; tentativa++) {
+    const modelo = modelos[Math.min(tentativa, modelos.length - 1)] as string;
+    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+        "X-Lovable-AIG-SDK": "custom-fetch",
+      },
+      body: JSON.stringify({ ...body, model: modelo }),
+    });
+    if (r.ok) {
+      res = r;
+      break;
+    }
+    ultimoStatus = r.status;
+    ultimoTexto = await r.text();
+    if (r.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos para continuar.");
+    // 429 e 5xx: vale nova tentativa (com troca de modelo a partir da 2ª)
+    if (r.status !== 429 && r.status < 500) break;
+    await new Promise((ok) => setTimeout(ok, 1200 * (tentativa + 1)));
   }
+
+  if (!res) {
+    if (ultimoStatus === 429) throw new Error("A IA está ocupada agora. Tente de novo em instantes.");
+    if (ultimoStatus >= 500)
+      throw new Error("O serviço de IA está instável no momento. Tentei algumas vezes — tente de novo em instantes.");
+    throw new Error(`Falha ao ler o documento (${ultimoStatus}): ${ultimoTexto.slice(0, 200)}`);
+  }
+
 
   const json = (await res.json()) as {
     choices?: Array<{ message?: { tool_calls?: Array<{ function?: { arguments?: string } }>; content?: string } }>;
