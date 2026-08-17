@@ -501,16 +501,21 @@ export async function radarLeadsForOrigin(
     throw e;
   }
 
-  // A fatia de tempo por origem é curta: varrer categorias que o escopo da
-  // origem descarta (ex.: "Brasil" num hub internacional) consumia o prazo
-  // inteiro e a origem terminava sem NENHUM lead aproveitável.
+  // A fatia de tempo por origem é curta. Só descartamos a categoria "Brasil"
+  // em hub que NÃO faz curadoria nacional (esses leads seriam jogados fora de
+  // qualquer jeito). O contrário não vale: categorias marcadas como
+  // internacionais no MD trazem rotas domésticas também — filtrá-las zerava
+  // origens regionais como IGU.
   const escopos = opts?.scopes;
-  if (escopos?.length) {
-    categorias = categorias.filter((c) => escopos.includes(c.national ? "nacional" : "internacional"));
-  }
-  // Internacional primeiro: se o prazo estourar no meio, o que sobra é o
-  // material mais valioso comercialmente.
-  categorias = [...categorias].sort((a, b) => Number(a.national) - Number(b.national));
+  const soInternacional = !!escopos?.length && !escopos.includes("nacional");
+  if (soInternacional) categorias = categorias.filter((c) => !c.national);
+  // Ordem: escopo mais valioso para esta origem primeiro — se o prazo estourar
+  // no meio, o que já foi coletado é o que interessa.
+  const intPrimeiro = !escopos?.length || escopos.includes("internacional");
+  categorias = [...categorias].sort((a, b) =>
+    intPrimeiro ? Number(a.national) - Number(b.national) : Number(b.national) - Number(a.national),
+  );
+
 
 
   for (const cat of categorias) {
