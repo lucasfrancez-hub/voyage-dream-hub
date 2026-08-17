@@ -769,7 +769,7 @@ export async function processPendingCandidates(args: {
   };
   await contarFila();
 
-  const worker = async () => {
+  const worker = async (workerId: number) => {
     while (Date.now() < deadline) {
       if (cancelada || abortController.signal.aborted || (await cancelamentoPedido())) {
         cancelada = true;
@@ -782,45 +782,98 @@ export async function processPendingCandidates(args: {
       tele.running++;
       tele.queued = Math.max(0, tele.queued - 1);
       const iniciou = Date.now();
+      const tentativa = Number(cand.attempts ?? 0) + 1;
       const saida: { desfecho: Desfecho; responseAt?: number; engineCalls?: number; engineMs?: number } =
         { desfecho: "error" };
       let label = "";
+
+      /* CANCELAMENTO REAL POR JOB: o timeout aborta as requisições HTTP em
+         curso — o worker não fica preso esperando um motor pendurado. */
+      const jobCtrl = new AbortController();
+      const abortarJob = (motivo: string) => {
+        const j = emVoo.get(workerId);
+        if (j) j.status = "ABORTING";
+        jobCtrl.abort(new Error(motivo));
+      };
+      const onGlobalAbort = () => abortarJob("cancelado:execucao");
+      abortController.signal.addEventListener("abort", onGlobalAbort, { once: true });
+      const timerJob = setTimeout(
+        () => abortarJob(`timeout:candidata:${CANDIDATE_TIMEOUT_MS}ms`),
+        CANDIDATE_TIMEOUT_MS,
+      );
+
+      emVoo.set(workerId, {
+        workerId,
+        ctrl: jobCtrl,
+        cand,
+        startedAt: iniciou,
+        lastActivity: iniciou,
+        attempt: tentativa,
+        status: "VALIDATING",
+      });
+      const marcarAtividade = () => {
+        const j = emVoo.get(workerId);
+        if (j) j.lastActivity = Date.now();
+      };
+
       try {
-        // TIMEOUT INDIVIDUAL: nenhuma consulta prende um worker da fila.
+        // Rede de segurança: se nem o abort soltar (código travado fora de I/O),
+        // a promessa é descartada e o slot volta para a fila mesmo assim.
         label = await withTimeout(
-          processar(cand, saida),
-          CANDIDATE_TIMEOUT_MS,
+          processar(cand, saida, jobCtrl.signal, marcarAtividade),
+          CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS,
           "candidata",
           abortController.signal,
         );
       } catch (err) {
         const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
-        // cancelado: não marcamos a candidata como erro nem contabilizamos
-        if (abortController.signal.aborted || /^cancelado/i.test(msg)) {
+        // cancelamento da EXECUÇÃO: não marcamos a candidata como erro
+        if (abortController.signal.aborted || /^cancelado:execucao/i.test(msg)) {
           cancelada = true;
           return; // o `finally` abaixo devolve o contador de em-voo
         }
-        saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
-        counters.error_count++;
         label = `${cand.origin_iata}→${cand.destination_iata}`;
+        const foiTimeout = /timeout/i.test(msg) || jobCtrl.signal.aborted;
         registrarFalha(cand, {
-          message: msg,
+          message: foiTimeout ? `timeout:${CANDIDATE_TIMEOUT_MS}ms sem resposta do motor` : msg,
           step: "fila_worker",
           duration_ms: Date.now() - iniciou,
-          attempts: Number(cand.attempts ?? 0) + 1,
+          attempts: tentativa,
         });
-        metricaDe(cand.origin_iata).errors++;
 
-        await setCandidato(cand.id, {
-          status: "error",
-          last_error: msg,
-          last_error_step: "worker",
-          last_error_at: new Date().toISOString(),
-          processed_at: new Date().toISOString(),
-        });
+        // ESTADO FINAL OBRIGATÓRIO: ou volta para a fila (ainda há tentativa),
+        // ou encerra como timeout/falha. Nunca fica em "processing".
+        if (tentativa < PROMO_VALIDATION_MAX_ATTEMPTS) {
+          saida.desfecho = "requeue";
+          await setCandidato(cand.id, {
+            status: "pending",
+            claimed_at: null,
+            attempts: tentativa,
+            priority: Number(cand.priority ?? 0) + REQUEUE_PRIORITY_STEP,
+            last_error: msg,
+            last_error_step: foiTimeout ? "timeout" : "worker",
+            last_error_at: new Date().toISOString(),
+          });
+        } else {
+          saida.desfecho = foiTimeout ? "timeout" : "error";
+          counters.error_count++;
+          metricaDe(cand.origin_iata).errors++;
+          await setCandidato(cand.id, {
+            status: foiTimeout ? "timeout" : "error",
+            attempts: tentativa,
+            last_error: msg,
+            last_error_step: foiTimeout ? "timeout" : "worker",
+            last_error_at: new Date().toISOString(),
+            processed_at: new Date().toISOString(),
+          });
+        }
       } finally {
+        clearTimeout(timerJob);
+        abortController.signal.removeEventListener("abort", onGlobalAbort);
+        emVoo.delete(workerId);
         tele.running = Math.max(0, tele.running - 1);
       }
+
 
       /* ─── LOG SIMPLES DE DIAGNÓSTICO (fila x motor) ─── */
       const finishedAt = Date.now();
