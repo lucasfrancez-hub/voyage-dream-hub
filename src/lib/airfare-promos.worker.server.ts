@@ -57,11 +57,46 @@ export type ValidationTelemetry = {
   requeued: number;
   avg_duration_ms: number | null;
   p95_duration_ms: number | null;
+  /** detalhamento das últimas falhas (origem, destino, motivo técnico...) */
+  failures?: ValidationFailure[];
   updated_at: string;
 };
 
+/** Falha individual de validação — nunca vira "sem tarifa". */
+export type ValidationFailure = {
+  origin: string;
+  destination: string;
+  scope: "nacional" | "internacional" | string;
+  /** timeout | http | rate_limit | parsing | motor_vazio | indisponivel | erro */
+  motive: string;
+  motive_label: string;
+  step: string;
+  message: string;
+  duration_ms: number;
+  attempts: number;
+  timeout: boolean;
+  at: string;
+};
+
+const MAX_FAILURES_TRACKED = 40;
+
+/** Classifica a causa real da falha a partir da mensagem técnica. */
+export function classifyFailure(msg: string): { motive: string; label: string } {
+  const m = (msg || "").toLowerCase();
+  if (/timeout|tempo esgotado|timed out|abort/.test(m)) return { motive: "timeout", label: "Tempo esgotado" };
+  if (/429|rate.?limit|too many requests/.test(m)) return { motive: "rate_limit", label: "Bloqueio/limite de requisições" };
+  if (/50[0-9]|http\s*5/.test(m)) return { motive: "http_5xx", label: "Erro no motor (HTTP 5xx)" };
+  if (/40[0-9]|http\s*4|unauthorized|forbidden/.test(m)) return { motive: "http_4xx", label: "Erro de requisição (HTTP 4xx)" };
+  if (/json|parse|unexpected token|cheerio|selector/.test(m)) return { motive: "parsing", label: "Erro de leitura da resposta" };
+  if (/vazio|empty|sem resposta|no data/.test(m)) return { motive: "motor_vazio", label: "Motor respondeu vazio" };
+  if (/econn|network|fetch failed|socket|dns|enotfound/.test(m)) return { motive: "indisponivel", label: "Indisponibilidade temporária" };
+  if (/gravacao|insert|update|duplicate/.test(m)) return { motive: "gravacao", label: "Erro ao gravar a promoção" };
+  return { motive: "erro", label: "Falha técnica na consulta" };
+}
+
 /** Desfecho de UMA validação na fila. */
 type Desfecho = "with_fare" | "without_fare" | "timeout" | "error" | "requeue";
+
 
 function percentil(valores: number[], p: number): number | null {
   if (!valores.length) return null;
