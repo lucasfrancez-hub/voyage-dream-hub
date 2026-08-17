@@ -544,6 +544,20 @@ async function processPayload(payload: WhatsAppPayload) {
           console.error("[wa-webhook] falha ao liberar fila da janela:", err);
         }
 
+        // MOTOR ANTIFRAUDE: reavalia a conversa inteira a cada mensagem do
+        // cliente. Se o risco for alto, o próprio backend transfere pro Lucas
+        // e pausa a IA — sem avisar o cliente, sem mensagem nenhuma.
+        try {
+          const { evaluateConversationFraud } = await import("@/lib/whatsapp/fraud/engine.server");
+          await evaluateConversationFraud({
+            conversation_id: conv.id,
+            message_id: saved.id ?? null,
+            source: "auto",
+          });
+        } catch (err) {
+          console.error("[wa-webhook] antifraude falhou:", err);
+        }
+
         // Se foi resposta de botão do robô de voos (via id interativo), trata sem IA
         if (buttonReplyId && buttonReplyId.startsWith("flight_alert:")) {
           const { handleFlightAlertReply } = await import("@/lib/whatsapp/flight-alert-reply.server");
