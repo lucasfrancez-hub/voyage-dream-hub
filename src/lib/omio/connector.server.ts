@@ -9,14 +9,17 @@
 import { ExpediaCdp, openRemoteBrowser, closeRemoteBrowser } from "@/lib/expedia/browser.server";
 import {
   OMIO_BASE,
+  deepLinkResultsUrl,
   journeyPageUrl,
   pageFetchScript,
   readSearchIdScript,
   resultsApiUrl,
   resultsPageUrl,
+  searchTriggerGetUrl,
   submitSearchScript,
   suggesterUrl,
 } from "./queries";
+
 import { normalizarExtras, normalizarResultados, normalizarTarifas } from "./normalize";
 import type { OmioBusca, OmioDetalhe, OmioPosition } from "./types";
 
