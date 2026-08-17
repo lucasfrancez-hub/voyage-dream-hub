@@ -61,6 +61,7 @@ export type FraudClusterCode =
   | "CONTORNO_CHECKOUT"
   | "INTERNACIONAL_SENSIVEL"
   | "COMPORTAMENTO_INCONSISTENTE"
+  | "PERMANENCIA_ATIPICA"
   | "PADRAO_AUTOMATIZADO";
 
 export type FraudCluster = { code: FraudClusterCode; label: string; strength: number };
@@ -185,6 +186,23 @@ const CLUSTERS: Array<{
     strength: 0.66,
     all: ["AUTOMATED_TEXT_PATTERN"],
     anyOf: { codes: ["REPEATED_PATTERN", "OPERATIONAL_EXECUTION", "PASSENGER_SWAP"], min: 2 },
+  },
+  {
+    code: "PERMANENCIA_ATIPICA",
+    label: "Permanência curta internacional somada a comportamento operacional",
+    strength: 0.58,
+    all: ["INTERNATIONAL_SHORT_STAY"],
+    anyOf: {
+      codes: [
+        "PRICE_INSENSITIVE",
+        "ITINERARY_DISINTEREST",
+        "OPERATIONAL_EXECUTION",
+        "URGENCY_PRESSURE",
+        "CHECKOUT_BYPASS_ATTEMPT",
+        "REQUEST_PRE_FORMATTED",
+      ],
+      min: 3,
+    },
   },
 ];
 
