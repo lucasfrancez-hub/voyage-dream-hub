@@ -524,7 +524,36 @@ export function detectDeterministicSignals(input: {
     pushReducer(redutores, "DATA_CONSISTENT", 0.6, "Cliente acompanha detalhes da viagem");
   }
 
-  return { signals: [...sinais.values()], reducers: [...redutores.values()] };
+  // 10. Duração da viagem — sinal CONTEXTUAL (nunca "viagem curta = fraude").
+  // Nacional tem peso baixo/neutro; internacional longa distância pesa mais.
+  // Se o cliente demonstra comportamento coerente (explica o motivo, pergunta
+  // horários, negocia preço), a força do sinal cai bastante.
+  let tripDuration: TripDurationContext | undefined;
+  const duracao = assessTripDuration({
+    origin: input.origin,
+    destination: input.destination,
+    departure_date: input.travel_date,
+    return_date: input.return_date,
+    route_text: input.route_text ?? textos.join(" "),
+  });
+  if (duracao) {
+    tripDuration = duracao.context;
+    if (duracao.intensity > 0) {
+      const coerencias =
+        (redutores.has("CONTEXT_EXPLAINED") ? 1 : 0) +
+        (perguntouItinerario ? 1 : 0) +
+        (perguntouPreco ? 1 : 0);
+      const atenuacao = coerencias >= 2 ? 0.45 : coerencias === 1 ? 0.7 : 1;
+      pushSignal(
+        sinais,
+        "INTERNATIONAL_SHORT_STAY",
+        clamp(duracao.intensity * atenuacao),
+        duracao.evidence,
+      );
+    }
+  }
+
+  return { signals: [...sinais.values()], reducers: [...redutores.values()], trip_duration: tripDuration };
 }
 
 /** Pistas simples de coerência entre DDI e rota mencionada. */
