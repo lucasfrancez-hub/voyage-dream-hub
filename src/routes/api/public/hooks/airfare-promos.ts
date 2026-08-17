@@ -60,6 +60,13 @@ export const Route = createFileRoute("/api/public/hooks/airfare-promos")({
             return Response.json({ ok: true, ...res, ts: new Date().toISOString() });
           }
 
+          // DIAGNÓSTICO da validação (por candidata) + reativação automática.
+          if (body.trigger === "validation_diag") {
+            const { validationDiagnostics } = await import("@/lib/airfare-promos.worker.server");
+            const res = await validationDiagnostics(body.runId);
+            return Response.json({ ok: true, ...res, ts: new Date().toISOString() });
+          }
+
           // modo worker: apenas retoma o que estiver pendente
           if (body.resume) {
             const { resumeActiveRun } = await import("@/lib/airfare-promos.worker.server");
