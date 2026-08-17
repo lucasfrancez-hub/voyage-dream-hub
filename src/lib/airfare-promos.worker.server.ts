@@ -1138,11 +1138,12 @@ export async function processPendingCandidates(args: {
         label = `${cand.origin_iata}→${cand.destination_iata}`;
         const foiTimeout = /timeout/i.test(msg) || jobCtrl.signal.aborted;
         registrarFalha(cand, {
-          message: foiTimeout ? `timeout:${CANDIDATE_TIMEOUT_MS}ms sem resposta do motor` : msg,
+          message: foiTimeout ? `timeout:${timeoutMs}ms sem resposta do motor` : msg,
           step: "fila_worker",
           duration_ms: Date.now() - iniciou,
           attempts: tentativa,
         });
+
 
         // ESTADO FINAL OBRIGATÓRIO: ou volta para a fila (ainda há tentativa),
         // ou encerra como timeout/falha. Nunca fica em "processing".
