@@ -560,11 +560,22 @@ export async function processPendingCandidates(args: {
 
   const setCandidato = async (id: string, patch: Record<string, unknown>) => {
     try {
-      await client.from("airfare_promo_candidates").update(patch).eq("id", id);
+      // Qualquer saída de `processing` libera o lease — nenhum resto de reserva
+      // pode fazer a candidata parecer "em processamento".
+      const st = patch["status"];
+      const final =
+        typeof st === "string" && st !== "processing"
+          ? { lease_expires_at: null, heartbeat_at: null, worker_token: null }
+          : {};
+      await client
+        .from("airfare_promo_candidates")
+        .update({ ...patch, ...final })
+        .eq("id", id);
     } catch {
       /* best-effort */
     }
   };
+
 
   const markups: MarkupTable = await loadMarkups(client);
 
