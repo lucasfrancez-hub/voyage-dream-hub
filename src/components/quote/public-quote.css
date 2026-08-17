@@ -466,3 +466,15 @@
 .vq-seg2-group { display: flex; flex-direction: column; gap: 14px; }
 .vq-seg2-connection-pill.vq-seg2-connection-warn { align-items: flex-start; line-height: 1.4; }
 .vq-seg2-connection-pill.vq-seg2-connection-warn svg { margin-top: 1px; }
+
+/* ── Roteiro cronológico ── */
+.vq-roteiro { display: flex; flex-direction: column; gap: 22px; }
+.vq-roteiro-dia { position: relative; padding-left: 18px; border-left: 2px solid rgba(19, 93, 156, 0.18); }
+.vq-roteiro-head { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.vq-roteiro-head strong { font-size: 15px; text-transform: capitalize; }
+.vq-roteiro-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 999px; margin-left: -31px;
+  background: #145d9c; color: #fff; font-size: 12px; font-weight: 700;
+}
+.vq-roteiro-itens { display: flex; flex-direction: column; gap: 14px; }

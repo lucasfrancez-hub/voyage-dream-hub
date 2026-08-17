@@ -791,6 +791,7 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
     payment: opt.payment,
     totals: opt.totals,
     summary: opt.summary ?? quote.summary,
+    itinerary: opt.itinerary === true,
   };
 
   return (
