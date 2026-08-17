@@ -710,7 +710,7 @@ export async function processPendingCandidates(args: {
       return null;
     }
     for (let tentativa = 0; tentativa < 5; tentativa++) {
-      const { data } = await client
+      const { data, error: erroSelect } = await client
         .from("airfare_promo_candidates")
         .select(CANDIDATE_COLS)
         .eq("run_id", runId)
@@ -719,7 +719,15 @@ export async function processPendingCandidates(args: {
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
-      if (!data) return null;
+      if (erroSelect) {
+        diagnosticoClaim = `select:${erroSelect.message ?? String(erroSelect)}`;
+        console.error("[airfare-claim-erro]", JSON.stringify({ etapa: "select", erro: diagnosticoClaim }));
+        return null;
+      }
+      if (!data) {
+        diagnosticoClaim = diagnosticoClaim ?? "fila_vazia";
+        return null;
+      }
 
       const alvo = data as CandidateRow;
       const restante = deadline - Date.now();
@@ -727,6 +735,7 @@ export async function processPendingCandidates(args: {
       const timeoutMs = fitCandidateTimeoutToBudget(timeoutConfiguradoMs, restante);
       if (timeoutMs == null) {
         claimsRecusadosPorOrcamento++;
+        diagnosticoClaim = `orcamento:${restante}ms`;
         console.log(
           "[airfare-claim-recusado]",
           JSON.stringify({
@@ -742,7 +751,7 @@ export async function processPendingCandidates(args: {
       }
 
       const agoraIso = new Date().toISOString();
-      const { data: claimed } = await client
+      const { data: claimed, error: erroUpdate } = await client
         .from("airfare_promo_candidates")
         .update({
           status: "processing",
@@ -756,13 +765,20 @@ export async function processPendingCandidates(args: {
         .eq("status", "pending")
         .select("id")
         .maybeSingle();
+      if (erroUpdate) {
+        diagnosticoClaim = `update:${erroUpdate.message ?? String(erroUpdate)}`;
+        console.error("[airfare-claim-erro]", JSON.stringify({ etapa: "update", erro: diagnosticoClaim }));
+        return null;
+      }
       if (claimed) {
         registrarTimeoutAplicado(timeoutMs);
         return { cand: alvo, timeoutMs };
       }
+      diagnosticoClaim = "corrida_perdida";
     }
     return null;
   };
+
 
 
 
