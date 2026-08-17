@@ -478,3 +478,8 @@
   background: #145d9c; color: #fff; font-size: 12px; font-weight: 700;
 }
 .vq-roteiro-itens { display: flex; flex-direction: column; gap: 14px; }
+.vq-roteiro-voos {
+  position: relative; padding-left: 18px; margin-bottom: 22px;
+  border-left: 2px solid rgba(19, 93, 156, 0.18);
+}
+.vq-roteiro-voos .vq-roteiro-num svg { width: 14px; height: 14px; }
