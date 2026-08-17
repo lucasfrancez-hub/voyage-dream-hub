@@ -237,6 +237,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     resetRadarMetrics,
     radarSourceMetrics,
     RadarCancelledError,
+    RadarDeadlineError,
   } = await import("@/lib/melhores-destinos.radar-api.server");
 
   const cancel = opts?.cancel;
@@ -342,6 +343,10 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         cancelada = true;
         statusOrigem.set(origem, { status: "nao_processada", note: "execução cancelada" });
         break;
+      }
+      if (e instanceof RadarDeadlineError) {
+        statusOrigem.set(origem, { status: "sem_tempo", note: "prazo reservado para esta origem esgotado" });
+        continue;
       }
       radarErrors++;
       const msg = e instanceof Error ? e.message.slice(0, 200) : String(e).slice(0, 200);
@@ -550,7 +555,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
             collectedAt,
           },
           datesPerRoute,
-          { cancel },
+          { cancel, deadline: radarDeadline },
         );
         ofertas = res
           .filter((o) => isFuture(o.departureDate))
