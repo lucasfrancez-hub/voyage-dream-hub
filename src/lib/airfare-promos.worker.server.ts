@@ -113,8 +113,8 @@ export type ValidationTelemetry = {
   /** ROTA SEM TARIFA (motor respondeu, mas não há oferta) */
   no_fare?: number;
   /** faixa de timeout adaptativo aplicada nesta execução */
-  timeout_min_ms?: number;
-  timeout_max_ms?: number;
+  timeout_min_ms?: number | null;
+  timeout_max_ms?: number | null;
   /** detalhamento das últimas falhas (origem, destino, motivo técnico...) */
   failures?: ValidationFailure[];
   /** heartbeat: o que cada worker está validando AGORA */
