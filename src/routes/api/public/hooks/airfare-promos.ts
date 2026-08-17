@@ -103,12 +103,15 @@ export const Route = createFileRoute("/api/public/hooks/airfare-promos")({
 
           runId = body.runId;
           if (!runId) {
-            const run = await startPromoRun(body.trigger === "manual" ? "manual" : "cron");
+            const run = await startPromoRun(body.trigger === "manual" ? "manual" : "cron", {
+              force: !!body.force,
+            });
             if (!run) {
               return Response.json({ ok: true, skipped: "coleta_em_andamento" });
             }
             runId = run.id;
           }
+
 
           try {
             const res = await collectAirfarePromotions({
