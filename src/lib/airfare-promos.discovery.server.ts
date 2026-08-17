@@ -489,6 +489,10 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     // meio, a próxima sabe que esta origem já foi tentada.
     await gravarCheckpoint("leads");
 
+    const escoposDaOrigem = (["nacional", "internacional"] as const).filter((s) =>
+      isOriginAllowedForScope(origem, s),
+    );
+
     try {
       // Teto DURO: nem que a chamada ignore o deadline interno, a fatia acaba.
       const leads = await Promise.race([
@@ -496,6 +500,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
           cancel,
           onProgress: progresso,
           deadline: deadlineOrigem,
+          scopes: [...escoposDaOrigem],
         }),
         new Promise<never>((_, reject) =>
           setTimeout(
@@ -531,11 +536,16 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         break;
       }
       if (e instanceof RadarDeadlineError) {
-        statusOrigem.set(origem, { status: "sem_tempo", note: "prazo reservado para esta origem esgotado" });
-        originsDone.add(origem);
+        // Estourar a fatia NÃO encerra a origem: ela volta para a fila e é
+        // varrida na próxima invocação (até o limite de 2 tentativas).
+        statusOrigem.set(origem, {
+          status: "sem_tempo",
+          note: `prazo da fatia esgotado (tentativa ${tentativas}/2) — será varrida na retomada`,
+        });
         await gravarCheckpoint("leads");
         continue;
       }
+
       radarErrors++;
       const msg = e instanceof Error ? e.message.slice(0, 200) : String(e).slice(0, 200);
       statusOrigem.set(origem, { status: "erro_radar", note: msg });
