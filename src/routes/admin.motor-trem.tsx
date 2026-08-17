@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -48,24 +48,43 @@ function StationField({
   const [termo, setTermo] = useState("");
   const [opcoes, setOpcoes] = useState<OmioPosition[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const requestId = useRef(0);
 
-  async function pesquisar(t: string) {
+  function pesquisar(t: string) {
     setTermo(t);
     onSelect(null);
     if (t.trim().length < 3) {
       setOpcoes([]);
-      return;
-    }
-    setCarregando(true);
-    try {
-      const r = await buscar({ data: { termo: t.trim() } });
-      setOpcoes(r.opcoes);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha no autocomplete");
-    } finally {
-      setCarregando(false);
     }
   }
+
+  useEffect(() => {
+    const consulta = termo.trim();
+    if (value || consulta.length < 3) {
+      setCarregando(false);
+      return;
+    }
+
+    const currentRequest = ++requestId.current;
+    const timer = window.setTimeout(async () => {
+      setCarregando(true);
+      try {
+        const r = await buscar({ data: { termo: consulta } });
+        if (requestId.current === currentRequest) setOpcoes(r.opcoes);
+      } catch (e) {
+        if (requestId.current === currentRequest) {
+          toast.error(e instanceof Error ? e.message : "Falha no autocomplete");
+        }
+      } finally {
+        if (requestId.current === currentRequest) setCarregando(false);
+      }
+    }, 600);
+
+    return () => {
+      window.clearTimeout(timer);
+      requestId.current += 1;
+    };
+  }, [buscar, termo, value]);
 
   return (
     <div className="space-y-2">

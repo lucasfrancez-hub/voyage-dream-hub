@@ -9,6 +9,15 @@
 
 const BROWSERLESS_BASE = "https://production-sfo.browserless.io";
 const OPEN_REQUEST_TIMEOUT_MS = 70_000;
+const BROWSERLESS_RATE_LIMIT_RETRIES = 3;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function retryDelay(response: Response, attempt: number) {
+  const retryAfter = Number(response.headers.get("retry-after"));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.min(retryAfter * 1_000, 30_000);
+  return Math.min(2_000 * 2 ** attempt, 12_000) + Math.floor(Math.random() * 750);
+}
 
 type WorkerWebSocket = {
   readyState: number;
@@ -200,22 +209,30 @@ export async function openRemoteBrowser(opts: {
     }
   `;
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), OPEN_REQUEST_TIMEOUT_MS + 2_000);
-    let response: Response;
-    try {
-      response = await fetch(`${BROWSERLESS_BASE}/stealth/bql?${params.toString()}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, variables: { url: opts.url } }),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timer);
+    let response: Response | null = null;
+    let body = "";
+    for (let rateAttempt = 0; rateAttempt <= BROWSERLESS_RATE_LIMIT_RETRIES; rateAttempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), OPEN_REQUEST_TIMEOUT_MS + 2_000);
+      try {
+        response = await fetch(`${BROWSERLESS_BASE}/stealth/bql?${params.toString()}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, variables: { url: opts.url } }),
+          signal: controller.signal,
+        });
+        body = await response.text();
+      } finally {
+        clearTimeout(timer);
+      }
+      if (response.status !== 429 || rateAttempt === BROWSERLESS_RATE_LIMIT_RETRIES) break;
+      await wait(retryDelay(response, rateAttempt));
     }
-    const body = await response.text();
+    if (!response) throw new Error("Browserless não respondeu ao abrir o navegador remoto");
     if (!response.ok) {
-      lastError = `Browserless HTTP ${response.status}: ${body.slice(0, 500)}`;
+      lastError = response.status === 429
+        ? "Browserless está com todas as sessões ocupadas. Aguarde alguns segundos e tente novamente."
+        : `Browserless HTTP ${response.status}: ${body.slice(0, 500)}`;
       if (/reconnect time exceeds/i.test(body)) continue;
       throw new Error(lastError);
     }
