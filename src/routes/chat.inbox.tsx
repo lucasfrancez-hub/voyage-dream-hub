@@ -16,6 +16,7 @@ import { confirmThen } from "@/lib/confirm";
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
 import { AiInstructionBar } from "@/components/chat/AiInstructionBar";
+import { FraudRiskBadge } from "@/components/chat/FraudRiskBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -1255,6 +1256,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             <span className="hidden sm:inline">{aiPaused ? "Retomar IA" : "Pausar IA"}</span>
           </button>
         )}
+        <FraudRiskBadge conversationId={conv.id} />
         <button
           onClick={() => toggleMut.mutate(conv.mode === "ai" ? "human" : "ai")}
           className="shrink-0 rounded-md border border-slate-200 px-2 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50 sm:px-3 sm:text-xs"

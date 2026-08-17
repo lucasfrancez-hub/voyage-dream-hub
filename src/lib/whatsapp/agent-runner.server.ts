@@ -361,6 +361,17 @@ export async function runAgent(input: {
     return;
   }
 
+  // TRAVA ANTIFRAUDE: conversa marcada como risco alto é do Lucas. A IA não
+  // responde nem que alguma regra antiga tente rodar o agente.
+  {
+    const { fraudBlocksAi } = await import("./fraud/engine.server");
+    if (await fraudBlocksAi(conv.id)) {
+      console.warn(`[agent] conversa ${conv.id} bloqueada por risco de fraude — IA não responde`);
+      return;
+    }
+  }
+
+
   // Orientação do supervisor: o atendente pode instruir a IA MESMO que a última
   // mensagem do cliente já tenha sido respondida. Nesse caso o run não é "stale":
   // ele existe justamente para transmitir a orientação.
