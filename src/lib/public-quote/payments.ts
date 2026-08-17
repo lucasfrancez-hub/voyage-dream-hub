@@ -17,8 +17,10 @@ import { DEFAULT_EXTENDED_MARKUPS, buildExtendedQuotes, type MarkupTable } from 
 export const PIX_DISCOUNT_PERCENT = 5;
 /** Máximo de parcelas sem juros no cartão. */
 export const CARD_MAX_INSTALLMENTS = 10;
-/** Máximo de parcelas no boleto. */
+/** Máximo de parcelas no boleto financiado. */
 export const BOLETO_MAX_INSTALLMENTS = 10;
+/** Máximo de parcelas no boleto até a data da viagem (pode passar de 10). */
+export const BOLETO_ATE_VIAGEM_MAX_INSTALLMENTS = 12;
 /** Antecedência mínima (dias) da viagem para liberar boleto. */
 export const BOLETO_MIN_DAYS = 60;
 
