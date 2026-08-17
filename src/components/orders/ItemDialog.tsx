@@ -178,6 +178,8 @@ export function ItemDialog({
     [siblings, kind]
   );
 
+  const [moneyRaw, setMoneyRaw] = useState<Record<string, string>>({});
+
   useMemo(() => {
     setTitle(initial?.title ?? "");
     setLocator(initial?.supplier_locator ?? "");
@@ -185,6 +187,8 @@ export function ItemDialog({
     const d0 = cleanDetails(initial?.details);
     if (kind === "hotel" && !d0.guests && guestsFromPax) d0.guests = guestsFromPax;
     setDetails(d0);
+    setMoneyRaw({});
+
     preservedExtrasRef.current = extractExtras(initial?.details);
     preservedSiblingExtrasRef.current = kind === "flight"
       ? Object.fromEntries((siblings ?? []).filter((s) => s.id).map((s) => [s.id!, extractExtras(s.details)]))
@@ -225,7 +229,25 @@ export function ItemDialog({
     return s;
   };
   const setField = (k: string, v: string | boolean) => setDetails((p) => ({ ...p, [k]: v }));
-  const setMoneyField = (k: string, v: string) => setDetails((p) => ({ ...p, [k]: parseMoneyInput(v) }));
+  // Enquanto o usuário digita, preservamos exatamente o que ele escreveu (com vírgula/ponto).
+  // O valor normalizado só é gravado em `details`, e o texto cru some ao fechar/salvar.
+  const setMoneyField = (k: string, v: string) => {
+    const limpo = v.replace(/[^\d.,]/g, "");
+    setMoneyRaw((p) => ({ ...p, [k]: limpo }));
+    setDetails((p) => ({ ...p, [k]: parseMoneyInput(limpo) }));
+  };
+  const moneyValue = (k: string): string => {
+    const raw = moneyRaw[k];
+    if (raw !== undefined) return raw;
+    const v = String(details[k] ?? "");
+    return v ? v.replace(".", ",") : "";
+  };
+  const moneyProps = (k: string) => ({
+    inputMode: "decimal" as const,
+    value: moneyValue(k),
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setMoneyField(k, e.target.value),
+  });
+
   const setSegField = (idx: number, k: string, v: string | boolean) =>
     setExtraSegments((arr) => arr.map((s, i) => (i === idx ? { ...s, details: { ...s.details, [k]: v } } : s)));
   const addSegment = (direction: "outbound" | "return") =>
@@ -391,7 +413,9 @@ export function ItemDialog({
                 <Label>{kind === "hotel" ? "Nome do hotel" : "Serviço"}</Label>
                 {kind === "hotel" ? (
                   <HotelAutocomplete
+                    key={`hotel-${initial?.id ?? "novo"}-${open ? "on" : "off"}`}
                     value={title}
+
                     onChangeText={setTitle}
                     onSelect={(h: HotelSelection) => {
                       setDetails((p) => {
@@ -410,7 +434,9 @@ export function ItemDialog({
                         return next;
                       });
                     }}
+                    initialMode={initial?.title?.trim() ? "manual" : "live"}
                     placeholder="Ex: Copacabana Palace (busca no TripAdvisor)"
+
                   />
                 ) : (
                   <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Traslado, Passeio, Seguro viagem…" />
@@ -508,11 +534,11 @@ export function ItemDialog({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Valor total (R$)</Label>
-                <Input inputMode="decimal" value={String(details.value ?? "")} onChange={(e) => setMoneyField("value", e.target.value)} placeholder="11.406,30" />
+                <Input {...moneyProps("value")} placeholder="11.406,30" />
               </div>
               <div>
                 <Label>Taxas inclusas (R$)</Label>
-                <Input inputMode="decimal" value={String(details.tax_value ?? "")} onChange={(e) => setMoneyField("tax_value", e.target.value)} placeholder="0,00" />
+                <Input {...moneyProps("tax_value")} placeholder="0,00" />
                 <p className="mt-1 text-[10px] text-muted-foreground">As taxas já fazem parte do valor total.</p>
               </div>
             </div>
@@ -708,11 +734,11 @@ export function ItemDialog({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label>Valor total (R$)</Label>
-                  <Input inputMode="decimal" value={String(details.value ?? "")} onChange={(e) => setMoneyField("value", e.target.value)} placeholder="0,00" />
+                  <Input {...moneyProps("value")} placeholder="0,00" />
                 </div>
                 <div>
                   <Label>Taxa inclusa (R$)</Label>
-                  <Input inputMode="decimal" value={String(details.tax_value ?? "")} onChange={(e) => setMoneyField("tax_value", e.target.value)} placeholder="0,00" />
+                  <Input {...moneyProps("tax_value")} placeholder="0,00" />
                   <p className="mt-1 text-[10px] text-muted-foreground">Parte não comissionável.</p>
                 </div>
                 <div>
