@@ -154,16 +154,52 @@ function TesteCheckoutOwnerPage() {
     onError: (e: Error) => logErro(e.message),
   });
 
+  const TIMEOUT_MS = 120_000;
+  const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  /** Consulta em loop até a Owner consolidar (ou estourar 2 min). */
+  const aguardar = async (
+    pronto: (r: Awaited<ReturnType<typeof ownerConsultarCarrinho>>) => boolean,
+    rotulo: string,
+  ) => {
+    const inicio = Date.now();
+    let tentativa = 0;
+    for (;;) {
+      tentativa += 1;
+      const r = await consultar({ data: { cartId: cartId!, token: token! } });
+      setUltimaConsulta(r);
+      if (!r.call.ok) throw new Error(`HTTP ${r.call.status}${r.call.message ? ` · ${r.call.message}` : ""}`);
+      if (r.resumo?.cartExpired === true) throw new Error("carrinho EXPIRADO (cartExpired = true)");
+      if (pronto(r)) return r;
+      const restante = TIMEOUT_MS - (Date.now() - inicio);
+      if (restante <= 0) {
+        throw new Error(
+          `${rotulo} não consolidou em 2 minutos${r.resumo?.faltando.length ? ` · faltando: ${r.resumo.faltando.join(", ")}` : ""}`,
+        );
+      }
+      const segundos = Math.round((Date.now() - inicio) / 1000);
+      setStatus(
+        `${rotulo}... (tentativa ${tentativa} · ${segundos}s${r.resumo?.faltando.length ? ` · faltando: ${r.resumo.faltando.join(", ")}` : ""})`,
+      );
+      await espera(Math.min(4000, Math.max(3000, restante)));
+    }
+  };
+
   const carrinhoMut = useMutation({
-    mutationFn: () => consultar({ data: { cartId: cartId!, token: token! } }),
-    onSuccess: (r) => {
-      if (!r.call.ok) return logErro("Falha ao consultar carrinho", r.call);
-      addLog({ ok: true, texto: "carrinho consultado" });
-      if (r.resumo?.cartExpired === true) logErro("carrinho EXPIRADO (cartExpired = true)");
-      else addLog({ ok: true, texto: "carrinho válido" });
+    mutationFn: async () => {
+      setStatus("Aguardando consolidação do carrinho...");
+      return await aguardar((r) => r.carrinhoPronto, "Aguardando consolidação do carrinho");
     },
-    onError: (e: Error) => logErro(e.message),
+    onSuccess: () => {
+      setStatus("Carrinho pronto");
+      addLog({ ok: true, texto: "carrinho consolidado (trechos, preço e parcelamento)" });
+    },
+    onError: (e: Error) => {
+      setStatus(null);
+      logErro(`Carrinho não consolidado: ${e.message}`);
+    },
   });
+
 
   const gravarMut = useMutation({
     mutationFn: () => {
