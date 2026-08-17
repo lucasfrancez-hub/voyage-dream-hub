@@ -285,7 +285,6 @@ function QuoteDetailPage() {
   const tituloPublico =
     normalized?.headline?.trim() ||
     quoteHeadline({
-      type: quote?.total != null ? undefined : undefined,
       destination: quote?.destination ?? null,
       title: quote?.title ?? null,
       hasHotel: hoteis.length > 0,
