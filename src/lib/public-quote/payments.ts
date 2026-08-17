@@ -110,6 +110,8 @@ function isoMenosDias(startDate: string, dias: number): string | null {
 export function boletoAteViagem(total: number, startDate?: string | null) {
   const dias = diasAteViagem(startDate);
   if (!startDate || dias == null || total <= 0) return null;
+  // Antecedência mínima de 60 dias, igual ao boleto financiado.
+  if (dias < BOLETO_MIN_DAYS) return null;
   const prazo = dias - BOLETO_QUITACAO_DIAS_ANTES;
   if (prazo < 30) return null;
   const parcelas = Math.max(2, Math.min(BOLETO_MAX_INSTALLMENTS, Math.floor(prazo / 30) + 1));
