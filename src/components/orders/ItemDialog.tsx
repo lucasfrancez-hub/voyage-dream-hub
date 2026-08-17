@@ -3,7 +3,8 @@
  * a tela de Pedidos e a de Orçamentos — o formulário é exatamente o mesmo.
  */
 import { useState, useMemo, useRef } from "react";
-import { Star } from "lucide-react";
+import { Star, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
