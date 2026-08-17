@@ -142,6 +142,9 @@ export type CarrinhoResumo = {
   moeda: string | null;
   parcelas: string | null;
   voos: Array<{ trecho: string; data: string; cia: string; voo: string }>;
+  /** Prontidão para seguir no checkout. */
+  pronto: boolean;
+  faltando: string[];
 };
 
 function pick(obj: unknown, ...caminhos: string[]): unknown {
@@ -160,52 +163,161 @@ function pick(obj: unknown, ...caminhos: string[]): unknown {
   return undefined;
 }
 
-/** Resumo tolerante do carrinho — a API varia campos entre tipos de produto. */
+function arr(v: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(v) ? (v as Array<Record<string, unknown>>) : [];
+}
+
+const num = (v: unknown): number | null => {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (v == null || v === "") return null;
+  const n = Number(String(v).replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}\b)/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+};
+
+/** Resumo do carrinho Owner (data.flight / data.orderSummary). */
 export function resumirCarrinho(payload: unknown): CarrinhoResumo {
   const d = (pick(payload, "data") ?? payload) as Record<string, unknown>;
-  const itinerarios =
-    (pick(d, "itineraries", "flight.itineraries", "flights", "cartItems") as
-      | Array<Record<string, unknown>>
-      | undefined) ?? [];
+  const flight = (pick(d, "flight") ?? {}) as Record<string, unknown>;
+  const orderSummary = (pick(d, "orderSummary") ?? {}) as Record<string, unknown>;
+
+  const journeys = arr(
+    pick(flight, "journeys") ?? pick(d, "journeys", "itineraries", "flight.itineraries"),
+  );
 
   const voos: CarrinhoResumo["voos"] = [];
-  for (const it of itinerarios) {
-    const segmentos =
-      (pick(it, "segments", "flightSegments", "legs") as Array<Record<string, unknown>> | undefined) ??
-      [];
+  const datasPorJornada: string[] = [];
+  const pontas: Array<{ de: string; para: string }> = [];
+
+  for (const j of journeys) {
+    const segmentos = arr(pick(j, "segments", "flightSegments", "legs"));
+    let primeiroDe = "";
+    let ultimoPara = "";
+    let primeiraData = "";
     for (const s of segmentos) {
+      const de = String(
+        pick(
+          s,
+          "departureAirport.iata",
+          "departureAirport.code",
+          "departure.iata",
+          "departureIata",
+          "origin.iata",
+          "origin",
+          "from",
+        ) ?? "?",
+      );
+      const para = String(
+        pick(
+          s,
+          "arrivalAirport.iata",
+          "arrivalAirport.code",
+          "arrival.iata",
+          "arrivalIata",
+          "destination.iata",
+          "destination",
+          "to",
+        ) ?? "?",
+      );
+      const data = String(
+        pick(s, "departureDate", "departureDateTime", "departure.date", "departureAt") ?? "",
+      );
+      if (!primeiroDe) primeiroDe = de;
+      if (!primeiraData) primeiraData = data;
+      ultimoPara = para;
       voos.push({
-        trecho: `${String(pick(s, "departureAirport.iata", "departure.iata", "departureIata", "origin") ?? "?")} → ${String(
-          pick(s, "arrivalAirport.iata", "arrival.iata", "arrivalIata", "destination") ?? "?",
-        )}`,
-        data: String(pick(s, "departureDate", "departureDateTime", "departure.date") ?? ""),
-        cia: String(pick(s, "airline.name", "airlineName", "marketingAirline", "airline") ?? ""),
+        trecho: `${de} → ${para}`,
+        data,
+        cia: String(
+          pick(s, "airline.name", "airlineName", "marketingAirline.name", "marketingAirline", "airline") ??
+            "",
+        ),
         voo: String(pick(s, "flightNumber", "number", "flight") ?? ""),
       });
     }
+    if (!segmentos.length) {
+      primeiroDe = String(pick(j, "departureAirport.iata", "origin", "from") ?? "");
+      ultimoPara = String(pick(j, "arrivalAirport.iata", "destination", "to") ?? "");
+      primeiraData = String(pick(j, "departureDate", "departureDateTime") ?? "");
+      if (primeiroDe || ultimoPara) {
+        voos.push({ trecho: `${primeiroDe || "?"} → ${ultimoPara || "?"}`, data: primeiraData, cia: "", voo: "" });
+      }
+    }
+    datasPorJornada.push(primeiraData);
+    pontas.push({ de: primeiroDe, para: ultimoPara });
   }
 
-  const num = (v: unknown) => (typeof v === "number" ? v : v == null ? null : Number(v) || null);
+  // Passageiros: contagem por tipo (flight.passengers / orderSummary.passengers / quantidades)
+  const paxLista = arr(
+    pick(flight, "passengers") ?? pick(orderSummary, "passengers") ?? pick(d, "passengers"),
+  );
+  const contaTipo = (codigos: string[]) =>
+    paxLista.filter((p) => {
+      const t = String(
+        pick(p, "passengerTypeCode", "typeCode", "type", "passengerType") ?? "",
+      ).toUpperCase();
+      return codigos.includes(t);
+    }).length;
+
+  const adultos =
+    (paxLista.length ? contaTipo(["ADT", "ADULT", "1"]) : null) ??
+    num(pick(flight, "adults") ?? pick(d, "adults", "passengersQuantity.adults"));
+  const criancas =
+    (paxLista.length ? contaTipo(["CHD", "CNN", "CHILD", "2"]) : null) ??
+    num(pick(flight, "children") ?? pick(d, "children", "passengersQuantity.children"));
+  const bebes =
+    (paxLista.length ? contaTipo(["INF", "INFANT", "3"]) : null) ??
+    num(pick(flight, "infants") ?? pick(d, "infants", "passengersQuantity.infants"));
+
+  const price = (pick(flight, "price") ?? pick(d, "price") ?? {}) as Record<string, unknown>;
+  const total =
+    num(pick(price, "totalPrice", "total", "totalAmount", "amount")) ??
+    num(pick(orderSummary, "totalPrice", "total", "totalAmount"));
+
+  const installments = arr(pick(orderSummary, "installments") ?? pick(d, "installments"));
+  let parcelas: string | null = null;
+  if (installments.length) {
+    const melhor =
+      installments
+        .map((i) => ({
+          n: num(pick(i, "installmentNumber", "quantity", "number", "installments")) ?? 0,
+          v: num(pick(i, "installmentValue", "value", "amount", "installmentAmount")),
+          juros: Boolean(pick(i, "hasInterest", "interest")),
+        }))
+        .filter((i) => i.n > 0)
+        .sort((a, b) => b.n - a.n)[0] ?? null;
+    parcelas = melhor
+      ? `até ${melhor.n}x${melhor.v ? ` de ${melhor.v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""}${melhor.juros ? " (com juros)" : " sem juros"}`
+      : `${installments.length} opções`;
+  }
+
+  const cartExpired = (pick(d, "cartExpired", "expired") as boolean | undefined) ?? null;
+
+  const faltando: string[] = [];
+  if (cartExpired === true) faltando.push("carrinho expirado");
+  if (!journeys.length) faltando.push("trechos (journeys)");
+  if (!(total && total > 0)) faltando.push("preço total");
+  if (!installments.length) faltando.push("parcelamento");
 
   return {
     cartId: (pick(d, "cartId", "id") as string) ?? null,
-    cartExpired: (pick(d, "cartExpired", "expired") as boolean) ?? null,
+    cartExpired,
     cartType: (pick(d, "cartType", "type") as string) ?? null,
-    origem: voos[0]?.trecho.split(" → ")[0] ?? null,
-    destino: voos[0]?.trecho.split(" → ")[1] ?? null,
-    ida: voos[0]?.data ?? null,
-    volta: voos.length > 1 ? (voos[voos.length - 1]?.data ?? null) : null,
-    adultos: num(pick(d, "adults", "passengersQuantity.adults", "paxAdults")),
-    criancas: num(pick(d, "children", "passengersQuantity.children", "paxChildren")),
-    bebes: num(pick(d, "infants", "passengersQuantity.infants", "paxInfants")),
-    total: num(pick(d, "totalPrice", "price.total", "total", "amount")),
-    moeda: (pick(d, "currency", "currencyCode", "price.currency") as string) ?? null,
-    parcelas:
-      (pick(d, "installmentsDescription", "installments.description") as string) ??
-      (num(pick(d, "installments", "maxInstallments")) !== null
-        ? `até ${num(pick(d, "installments", "maxInstallments"))}x`
-        : null),
+    origem: pontas[0]?.de || null,
+    destino: pontas[0]?.para || null,
+    ida: datasPorJornada[0] || null,
+    volta: datasPorJornada.length > 1 ? (datasPorJornada[datasPorJornada.length - 1] || null) : null,
+    adultos,
+    criancas,
+    bebes,
+    total,
+    moeda:
+      (pick(price, "currency", "currencyCode") as string) ??
+      (pick(d, "currency", "currencyCode") as string) ??
+      "BRL",
+    parcelas,
     voos,
+    pronto: faltando.length === 0,
+    faltando,
   };
 }
 
@@ -214,12 +326,24 @@ export async function ownerGetCart(cartId: string, token: string) {
     method: "GET",
     token,
   });
+  const resumo = r.body ? resumirCarrinho(r.body) : null;
+  const paxOk = (() => {
+    const d = (pick(r.body, "data") ?? r.body) as Record<string, unknown> | null;
+    const lista = arr(pick(d ?? {}, "flight.passengers", "passengers", "orderSummary.passengers"));
+    return lista.length > 0 && lista.every((p) => Boolean(pick(p, "firstName", "name")));
+  })();
   return {
     call: r.call,
     payloadJson: r.raw ? r.raw.slice(0, 20_000) : "",
-    resumo: r.body ? resumirCarrinho(r.body) : null,
+    resumo,
+    /** Carrinho consolidado (trechos + preço + parcelamento, não expirado). */
+    carrinhoPronto: Boolean(resumo?.pronto),
+    /** Passageiros já persistidos na Owner — usado após o PUT. */
+    passageirosPersistidos: paxOk,
+    checkoutPronto: Boolean(resumo?.pronto) && paxOk,
   };
 }
+
 
 export type PassageiroOwner = {
   firstName: string;

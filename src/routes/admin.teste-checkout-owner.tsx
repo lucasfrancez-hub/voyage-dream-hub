@@ -70,6 +70,20 @@ const passageiroVazio = (): Passageiro => ({
 
 type LogItem = { ok: boolean; texto: string; detalhe?: string };
 
+function fmtData(v: string | null | undefined): string {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  const temHora = /\d{2}:\d{2}/.test(v);
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    ...(temHora ? { hour: "2-digit", minute: "2-digit" } : {}),
+  });
+}
+
+
 function LogLinha({ item }: { item: LogItem }) {
   return (
     <li className="flex flex-col gap-0.5 py-1">
@@ -98,6 +112,11 @@ function TesteCheckoutOwnerPage() {
   const [log, setLog] = useState<LogItem[]>([]);
   const [passageiros, setPassageiros] = useState<Passageiro[]>([passageiroVazio()]);
   const [checkout, setCheckout] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [ultimaConsulta, setUltimaConsulta] = useState<
+    Awaited<ReturnType<typeof ownerConsultarCarrinho>> | null
+  >(null);
+
 
   const addLog = (item: LogItem) => setLog((l) => [...l, item]);
   const logErro = (
@@ -149,21 +168,57 @@ function TesteCheckoutOwnerPage() {
     onError: (e: Error) => logErro(e.message),
   });
 
+  const TIMEOUT_MS = 120_000;
+  const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  /** Consulta em loop até a Owner consolidar (ou estourar 2 min). */
+  const aguardar = async (
+    pronto: (r: Awaited<ReturnType<typeof ownerConsultarCarrinho>>) => boolean,
+    rotulo: string,
+  ) => {
+    const inicio = Date.now();
+    let tentativa = 0;
+    for (;;) {
+      tentativa += 1;
+      const r = await consultar({ data: { cartId: cartId!, token: token! } });
+      setUltimaConsulta(r);
+      if (!r.call.ok) throw new Error(`HTTP ${r.call.status}${r.call.message ? ` · ${r.call.message}` : ""}`);
+      if (r.resumo?.cartExpired === true) throw new Error("carrinho EXPIRADO (cartExpired = true)");
+      if (pronto(r)) return r;
+      const restante = TIMEOUT_MS - (Date.now() - inicio);
+      if (restante <= 0) {
+        throw new Error(
+          `${rotulo} não consolidou em 2 minutos${r.resumo?.faltando.length ? ` · faltando: ${r.resumo.faltando.join(", ")}` : ""}`,
+        );
+      }
+      const segundos = Math.round((Date.now() - inicio) / 1000);
+      setStatus(
+        `${rotulo}... (tentativa ${tentativa} · ${segundos}s${r.resumo?.faltando.length ? ` · faltando: ${r.resumo.faltando.join(", ")}` : ""})`,
+      );
+      await espera(Math.min(4000, Math.max(3000, restante)));
+    }
+  };
+
   const carrinhoMut = useMutation({
-    mutationFn: () => consultar({ data: { cartId: cartId!, token: token! } }),
-    onSuccess: (r) => {
-      if (!r.call.ok) return logErro("Falha ao consultar carrinho", r.call);
-      addLog({ ok: true, texto: "carrinho consultado" });
-      if (r.resumo?.cartExpired === true) logErro("carrinho EXPIRADO (cartExpired = true)");
-      else addLog({ ok: true, texto: "carrinho válido" });
+    mutationFn: async () => {
+      setStatus("Aguardando consolidação do carrinho...");
+      return await aguardar((r) => r.carrinhoPronto, "Aguardando consolidação do carrinho");
     },
-    onError: (e: Error) => logErro(e.message),
+    onSuccess: () => {
+      setStatus("Carrinho pronto");
+      addLog({ ok: true, texto: "carrinho consolidado (trechos, preço e parcelamento)" });
+    },
+    onError: (e: Error) => {
+      setStatus(null);
+      logErro(`Carrinho não consolidado: ${e.message}`);
+    },
   });
 
+
   const gravarMut = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       addLog({ ok: true, texto: "passageiros enviados" });
-      return gravar({
+      const r = await gravar({
         data: {
           cartId: cartId!,
           token: token!,
@@ -186,20 +241,32 @@ function TesteCheckoutOwnerPage() {
           })),
         },
       });
+      if (!r.success) return { r, confirmado: false };
+      setStatus("Aguardando processamento dos passageiros...");
+      await aguardar((c) => c.checkoutPronto, "Aguardando processamento dos passageiros");
+      return { r, confirmado: true };
     },
-    onSuccess: (r) => {
-      if (r.success && r.checkoutUrl) {
-        addLog({ ok: true, texto: "passageiros gravados" });
-        setCheckout(r.checkoutUrl);
-        addLog({ ok: true, texto: "checkout final criado", detalhe: r.checkoutUrl });
-      } else {
-        logErro("Falha ao gravar passageiros", r.call);
+    onSuccess: ({ r, confirmado }) => {
+      if (!r.success || !r.checkoutUrl) {
+        setStatus(null);
+        return logErro("Falha ao gravar passageiros", r.call);
       }
+      addLog({ ok: true, texto: "passageiros gravados" });
+      if (confirmado) {
+        setStatus("Checkout pronto");
+        addLog({ ok: true, texto: "Owner confirmou passageiros — checkout pronto" });
+      }
+      setCheckout(r.checkoutUrl);
+      addLog({ ok: true, texto: "checkout final criado", detalhe: r.checkoutUrl });
     },
-    onError: (e: Error) => logErro(e.message),
+    onError: (e: Error) => {
+      setStatus(null);
+      logErro(e.message);
+    },
   });
 
-  const resumo = carrinhoMut.data?.resumo ?? null;
+  const resumo = ultimaConsulta?.resumo ?? carrinhoMut.data?.resumo ?? null;
+
   const podeConsultar = Boolean(cartId && token);
   const copiar = async (url: string) => {
     await navigator.clipboard.writeText(url);
@@ -293,6 +360,22 @@ function TesteCheckoutOwnerPage() {
             {carrinhoMut.isPending ? <Loader2 className="size-4 animate-spin" /> : "Consultar"}
           </Button>
         </div>
+        {status ? (
+          <div className="flex items-center gap-2 text-sm">
+            {carrinhoMut.isPending || gravarMut.isPending ? (
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            ) : null}
+            <span
+              className={
+                status === "Carrinho pronto" || status === "Checkout pronto"
+                  ? "text-emerald-600"
+                  : "text-muted-foreground"
+              }
+            >
+              {status}
+            </span>
+          </div>
+        ) : null}
         {resumo ? (
           <div className="grid gap-2 text-sm sm:grid-cols-2">
             <div>cartId: {resumo.cartId ?? "—"}</div>
@@ -306,29 +389,41 @@ function TesteCheckoutOwnerPage() {
               Trecho: {resumo.origem ?? "—"} → {resumo.destino ?? "—"}
             </div>
             <div>
-              Datas: {resumo.ida ?? "—"} {resumo.volta ? `· ${resumo.volta}` : ""}
+              Datas: {fmtData(resumo.ida)} {resumo.volta ? `· ${fmtData(resumo.volta)}` : ""}
             </div>
             <div>
-              Preço: {resumo.total ?? "—"} {resumo.moeda ?? ""}
+              Preço:{" "}
+              {resumo.total != null
+                ? resumo.total.toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: resumo.moeda === "USD" ? "USD" : "BRL",
+                  })
+                : "—"}
             </div>
             <div>Parcelamento: {resumo.parcelas ?? "—"}</div>
+            {resumo.faltando.length ? (
+              <div className="sm:col-span-2 text-amber-600">
+                Pendente na Owner: {resumo.faltando.join(", ")}
+              </div>
+            ) : null}
             <div className="sm:col-span-2 space-y-1">
               {resumo.voos.map((v, i) => (
                 <div key={i} className="text-muted-foreground">
-                  {v.trecho} · {v.data} · {v.cia} {v.voo}
+                  {v.trecho} · {fmtData(v.data)} · {v.cia} {v.voo}
                 </div>
               ))}
             </div>
           </div>
         ) : null}
-        {carrinhoMut.data ? (
+        {ultimaConsulta ? (
           <details className="text-xs">
             <summary className="cursor-pointer text-muted-foreground">Retorno bruto</summary>
             <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-2">
-              {carrinhoMut.data.payloadJson}
+              {ultimaConsulta.payloadJson}
             </pre>
           </details>
         ) : null}
+
       </section>
 
       {/* 5 e 6. Passageiros */}
@@ -436,9 +531,9 @@ function TesteCheckoutOwnerPage() {
               Payload enviado / resposta
             </summary>
             <pre className="mt-2 max-h-64 overflow-auto rounded bg-muted p-2">
-              {gravarMut.data.payloadEnviado}
+              {gravarMut.data.r.payloadEnviado}
               {"\n\n"}
-              {gravarMut.data.respostaJson}
+              {gravarMut.data.r.respostaJson}
             </pre>
           </details>
         ) : null}
