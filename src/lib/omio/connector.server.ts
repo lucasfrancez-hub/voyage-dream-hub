@@ -9,6 +9,8 @@
 import { ExpediaCdp, openRemoteBrowser, closeRemoteBrowser } from "@/lib/expedia/browser.server";
 import {
   OMIO_BASE,
+  acceptConsentScript,
+  submitRealFormScript,
   deepLinkResultsUrl,
   journeyPageUrl,
   pageFetchScript,
@@ -240,8 +242,18 @@ export async function omioBuscar(input: {
       };
     }
 
-    await cdp.evaluate<string>(submitSearchScript(params));
-    diag.push("Formulário de busca enviado (POST)");
+    const consentimento = await cdp.evaluate<string>(acceptConsentScript);
+    if (consentimento === "aceito") {
+      diag.push("Aviso de cookies aceito");
+      await sleep(2000);
+    }
+
+    let envio = await cdp.evaluate<string>(submitRealFormScript(params));
+    if (envio !== "submetido") {
+      await cdp.evaluate<string>(submitSearchScript(params));
+      envio = "fallback";
+    }
+    diag.push(`Formulário de busca enviado (POST · ${envio})`);
     let { searchId, url: urlResultados } = await aguardarSearchId(14);
 
     if (!searchId) {

@@ -51,9 +51,73 @@ export function pageFetchScript(url: string) {
 }
 
 /**
+ * O aviso de cookies da Omio (Usercentrics) vive dentro de um shadow DOM e
+ * bloqueia todos os cliques. Este script percorre os shadow roots e aceita.
+ */
+export const acceptConsentScript = `(() => {
+  try {
+    const clickIn = (root, depth) => {
+      if (depth > 6 || !root) return false;
+      for (const el of root.querySelectorAll("*")) {
+        if (/^(button|a)$/i.test(el.tagName) && /accept all|aceitar tudo|allow all/i.test(el.textContent || "")) {
+          el.click();
+          return true;
+        }
+        if (el.shadowRoot && clickIn(el.shadowRoot, depth + 1)) return true;
+      }
+      return false;
+    };
+    return clickIn(document, 0) ? "aceito" : "nenhum";
+  } catch (e) {
+    return "erro:" + String(e);
+  }
+})()`;
+
+/**
+ * Preenche o formulário REAL da home (que já carrega user_id, abTestParameters,
+ * srpQueryParams etc.) e o envia. Formulários sintéticos são rejeitados.
+ */
+export function submitRealFormScript(params: {
+  departureFk: string;
+  arrivalFk: string;
+  departureDate: string; // dd/mm/yyyy
+  passengerAges: number[];
+  currency: string;
+  locale: string;
+  travelMode: string;
+}) {
+  return `(() => {
+    const p = ${JSON.stringify(params)};
+    const dep = document.querySelector('input[name=departure_fk]');
+    if (!dep || !dep.form) return "sem-form";
+    const form = dep.form;
+    const set = (name, value) => {
+      let el = form.querySelector('[name="' + name + '"]');
+      if (!el) {
+        el = document.createElement("input");
+        el.type = "hidden";
+        el.name = name;
+        form.appendChild(el);
+      }
+      el.value = String(value);
+    };
+    set("departure_fk", p.departureFk);
+    set("arrival_fk", p.arrivalFk);
+    set("departure_date", p.departureDate);
+    set("travel_mode", p.travelMode);
+    set("user_currency", p.currency);
+    set("user_locale", p.locale);
+    p.passengerAges.forEach((age, i) => set("passengerages[" + i + "]", age));
+    form.submit();
+    return "submetido";
+  })()`;
+}
+
+/**
  * JS injetado na home: preenche o formulário real de disparo de busca
  * (POST via submit nativo — fetch é bloqueado com 503) e o envia.
  */
+
 export function submitSearchScript(params: {
   departureFk: string;
   arrivalFk: string;
