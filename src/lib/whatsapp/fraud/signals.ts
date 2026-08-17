@@ -80,7 +80,9 @@ export const SIGNAL_LABEL: Record<FraudSignalCode, string> = {
   REPEATED_PATTERN: "Padrão repetido em pedidos/conversas",
   EVASIVE_ANSWERS: "Respostas evasivas a perguntas objetivas",
   PASSENGER_SWAP: "Troca de passageiros sem contexto",
+  INTERNATIONAL_SHORT_STAY: "Permanência curta para um deslocamento internacional",
   AUTOMATED_TEXT_PATTERN: "Mensagens padronizadas / pouco naturais",
+
 };
 
 export const REDUCER_LABEL: Record<FraudReducerCode, string> = {
@@ -107,7 +109,10 @@ const SIGNAL_WEIGHT: Record<FraudSignalCode, number> = {
   REPEATED_PATTERN: 0.27,
   EVASIVE_ANSWERS: 0.2,
   PASSENGER_SWAP: 0.24,
+  // Duração é evidência contextual: peso baixo, nunca decide sozinha.
+  INTERNATIONAL_SHORT_STAY: 0.14,
   AUTOMATED_TEXT_PATTERN: 0.22,
+
 };
 
 const REDUCER_WEIGHT: Record<FraudReducerCode, number> = {
