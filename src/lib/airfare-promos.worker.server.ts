@@ -1482,7 +1482,9 @@ export async function finalizeCancelledRun(runId: string) {
 /** Descoberta parada por mais que isso é retomada pelo worker (heartbeat = 20s). */
 // checkpoint da descoberta acontece a cada origem/lote (~20-40s): sem sinal
 // por 60s a invocação morreu e outra pode retomar do último checkpoint.
-const DISCOVERY_STALE_MS = 60 * 1000;
+// O heartbeat da descoberta bate a cada 20s: 30s de silêncio já significa
+// invocação morta. Esperar 60s só atrasava a retomada.
+const DISCOVERY_STALE_MS = 30 * 1000;
 
 
 /**
