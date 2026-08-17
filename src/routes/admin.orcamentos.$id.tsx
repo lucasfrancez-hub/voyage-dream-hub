@@ -469,21 +469,40 @@ function QuoteDetailPage() {
       </div>
 
       {/* Opções comerciais */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div id="opcoes-orcamento" className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2.5">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Opções ({options.length})
+        </span>
         {options.map((o) => {
           const active = (option?.optionNumber ?? 0) === o.optionNumber;
           return (
-            <button
+            <span
               key={o.optionNumber}
-              type="button"
-              onClick={() => setOptionNumber(o.optionNumber)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              className={`inline-flex items-center rounded-full text-xs font-semibold transition ${
                 active ? "bg-brand-orange text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"
               }`}
             >
-              {o.label ?? `Opção ${o.optionNumber}`}
-              {o.total ? <span className="ml-2 tabular-nums">{formatBRL(Number(o.total))}</span> : null}
-            </button>
+              <button type="button" className="px-3 py-1.5" onClick={() => setOptionNumber(o.optionNumber)}>
+                {o.label ?? `Opção ${o.optionNumber}`}
+                {o.total ? <span className="ml-2 tabular-nums">{formatBRL(Number(o.total))}</span> : null}
+              </button>
+              {options.length > 1 && (
+                <button
+                  type="button"
+                  title="Excluir opção"
+                  className="pr-2.5 pl-0.5 opacity-70 hover:opacity-100"
+                  disabled={opcaoMutation.isPending}
+                  onClick={() =>
+                    confirmThen(
+                      `Remover a ${o.label ?? `opção ${o.optionNumber}`} e todos os seus itens?`,
+                      () => opcaoMutation.mutate({ acao: "remover", optionNumber: o.optionNumber }),
+                    )
+                  }
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </span>
           );
         })}
 
@@ -494,6 +513,7 @@ function QuoteDetailPage() {
         >
           <Plus className="h-3.5 w-3.5" /> Nova opção
         </Button>
+
 
         {option && (
           <>
