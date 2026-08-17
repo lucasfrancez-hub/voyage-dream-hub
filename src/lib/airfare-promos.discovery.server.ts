@@ -281,7 +281,14 @@ type DiscoverOptions = {
   /** gravação do checkpoint depois de cada origem/lote concluído */
   onCheckpoint?: (
     state: DiscoveryState,
-    progress: { originsDone: number; originsTotal: number; leads: number; stage: string },
+    progress: {
+      originsDone: number;
+      originsTotal: number;
+      leads: number;
+      stage: string;
+      datesDone?: number;
+      datesTotal?: number;
+    },
   ) => void | Promise<void>;
 };
 
@@ -304,7 +311,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     radarLeadsForOrigin,
     radarLeadsByCategory,
     radarOpportunitiesForLead,
-    mapLimit,
     resetRadarMetrics,
     radarSourceMetrics,
     RadarCancelledError,
