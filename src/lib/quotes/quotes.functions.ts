@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { displayAgentName } from "@/lib/public-quote/agents";
+
 
 /** Gera um token permanente para a extensão "Via Air Orçamentos". */
 export const gerarTokenExtensao = createServerFn({ method: "POST" })

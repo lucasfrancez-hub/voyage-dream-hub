@@ -16,7 +16,7 @@ import {
   type LegInputSegment,
 } from "@/lib/public-quote/flight-legs";
 import { normalizeServiceTitle } from "@/lib/public-quote/service-title";
-import { agentPhoto } from "@/lib/public-quote/agents";
+import { agentPhoto, displayAgentName } from "@/lib/public-quote/agents";
 import { formatRoom } from "@/lib/public-quote/room-label";
 import { collectBaggageText, parseBaggage } from "./baggage";
 
