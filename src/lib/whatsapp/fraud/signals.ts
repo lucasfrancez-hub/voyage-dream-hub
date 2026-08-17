@@ -12,6 +12,8 @@
  * os redutores multiplicam o risco para baixo.
  */
 
+import { assessTripDuration, type TripDurationContext } from "./trip-duration";
+
 export type FraudSignalCode =
   | "REQUEST_PRE_FORMATTED"
   | "OPERATIONAL_EXECUTION"
