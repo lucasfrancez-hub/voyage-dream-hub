@@ -1118,7 +1118,7 @@ function QuoteBody({
         </section>
 
         {quote.itinerary ? (
-          roteiro.length ? (
+          roteiro.length || (voosPrimeiro && legs.length) ? (
             <section className="vq-section" id="roteiro">
               <div className="vq-section-head">
                 <div>
@@ -1127,6 +1127,25 @@ function QuoteBody({
                 </div>
                 <span className="vq-tag">{roteiroDias.length} dia(s)</span>
               </div>
+              {voosPrimeiro && legs.length ? (
+                <div className="vq-roteiro-voos">
+                  <div className="vq-roteiro-head">
+                    <span className="vq-roteiro-num">
+                      <IconPlane />
+                    </span>
+                    <strong>Voos — ida e volta</strong>
+                  </div>
+                  <div className="vq-roteiro-itens">
+                    {legs.map((leg, i) => (
+                      <FlightLegCard
+                        key={`voo-${i}`}
+                        leg={leg}
+                        direction={direcaoLeg(leg, i, legs.length)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="vq-roteiro">
                 {roteiroDias.map((d, i) => (
                   <div className="vq-roteiro-dia" key={d.dia ?? `sem-data-${i}`}>
