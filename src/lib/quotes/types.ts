@@ -102,6 +102,8 @@ export type NormalizedQuote = {
   sourceCompanyCode?: string | null;
   sourceToken?: string | null;
   title?: string | null;
+  /** Título comercial exibido no orçamento público (editável no admin). */
+  headline?: string | null;
   agency?: string | null;
   agent?: string | null;
   client?: { name?: string | null; phone?: string | null; email?: string | null } | null;

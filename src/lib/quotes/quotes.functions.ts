@@ -193,6 +193,7 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
     const dto = buildPublicQuoteFromImported({
       normalized,
       title: quote.title,
+      headline: normalized.headline ?? null,
       clientName: quote.client_name,
       agentName: consultor,
 
