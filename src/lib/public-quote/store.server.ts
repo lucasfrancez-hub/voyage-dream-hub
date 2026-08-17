@@ -52,6 +52,8 @@ function toRow(q: NewPublicQuote, publicId: string) {
       nights: q.nights ?? null,
       tripKind: q.tripKind ?? null,
       cabin: q.cabin ?? null,
+      // Modo roteiro (ordem cronológica) precisa sobreviver ao snapshot público.
+      itinerary: q.itinerary === true || (q.options ?? []).some((o) => o.itinerary === true),
       options: q.options ?? null,
     } as unknown as Record<string, unknown>,
     valid_until: q.validUntil ?? null,
