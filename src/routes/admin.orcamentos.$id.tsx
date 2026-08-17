@@ -388,6 +388,18 @@ function QuoteDetailPage() {
                 <Copy className="h-4 w-4" /> Copiar link
               </Button>
             )}
+            <Button
+              variant="ghost" size="sm" className="gap-2"
+              disabled={opcaoMutation.isPending}
+              onClick={() => {
+                opcaoMutation.mutate({ acao: "criar" });
+                document.getElementById("opcoes-orcamento")?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+            >
+              {opcaoMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Mais opções
+            </Button>
+
             {quote.source_import_id && (
               <Button
                 variant="ghost" size="sm" className="gap-2"
