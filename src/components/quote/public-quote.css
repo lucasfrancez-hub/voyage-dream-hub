@@ -316,6 +316,9 @@
 .vq-no-interest { display: inline; font-size: 9px; color: var(--green); font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
 .vq-pix-box { border-radius: 14px; padding: 15px; background: #effaf5; border: 1px solid #d5ebdf; color: var(--green); display: flex; justify-content: space-between; align-items: center; font-weight: 900; }
 .vq-boleto-box { border-radius: 14px; padding: 15px; background: #f8fafc; border: 1px solid var(--line); }
+.vq-boleto-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: #145d9c; }
+.vq-boleto-ate { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.vq-boleto-note { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: #475569; }
 .vq-payment-note { margin-top: 10px; color: var(--muted); font-size: 10px; line-height: 1.4; }
 .vq-brands { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .vq-brand-btn { border: 1px solid var(--line); padding: 6px; border-radius: 12px; background: #fff; transition: .18s; cursor: pointer; }
