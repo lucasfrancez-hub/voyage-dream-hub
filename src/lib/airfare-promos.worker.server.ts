@@ -1142,6 +1142,31 @@ export async function processPendingCandidates(args: {
     }
   }, WATCHDOG_TICK_MS);
 
+  /**
+   * HEARTBEAT DO LEASE — enquanto o processo estiver vivo, cada candidata em
+   * voo tem o lease renovado no banco. Se a invocação morrer, os leases vencem
+   * e a próxima invocação recupera as candidatas (com attempts incrementado).
+   */
+  const heartbeatTimer = setInterval(() => {
+    void (async () => {
+      const jobs = [...emVoo.values()];
+      const validade = new Date(Date.now() + CANDIDATE_LEASE_MS).toISOString();
+      const agoraIso = new Date().toISOString();
+      for (const j of jobs) {
+        try {
+          await client
+            .from("airfare_promo_candidates")
+            .update({ heartbeat_at: agoraIso, lease_expires_at: validade })
+            .eq("id", j.cand.id)
+            .eq("status", "processing");
+        } catch {
+          /* best-effort */
+        }
+      }
+      orfaosAgora = await contarOrfaos(client, runId);
+    })();
+  }, HEARTBEAT_TICK_MS);
+
   // FILA GLOBAL: os workers competem pela mesma fila, sem esperar terminar uma
   // origem para começar outra. Terminou uma validação, começa a próxima.
   try {
@@ -1149,7 +1174,9 @@ export async function processPendingCandidates(args: {
   } finally {
     clearInterval(vigia);
     clearInterval(watchdog);
+    clearInterval(heartbeatTimer);
   }
+
 
   if (!cancelada) await progresso("", true);
 
