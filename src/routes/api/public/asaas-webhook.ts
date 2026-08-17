@@ -150,8 +150,28 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
               })
               .eq('id', cob.id)
           }
+          {
+            const { reportOrderPaymentToFraud } = await import(
+              '@/lib/whatsapp/fraud/payment-link.server'
+            )
+            await reportOrderPaymentToFraud({
+              order_id: cob.order_id,
+              meta: {
+                payment_status: event === 'PAYMENT_REFUNDED' ? 'estornado' : 'falhou',
+                payment_attempt_count: 1,
+                gateway_risk_result:
+                  event === 'PAYMENT_CHARGEBACK_REQUESTED' ? 'fraud' : 'review',
+
+              },
+              label:
+                event === 'PAYMENT_REFUNDED'
+                  ? 'Pagamento estornado no gateway'
+                  : 'Cobrança cancelada/vencida no gateway',
+            })
+          }
           return Response.json({ ok: true, event })
         }
+
 
         if (!paidEvents.includes(event)) {
           return Response.json({ ok: true, ignored: event })
@@ -256,7 +276,23 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
           console.error('[asaas-webhook] alerta WhatsApp falhou', err)
         }
 
+        {
+          const { reportOrderPaymentToFraud } = await import(
+            '@/lib/whatsapp/fraud/payment-link.server'
+          )
+          await reportOrderPaymentToFraud({
+            order_id: cob.order_id,
+            meta: {
+              payment_status: 'paid',
+              gateway_risk_result: 'approved',
+              payment_attempt_count: 1,
+            },
+            label: 'Pagamento Pix confirmado no gateway',
+          })
+        }
+
         return Response.json({ ok: true, event, paid: true })
+
       },
     },
   },
