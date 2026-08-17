@@ -76,6 +76,7 @@ import { findAirline, airlineLogo } from "@/lib/airlines";
 import { searchPeople, upsertPerson, listPersonCards, addPersonCard, revealPersonCardNumber, type PersonCardRow } from "@/lib/people.functions";
 import { Search, Save } from "lucide-react";
 import { CheckinPanel } from "@/components/checkin/CheckinPanel";
+import { ItemDialog } from "@/components/orders/ItemDialog";
 
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
@@ -2585,7 +2586,6 @@ function ServiceReservationCard({
 
 
 
-import { ItemDialog } from "@/components/orders/ItemDialog";
 }
 
 // =========== Contract ===========
