@@ -221,12 +221,15 @@ async function resolveLucasUserId(): Promise<string | null> {
  * TRANSFERÊNCIA SILENCIOSA. Nenhuma mensagem é enviada ao cliente.
  * A IA para de responder e o Lucas assume.
  */
-export async function enforceFraudTransfer(conversationId: string): Promise<boolean> {
+export async function enforceFraudTransfer(
+  conversationId: string,
+  meta?: { score?: number | null; reason?: string | null },
+): Promise<boolean> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const lucas = await resolveLucasUserId();
   const { data: atual } = await supabaseAdmin
     .from("wa_conversations")
-    .select("tags, fraud_transfer_at")
+    .select("tags, fraud_transfer_at, fraud_risk_score")
     .eq("id", conversationId)
     .maybeSingle();
   const tags = new Set<string>(((atual as { tags?: string[] } | null)?.tags ?? []) as string[]);
@@ -244,8 +247,14 @@ export async function enforceFraudTransfer(conversationId: string): Promise<bool
       tags: [...tags],
       fraud_transfer_required: true,
       fraud_transfer_at: (atual as { fraud_transfer_at?: string | null } | null)?.fraud_transfer_at ?? new Date().toISOString(),
+      fraud_score_at_transfer:
+        meta?.score ?? Number((atual as { fraud_risk_score?: number } | null)?.fraud_risk_score ?? 0),
+      fraud_transfer_reason: meta?.reason ?? "FRAUD_RISK",
+      // item 14: a análise CONTINUA viva depois que o humano assume
+      fraud_analysis_active: true,
     })
     .eq("id", conversationId);
+
   if (error) {
     console.error("[antifraude] falha na transferência silenciosa:", error.message);
     return false;
