@@ -354,9 +354,15 @@ export async function recoverOrphanClaims(
         : !l.claimed_at || l.claimed_at < legado;
       if (!leaseVenceu) continue;
 
-      const tentativas = Number(l.attempts ?? 0) + 1; // morte do worker CONTA como tentativa
+      // MORTE DE WORKER NÃO É FALHA DA CANDIDATA. A invocação da plataforma
+      // pode ser encerrada a qualquer momento; se isso consumisse `attempts`,
+      // três kills seguidos zeravam a fila inteira sem UMA ÚNICA consulta ao
+      // motor (foi exatamente o travamento observado). Agora a morte só conta
+      // em `dead_workers`, com limite próprio e bem mais alto.
+      const tentativas = Number(l.attempts ?? 0); // preservado: não é tentativa real
       const mortes = Number(l.dead_workers ?? 0) + 1;
       const motivo = `worker_morto:lease_expirado (invocação anterior encerrada sem finalizar)`;
+
 
       if (tentativas < maxAttempts) {
         await client
