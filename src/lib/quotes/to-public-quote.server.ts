@@ -242,7 +242,11 @@ function mergeConnectedLegs(legs: FlightLeg[]): FlightLeg[] {
       const a = parseStamp(prevLast.arrival);
       const b = parseStamp(first.departure);
       const espera = a != null && b != null ? (b - a) / 60000 : null;
-      const esperaOk = espera == null ? false : espera >= 0 && espera <= MAX_CONNECTION_HOURS * 60;
+      // Mesma direção (ex.: dois trechos marcados como IDA na mesma reserva)
+      // continua sendo UM voo mesmo quando a conexão vira o dia — até 36h.
+      const mesmaDirecao = !!prev.direction && prev.direction === leg.direction;
+      const limiteHoras = mesmaDirecao ? 36 : MAX_CONNECTION_HOURS;
+      const esperaOk = espera == null ? false : espera >= 0 && espera <= limiteHoras * 60;
       if (conecta && esperaOk) {
         const segments = [...prev.segments, ...leg.segments];
         const ultimo = segments[segments.length - 1]!;
