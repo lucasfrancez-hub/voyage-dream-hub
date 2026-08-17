@@ -1024,7 +1024,20 @@ function PromocoesAereoPage() {
       requeued?: number;
       avg_duration_ms?: number | null;
       p95_duration_ms?: number | null;
+      failures?: Array<{
+        origin: string;
+        destination: string;
+        scope?: string;
+        motive?: string;
+        motive_label?: string;
+        step?: string;
+        message?: string;
+        duration_ms?: number;
+        attempts?: number;
+        timeout?: boolean;
+      }>;
     } | null;
+
     last_label: string | null;
     started_at: string;
     finished_at: string | null;
