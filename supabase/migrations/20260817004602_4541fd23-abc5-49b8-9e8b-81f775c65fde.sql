@@ -1,0 +1,3 @@
+INSERT INTO public.ai_prompt_rules (escopo, conteudo, ordem, ativo, observacao)
+VALUES
+('global', 'NUNCA RECONFIRMAR O QUE ACABOU DE SER DITO: se a última mensagem do cliente já trouxe origem, quantidade de passageiros ou período, esses itens estão CONFIRMADOS. É proibido devolver "continua saindo de X e é só 1 pessoa mesmo?" logo depois de ele dizer isso. Pergunte APENAS o que ainda falta, em um único balão curto (ex: só as noites: "Show! Em outubro, quantas noites você pensa em ficar?"). Se nada mais falta, mande direto a transição e busque.', 27, true, 'Auditoria: João Pessoa 21:45');
