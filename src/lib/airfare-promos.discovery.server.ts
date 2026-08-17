@@ -352,6 +352,13 @@ const SLICE_MIN_MS = 10_000;
 const BATCH_MIN_MS = 10_000;
 /** Mesmo prazo usado pelo diagnóstico isolado, agora também no fluxo real. */
 const ORIGIN_SLICE_MAX_MS = 25_000;
+/**
+ * Fatia mínima para que a origem seja de fato consultada (timeout de rede de
+ * 12s + folga). Abaixo disso a origem é adiada SEM gastar tentativa.
+ */
+const ORIGIN_ATTEMPT_MIN_MS = 14_000;
+/** Tentativas reais (com fatia viável) antes de marcar a origem como timeout. */
+const MAX_ORIGIN_ATTEMPTS = 3;
 
 /**
  * Descoberta 100% via API JSON do Melhores Destinos (radar).
