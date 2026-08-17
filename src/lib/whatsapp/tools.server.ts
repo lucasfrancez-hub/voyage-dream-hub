@@ -469,7 +469,27 @@ export function buildCamilaTools(conversation: WaConversation) {
           }
         }
 
-        const qtd = quantidade_adultos && quantidade_adultos > 0 ? quantidade_adultos : (pkg.base_occupancy ?? 2);
+        // Passageiros: nunca cair no padrão do pacote sem o cliente ter dito.
+        if (quantidade_adultos == null || quantidade_adultos <= 0) {
+          return {
+            bloqueado: true,
+            motivo: "pax_nao_informado",
+            instrucao:
+              "NÃO envie o folder. Você não passou a quantidade de passageiros que ESTE cliente informou. Nunca use o padrão do pacote (2 adultos). Releia a conversa e chame de novo com quantidade_adultos correto; se ele ainda não disse, pergunte em um balão curto.",
+          };
+        }
+        const ocupBase = Number((pkg as any).base_occupancy ?? 2);
+        if (quantidade_adultos === 1 && ocupBase >= 2) {
+          return {
+            bloqueado: true,
+            motivo: "ocupacao_individual",
+            ocupacao_base: ocupBase,
+            instrucao:
+              "NÃO envie este folder. O preço deste pacote é por pessoa em apartamento duplo e o cliente vai viajar sozinho. Explique em um balão curto que para 1 pessoa o valor muda por causa do quarto individual, e diga que vai levantar o valor exato com o Comercial. Nunca mostre o valor de 2 adultos para quem viaja sozinho.",
+          };
+        }
+        const qtd = quantidade_adultos;
+
 
         const priceP = Number(pkg.price_per_person) || 0;
         const total = priceP * qtd;
