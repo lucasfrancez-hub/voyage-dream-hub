@@ -67,6 +67,7 @@ import { Route as AdminRecebimentosRouteImport } from './routes/admin.recebiment
 import { Route as AdminRedesSociaisRouteImport } from './routes/admin.redes-sociais'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminSegurosRouteImport } from './routes/admin.seguros'
+import { Route as AdminTesteCheckoutOwnerRouteImport } from './routes/admin.teste-checkout-owner'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminVoosTesteRouteImport } from './routes/admin.voos-teste'
 import { Route as AgendaTokenRouteImport } from './routes/agenda.$token'
@@ -452,6 +453,11 @@ const AdminSegurancaRoute = AdminSegurancaRouteImport.update({
 const AdminSegurosRoute = AdminSegurosRouteImport.update({
   id: '/seguros',
   path: '/seguros',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTesteCheckoutOwnerRoute = AdminTesteCheckoutOwnerRouteImport.update({
+  id: '/teste-checkout-owner',
+  path: '/teste-checkout-owner',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
@@ -1029,6 +1035,7 @@ export interface FileRoutesByFullPath {
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
+  '/admin/teste-checkout-owner': typeof AdminTesteCheckoutOwnerRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
@@ -1183,6 +1190,7 @@ export interface FileRoutesByTo {
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
+  '/admin/teste-checkout-owner': typeof AdminTesteCheckoutOwnerRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
@@ -1340,6 +1348,7 @@ export interface FileRoutesById {
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
+  '/admin/teste-checkout-owner': typeof AdminTesteCheckoutOwnerRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
   '/agenda/$token': typeof AgendaTokenRoute
@@ -1498,6 +1507,7 @@ export interface FileRouteTypes {
     | '/admin/redes-sociais'
     | '/admin/seguranca'
     | '/admin/seguros'
+    | '/admin/teste-checkout-owner'
     | '/admin/usuarios'
     | '/admin/voos-teste'
     | '/agenda/$token'
@@ -1652,6 +1662,7 @@ export interface FileRouteTypes {
     | '/admin/redes-sociais'
     | '/admin/seguranca'
     | '/admin/seguros'
+    | '/admin/teste-checkout-owner'
     | '/admin/usuarios'
     | '/admin/voos-teste'
     | '/agenda/$token'
@@ -1808,6 +1819,7 @@ export interface FileRouteTypes {
     | '/admin/redes-sociais'
     | '/admin/seguranca'
     | '/admin/seguros'
+    | '/admin/teste-checkout-owner'
     | '/admin/usuarios'
     | '/admin/voos-teste'
     | '/agenda/$token'
@@ -2401,6 +2413,13 @@ declare module '@tanstack/react-router' {
       path: '/seguros'
       fullPath: '/admin/seguros'
       preLoaderRoute: typeof AdminSegurosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/teste-checkout-owner': {
+      id: '/admin/teste-checkout-owner'
+      path: '/teste-checkout-owner'
+      fullPath: '/admin/teste-checkout-owner'
+      preLoaderRoute: typeof AdminTesteCheckoutOwnerRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/usuarios': {
@@ -3127,6 +3146,7 @@ interface AdminRouteChildren {
   AdminRedesSociaisRoute: typeof AdminRedesSociaisRoute
   AdminSegurancaRoute: typeof AdminSegurancaRoute
   AdminSegurosRoute: typeof AdminSegurosRoute
+  AdminTesteCheckoutOwnerRoute: typeof AdminTesteCheckoutOwnerRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminVoosTesteRoute: typeof AdminVoosTesteRoute
   AdminAppTokenRoute: typeof AdminAppTokenRoute
@@ -3176,6 +3196,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRedesSociaisRoute: AdminRedesSociaisRoute,
   AdminSegurancaRoute: AdminSegurancaRoute,
   AdminSegurosRoute: AdminSegurosRoute,
+  AdminTesteCheckoutOwnerRoute: AdminTesteCheckoutOwnerRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminVoosTesteRoute: AdminVoosTesteRoute,
   AdminAppTokenRoute: AdminAppTokenRoute,

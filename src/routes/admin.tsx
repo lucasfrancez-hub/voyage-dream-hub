@@ -554,6 +554,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     pathname.startsWith("/admin/metricas") ||
     pathname.startsWith("/admin/checkin-treino") ||
     pathname.startsWith("/admin/expedia") ||
+    pathname.startsWith("/admin/teste-checkout-owner") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
   return (
