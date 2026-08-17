@@ -440,7 +440,7 @@ export async function processPendingCandidates(args: {
   runId: string;
   budgetMs?: number;
   concurrency?: number;
-}): Promise<{ processed: number; remaining: number; finished: boolean }> {
+}): Promise<{ processed: number; remaining: number; finished: boolean; diag?: string | null }> {
   const client = await db();
   const { promoValidationConcurrency, PROMO_VALIDATION_MAX_ATTEMPTS } = await import(
     "@/lib/airfare-promos.config"
@@ -1387,7 +1387,7 @@ export async function processPendingCandidates(args: {
   const remaining = Number(pendentes ?? 0);
   if (remaining > 0) {
     await touch({ phase: "validando", origin_metrics: metricasSnapshot() });
-    return { processed: processadasAgora, remaining, finished: false };
+    return { processed: processadasAgora, remaining, finished: false, diag: diagnosticoClaim };
   }
 
   await finalizePromoRun(runId, { counters, origin_metrics: metricasSnapshot() });
