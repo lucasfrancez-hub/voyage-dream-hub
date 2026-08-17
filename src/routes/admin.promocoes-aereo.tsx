@@ -1364,32 +1364,67 @@ function PromocoesAereoPage() {
                       {m.avg_seconds != null ? `${m.avg_seconds}s/oportunidade` : "—"}
                     </span>
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground">
-                    <span>Radar: {m.discovered}</span>
-                    <span>Elegíveis: {m.eligible ?? "—"}</span>
-                    {m.excluded ? <span>Excluídas: {m.excluded}</span> : null}
-                    <span className="font-bold text-foreground">
-                      Selecionadas: {m.selected}
-                    </span>
-                    <span>Nac.: {m.selected_nacional ?? 0}</span>
-                    <span>Int.: {m.selected_internacional ?? 0}</span>
-                    <span>Validadas: {m.validated}</span>
-                    <span>Com tarifa: {m.with_price}</span>
-                    <span>Sem tarifa: {m.no_result}</span>
-                    {m.errors ? <span className="text-destructive">Erros: {m.errors}</span> : null}
-                  </div>
-                  {m.radar_status && m.radar_status !== "ok" ? (
-                    <p className="mt-1 text-[10px] text-amber-600 dark:text-amber-400">
-                      {m.radar_status === "sem_tempo"
-                        ? "Não varrida: tempo do radar esgotado"
-                        : m.radar_status === "erro_radar"
-                          ? "Falha no radar"
-                          : m.radar_status === "nao_processada"
-                            ? "Não processada nesta execução"
-                            : "Radar sem oportunidades"}
-                      {m.radar_note ? ` — ${m.radar_note}` : ""}
-                    </p>
-                  ) : null}
+                  {(() => {
+                    const status = m.radar_status ?? "com_oportunidades";
+                    // Origem não pesquisada: nunca exibir contadores zerados
+                    // como se o radar tivesse respondido sem tarifas.
+                    const naoPesquisada =
+                      status === "timeout_radar" ||
+                      status === "sem_tempo" ||
+                      status === "nao_processada" ||
+                      status === "erro_radar";
+                    const rotulo =
+                      status === "timeout_radar"
+                        ? "Sem resposta do radar (timeout) — origem não pesquisada"
+                        : status === "sem_tempo"
+                          ? "Não varrida: tempo do radar esgotado"
+                          : status === "erro_radar"
+                            ? "Falha técnica no radar — origem não pesquisada"
+                            : status === "nao_processada"
+                              ? "Não processada nesta execução"
+                              : status === "sem_oportunidades"
+                                ? "Radar respondeu sem oportunidades"
+                                : null;
+                    return (
+                      <>
+                        <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground">
+                          <span>Radar: {naoPesquisada ? "—" : m.discovered}</span>
+                          <span>Elegíveis: {naoPesquisada ? "—" : (m.eligible ?? "—")}</span>
+                          {!naoPesquisada && m.excluded ? (
+                            <span>Excluídas: {m.excluded}</span>
+                          ) : null}
+                          <span className="font-bold text-foreground">
+                            Selecionadas: {naoPesquisada ? "—" : m.selected}
+                          </span>
+                          {!naoPesquisada ? (
+                            <>
+                              <span>Nac.: {m.selected_nacional ?? 0}</span>
+                              <span>Int.: {m.selected_internacional ?? 0}</span>
+                              <span>Validadas: {m.validated}</span>
+                              <span>Com tarifa: {m.with_price}</span>
+                              <span>Sem tarifa: {m.no_result}</span>
+                            </>
+                          ) : null}
+                          {m.errors ? (
+                            <span className="text-destructive">Erros: {m.errors}</span>
+                          ) : null}
+                        </div>
+                        {rotulo ? (
+                          <p
+                            className={`mt-1 text-[10px] ${
+                              status === "timeout_radar" || status === "erro_radar"
+                                ? "text-destructive"
+                                : "text-amber-600 dark:text-amber-400"
+                            }`}
+                          >
+                            {rotulo}
+                            {m.radar_note ? ` — ${m.radar_note}` : ""}
+                          </p>
+                        ) : null}
+                      </>
+                    );
+                  })()}
+
 
 
                 </div>

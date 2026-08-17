@@ -352,6 +352,13 @@ const SLICE_MIN_MS = 10_000;
 const BATCH_MIN_MS = 10_000;
 /** Mesmo prazo usado pelo diagnóstico isolado, agora também no fluxo real. */
 const ORIGIN_SLICE_MAX_MS = 25_000;
+/**
+ * Fatia mínima para que a origem seja de fato consultada (timeout de rede de
+ * 12s + folga). Abaixo disso a origem é adiada SEM gastar tentativa.
+ */
+const ORIGIN_ATTEMPT_MIN_MS = 14_000;
+/** Tentativas reais (com fatia viável) antes de marcar a origem como timeout. */
+const MAX_ORIGIN_ATTEMPTS = 3;
 
 /**
  * Descoberta 100% via API JSON do Melhores Destinos (radar).
@@ -556,14 +563,27 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     const deadlineOrigem = Math.min(leadsDeadline, Date.now() + fatia);
     progresso(`Radar de oportunidades — ${origem} (${indiceOrigem}/${totalOrigens})...`);
 
-    // Origem que já derrubou a invocação duas vezes não pode travar a fila:
-    // fica registrada como timeout e a descoberta segue para a próxima.
+    // Fatia menor que uma tentativa de rede viável (timeout de 12s + folga)
+    // NÃO conta como tentativa: seria abandonar a origem por falta de tempo,
+    // não por falha do radar. Ela volta para a fila da próxima invocação.
+    if (fatia < ORIGIN_ATTEMPT_MIN_MS) {
+      statusOrigem.set(origem, {
+        status: "sem_tempo",
+        note: "fatia curta demais para consultar o radar — será varrida na retomada",
+      });
+      await gravarCheckpoint("leads");
+      continue;
+    }
+
+    // Origem que já derrubou a invocação N vezes não pode travar a fila:
+    // fica registrada como TIMEOUT (nunca como "sem oportunidades") e a
+    // descoberta segue para a próxima.
     const tentativas = (originAttempts.get(origem) ?? 0) + 1;
     originAttempts.set(origem, tentativas);
-    if (tentativas > 2) {
+    if (tentativas > MAX_ORIGIN_ATTEMPTS) {
       statusOrigem.set(origem, {
-        status: "timeout",
-        note: "radar não respondeu dentro do prazo em 2 tentativas",
+        status: "timeout_radar",
+        note: `radar não respondeu dentro do prazo em ${MAX_ORIGIN_ATTEMPTS} tentativas — origem não foi pesquisada`,
       });
       originsDone.add(origem);
       await gravarCheckpoint("leads");
@@ -572,6 +592,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     // A tentativa vira checkpoint ANTES da chamada: se a invocação morrer no
     // meio, a próxima sabe que esta origem já foi tentada.
     await gravarCheckpoint("leads");
+
 
     const escoposDaOrigem = (["nacional", "internacional"] as const).filter((s) =>
       isOriginAllowedForScope(origem, s),
@@ -610,10 +631,11 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       }
       const encontradas = pool.get(origem)?.size ?? 0;
       statusOrigem.set(origem, {
-        status: encontradas ? "ok" : "sem_oportunidades",
+        // Só aqui existe resposta real do radar: com ou sem resultados.
+        status: encontradas ? "com_oportunidades" : "sem_oportunidades",
         note: encontradas
           ? null
-          : `radar respondeu com ${leads.length} lead(s) aproveitável(is) para esta origem`,
+          : `radar respondeu normalmente com ${leads.length} lead(s) aproveitável(is) para esta origem`,
       });
     } catch (e) {
       if (e instanceof RadarCancelledError) {
@@ -623,14 +645,15 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       }
       if (e instanceof RadarDeadlineError) {
         // Estourar a fatia NÃO encerra a origem: ela volta para a fila e é
-        // varrida na próxima invocação (até o limite de 2 tentativas).
+        // varrida na próxima invocação (até o limite de tentativas).
         statusOrigem.set(origem, {
-          status: "sem_tempo",
-          note: `prazo da fatia esgotado (tentativa ${tentativas}/2) — será varrida na retomada`,
+          status: "timeout_radar",
+          note: `radar não respondeu dentro do prazo (tentativa ${tentativas}/${MAX_ORIGIN_ATTEMPTS}) — será varrida na retomada`,
         });
         await gravarCheckpoint("leads");
         continue;
       }
+
 
       radarErrors++;
       const msg = e instanceof Error ? e.message.slice(0, 200) : String(e).slice(0, 200);
@@ -700,7 +723,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         no_result: 0,
         errors: 0,
         avg_seconds: null,
-        radar_status: statusOrigem.get(o)?.status ?? "sem_oportunidades",
+        radar_status: statusOrigem.get(o)?.status ?? "nao_processada",
         radar_note: statusOrigem.get(o)?.note ?? null,
       })),
 
@@ -789,7 +812,8 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         no_result: 0,
         errors: 0,
         avg_seconds: null,
-        radar_status: st?.status ?? (lista.length ? "ok" : "sem_oportunidades"),
+        radar_status:
+          st?.status ?? (lista.length ? "com_oportunidades" : "nao_processada"),
         radar_note: st?.note ?? null,
       });
     }
