@@ -1169,40 +1169,65 @@ function PromocoesAereoPage() {
           </p>
 
           {/* HEARTBEAT: o que cada worker está validando NESTE momento */}
-          {info.validation_metrics?.in_flight?.length ? (
+          {info.validation_metrics ? (
             (() => {
-              const limite = info.validation_metrics.candidate_timeout_ms ?? 100_000;
-              const jobs = info.validation_metrics.in_flight;
+              const vm = info.validation_metrics;
+              const limite = vm.candidate_timeout_ms ?? 100_000;
+              const jobs = vm.in_flight ?? [];
+              const idadeSnapshot = vm.updated_at
+                ? Date.now() - new Date(vm.updated_at).getTime()
+                : Number.POSITIVE_INFINITY;
+              // Sem heartbeat recente, NADA é "validação ativa": é claim órfão.
+              const heartbeatVivo = idadeSnapshot < 90_000;
               const travados = jobs.filter((j) => j.elapsed_ms > limite);
+              const orfaos = vm.orphans ?? 0;
+              if (!jobs.length && !orfaos && !(vm.recovered ?? 0)) return null;
               return (
                 <div className="mt-2 rounded-xl border border-border/60 bg-card/60 px-3 py-2">
-                  <p className="text-[11px] font-bold text-foreground">Em processamento agora</p>
-                  <ul className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
-                    {jobs.map((j) => (
-                      <li key={`${j.worker_id}-${j.opportunity_id}`} className="flex flex-wrap gap-x-2">
-                        <span className="font-medium text-foreground">
-                          #{j.worker_id} {j.origin}→{j.destination}
-                        </span>
-                        <span>{Math.round(j.elapsed_ms / 1000)}s</span>
-                        <span>tentativa {j.attempt}</span>
-                        {j.status === "ABORTING" ? (
-                          <span className="text-destructive">liberando (timeout)</span>
-                        ) : j.elapsed_ms > limite ? (
-                          <span className="text-destructive">acima do limite</span>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                  {travados.length ? (
+                  <p className="text-[11px] font-bold text-foreground">
+                    {heartbeatVivo ? "Em processamento agora" : "Sem heartbeat vivo"}
+                  </p>
+                  {heartbeatVivo && jobs.length ? (
+                    <ul className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                      {jobs.map((j) => (
+                        <li key={`${j.worker_id}-${j.opportunity_id}`} className="flex flex-wrap gap-x-2">
+                          <span className="font-medium text-foreground">
+                            #{j.worker_id} {j.origin}→{j.destination}
+                          </span>
+                          <span>{Math.round(j.elapsed_ms / 1000)}s</span>
+                          <span>tentativa {j.attempt}</span>
+                          {j.status === "ABORTING" ? (
+                            <span className="text-destructive">liberando (timeout)</span>
+                          ) : j.elapsed_ms > limite ? (
+                            <span className="text-destructive">acima do limite</span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : jobs.length ? (
+                    <p className="mt-1 text-[11px] text-amber-600">
+                      {jobs.length} reserva(s) sem sinal de vida há{" "}
+                      {Math.round(idadeSnapshot / 1000)}s — órfãs, aguardando recuperação na
+                      próxima execução (não são validações ativas).
+                    </p>
+                  ) : null}
+                  {heartbeatVivo && travados.length ? (
                     <p className="mt-1 text-[11px] font-bold text-destructive">
                       ⚠ Validação travada detectada — {travados.length} rota(s) acima do tempo
                       limite; o watchdog está liberando os workers.
                     </p>
                   ) : null}
+                  <p className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-muted-foreground">
+                    <span>Órfãs aguardando recuperação: {orfaos}</span>
+                    <span>Leases recuperados: {vm.recovered ?? 0}</span>
+                    <span>Encerradas por morte de worker: {vm.dead_worker_failures ?? 0}</span>
+                    <span>Claims recusados por orçamento: {vm.claims_skipped_budget ?? 0}</span>
+                  </p>
                 </div>
               );
             })()
           ) : null}
+
 
 
 
