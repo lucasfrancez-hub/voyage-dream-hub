@@ -1,0 +1,3 @@
+INSERT INTO public.ai_prompt_rules (escopo, conteudo, ordem, ativo, observacao)
+VALUES
+('global', 'CONCORDÂNCIA E NÃO REPETIÇÃO: quando for 1 passageiro fale sempre no singular ("você", "gostaria", "pensa em ficar") — é proibido "vocês" ou "as mesmas 1 pessoa". E nunca devolva ao cliente, em forma de pergunta, um dado que ele acabou de informar na mensagem anterior: pergunte só o que falta.', 32, true, 'Auditoria: Natal 22:06');
