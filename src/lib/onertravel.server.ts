@@ -125,6 +125,59 @@ function buildFilter(f: OnerOperatorFilters) {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Espera cancelável: um abort libera na hora, sem segurar o worker. */
+function sleepCancelavel(ms: number, signal?: AbortSignal) {
+  if (!signal) return sleep(ms);
+  return new Promise<void>((resolve) => {
+    const t = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    function onAbort() {
+      clearTimeout(t);
+      resolve();
+    }
+    if (signal.aborted) return onAbort();
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/** Timeout padrão de UMA requisição HTTP ao motor (nunca fica pendurada). */
+const FETCH_TIMEOUT_MS = Number(process.env["ONER_FETCH_TIMEOUT_MS"] ?? 20_000);
+
+/**
+ * fetch com CANCELAMENTO REAL: aborta por timeout próprio e também quando o
+ * chamador aborta. Sem isso uma requisição pendurada no fornecedor continuava
+ * viva depois do timeout do worker, consumindo conexões e travando a fila.
+ */
+async function fetchMotor(
+  url: string,
+  init: RequestInit,
+  signal?: AbortSignal,
+  timeoutMs = FETCH_TIMEOUT_MS,
+): Promise<Response> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(new Error(`timeout:http:${timeoutMs}ms`)), timeoutMs);
+  const onAbort = () => ctrl.abort(new Error("cancelado:motor"));
+  if (signal) {
+    if (signal.aborted) {
+      clearTimeout(t);
+      throw new Error("cancelado:motor");
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+  }
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } catch (e) {
+    if (signal?.aborted) throw new Error("cancelado:motor");
+    if (ctrl.signal.aborted) throw new Error(`timeout:http:${timeoutMs}ms`);
+    throw e;
+  } finally {
+    clearTimeout(t);
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+
 export type PollSpeed = "normal" | "fast";
 
 async function poll(
@@ -133,7 +186,9 @@ async function poll(
   body: Record<string, unknown>,
   maxRounds = 30,
   speed: PollSpeed = "normal",
+  signal?: AbortSignal,
 ): Promise<OnerLegResult> {
+
   const acc = new Map<string, OnerFlight>();
   // Todas as tarifas vistas para o MESMO voo (mesma assinatura). A operadora
   // combina ida+volta por tarifa/fornecedor: a mais barata às vezes não tem
@@ -158,16 +213,21 @@ async function poll(
   let roundsWithFlights = 0;
 
   for (let i = 0; i < maxRounds; i++) {
+    if (signal?.aborted) throw new Error("cancelado:motor");
 
     let changed = false;
     let haveMore = false;
     let page = 1;
     do {
-      const res = await fetch(`${SERVERLESS}/api/flight/v1/search/${path}`, {
-        method: "POST",
-        headers: headers(loc),
-        body: JSON.stringify({ ...body, page }),
-      });
+      const res = await fetchMotor(
+        `${SERVERLESS}/api/flight/v1/search/${path}`,
+        {
+          method: "POST",
+          headers: headers(loc),
+          body: JSON.stringify({ ...body, page }),
+        },
+        signal,
+      );
       if (!res.ok) break;
       try {
         const json = (await res.json()) as {
@@ -194,7 +254,7 @@ async function poll(
       } catch {
         break;
       }
-    } while (haveMore && page <= 50);
+    } while (haveMore && page <= 50 && !signal?.aborted);
 
     stable = changed ? 0 : stable + 1;
     if (acc.size > 0) roundsWithFlights++;
@@ -206,8 +266,9 @@ async function poll(
       stable >= STABLE_ROUNDS;
     if (enough || Date.now() - startedAt > TIME_BUDGET_MS) break;
 
-    if (i + 1 < maxRounds) await sleep(GAP_MS);
+    if (i + 1 < maxRounds) await sleepCancelavel(GAP_MS, signal);
   }
+
 
   const flights = [...acc.entries()]
     .map(([signature, flight]) => {
@@ -331,26 +392,34 @@ export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
   return out.slice(0, 20);
 }
 
-export async function searchFlights(data: SearchData, speed: PollSpeed = "normal"): Promise<OnerSearchResult> {
+export async function searchFlights(
+  data: SearchData,
+  speed: PollSpeed = "normal",
+  signal?: AbortSignal,
+): Promise<OnerSearchResult> {
   const loc = buildLocationHref(data);
   let searchKey = data.searchKey ?? "";
 
   if (!searchKey) {
-    const startRes = await fetch(`${SERVERLESS}/api/flight/v1/search`, {
-      method: "POST",
-      headers: headers(loc),
-      body: JSON.stringify({
-        departureDate: `${data.departureDate}T00:00:00.000Z`,
-        ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
-        departureStation: data.departureIata.toUpperCase(),
-        arrivalStation: data.arrivalIata.toUpperCase(),
-        isDepartureStationCity: data.departureIsCity,
-        isArrivalStationCity: data.arrivalIsCity,
-        paxAdtCount: data.adults,
-        paxChdCount: data.children,
-        paxInfCount: data.infants,
-      }),
-    });
+    const startRes = await fetchMotor(
+      `${SERVERLESS}/api/flight/v1/search`,
+      {
+        method: "POST",
+        headers: headers(loc),
+        body: JSON.stringify({
+          departureDate: `${data.departureDate}T00:00:00.000Z`,
+          ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
+          departureStation: data.departureIata.toUpperCase(),
+          arrivalStation: data.arrivalIata.toUpperCase(),
+          isDepartureStationCity: data.departureIsCity,
+          isArrivalStationCity: data.arrivalIsCity,
+          paxAdtCount: data.adults,
+          paxChdCount: data.children,
+          paxInfCount: data.infants,
+        }),
+      },
+      signal,
+    );
     const startText = await startRes.text();
     try {
       searchKey = (JSON.parse(startText) as { searchKey?: string }).searchKey ?? "";
@@ -375,6 +444,7 @@ export async function searchFlights(data: SearchData, speed: PollSpeed = "normal
     },
     30,
     speed,
+    signal,
   );
   return { searchKey, outbound, inbound: null };
 }
@@ -382,6 +452,7 @@ export async function searchFlights(data: SearchData, speed: PollSpeed = "normal
 export async function searchInboundFlights(
   data: InboundData,
   speed: PollSpeed = "normal",
+  signal?: AbortSignal,
 ): Promise<OnerLegResult> {
   const loc = buildLocationHref(data);
   return poll(
@@ -396,8 +467,10 @@ export async function searchInboundFlights(
     },
     30,
     speed,
+    signal,
   );
 }
+
 
 /* ── Carrinho na operadora (Comprar Viagem) ─────────────────────────────
    Cria o carrinho oficial com os voos escolhidos e devolve a URL pública

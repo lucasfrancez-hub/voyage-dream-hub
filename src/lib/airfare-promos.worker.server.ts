@@ -38,6 +38,13 @@ const CLAIM_STALE_MS = 6 * 60 * 1000;
 /** Execução sem nenhuma atualização por esse tempo é considerada travada. */
 export const RUN_STALE_MS = 45 * 60 * 1000;
 
+/** Folga do watchdog além do timeout da candidata antes de abortar à força. */
+const WATCHDOG_GRACE_MS = 15_000;
+
+/** Frequência do watchdog de workers. */
+const WATCHDOG_TICK_MS = 5_000;
+
+
 /**
  * Retry NÃO bloqueia worker: a candidata que falhou volta para o FIM da fila
  * (prioridade penalizada) e o worker segue imediatamente para a próxima.
@@ -59,8 +66,27 @@ export type ValidationTelemetry = {
   p95_duration_ms: number | null;
   /** detalhamento das últimas falhas (origem, destino, motivo técnico...) */
   failures?: ValidationFailure[];
+  /** heartbeat: o que cada worker está validando AGORA */
+  in_flight?: WorkerHeartbeat[];
+  /** timeout individual configurado (ms) — o painel usa para apontar travamento */
+  candidate_timeout_ms?: number;
   updated_at: string;
 };
+
+/** Heartbeat de um worker — permite saber exatamente onde o processo congelou. */
+export type WorkerHeartbeat = {
+  worker_id: number;
+  opportunity_id: string;
+  origin: string;
+  destination: string;
+  started_at: string;
+  last_activity_at: string;
+  elapsed_ms: number;
+  attempt: number;
+  /** VALIDATING | ABORTING */
+  status: string;
+};
+
 
 /** Falha individual de validação — nunca vira "sem tarifa". */
 export type ValidationFailure = {
@@ -325,6 +351,32 @@ export async function processPendingCandidates(args: {
     console.warn("[airfare-falha]", JSON.stringify(item));
   };
 
+  /* ─── HEARTBEAT DOS WORKERS (quem está validando o quê, agora) ─── */
+  type JobVivo = {
+    workerId: number;
+    ctrl: AbortController;
+    cand: CandidateRow;
+    startedAt: number;
+    lastActivity: number;
+    attempt: number;
+    status: "VALIDATING" | "ABORTING";
+  };
+  const emVoo = new Map<number, JobVivo>();
+
+  const heartbeat = (): WorkerHeartbeat[] =>
+    [...emVoo.values()].map((j) => ({
+      worker_id: j.workerId,
+      opportunity_id: j.cand.id,
+      origin: j.cand.origin_iata,
+      destination: j.cand.destination_iata,
+      started_at: new Date(j.startedAt).toISOString(),
+      last_activity_at: new Date(j.lastActivity).toISOString(),
+      elapsed_ms: Date.now() - j.startedAt,
+      attempt: j.attempt,
+      status: j.status,
+    }));
+
+
   const telemetria = (): ValidationTelemetry => ({
     concurrency,
     ...tele,
@@ -333,7 +385,10 @@ export async function processPendingCandidates(args: {
       : null,
     p95_duration_ms: percentil(duracoes, 95),
     failures: falhas.slice(0, 10),
+    in_flight: heartbeat(),
+    candidate_timeout_ms: CANDIDATE_TIMEOUT_MS,
     updated_at: new Date().toISOString(),
+
   });
 
 
@@ -410,6 +465,10 @@ export async function processPendingCandidates(args: {
   const processar = async (
     cand: CandidateRow,
     saida: { desfecho: Desfecho; responseAt?: number; engineCalls?: number; engineMs?: number },
+    /** sinal DESTE job: o timeout individual aborta as requisições de verdade */
+    jobSignal: AbortSignal = abortController.signal,
+    /** heartbeat: cada resposta do motor renova a "última atividade" */
+    marcarAtividade: () => void = () => {},
   ) => {
     const iniciouEm = Date.now();
     const metrica = metricaDe(cand.origin_iata);
@@ -434,9 +493,10 @@ export async function processPendingCandidates(args: {
         returnDate: cand.return_date,
         markups,
         referencePrice: cand.reference_price != null ? Number(cand.reference_price) : null,
-        signal: abortController.signal,
+        signal: jobSignal,
 
         onEngineTiming: (t) => {
+          marcarAtividade();
           saida.engineCalls = (saida.engineCalls ?? 0) + 1;
           saida.engineMs = (saida.engineMs ?? 0) + t.ms;
           console.log(
@@ -677,7 +737,7 @@ export async function processPendingCandidates(args: {
 
   /** Progresso gravado no máximo 1x/s â a UI reflete cada resultado sem inundar o banco. */
   let ultimoTouch = 0;
-  const progresso = async (label: string, forcar = false) => {
+  const progresso = async (label: string | null, forcar = false) => {
     if (!forcar && Date.now() - ultimoTouch < 1000) return;
     ultimoTouch = Date.now();
     await touch({
@@ -689,7 +749,8 @@ export async function processPendingCandidates(args: {
       error_count: counters.error_count,
       new_count: counters.new_count,
       updated_count: counters.updated_count,
-      last_label: label,
+      // null = não houve novo estado final; mantém a última realmente concluída
+      ...(label === null ? {} : { last_label: label }),
       origin_metrics: metricasSnapshot(),
       validation_metrics: telemetria(),
     });
@@ -709,7 +770,7 @@ export async function processPendingCandidates(args: {
   };
   await contarFila();
 
-  const worker = async () => {
+  const worker = async (workerId: number) => {
     while (Date.now() < deadline) {
       if (cancelada || abortController.signal.aborted || (await cancelamentoPedido())) {
         cancelada = true;
@@ -722,45 +783,98 @@ export async function processPendingCandidates(args: {
       tele.running++;
       tele.queued = Math.max(0, tele.queued - 1);
       const iniciou = Date.now();
+      const tentativa = Number(cand.attempts ?? 0) + 1;
       const saida: { desfecho: Desfecho; responseAt?: number; engineCalls?: number; engineMs?: number } =
         { desfecho: "error" };
       let label = "";
+
+      /* CANCELAMENTO REAL POR JOB: o timeout aborta as requisições HTTP em
+         curso — o worker não fica preso esperando um motor pendurado. */
+      const jobCtrl = new AbortController();
+      const abortarJob = (motivo: string) => {
+        const j = emVoo.get(workerId);
+        if (j) j.status = "ABORTING";
+        jobCtrl.abort(new Error(motivo));
+      };
+      const onGlobalAbort = () => abortarJob("cancelado:execucao");
+      abortController.signal.addEventListener("abort", onGlobalAbort, { once: true });
+      const timerJob = setTimeout(
+        () => abortarJob(`timeout:candidata:${CANDIDATE_TIMEOUT_MS}ms`),
+        CANDIDATE_TIMEOUT_MS,
+      );
+
+      emVoo.set(workerId, {
+        workerId,
+        ctrl: jobCtrl,
+        cand,
+        startedAt: iniciou,
+        lastActivity: iniciou,
+        attempt: tentativa,
+        status: "VALIDATING",
+      });
+      const marcarAtividade = () => {
+        const j = emVoo.get(workerId);
+        if (j) j.lastActivity = Date.now();
+      };
+
       try {
-        // TIMEOUT INDIVIDUAL: nenhuma consulta prende um worker da fila.
+        // Rede de segurança: se nem o abort soltar (código travado fora de I/O),
+        // a promessa é descartada e o slot volta para a fila mesmo assim.
         label = await withTimeout(
-          processar(cand, saida),
-          CANDIDATE_TIMEOUT_MS,
+          processar(cand, saida, jobCtrl.signal, marcarAtividade),
+          CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS,
           "candidata",
           abortController.signal,
         );
       } catch (err) {
         const msg = (err instanceof Error ? err.message : String(err)).slice(0, 400);
-        // cancelado: não marcamos a candidata como erro nem contabilizamos
-        if (abortController.signal.aborted || /^cancelado/i.test(msg)) {
+        // cancelamento da EXECUÇÃO: não marcamos a candidata como erro
+        if (abortController.signal.aborted || /^cancelado:execucao/i.test(msg)) {
           cancelada = true;
           return; // o `finally` abaixo devolve o contador de em-voo
         }
-        saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
-        counters.error_count++;
         label = `${cand.origin_iata}→${cand.destination_iata}`;
+        const foiTimeout = /timeout/i.test(msg) || jobCtrl.signal.aborted;
         registrarFalha(cand, {
-          message: msg,
+          message: foiTimeout ? `timeout:${CANDIDATE_TIMEOUT_MS}ms sem resposta do motor` : msg,
           step: "fila_worker",
           duration_ms: Date.now() - iniciou,
-          attempts: Number(cand.attempts ?? 0) + 1,
+          attempts: tentativa,
         });
-        metricaDe(cand.origin_iata).errors++;
 
-        await setCandidato(cand.id, {
-          status: "error",
-          last_error: msg,
-          last_error_step: "worker",
-          last_error_at: new Date().toISOString(),
-          processed_at: new Date().toISOString(),
-        });
+        // ESTADO FINAL OBRIGATÓRIO: ou volta para a fila (ainda há tentativa),
+        // ou encerra como timeout/falha. Nunca fica em "processing".
+        if (tentativa < PROMO_VALIDATION_MAX_ATTEMPTS) {
+          saida.desfecho = "requeue";
+          await setCandidato(cand.id, {
+            status: "pending",
+            claimed_at: null,
+            attempts: tentativa,
+            priority: Number(cand.priority ?? 0) + REQUEUE_PRIORITY_STEP,
+            last_error: msg,
+            last_error_step: foiTimeout ? "timeout" : "worker",
+            last_error_at: new Date().toISOString(),
+          });
+        } else {
+          saida.desfecho = foiTimeout ? "timeout" : "error";
+          counters.error_count++;
+          metricaDe(cand.origin_iata).errors++;
+          await setCandidato(cand.id, {
+            status: foiTimeout ? "timeout" : "error",
+            attempts: tentativa,
+            last_error: msg,
+            last_error_step: foiTimeout ? "timeout" : "worker",
+            last_error_at: new Date().toISOString(),
+            processed_at: new Date().toISOString(),
+          });
+        }
       } finally {
+        clearTimeout(timerJob);
+        abortController.signal.removeEventListener("abort", onGlobalAbort);
+        emVoo.delete(workerId);
         tele.running = Math.max(0, tele.running - 1);
       }
+
 
       /* ─── LOG SIMPLES DE DIAGNÓSTICO (fila x motor) ─── */
       const finishedAt = Date.now();
@@ -802,17 +916,54 @@ export async function processPendingCandidates(args: {
         processadasAgora++;
       }
       if (cancelada || abortController.signal.aborted) return;
-      await progresso(label, saida.desfecho !== "requeue");
+      // "Última processada" só muda em estado FINAL — requeue continua "em processamento".
+      await progresso(saida.desfecho === "requeue" ? null : label, saida.desfecho !== "requeue");
     }
   };
+
+  /**
+   * WATCHDOG DOS WORKERS — 1 rota travada não pode congelar a fila inteira.
+   * Se um job passa do timeout + folga sem atividade, abortamos a requisição
+   * de verdade; o worker cai no catch, grava estado final (ou volta para a
+   * fila) e puxa imediatamente a próxima oportunidade.
+   */
+  const watchdog = setInterval(() => {
+    const agora = Date.now();
+    for (const j of emVoo.values()) {
+      const parado = agora - j.lastActivity;
+      const vivo = agora - j.startedAt;
+      if (j.status === "ABORTING") continue;
+      if (vivo > CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS || parado > CANDIDATE_TIMEOUT_MS) {
+        console.warn(
+          "[airfare-watchdog]",
+          JSON.stringify({
+            worker: j.workerId,
+            rota: `${j.cand.origin_iata}->${j.cand.destination_iata}`,
+            oportunidade: j.cand.id,
+            status: j.status,
+            iniciado: new Date(j.startedAt).toISOString(),
+            ultima_atividade: new Date(j.lastActivity).toISOString(),
+            tempo_ms: vivo,
+            sem_resposta_ms: parado,
+            limite_ms: CANDIDATE_TIMEOUT_MS,
+            acao: "abortando_e_liberando_slot",
+          }),
+        );
+        j.status = "ABORTING";
+        j.ctrl.abort(new Error(`timeout:watchdog:${vivo}ms`));
+      }
+    }
+  }, WATCHDOG_TICK_MS);
 
   // FILA GLOBAL: os workers competem pela mesma fila, sem esperar terminar uma
   // origem para começar outra. Terminou uma validação, começa a próxima.
   try {
-    await Promise.all(Array.from({ length: concurrency }, () => worker()));
+    await Promise.all(Array.from({ length: concurrency }, (_, i) => worker(i + 1)));
   } finally {
     clearInterval(vigia);
+    clearInterval(watchdog);
   }
+
   if (!cancelada) await progresso("", true);
 
   if (cancelada) {
