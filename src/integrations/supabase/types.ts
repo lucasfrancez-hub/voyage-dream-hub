@@ -7855,6 +7855,15 @@ export type Database = {
           central_slug: string | null
           created_at: string
           display_name: string | null
+          fraud_clusters: Json
+          fraud_last_evaluation: string | null
+          fraud_reducers: Json
+          fraud_risk_level: string
+          fraud_risk_score: number
+          fraud_signals: Json
+          fraud_summary: string | null
+          fraud_transfer_at: string | null
+          fraud_transfer_required: boolean
           funnel_stage: string | null
           id: string
           identity_verified_at: string | null
@@ -7894,6 +7903,15 @@ export type Database = {
           central_slug?: string | null
           created_at?: string
           display_name?: string | null
+          fraud_clusters?: Json
+          fraud_last_evaluation?: string | null
+          fraud_reducers?: Json
+          fraud_risk_level?: string
+          fraud_risk_score?: number
+          fraud_signals?: Json
+          fraud_summary?: string | null
+          fraud_transfer_at?: string | null
+          fraud_transfer_required?: boolean
           funnel_stage?: string | null
           id?: string
           identity_verified_at?: string | null
@@ -7933,6 +7951,15 @@ export type Database = {
           central_slug?: string | null
           created_at?: string
           display_name?: string | null
+          fraud_clusters?: Json
+          fraud_last_evaluation?: string | null
+          fraud_reducers?: Json
+          fraud_risk_level?: string
+          fraud_risk_score?: number
+          fraud_signals?: Json
+          fraud_summary?: string | null
+          fraud_transfer_at?: string | null
+          fraud_transfer_required?: boolean
           funnel_stage?: string | null
           id?: string
           identity_verified_at?: string | null
@@ -8512,6 +8539,71 @@ export type Database = {
           versao?: number
         }
         Relationships: []
+      }
+      wa_fraud_evaluations: {
+        Row: {
+          clusters_detected: Json
+          conversation_id: string
+          evaluated_at: string
+          id: string
+          level_after: string
+          level_before: string | null
+          message_id: string | null
+          reducers_added: Json
+          risk_after: number
+          risk_before: number | null
+          signals_added: Json
+          signals_removed: Json
+          signals_snapshot: Json
+          source: string
+          summary: string | null
+          transfer_triggered: boolean
+        }
+        Insert: {
+          clusters_detected?: Json
+          conversation_id: string
+          evaluated_at?: string
+          id?: string
+          level_after: string
+          level_before?: string | null
+          message_id?: string | null
+          reducers_added?: Json
+          risk_after: number
+          risk_before?: number | null
+          signals_added?: Json
+          signals_removed?: Json
+          signals_snapshot?: Json
+          source?: string
+          summary?: string | null
+          transfer_triggered?: boolean
+        }
+        Update: {
+          clusters_detected?: Json
+          conversation_id?: string
+          evaluated_at?: string
+          id?: string
+          level_after?: string
+          level_before?: string | null
+          message_id?: string | null
+          reducers_added?: Json
+          risk_after?: number
+          risk_before?: number | null
+          signals_added?: Json
+          signals_removed?: Json
+          signals_snapshot?: Json
+          source?: string
+          summary?: string | null
+          transfer_triggered?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_fraud_evaluations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wa_handoff_events: {
         Row: {
