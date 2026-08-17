@@ -723,7 +723,8 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   // 2/3) CURADORIA POR ESCOPO — o corte de N por origem acontece aqui,
   //      depois de percorrer TODAS as oportunidades descobertas.
   // ------------------------------------------------------------------
-  const metrics: OriginMetrics[] = [];
+  const retomandoDatas = retomada?.stage === "datas";
+  const metrics: OriginMetrics[] = retomandoDatas ? [...(retomada.metrics ?? [])] : [];
   const auditoria: CurationDecision<PromoCandidate>[] = [];
   const escolhidasPorOrigem: Array<{
     origem: string;
@@ -731,84 +732,66 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     scope: "nacional" | "internacional";
   }> = [];
 
-  // TODAS as origens configuradas entram no relatório — mesmo com zero
-  // oportunidades — para nunca sumirem em silêncio do acompanhamento.
-  const origens = [...new Set<string>([...PRIORITY_ORIGINS, ...pool.keys()])].sort((a, b) => {
-    const pa = isPriorityOrigin(a) ? 0 : 1;
-    const pb = isPriorityOrigin(b) ? 0 : 1;
-    return pa - pb || a.localeCompare(b);
-  });
+  let dedupTotal = retomandoDatas ? (retomada.dedupTotal ?? contarLeads()) : 0;
 
-  let extrasUsadas = 0;
-  let dedupTotal = 0;
-  for (const origem of origens) {
-    const prioritaria = isPriorityOrigin(origem);
-    if (!prioritaria) {
-      if (extrasUsadas >= MAX_EXTRA_ORIGINS) continue;
-      extrasUsadas++;
-    }
-    const lista = [...(pool.get(origem)?.values() ?? [])];
-    dedupTotal += lista.length;
-    const limite = maxOpportunitiesForOrigin(origem);
-
-    let elegiveis = 0;
-    let excluidas = 0;
-    let selNacional = 0;
-    let selInternacional = 0;
-
-    for (const scope of ["nacional", "internacional"] as const) {
-      if (!isOriginAllowedForScope(origem, scope)) continue;
-      const grupo = lista.filter((l) => l.scope === scope);
-      if (!grupo.length) continue;
-      // limite por ORIGEM e por ESCOPO (10 nacionais + 10 internacionais)
-      const res = curateOrigin(origem, grupo, limite);
-      console.log(
-        `[airfare-curadoria] ${origem}/${scope} total_coletado=${grupo.length} ` +
-          `total_elegivel=${res.eligible} total_enviado_ranking=${res.eligible} ` +
-          `total_ranqueado=${res.ranked ?? res.eligible} total_selecionado=${res.selected.length} ` +
-          `total_descartado=${res.eligible + res.excluded - res.selected.length} limite=${limite}`,
-      );
-      const motivos = new Map<string, number>();
-      for (const d of res.decisions) {
-        if (d.status === "selecionada") continue;
-        motivos.set(d.reason, (motivos.get(d.reason) ?? 0) + 1);
-      }
-      if (motivos.size) {
-        console.log(
-          `[airfare-curadoria] ${origem}/${scope} motivo_descarte=`,
-          Object.fromEntries(motivos),
-        );
-      }
-      elegiveis += res.eligible;
-      excluidas += res.excluded;
-      if (scope === "nacional") selNacional += res.selected.length;
-      else selInternacional += res.selected.length;
-      escolhidasPorOrigem.push({ origem, leads: res.selected, scope });
-    }
-
-    const st = statusOrigem.get(origem);
-    metrics.push({
-      origin: origem,
-      discovered: lista.length,
-      deduped: lista.length,
-      eligible: elegiveis,
-      excluded: excluidas,
-      selected: selNacional + selInternacional,
-      selected_nacional: selNacional,
-      selected_internacional: selInternacional,
-      validated: 0,
-      with_price: 0,
-      no_result: 0,
-      errors: 0,
-      avg_seconds: null,
-      radar_status: st?.status ?? (lista.length ? "ok" : "sem_oportunidades"),
-      radar_note: st?.note ?? null,
+  // Na retomada de `datas`, a fila e as métricas já estão fechadas no
+  // checkpoint. Recalcular toda a curadoria aqui não alterava o resultado e
+  // consumia orçamento antes de continuar a próxima oportunidade pendente.
+  if (!retomandoDatas) {
+    // TODAS as origens configuradas entram no relatório — mesmo com zero
+    // oportunidades — para nunca sumirem em silêncio do acompanhamento.
+    const origens = [...new Set<string>([...PRIORITY_ORIGINS, ...pool.keys()])].sort((a, b) => {
+      const pa = isPriorityOrigin(a) ? 0 : 1;
+      const pb = isPriorityOrigin(b) ? 0 : 1;
+      return pa - pb || a.localeCompare(b);
     });
-    if (!lista.length) {
-      console.warn(
-        `[airfare-radar] WARNING origem ${origem} habilitada, mas sem oportunidades: ` +
-          `status=${st?.status ?? "sem_oportunidades"} motivo=${st?.note ?? "radar não retornou leads para esta origem"}`,
-      );
+
+    let extrasUsadas = 0;
+    for (const origem of origens) {
+      const prioritaria = isPriorityOrigin(origem);
+      if (!prioritaria) {
+        if (extrasUsadas >= MAX_EXTRA_ORIGINS) continue;
+        extrasUsadas++;
+      }
+      const lista = [...(pool.get(origem)?.values() ?? [])];
+      dedupTotal += lista.length;
+      const limite = maxOpportunitiesForOrigin(origem);
+
+      let elegiveis = 0;
+      let excluidas = 0;
+      let selNacional = 0;
+      let selInternacional = 0;
+
+      for (const scope of ["nacional", "internacional"] as const) {
+        if (!isOriginAllowedForScope(origem, scope)) continue;
+        const grupo = lista.filter((l) => l.scope === scope);
+        if (!grupo.length) continue;
+        const res = curateOrigin(origem, grupo, limite);
+        elegiveis += res.eligible;
+        excluidas += res.excluded;
+        if (scope === "nacional") selNacional += res.selected.length;
+        else selInternacional += res.selected.length;
+        escolhidasPorOrigem.push({ origem, leads: res.selected, scope });
+      }
+
+      const st = statusOrigem.get(origem);
+      metrics.push({
+        origin: origem,
+        discovered: lista.length,
+        deduped: lista.length,
+        eligible: elegiveis,
+        excluded: excluidas,
+        selected: selNacional + selInternacional,
+        selected_nacional: selNacional,
+        selected_internacional: selInternacional,
+        validated: 0,
+        with_price: 0,
+        no_result: 0,
+        errors: 0,
+        avg_seconds: null,
+        radar_status: st?.status ?? (lista.length ? "ok" : "sem_oportunidades"),
+        radar_note: st?.note ?? null,
+      });
     }
   }
 
