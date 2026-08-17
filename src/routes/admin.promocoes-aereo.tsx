@@ -155,7 +155,7 @@ function ComparativoReferencia({ promo }: { promo: Promo }) {
     <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-[11px] font-bold uppercase tracking-tight text-muted-foreground">
-          Ref. Melhores Destinos
+          Ref. Outros Sites
         </span>
         <span className="text-xs font-bold text-foreground">{brl(ref)}</span>
       </div>
