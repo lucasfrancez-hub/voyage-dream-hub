@@ -135,7 +135,7 @@ export const readSearchIdScript = `(() => {
   try {
     const href = location.href;
     let searchId = null;
-    const fromPath = location.pathname.match(/\\/results\\/([A-Za-z0-9_-]{6,})/);
+    const fromPath = location.pathname.match(/\\/(?:results|journey)\\/(?:[^/]+\\/)?([A-Za-z0-9_-]{6,})/);
     if (fromPath) searchId = fromPath[1];
     if (!searchId) {
       const q = new URLSearchParams(location.search);
@@ -143,6 +143,23 @@ export const readSearchIdScript = `(() => {
     }
     if (!searchId) {
       const m = document.documentElement.innerHTML.match(/"search_?[Ii]d"\\s*:\\s*"([A-Za-z0-9_-]{6,})"/);
+      if (m) searchId = m[1];
+    }
+    if (!searchId) {
+      const resources = performance.getEntriesByType("resource").map((entry) => entry.name).join("\\n");
+      const m = resources.match(/[?&]search_(?:id|Id)=([A-Za-z0-9_-]{6,})/i)
+        || resources.match(/\\/results\\/([A-Za-z0-9_-]{6,})/i);
+      if (m) searchId = decodeURIComponent(m[1]);
+    }
+    if (!searchId) {
+      const stored = [];
+      for (const storage of [localStorage, sessionStorage]) {
+        for (let i = 0; i < storage.length; i++) {
+          const key = storage.key(i);
+          if (key && /search/i.test(key)) stored.push(key + ":" + (storage.getItem(key) || ""));
+        }
+      }
+      const m = stored.join("\\n").match(/search_?[Ii]d[^A-Za-z0-9_-]+([A-Za-z0-9_-]{6,})/i);
       if (m) searchId = m[1];
     }
     const title = document.title || "";
