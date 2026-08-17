@@ -1152,6 +1152,76 @@ function QuoteBody({
     return mapa;
   }, [roteiro]);
 
+  /** Resumo da viagem: timeline horizontal, independente do modo (roteiro ou agrupado). */
+  const resumo = useMemo(() => {
+    type Item = { key: string; ord: number; dia: string | null; tipo: string; titulo: string; sub: string | null };
+    const out: Item[] = [];
+    const faltando: string[] = [];
+
+    legs.forEach((leg, i) => {
+      const dep = leg.segments?.[0]?.departure ?? null;
+      if (!dep) faltando.push(`voo ${i + 1}: sem data/hora de partida`);
+      const de = leg.segments?.[0]?.fromIata ?? null;
+      const para = leg.segments?.[leg.segments.length - 1]?.toIata ?? null;
+      out.push({
+        key: `r-voo-${i}`,
+        ord: ordDe(dep, "00:00"),
+        dia: diaDe(dep),
+        tipo: "voo",
+        titulo: direcaoLeg(leg, i, legs.length) ?? "Voo",
+        sub: de && para ? `${de} → ${para}` : (leg.airline ?? null),
+      });
+    });
+
+    hotels.forEach((h) => {
+      if (!h.sortDate) faltando.push(`hotel "${h.name}": sem data de check-in (sortDate)`);
+      out.push({
+        key: `r-hotel-${h.id}`,
+        ord: ordDe(h.sortDate, "14:00"),
+        dia: diaDe(h.sortDate),
+        tipo: "hotel",
+        titulo: h.name,
+        sub: h.place ?? h.checkIn ?? null,
+      });
+    });
+
+    const grupos: Array<[SimpleProduct[] | undefined, keyof typeof SIMPLE_ICONS]> = [
+      [p.transfers, "transfer"],
+      [p.cars, "car"],
+      [p.activities, "activity"],
+      [p.tickets, "ticket"],
+      [p.services, "service"],
+      [p.insurance, "insurance"],
+    ];
+    for (const [lista, kind] of grupos) {
+      (lista ?? []).forEach((item) => {
+        if (!item.sortDate) faltando.push(`${kind} "${item.title}": sem data (sortDate)`);
+        out.push({
+          key: `r-${kind}-${item.id}`,
+          ord: ordDe(item.sortDate, "10:00"),
+          dia: diaDe(item.sortDate),
+          tipo: kind,
+          titulo: item.title,
+          sub: item.summary ?? null,
+        });
+      });
+    }
+
+    if (faltando.length && typeof console !== "undefined") {
+      console.warn("[Resumo da viagem] itens sem data suficiente para ordenar:", faltando);
+    }
+    if (!out.length && typeof console !== "undefined") {
+      console.warn("[Resumo da viagem] nenhum produto encontrado no orçamento público", {
+        publicId: quote.publicId,
+        itinerary: quote.itinerary,
+        hotels: hotels.length,
+        legs: legs.length,
+      });
+    }
+    return out.sort((a, b) => a.ord - b.ord);
+  }, [legs, hotels, p, quote.publicId, quote.itinerary]);
+
+
   const whatsappHref = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
     `Olá! Quero seguir com o orçamento ${quote.publicId} (${quote.title}).`,
   )}`;
