@@ -30,16 +30,61 @@ async function withOmioPage<T>(
   fn: (cdp: ExpediaCdp, diag: string[]) => Promise<T>,
 ): Promise<T> {
   const diag: string[] = [];
-  const ws = await openRemoteBrowser({ url: startUrl, reconnectMs: 60_000, viewportWidth: 1440, viewportHeight: 900 });
+  // A Omio aplica regras de Cloudflare por reputação de IP. O proxy residencial
+  // brasileiro evita que a própria página inicial nasça em uma sessão bloqueada.
+  const ws = await openRemoteBrowser({
+    url: startUrl,
+    reconnectMs: 60_000,
+    viewportWidth: 1440,
+    viewportHeight: 900,
+    residentialProxy: true,
+  });
   const cdp = await ExpediaCdp.connect(ws);
   try {
     await cdp.attachToPage();
     diag.push(`Aba aberta em ${startUrl}`);
+    await aguardarPaginaOmio(cdp, diag);
     return await fn(cdp, diag);
   } finally {
     cdp.close();
     await closeRemoteBrowser(ws);
   }
+}
+
+type OmioPageState = {
+  url: string;
+  title: string;
+  challenge: boolean;
+  ready: boolean;
+};
+
+/** Aguarda o JS challenge terminar antes de submeter ou consultar APIs internas. */
+async function aguardarPaginaOmio(cdp: ExpediaCdp, diag: string[], tentativas = 20): Promise<OmioPageState | null> {
+  let ultimo: OmioPageState | null = null;
+  for (let i = 0; i < tentativas; i++) {
+    const raw = await cdp.evaluate<string>(`(() => JSON.stringify({
+      url: location.href,
+      title: document.title || "",
+      challenge: /just a moment|checking your browser|attention required|cf-browser-verification/i.test(
+        (document.title || "") + " " + (document.body?.innerText || "").slice(0, 500)
+      ),
+      ready: document.readyState === "interactive" || document.readyState === "complete"
+    }))()`);
+    if (raw) {
+      try {
+        ultimo = JSON.parse(raw) as OmioPageState;
+      } catch {
+        ultimo = null;
+      }
+    }
+    if (ultimo?.ready && !ultimo.challenge && /(^|\.)omio\.com$/i.test(new URL(ultimo.url).hostname)) {
+      if (i > 0) diag.push(`Página Omio liberada após ${i + 1} verificações`);
+      return ultimo;
+    }
+    await sleep(1500);
+  }
+  if (ultimo?.challenge) diag.push(`Cloudflare permaneceu ativo ("${ultimo.title}")`);
+  return ultimo;
 }
 
 async function pageFetch(cdp: ExpediaCdp, url: string): Promise<PageFetch> {
@@ -71,7 +116,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Navega a aba atual (Page.navigate) e dá um tempo pro contexto reconstruir. */
 async function navegar(cdp: ExpediaCdp, url: string) {
   await cdp.send("Page.navigate", { url }).catch(() => null);
-  await sleep(2500);
+  await sleep(1500);
 }
 
 /** Autocomplete de estações/cidades. */
@@ -171,6 +216,16 @@ export async function omioBuscar(input: {
       return { searchId: null as string | null, url: ultimaUrl };
     };
 
+    const paginaInicial = await aguardarPaginaOmio(cdp, diag, 8);
+    if (paginaInicial?.challenge) {
+      return {
+        searchId: "",
+        urlResultados: paginaInicial.url,
+        resultados: [],
+        diagnostico: [...diag, "A pesquisa não foi enviada porque a sessão ainda estava no desafio de segurança."],
+      };
+    }
+
     await cdp.evaluate<string>(submitSearchScript(params));
     diag.push("Formulário de busca enviado (POST)");
     let { searchId, url: urlResultados } = await aguardarSearchId(14);
@@ -178,6 +233,7 @@ export async function omioBuscar(input: {
     if (!searchId) {
       diag.push(`POST não redirecionou (última URL: ${urlResultados || "desconhecida"}) — tentando GET`);
       await navegar(cdp, searchTriggerGetUrl(params));
+      await aguardarPaginaOmio(cdp, diag, 8);
       ({ searchId, url: urlResultados } = await aguardarSearchId(12));
     }
 
@@ -193,6 +249,7 @@ export async function omioBuscar(input: {
           locale,
         }),
       );
+      await aguardarPaginaOmio(cdp, diag, 8);
       ({ searchId, url: urlResultados } = await aguardarSearchId(12));
     }
 
