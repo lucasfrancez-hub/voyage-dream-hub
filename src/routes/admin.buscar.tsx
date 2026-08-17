@@ -520,6 +520,7 @@ export function SearchEngine({
                   setCartLinks([]);
                 }}
                 disabled={!comboReady}
+                publicMode={publicMode}
               />
 
               {runToken > 0 && (

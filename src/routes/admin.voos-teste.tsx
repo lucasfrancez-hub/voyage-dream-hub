@@ -2400,7 +2400,7 @@ export function VoosPage({
                       publicMode={publicMode}
                       isDeparture
                       placeholder="De onde sairemos?"
-                      className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                      className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-sm font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
                       onSelect={(iata) => setForm({ ...form, departureIata: iata })}
                     />
                   </div>
@@ -2426,7 +2426,7 @@ export function VoosPage({
                       publicMode={publicMode}
                       isDeparture={false}
                       placeholder="Para onde vamos?"
-                      className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                      className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-sm font-semibold uppercase transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
                       onSelect={(iata) => setForm({ ...form, arrivalIata: iata })}
                     />
                   </div>
