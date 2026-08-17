@@ -247,13 +247,24 @@ async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
         const faltaLocal = !h.location || (!h.location.address && h.location.latitude == null);
         const faltaSobre = !h.about || h.rating == null || !h.location?.nearbyPlaces?.length;
         if (!faltaFoto && !faltaLocal && !faltaSobre) return h;
-        const cidade =
-          quote.destination ||
+        // A cidade do PRÓPRIO hotel vem primeiro: em roteiros com várias
+        // cidades, usar sempre quote.destination fazia o TripAdvisor falhar
+        // em todos os hotéis fora da cidade principal (só o 1º enriquecia).
+        const cidadeHotel =
           h.location?.address?.split(",").slice(-2).join(",").trim() ||
           h.place?.split(",").slice(-2).join(",").trim() ||
           null;
-        const info = await enrichHotel({ name: h.name, city: cidade }).catch(() => null);
-        if (!info || info.status === "MATCH_FAILED") return h;
+        const tentativas = Array.from(
+          new Set([cidadeHotel, quote.destination || null, null]),
+        );
+        let info: Awaited<ReturnType<typeof enrichHotel>> = null;
+        for (const cidade of tentativas) {
+          info = await enrichHotel({ name: h.name, city: cidade }).catch(() => null);
+          if (info && info.status !== "MATCH_FAILED") break;
+          info = null;
+        }
+        if (!info) return h;
+
         return {
           ...h,
           stars: h.stars ?? info.stars,
