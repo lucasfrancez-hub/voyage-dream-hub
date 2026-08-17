@@ -225,43 +225,75 @@ export function buildCamilaTools(conversation: WaConversation) {
         }
 
         const cap = limit ?? 5;
+        const COLS = "slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight";
+        const POOL = 200; // busca ampla: o filtro de mês é feito depois, senão o limit corta o pacote certo
+
+        // Mês pedido pelo cliente (a validação usa a DATA DE IDA: 28/12 é dezembro
+        // mesmo que o retorno caia em janeiro).
+        const MESES_NOME = ["janeiro","fevereiro","marco","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+        const normTxt = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        let mesAlvo = 0;
+        if (periodo && String(periodo).trim()) {
+          const alvo = normTxt(String(periodo));
+          mesAlvo = MESES_NOME.findIndex((m) => alvo.includes(m)) + 1;
+          if (!mesAlvo) {
+            const m = alvo.match(/(?:^|[^0-9])(\d{1,2})(?:[^0-9]|$)/);
+            if (m && Number(m[1]) >= 1 && Number(m[1]) <= 12) mesAlvo = Number(m[1]);
+          }
+        }
+        const mesDe = (p: any) => (p?.going_date ? Number(String(p.going_date).slice(5, 7)) : 0);
 
         let base = supabaseAdmin
           .from("packages")
-          .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight")
-
+          .select(COLS)
           .eq("is_active", true)
           .order("going_date", { ascending: true });
         if (destino) base = base.ilike("destination", `%${destino}%`);
 
         let data: any[] = [];
+        let foraDoMes: any[] = [];
         if (origem) {
-          const { data: match, error: e1 } = await base.ilike("origin", `%${origem}%`).limit(cap);
+          const { data: match, error: e1 } = await base.ilike("origin", `%${origem}%`).limit(POOL);
           if (e1) return { error: e1.message };
-          data = match ?? [];
-          if (data.length < cap) {
+          let pool = match ?? [];
+          if (mesAlvo) {
+            foraDoMes = pool.filter((p) => mesDe(p) !== mesAlvo);
+            pool = pool.filter((p) => mesDe(p) === mesAlvo);
+          }
+          data = pool.slice(0, cap);
+          if (data.length === 0) {
+            // Só cai pra outras origens quando não há nada na origem do cliente.
             let base2 = supabaseAdmin
               .from("packages")
-              .select("slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight")
+              .select(COLS)
               .eq("is_active", true)
               .order("going_date", { ascending: true });
             if (destino) base2 = base2.ilike("destination", `%${destino}%`);
-            const { data: rest } = await base2.not("origin", "ilike", `%${origem}%`).limit(cap - data.length);
-            data = [...data, ...(rest ?? [])];
+            const { data: rest } = await base2.not("origin", "ilike", `%${origem}%`).limit(POOL);
+            let pool2 = rest ?? [];
+            if (mesAlvo) pool2 = pool2.filter((p) => mesDe(p) === mesAlvo);
+            data = pool2.slice(0, cap).map((p) => ({ ...p, origem_diferente_da_do_cliente: true }));
           }
         } else {
-          const { data: all, error } = await base.limit(cap);
+          const { data: all, error } = await base.limit(POOL);
           if (error) return { error: error.message };
-          data = all ?? [];
+          let pool = all ?? [];
+          if (mesAlvo) {
+            foraDoMes = pool.filter((p) => mesDe(p) !== mesAlvo);
+            pool = pool.filter((p) => mesDe(p) === mesAlvo);
+          }
+          data = pool.slice(0, cap);
         }
         if (!data || data.length === 0) {
           return {
             encontrados: 0,
             sem_pacote_compativel: true,
+            pacotes_fora_do_periodo: foraDoMes.slice(0, 3).map((p) => ({ slug: p.slug, origem: p.origin, ida: p.going_date })),
             instrucao:
               'Não existe pacote pronto compatível. NÃO invente pacote, NÃO sugira outro destino por conta própria, NÃO altere datas nem cidade de embarque. Chame escalar_para_humano com TODO o contexto já coletado (destino, origem/cidade de embarque, período, passageiros, preferências) e motivo "pacote pronto inexistente". Depois envie exatamente: "Não encontrei um pacote pronto que atenda exatamente ao que você procura. Já encaminhei todas as informações para o nosso time Comercial preparar uma opção personalizada para você."',
           };
         }
+
 
 
         return {
