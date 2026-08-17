@@ -119,6 +119,8 @@ const DECAY_BY_SIGNAL: Partial<Record<FraudSignalCode, number>> = {
   ITINERARY_DISINTEREST: 0.045,
   PRICE_INSENSITIVE: 0.035,
   URGENCY_TRAVEL_SOON: 0.02,
+  // duração é evidência contextual: perde força rápido quando não se confirma
+  INTERNATIONAL_SHORT_STAY: 0.04,
   // sinais objetivos praticamente não somem
   CHECKOUT_BYPASS_ATTEMPT: 0.008,
   INCONSISTENCY: 0.012,

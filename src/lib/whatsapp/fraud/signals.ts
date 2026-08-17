@@ -12,6 +12,8 @@
  * os redutores multiplicam o risco para baixo.
  */
 
+import { assessTripDuration, type TripDurationContext } from "./trip-duration";
+
 export type FraudSignalCode =
   | "REQUEST_PRE_FORMATTED"
   | "OPERATIONAL_EXECUTION"
@@ -25,6 +27,7 @@ export type FraudSignalCode =
   | "REPEATED_PATTERN"
   | "EVASIVE_ANSWERS"
   | "PASSENGER_SWAP"
+  | "INTERNATIONAL_SHORT_STAY"
   | "AUTOMATED_TEXT_PATTERN";
 
 export type FraudReducerCode =
@@ -60,6 +63,7 @@ export type FraudClusterCode =
   | "CONTORNO_CHECKOUT"
   | "INTERNACIONAL_SENSIVEL"
   | "COMPORTAMENTO_INCONSISTENTE"
+  | "PERMANENCIA_ATIPICA"
   | "PADRAO_AUTOMATIZADO";
 
 export type FraudCluster = { code: FraudClusterCode; label: string; strength: number };
@@ -79,7 +83,9 @@ export const SIGNAL_LABEL: Record<FraudSignalCode, string> = {
   REPEATED_PATTERN: "Padrão repetido em pedidos/conversas",
   EVASIVE_ANSWERS: "Respostas evasivas a perguntas objetivas",
   PASSENGER_SWAP: "Troca de passageiros sem contexto",
+  INTERNATIONAL_SHORT_STAY: "Permanência curta para um deslocamento internacional",
   AUTOMATED_TEXT_PATTERN: "Mensagens padronizadas / pouco naturais",
+
 };
 
 export const REDUCER_LABEL: Record<FraudReducerCode, string> = {
@@ -106,7 +112,10 @@ const SIGNAL_WEIGHT: Record<FraudSignalCode, number> = {
   REPEATED_PATTERN: 0.27,
   EVASIVE_ANSWERS: 0.2,
   PASSENGER_SWAP: 0.24,
+  // Duração é evidência contextual: peso baixo, nunca decide sozinha.
+  INTERNATIONAL_SHORT_STAY: 0.14,
   AUTOMATED_TEXT_PATTERN: 0.22,
+
 };
 
 const REDUCER_WEIGHT: Record<FraudReducerCode, number> = {
@@ -179,6 +188,23 @@ const CLUSTERS: Array<{
     strength: 0.66,
     all: ["AUTOMATED_TEXT_PATTERN"],
     anyOf: { codes: ["REPEATED_PATTERN", "OPERATIONAL_EXECUTION", "PASSENGER_SWAP"], min: 2 },
+  },
+  {
+    code: "PERMANENCIA_ATIPICA",
+    label: "Permanência curta internacional somada a comportamento operacional",
+    strength: 0.58,
+    all: ["INTERNATIONAL_SHORT_STAY"],
+    anyOf: {
+      codes: [
+        "PRICE_INSENSITIVE",
+        "ITINERARY_DISINTEREST",
+        "OPERATIONAL_EXECUTION",
+        "URGENCY_PRESSURE",
+        "CHECKOUT_BYPASS_ATTEMPT",
+        "REQUEST_PRE_FORMATTED",
+      ],
+      min: 3,
+    },
   },
 ];
 
@@ -405,9 +431,14 @@ export function detectDeterministicSignals(input: {
   wa_phone: string;
   /** Data da viagem, quando já conhecida (ISO). */
   travel_date?: string | null;
+  /** Data de retorno, quando conhecida (ISO) — usada na duração da viagem. */
+  return_date?: string | null;
+  /** Origem/destino estruturados (IATA), quando a cotação já registrou. */
+  origin?: string | null;
+  destination?: string | null;
   /** Rota mencionada (para coerência com o DDI). */
   route_text?: string | null;
-}): { signals: FraudSignal[]; reducers: FraudReducer[] } {
+}): { signals: FraudSignal[]; reducers: FraudReducer[]; trip_duration?: TripDurationContext } {
   const sinais = new Map<FraudSignalCode, FraudSignal>();
   const redutores = new Map<FraudReducerCode, FraudReducer>();
 
@@ -493,7 +524,36 @@ export function detectDeterministicSignals(input: {
     pushReducer(redutores, "DATA_CONSISTENT", 0.6, "Cliente acompanha detalhes da viagem");
   }
 
-  return { signals: [...sinais.values()], reducers: [...redutores.values()] };
+  // 10. Duração da viagem — sinal CONTEXTUAL (nunca "viagem curta = fraude").
+  // Nacional tem peso baixo/neutro; internacional longa distância pesa mais.
+  // Se o cliente demonstra comportamento coerente (explica o motivo, pergunta
+  // horários, negocia preço), a força do sinal cai bastante.
+  let tripDuration: TripDurationContext | undefined;
+  const duracao = assessTripDuration({
+    origin: input.origin,
+    destination: input.destination,
+    departure_date: input.travel_date,
+    return_date: input.return_date,
+    route_text: input.route_text ?? textos.join(" "),
+  });
+  if (duracao) {
+    tripDuration = duracao.context;
+    if (duracao.intensity > 0) {
+      const coerencias =
+        (redutores.has("CONTEXT_EXPLAINED") ? 1 : 0) +
+        (perguntouItinerario ? 1 : 0) +
+        (perguntouPreco ? 1 : 0);
+      const atenuacao = coerencias >= 2 ? 0.45 : coerencias === 1 ? 0.7 : 1;
+      pushSignal(
+        sinais,
+        "INTERNATIONAL_SHORT_STAY",
+        clamp(duracao.intensity * atenuacao),
+        duracao.evidence,
+      );
+    }
+  }
+
+  return { signals: [...sinais.values()], reducers: [...redutores.values()], trip_duration: tripDuration };
 }
 
 /** Pistas simples de coerência entre DDI e rota mencionada. */

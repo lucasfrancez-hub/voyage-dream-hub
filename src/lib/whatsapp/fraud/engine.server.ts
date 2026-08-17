@@ -362,17 +362,28 @@ export async function evaluateConversationFraud(input: {
 
   // Contexto de viagem, quando o robô de cotação já registrou a data
   let travelDate: string | null = null;
+  let returnDate: string | null = null;
+  let originIata: string | null = null;
+  let destinationIata: string | null = null;
   let routeText: string | null = null;
   try {
     const { data: req } = await supabaseAdmin
       .from("wa_flight_search_requests")
-      .select("departure_date, origin, destination")
+      .select("departure_date, return_date, origin, destination")
       .eq("conversation_id", input.conversation_id)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const r = req as { departure_date?: string | null; origin?: string | null; destination?: string | null } | null;
+    const r = req as {
+      departure_date?: string | null;
+      return_date?: string | null;
+      origin?: string | null;
+      destination?: string | null;
+    } | null;
     travelDate = r?.departure_date ?? null;
+    returnDate = r?.return_date ?? null;
+    originIata = r?.origin ?? null;
+    destinationIata = r?.destination ?? null;
     routeText = [r?.origin, r?.destination].filter(Boolean).join(" ") || null;
   } catch {
     /* sem cotação registrada ainda */
@@ -382,6 +393,9 @@ export async function evaluateConversationFraud(input: {
     messages,
     wa_phone: String(convRow["wa_phone"] ?? ""),
     travel_date: travelDate,
+    return_date: returnDate,
+    origin: originIata,
+    destination: destinationIata,
     route_text: routeText,
   });
   const ia = input.skipAi ? { signals: [], reducers: [], summary: null } : await analisarComIa(messages);
