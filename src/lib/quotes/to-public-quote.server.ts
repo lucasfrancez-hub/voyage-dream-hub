@@ -368,6 +368,19 @@ export function buildPublicQuoteFromImported(params: {
   const title = params.title ?? (normalized.origin ? `${normalized.origin} → ${destino}` : destino);
   const primeirasLegs = first?.products.flights?.[0]?.legs ?? [];
 
+  // Noites = período total da viagem (início → volta), não só o primeiro hotel.
+  const inicioViagem = normalized.startDate ?? options[0]?.startDate ?? null;
+  const fimViagem = normalized.endDate ?? options[0]?.endDate ?? null;
+  const noites = (() => {
+    if (!inicioViagem || !fimViagem) return options[0]?.hotels[0]?.nights ?? null;
+    const a = new Date(`${String(inicioViagem).slice(0, 10)}T12:00:00`).getTime();
+    const b = new Date(`${String(fimViagem).slice(0, 10)}T12:00:00`).getTime();
+    if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) {
+      return options[0]?.hotels[0]?.nights ?? null;
+    }
+    return Math.round((b - a) / 86400000);
+  })();
+
   return {
     type,
     title,
@@ -380,7 +393,7 @@ export function buildPublicQuoteFromImported(params: {
     destination: destino,
     startDate: normalized.startDate ?? options[0]?.startDate ?? null,
     endDate: normalized.endDate ?? options[0]?.endDate ?? null,
-    nights: options[0]?.hotels[0]?.nights ?? null,
+    nights: noites,
     tripKind: primeirasLegs.length
       ? primeirasLegs.some((l) => l.direction === "INBOUND")
         ? "Ida e volta"
