@@ -212,8 +212,60 @@ function buildOptionLegs(flights: NormalizedOption["flights"]): FlightLeg[] {
     });
   });
 
-  return out;
+  return mergeConnectedLegs(out);
 }
+
+/**
+ * Reservas importadas às vezes chegam como itens separados (GRU→IST e
+ * IST→PRG). Na página pública isso virava dois cards. Aqui reunimos trechos
+ * consecutivos que formam UMA conexão real (mesmo aeroporto e espera <= 12h),
+ * exatamente a mesma regra usada dentro de um item.
+ */
+function mergeConnectedLegs(legs: FlightLeg[]): FlightLeg[] {
+  if (legs.length < 2) return legs;
+  const ordenados = [...legs].sort((a, b) => {
+    const ta = parseStamp(a.segments?.[0]?.departure) ?? 0;
+    const tb = parseStamp(b.segments?.[0]?.departure) ?? 0;
+    return ta - tb;
+  });
+  const out: FlightLeg[] = [];
+  for (const leg of ordenados) {
+    const prev = out[out.length - 1];
+    const prevLast = prev?.segments?.[prev.segments.length - 1];
+    const first = leg.segments?.[0];
+    if (prev && prevLast && first) {
+      const conecta =
+        (prevLast.toIata && first.fromIata && prevLast.toIata === first.fromIata) ||
+        isTrocaDeAeroporto(prevLast.toIata, first.fromIata);
+      const a = parseStamp(prevLast.arrival);
+      const b = parseStamp(first.departure);
+      const espera = a != null && b != null ? (b - a) / 60000 : null;
+      const esperaOk = espera == null ? false : espera >= 0 && espera <= MAX_CONNECTION_HOURS * 60;
+      if (conecta && esperaOk) {
+        const segments = [...prev.segments, ...leg.segments];
+        const ultimo = segments[segments.length - 1]!;
+        const stops = Math.max(0, segments.length - 1);
+        out[out.length - 1] = {
+          ...prev,
+          segments,
+          hasAirportChange: annotateConnections(segments),
+          toIata: ultimo.toIata,
+          toCity: cityLabel(ultimo.toIata) || null,
+          arrivalTime: timeOf(ultimo.arrival),
+          duration: null,
+          stops,
+          stopsLabel: stops === 0 ? "Direto" : stops === 1 ? "1 conexão" : `${stops} conexões`,
+          checkedBaggage: prev.checkedBaggage || leg.checkedBaggage,
+          checkedBaggageLabel: prev.checkedBaggageLabel ?? leg.checkedBaggageLabel ?? null,
+        };
+        continue;
+      }
+    }
+    out.push(leg);
+  }
+  return out.map((leg, i) => ({ ...leg, label: legLabel(leg.direction, i, out.length) }));
+}
+
 
 function simple(items: NormalizedGenericItem[], prefix: string): SimpleProduct[] {
   return items.map((i, idx) => ({
