@@ -85,6 +85,21 @@ type SearchData = z.infer<typeof flightSearchInput>;
 type InboundData = z.infer<typeof inboundSearchInput>;
 
 function buildLocationHref(data: SearchData | InboundData) {
+  // Aéreo + Hotel: a operadora usa a página /combined/flight e a MESMA
+  // searchKey de jornada usada na busca de hotel.
+  if (data.combinedKey) {
+    return combinedFlightHref({
+      combinedKey: data.combinedKey,
+      departureDate: data.departureDate,
+      returnDate: data.returnDate ?? null,
+      stations: [
+        { departureStation: data.departureIata, arrivalStation: data.arrivalIata },
+      ],
+      adults: data.adults,
+      children: data.children,
+      infants: data.infants,
+    });
+  }
   const q = new URLSearchParams({
     departureDate: `${data.departureDate}T00:00:00.000Z`,
     isRoundTrip: String(!!data.returnDate),
