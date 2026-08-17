@@ -30,15 +30,29 @@ import {
 export type FraudState = {
   conversation_id: string;
   score: number;
+  max_score: number;
+  confidence: number;
   level: FraudLevel;
-  signals: FraudSignal[];
+  band: FraudBand;
+  trend: FraudTrend;
+  velocity: FraudVelocity;
+  persistence: number;
+  signals: StoredSignal[];
   reducers: FraudReducer[];
   clusters: FraudCluster[];
+  critical_flags: FraudCriticalFlag[];
   summary: string | null;
   last_evaluation: string | null;
   transfer_required: boolean;
   transfer_at: string | null;
+  transfer_reason: string | null;
+  score_at_transfer: number | null;
+  analysis_active: boolean;
+  payment: FraudPaymentMeta | null;
+  overrides: ManualOverride[];
+  outcome: string | null;
 };
+
 
 const SIGNAL_CODES = Object.keys(SIGNAL_LABEL) as FraudSignalCode[];
 const REDUCER_CODES = Object.keys(REDUCER_LABEL) as FraudReducerCode[];
