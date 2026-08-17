@@ -392,26 +392,34 @@ export async function searchAirports(data: z.infer<typeof airportSearchInput>) {
   return out.slice(0, 20);
 }
 
-export async function searchFlights(data: SearchData, speed: PollSpeed = "normal"): Promise<OnerSearchResult> {
+export async function searchFlights(
+  data: SearchData,
+  speed: PollSpeed = "normal",
+  signal?: AbortSignal,
+): Promise<OnerSearchResult> {
   const loc = buildLocationHref(data);
   let searchKey = data.searchKey ?? "";
 
   if (!searchKey) {
-    const startRes = await fetch(`${SERVERLESS}/api/flight/v1/search`, {
-      method: "POST",
-      headers: headers(loc),
-      body: JSON.stringify({
-        departureDate: `${data.departureDate}T00:00:00.000Z`,
-        ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
-        departureStation: data.departureIata.toUpperCase(),
-        arrivalStation: data.arrivalIata.toUpperCase(),
-        isDepartureStationCity: data.departureIsCity,
-        isArrivalStationCity: data.arrivalIsCity,
-        paxAdtCount: data.adults,
-        paxChdCount: data.children,
-        paxInfCount: data.infants,
-      }),
-    });
+    const startRes = await fetchMotor(
+      `${SERVERLESS}/api/flight/v1/search`,
+      {
+        method: "POST",
+        headers: headers(loc),
+        body: JSON.stringify({
+          departureDate: `${data.departureDate}T00:00:00.000Z`,
+          ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
+          departureStation: data.departureIata.toUpperCase(),
+          arrivalStation: data.arrivalIata.toUpperCase(),
+          isDepartureStationCity: data.departureIsCity,
+          isArrivalStationCity: data.arrivalIsCity,
+          paxAdtCount: data.adults,
+          paxChdCount: data.children,
+          paxInfCount: data.infants,
+        }),
+      },
+      signal,
+    );
     const startText = await startRes.text();
     try {
       searchKey = (JSON.parse(startText) as { searchKey?: string }).searchKey ?? "";
@@ -436,6 +444,7 @@ export async function searchFlights(data: SearchData, speed: PollSpeed = "normal
     },
     30,
     speed,
+    signal,
   );
   return { searchKey, outbound, inbound: null };
 }
@@ -443,6 +452,7 @@ export async function searchFlights(data: SearchData, speed: PollSpeed = "normal
 export async function searchInboundFlights(
   data: InboundData,
   speed: PollSpeed = "normal",
+  signal?: AbortSignal,
 ): Promise<OnerLegResult> {
   const loc = buildLocationHref(data);
   return poll(
@@ -457,8 +467,10 @@ export async function searchInboundFlights(
     },
     30,
     speed,
+    signal,
   );
 }
+
 
 /* ── Carrinho na operadora (Comprar Viagem) ─────────────────────────────
    Cria o carrinho oficial com os voos escolhidos e devolve a URL pública
