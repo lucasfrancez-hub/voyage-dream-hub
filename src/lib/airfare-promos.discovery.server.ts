@@ -244,6 +244,11 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   let cancelada = false;
   const radarDeadline = Date.now() + (opts?.radarBudgetMs ?? 20 * 60_000);
   const semTempo = () => Date.now() >= radarDeadline;
+  // A busca de LEADS não pode consumir todo o orçamento: sem tempo sobrando
+  // para a etapa de DATAS REAIS a coleta termina com zero candidatas.
+  const leadsDeadline = Date.now() + Math.floor((opts?.radarBudgetMs ?? 20 * 60_000) * 0.55);
+  const semTempoLeads = () => Date.now() >= leadsDeadline;
+
   resetRadarMetrics();
   progresso("Varrendo o radar de oportunidades (Melhores Destinos)...");
   const collectedAt = new Date().toISOString();
