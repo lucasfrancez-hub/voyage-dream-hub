@@ -810,6 +810,9 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     cancelled: cancelada,
     radarError: null,
     radarErrorStage: null,
+    partial: false,
+    state: null,
+    progress: { originsDone: originsDone.size, originsTotal: totalOrigens, leads: radarLeads, stage: "concluida" },
   };
 }
 
