@@ -13,7 +13,6 @@ import type { OriginMetrics } from "@/lib/airfare-promos.config";
 import {
   buildPromotionRow,
   CANDIDATE_TIMEOUT_FLOOR_MS,
-  CANDIDATE_TIMEOUT_MAX_MS,
   CANDIDATE_TIMEOUT_MS,
   candidateTimeoutMs,
   loadMarkups,
