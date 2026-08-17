@@ -1334,7 +1334,35 @@ function QuoteBody({
           </div>
         </section>
 
+        {resumo.length ? (
+          <section className="vq-section" id="resumo">
+            <div className="vq-section-head">
+              <div>
+                <h2>Resumo da viagem</h2>
+                <p>Uma visão rápida da sequência da sua viagem, do embarque ao retorno.</p>
+              </div>
+              <span className="vq-tag">{resumo.length} etapa(s)</span>
+            </div>
+            <div className="vq-resumo">
+              {resumo.map((r) => {
+                const Icon =
+                  r.tipo === "voo" ? IconPlane : r.tipo === "hotel" ? IconHotel
+                    : (SIMPLE_ICONS[r.tipo as keyof typeof SIMPLE_ICONS] ?? IconTransfer);
+                return (
+                  <div className="vq-resumo-item" key={r.key}>
+                    <span className="vq-resumo-icon"><Icon /></span>
+                    <strong>{r.titulo}</strong>
+                    {r.sub ? <small>{r.sub}</small> : null}
+                    <small className="vq-resumo-data">{r.dia ? dataCurta(r.dia) : "Data a definir"}</small>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
         {quote.itinerary ? (
+
           roteiro.length ? (
             <section className="vq-section" id="roteiro">
               <div className="vq-section-head">
