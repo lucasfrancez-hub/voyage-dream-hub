@@ -1240,6 +1240,19 @@ function PromocoesAereoPage() {
                     <span>Sem tarifa: {m.no_result}</span>
                     {m.errors ? <span className="text-destructive">Erros: {m.errors}</span> : null}
                   </div>
+                  {m.radar_status && m.radar_status !== "ok" ? (
+                    <p className="mt-1 text-[10px] text-amber-600 dark:text-amber-400">
+                      {m.radar_status === "sem_tempo"
+                        ? "Não varrida: tempo do radar esgotado"
+                        : m.radar_status === "erro_radar"
+                          ? "Falha no radar"
+                          : m.radar_status === "nao_processada"
+                            ? "Não processada nesta execução"
+                            : "Radar sem oportunidades"}
+                      {m.radar_note ? ` — ${m.radar_note}` : ""}
+                    </p>
+                  ) : null}
+
 
                 </div>
               ))}
