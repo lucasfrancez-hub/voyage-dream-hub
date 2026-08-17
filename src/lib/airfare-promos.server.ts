@@ -1052,6 +1052,7 @@ export async function collectAirfarePromotions(opts?: {
 
   await touch({
     phase: "curadoria",
+    discovery_state: null,
     discovered_raw: descoberta.discoveredTotal,
     deduped: descoberta.dedupedTotal,
     radar_available: descoberta.radarAvailable,
