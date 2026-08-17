@@ -221,26 +221,36 @@ function QuoteDetailPage() {
   const somaHoteis = hoteis.reduce((a, h) => a + Number(h.total ?? 0), 0);
   const somaVoos = voos.reduce((a, f) => a + Number(f.total ?? 0), 0);
   const somaServicos = servicos.reduce((a, s) => a + Number(s.total ?? 0), 0);
-  const linhasFinanceiro: Array<{ item: string; tipo: string; periodo: string; total: number }> = [
-    ...hoteis.map((h) => ({
+  const linhasFinanceiro: Array<{
+    item: string; tipo: string; periodo: string; total: number;
+    kind: QuoteItemKind | null; index: number;
+  }> = [
+    ...hoteis.map((h, i) => ({
       item: h.name,
       tipo: "Hospedagem",
       periodo: `${dt(h.checkin)} → ${dt(h.checkout)}`,
       total: Number(h.total ?? 0),
+      kind: "hotel" as QuoteItemKind,
+      index: i,
     })),
-    ...voos.map((f) => ({
+    ...voos.map((f, i) => ({
       item: `${f.airline ?? "Voo"} — ${f.fromIata ?? "—"} → ${f.toIata ?? "—"}`,
       tipo: f.direction === "INBOUND" ? "Aéreo (volta)" : "Aéreo (ida)",
       periodo: dt(f.departure),
       total: Number(f.total ?? 0),
+      kind: "flight" as QuoteItemKind,
+      index: i,
     })),
-    ...servicos.map((s) => ({
+    ...servicos.map((s, i) => ({
       item: s.name,
       tipo: "Serviço",
       periodo: s.date ? dt(s.date) : "—",
       total: Number(s.total ?? 0),
+      kind: i < servicosProprios ? ("service" as QuoteItemKind) : null,
+      index: i,
     })),
   ];
+
 
 
   if (isLoading) {
