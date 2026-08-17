@@ -300,6 +300,31 @@ export async function processPendingCandidates(args: {
     requeued: 0,
   };
 
+  const falhas: ValidationFailure[] = [];
+
+  const registrarFalha = (
+    cand: { origin_iata: string; destination_iata: string; scope: string },
+    dados: { message: string; step: string; duration_ms: number; attempts: number },
+  ) => {
+    const { motive, label } = classifyFailure(dados.message);
+    const item: ValidationFailure = {
+      origin: cand.origin_iata,
+      destination: cand.destination_iata,
+      scope: cand.scope,
+      motive,
+      motive_label: label,
+      step: dados.step,
+      message: dados.message.slice(0, 300),
+      duration_ms: dados.duration_ms,
+      attempts: dados.attempts,
+      timeout: motive === "timeout",
+      at: new Date().toISOString(),
+    };
+    falhas.unshift(item);
+    if (falhas.length > MAX_FAILURES_TRACKED) falhas.length = MAX_FAILURES_TRACKED;
+    console.warn("[airfare-falha]", JSON.stringify(item));
+  };
+
   const telemetria = (): ValidationTelemetry => ({
     concurrency,
     ...tele,
@@ -307,8 +332,10 @@ export async function processPendingCandidates(args: {
       ? Math.round(duracoes.reduce((a, b) => a + b, 0) / duracoes.length)
       : null,
     p95_duration_ms: percentil(duracoes, 95),
+    failures: falhas.slice(0, 10),
     updated_at: new Date().toISOString(),
   });
+
 
 
 
