@@ -469,6 +469,13 @@ export async function processPendingCandidates(args: {
       saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
       counters.error_count++;
       metrica.errors++;
+      registrarFalha(cand, {
+        message: msg,
+        step: "motor_viaair",
+        duration_ms: Date.now() - iniciouEm,
+        attempts: tentativasFeitas,
+      });
+
       await setCandidato(cand.id, {
         status: "error",
         attempts: tentativasFeitas,
