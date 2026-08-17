@@ -14,7 +14,7 @@ import {
   quotesToExtendedOptions,
   type MarkupTable,
 } from "@/lib/airfare-conditions";
-import type { OriginMetrics } from "@/lib/airfare-promos.config";
+import { INVOCATION_BUDGET_MS, type OriginMetrics } from "@/lib/airfare-promos.config";
 import { isMetroCode, resolveCity } from "@/lib/iata-lookup";
 import { encodePicks } from "@/lib/multicity";
 
@@ -946,18 +946,46 @@ export async function collectAirfarePromotions(opts?: {
   // 1) RADAR: oportunidades do Melhores Destinos (descoberta ilimitada,
   //    seleção de até N por origem — ver airfare-promos.config.ts)
   let descoberta: Awaited<ReturnType<typeof discoverCandidates>>;
-  // A etapa de radar NUNCA pode passar do orçamento da invocação: se passar,
-  // a invocação morre no meio da descoberta, nada é gravado e o cron reinicia
-  // a descoberta do zero para sempre (execução travada em "descobrindo").
-  // Com o teto abaixo a descoberta sempre termina, grava o que achou e a fila
-  // segue para validação — o cache do radar faz a próxima passada ir além.
-  const orcamentoInvocacao = opts?.budgetMs ?? 240_000;
-  const orcamentoRadar = Math.max(60_000, Math.floor(orcamentoInvocacao * 0.6));
+  // A etapa de radar NUNCA pode passar do orçamento REAL da invocação. Como a
+  // invocação vive ~2 min, a descoberta é fatiada por origem/lote e grava
+  // checkpoint: o que não couber fica salvo e a próxima invocação retoma
+  // exatamente de onde parou (nunca recomeça do zero).
+  const orcamentoInvocacao = opts?.budgetMs ?? INVOCATION_BUDGET_MS;
+  const orcamentoRadar = Math.max(
+    40_000,
+    Math.min(Math.floor(orcamentoInvocacao * 0.75), orcamentoInvocacao - 20_000),
+  );
+
+  // checkpoint salvo pela invocação anterior (retomada)
+  let estadoAnterior: unknown = null;
+  if (runId) {
+    const { data } = await db
+      .from("airfare_promo_runs")
+      .select("discovery_state")
+      .eq("id", runId)
+      .maybeSingle();
+    estadoAnterior = (data as { discovery_state?: unknown } | null)?.discovery_state ?? null;
+  }
+
   try {
     descoberta = await discoverCandidates({
       maxCandidates: opts?.maxCandidates ?? 600,
       radarBudgetMs: orcamentoRadar,
       cancel: pediuCancelamento,
+      resumeState: estadoAnterior as never,
+      onCheckpoint: async (state, progress) => {
+        notaRadar =
+          progress.stage === "leads"
+            ? `Descoberta ${progress.originsDone}/${progress.originsTotal} origens · ${progress.leads} oportunidades`
+            : `Datas reais — ${progress.leads} oportunidades no radar`;
+        await touch({
+          phase: "descobrindo",
+          discovery_state: state as never,
+          discovery_origins_done: progress.originsDone,
+          discovery_origins_total: progress.originsTotal,
+          radar_note: notaRadar,
+        });
+      },
       onProgress: (msg) => {
         notaRadar = msg;
       },
@@ -974,6 +1002,7 @@ export async function collectAirfarePromotions(opts?: {
       phase: "cancelada",
       cancelled_at: agora,
       finished_at: agora,
+      discovery_state: null,
       radar_note: "Cancelada durante a consulta ao radar.",
       radar_available: descoberta.radarAvailable,
       radar_errors: descoberta.radarErrors,
@@ -989,8 +1018,41 @@ export async function collectAirfarePromotions(opts?: {
       origin_metrics: [] as OriginMetrics[],
     };
   }
+
+  // DESCOBERTA PARCIAL: acabou o orçamento da invocação. O progresso já está
+  // gravado; a execução continua "descobrindo" e o worker do cron retoma.
+  if (descoberta.partial) {
+    const p = descoberta.progress;
+    await touch({
+      phase: "descobrindo",
+      discovery_state: (descoberta.state ?? null) as never,
+      discovery_origins_done: p?.originsDone ?? 0,
+      discovery_origins_total: p?.originsTotal ?? 0,
+      discovered_raw: descoberta.discoveredTotal,
+      deduped: descoberta.dedupedTotal,
+      radar_available: descoberta.radarAvailable,
+      radar_errors: descoberta.radarErrors,
+      source_metrics: descoberta.sourceMetrics ?? {},
+      origin_metrics: descoberta.metrics as never,
+      radar_note:
+        p?.stage === "datas"
+          ? `Descoberta em andamento — buscando datas reais (${p.leads} oportunidades)`
+          : `Descoberta em andamento — ${p?.originsDone ?? 0}/${p?.originsTotal ?? 0} origens · ${p?.leads ?? 0} oportunidades`,
+    });
+    return {
+      startedAt,
+      ...counters,
+      total: 0,
+      processed: 0,
+      remaining: 0,
+      finished: false,
+      origin_metrics: descoberta.metrics,
+    };
+  }
+
   await touch({
     phase: "curadoria",
+    discovery_state: null,
     discovered_raw: descoberta.discoveredTotal,
     deduped: descoberta.dedupedTotal,
     radar_available: descoberta.radarAvailable,

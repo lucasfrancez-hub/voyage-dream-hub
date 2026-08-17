@@ -290,3 +290,14 @@ export type OriginMetrics = {
 
 
 
+
+/**
+ * ORÇAMENTO REAL DE UMA INVOCAÇÃO.
+ *
+ * A invocação de servidor vive ~2 minutos. Qualquer orçamento acima disso faz
+ * a execução morrer no meio do trabalho, sem gravar progresso. Todo trabalho
+ * (descoberta e validação) usa esse teto e grava checkpoint antes de encerrar.
+ */
+export const INVOCATION_BUDGET_MS = Number(
+  (typeof process !== "undefined" ? process.env?.["AIRFARE_WORKER_BUDGET_MS"] : undefined) ?? 100_000,
+);

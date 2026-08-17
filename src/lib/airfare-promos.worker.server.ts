@@ -30,7 +30,10 @@ type AnyClient = { from: (t: string) => any };
  * o cron do minuto seguinte entre lotes. Agora cada invocação trabalha por
  * vários minutos seguidos (com lease para o cron não sobrepor execuções).
  */
-export const WORKER_BUDGET_MS = Number(process.env["AIRFARE_WORKER_BUDGET_MS"] ?? 240_000);
+import { INVOCATION_BUDGET_MS } from "@/lib/airfare-promos.config";
+
+/** orçamento do worker = vida útil real da invocação (nunca acima) */
+export const WORKER_BUDGET_MS = INVOCATION_BUDGET_MS;
 
 /** Margem do lease além do orçamento (tolerância de finalização). */
 const WORKER_LEASE_SLACK_MS = 30_000;
@@ -1477,7 +1480,9 @@ export async function finalizeCancelledRun(runId: string) {
 }
 
 /** Descoberta parada por mais que isso é retomada pelo worker (heartbeat = 20s). */
-const DISCOVERY_STALE_MS = 90 * 1000;
+// checkpoint da descoberta acontece a cada origem/lote (~20-40s): sem sinal
+// por 60s a invocação morreu e outra pode retomar do último checkpoint.
+const DISCOVERY_STALE_MS = 60 * 1000;
 
 
 /**
@@ -1520,10 +1525,29 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
       if (parada < DISCOVERY_STALE_MS) {
         return { resumed: false as const, reason: "descobrindo" };
       }
-      // a invocação que fazia a descoberta morreu: refazer aqui, no backend
-      const { collectAirfarePromotions } = await import("@/lib/airfare-promos.server");
-      const res = await collectAirfarePromotions({ runId: run.id, budgetMs });
-      return { resumed: true as const, runId: run.id, reason: "descoberta_retomada", ...res };
+      // a invocação que fazia a descoberta morreu: RETOMA do último checkpoint
+      // (nunca do zero) — com lease para não haver duas descobertas ao mesmo tempo.
+      const agoraD = Date.now();
+      const { data: leaseD } = await client
+        .from("airfare_promo_runs")
+        .update({ worker_lease_until: new Date(agoraD + budgetMs + WORKER_LEASE_SLACK_MS).toISOString() })
+        .eq("id", run.id)
+        .or(`worker_lease_until.is.null,worker_lease_until.lt.${new Date(agoraD).toISOString()}`)
+        .select("id");
+      if (!leaseD || leaseD.length === 0) {
+        return { resumed: false as const, reason: "descoberta_em_execucao" };
+      }
+      try {
+        const { collectAirfarePromotions } = await import("@/lib/airfare-promos.server");
+        const res = await collectAirfarePromotions({ runId: run.id, budgetMs });
+        return { resumed: true as const, runId: run.id, reason: "descoberta_retomada", ...res };
+      } finally {
+        await client
+          .from("airfare_promo_runs")
+          .update({ worker_lease_until: null })
+          .eq("id", run.id)
+          .then(() => undefined, () => undefined);
+      }
     }
     if (parada < RUN_STALE_MS && run.phase === "validando") {
       // lote em andamento em outra invocação
