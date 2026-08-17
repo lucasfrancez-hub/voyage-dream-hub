@@ -429,9 +429,14 @@ export function detectDeterministicSignals(input: {
   wa_phone: string;
   /** Data da viagem, quando já conhecida (ISO). */
   travel_date?: string | null;
+  /** Data de retorno, quando conhecida (ISO) — usada na duração da viagem. */
+  return_date?: string | null;
+  /** Origem/destino estruturados (IATA), quando a cotação já registrou. */
+  origin?: string | null;
+  destination?: string | null;
   /** Rota mencionada (para coerência com o DDI). */
   route_text?: string | null;
-}): { signals: FraudSignal[]; reducers: FraudReducer[] } {
+}): { signals: FraudSignal[]; reducers: FraudReducer[]; trip_duration?: TripDurationContext } {
   const sinais = new Map<FraudSignalCode, FraudSignal>();
   const redutores = new Map<FraudReducerCode, FraudReducer>();
 
