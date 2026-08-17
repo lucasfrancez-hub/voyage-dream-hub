@@ -256,7 +256,7 @@ export function scheduleBoletoAteViagem(
 /** Opções de parcelamento do boleto até a data da viagem (1x até o máximo). */
 export function boletoAteViagemOpcoes(total: number, maxParcelas: number): Installment[] {
   const out: Installment[] = [];
-  for (let n = 1; n <= Math.max(1, Math.min(BOLETO_MAX_INSTALLMENTS, maxParcelas)); n++) {
+  for (let n = 1; n <= Math.max(1, Math.min(BOLETO_ATE_VIAGEM_MAX_INSTALLMENTS, maxParcelas)); n++) {
     out.push({ number: n, amount: round2(total / n), total: round2(total), interestFree: true });
   }
   return out;
