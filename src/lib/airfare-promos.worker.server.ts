@@ -560,6 +560,8 @@ export async function processPendingCandidates(args: {
     startedAt: number;
     lastActivity: number;
     attempt: number;
+    /** timeout adaptativo desta candidata */
+    timeoutMs: number;
     status: "VALIDATING" | "ABORTING";
   };
   const emVoo = new Map<number, JobVivo>();
@@ -574,6 +576,7 @@ export async function processPendingCandidates(args: {
       last_activity_at: new Date(j.lastActivity).toISOString(),
       elapsed_ms: Date.now() - j.startedAt,
       attempt: j.attempt,
+      timeout_ms: j.timeoutMs,
       status: j.status,
     }));
 
@@ -586,17 +589,24 @@ export async function processPendingCandidates(args: {
     avg_duration_ms: duracoes.length
       ? Math.round(duracoes.reduce((a, b) => a + b, 0) / duracoes.length)
       : null,
+    p90_duration_ms: percentil(duracoes, 90),
     p95_duration_ms: percentil(duracoes, 95),
+    p99_duration_ms: percentil(duracoes, 99),
+    max_duration_ms: duracoes.length ? Math.max(...duracoes) : null,
+    samples: duracoes.length,
+    timeout_min_ms: timeoutMinAplicado,
+    timeout_max_ms: timeoutMaxAplicado,
     failures: falhas.slice(0, 10),
     // "Em processamento agora" = SOMENTE jobs com heartbeat vivo nesta invocação.
     in_flight: heartbeat(),
-    candidate_timeout_ms: CANDIDATE_TIMEOUT_MS,
+    candidate_timeout_ms: timeoutMaxAplicado ?? CANDIDATE_TIMEOUT_MS,
     orphans: orfaosAgora,
     recovered: recuperacao.recovered,
     dead_worker_failures: recuperacao.failed,
     claims_skipped_budget: claimsRecusadosPorOrcamento,
     updated_at: new Date().toISOString(),
   });
+
 
 
 
