@@ -174,6 +174,38 @@ export type DiscoveryResult = {
   radarError?: string | null;
   /** Etapa em que a falha aconteceu (categories, categories:cities...). */
   radarErrorStage?: string | null;
+  /** A descoberta parou por orçamento e deve ser retomada do checkpoint. */
+  partial?: boolean;
+  /** Checkpoint serializável do progresso (gravado em airfare_promo_runs). */
+  state?: DiscoveryState | null;
+  /** Progresso real (origens concluídas / total) para a UI. */
+  progress?: { originsDone: number; originsTotal: number; leads: number; stage: string };
+};
+
+/**
+ * CHECKPOINT DA DESCOBERTA.
+ *
+ * A invocação tem vida útil curta (~2 min). A descoberta é fatiada por origem
+ * (etapa `leads`) e por lote de oportunidades (etapa `datas`); depois de cada
+ * fatia o progresso é gravado no banco. Uma nova invocação retoma exatamente
+ * de onde parou — nunca recomeça do zero.
+ */
+export type DiscoveryState = {
+  v: 1;
+  stage: "leads" | "datas";
+  collectedAt: string;
+  brutas: number;
+  radarErrors: number;
+  originsDone: string[];
+  statusOrigem: Record<string, { status: string; note: string | null }>;
+  pool: Record<string, Lead[]>;
+  /** etapa `datas`: leads selecionados ainda sem consulta de datas reais */
+  pendingLeads?: Lead[];
+  /** etapa `datas`: candidatas já montadas */
+  candidates?: PromoCandidate[];
+  /** etapa `datas`: métricas de curadoria já calculadas */
+  metrics?: OriginMetrics[];
+  dedupTotal?: number;
 };
 
 /** Oportunidade em nível de DESTINO, antes de escolher as datas. */
