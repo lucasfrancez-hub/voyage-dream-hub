@@ -24,8 +24,17 @@ export const Route = createFileRoute("/api/public/hooks/airfare-promos")({
             runId?: string;
             trigger?: string;
             resume?: boolean;
+            force?: boolean;
             maxRoutes?: number;
           };
+
+          // cancelamento cooperativo da coleta ativa (auditoria/operação)
+          if (body.trigger === "cancel") {
+            const { requestPromoRunCancel } = await import("@/lib/airfare-promos.server");
+            const res = await requestPromoRunCancel(body.runId);
+            return Response.json({ ok: true, ...res, ts: new Date().toISOString() });
+          }
+
 
           // 00:00 BRT: encerra o ciclo diário (zera a curadoria ativa)
           if (body.trigger === "midnight") {
