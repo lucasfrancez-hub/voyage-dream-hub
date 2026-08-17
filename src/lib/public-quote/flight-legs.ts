@@ -141,7 +141,8 @@ export function splitIntoLegs(input: LegInputSegment[]): LegInputSegment[][] {
     const troca = isTrocaDeAeroporto(prev.toIata, seg.fromIata);
     const conecta = (!!prev.toIata && !!seg.fromIata && prev.toIata === seg.fromIata) || troca;
     const espera = waitMinutes(prev, seg);
-    const esperaOk = espera == null ? conecta : espera >= 0 && espera <= MAX_CONNECTION_HOURS * 60;
+    const limiteHoras = sameDirection ? 36 : MAX_CONNECTION_HOURS;
+    const esperaOk = espera == null ? conecta : espera >= 0 && espera <= limiteHoras * 60;
 
     if (sameGroup && sameDirection && conecta && esperaOk) {
       current.push(seg);
