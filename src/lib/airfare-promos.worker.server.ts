@@ -66,8 +66,27 @@ export type ValidationTelemetry = {
   p95_duration_ms: number | null;
   /** detalhamento das últimas falhas (origem, destino, motivo técnico...) */
   failures?: ValidationFailure[];
+  /** heartbeat: o que cada worker está validando AGORA */
+  in_flight?: WorkerHeartbeat[];
+  /** timeout individual configurado (ms) — o painel usa para apontar travamento */
+  candidate_timeout_ms?: number;
   updated_at: string;
 };
+
+/** Heartbeat de um worker — permite saber exatamente onde o processo congelou. */
+export type WorkerHeartbeat = {
+  worker_id: number;
+  opportunity_id: string;
+  origin: string;
+  destination: string;
+  started_at: string;
+  last_activity_at: string;
+  elapsed_ms: number;
+  attempt: number;
+  /** VALIDATING | ABORTING */
+  status: string;
+};
+
 
 /** Falha individual de validação — nunca vira "sem tarifa". */
 export type ValidationFailure = {
