@@ -68,6 +68,8 @@ export const flightSearchInput = z.object({
   departureIsCity: z.boolean().default(false),
   arrivalIsCity: z.boolean().default(false),
   searchKey: z.string().nullish(),
+  /** Jornada Aéreo + Hotel: chave única compartilhada com a busca de hotel. */
+  combinedKey: z.string().nullish(),
   filters: OperatorFilters.default(DEFAULT_FILTERS),
 });
 
