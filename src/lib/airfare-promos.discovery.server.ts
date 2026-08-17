@@ -253,7 +253,18 @@ type DiscoverOptions = {
   onProgress?: (msg: string) => void;
   /** orçamento de tempo da etapa de radar (o ritmo é 15–30s por chamada) */
   radarBudgetMs?: number;
+  /** retomada: checkpoint salvo pela invocação anterior */
+  resumeState?: DiscoveryState | null;
+  /** gravação do checkpoint depois de cada origem/lote concluído */
+  onCheckpoint?: (
+    state: DiscoveryState,
+    progress: { originsDone: number; originsTotal: number; leads: number; stage: string },
+  ) => void | Promise<void>;
 };
+
+/** margem mínima para começar mais uma origem/lote sem morrer no meio */
+const SLICE_MIN_MS = 25_000;
+const BATCH_MIN_MS = 18_000;
 
 /**
  * Descoberta 100% via API JSON do Melhores Destinos (radar).
@@ -284,12 +295,24 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
 
   resetRadarMetrics();
   progresso("Varrendo o radar de oportunidades (Melhores Destinos)...");
-  const collectedAt = new Date().toISOString();
+  const retomada = opts?.resumeState?.v === 1 ? opts.resumeState : null;
+  const collectedAt = retomada?.collectedAt ?? new Date().toISOString();
   const datesPerRoute = Math.max(1, opts?.datesPerRoute ?? 1);
 
   /** pool[origem][destino] */
   const pool = new Map<string, Map<string, Lead>>();
-  let brutas = 0;
+  let brutas = retomada?.brutas ?? 0;
+  const originsDone = new Set<string>(retomada?.originsDone ?? []);
+  if (retomada) {
+    for (const [origem, leads] of Object.entries(retomada.pool ?? {})) {
+      pool.set(origem, new Map(leads.map((l) => [l.destination_iata, l])));
+    }
+  }
+
+  const contarLeads = () => [...pool.values()].reduce((acc, m) => acc + m.size, 0);
+  const serializarPool = (): Record<string, Lead[]> =>
+    Object.fromEntries([...pool.entries()].map(([o, m]) => [o, [...m.values()]]));
+
 
   const addLead = (lead: Omit<Lead, "signature" | "departure_date" | "return_date">) => {
     brutas++;
