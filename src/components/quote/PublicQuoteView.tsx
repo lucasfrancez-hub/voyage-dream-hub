@@ -946,19 +946,28 @@ function QuoteBody({
 
   const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
 
+  /** Ida e volta: os voos sempre aparecem primeiro, fora da linha do tempo. */
+  const voosPrimeiro = useMemo(
+    () => legs.some((l, i) => direcaoLeg(l, i, legs.length) === "INBOUND"),
+    [legs],
+  );
+
   /** Roteiro: tudo em ordem cronológica (voo, hotel, serviços, por dia). */
   const roteiro = useMemo(() => {
     if (!quote.itinerary) return [] as RoteiroEntrada[];
     const out: RoteiroEntrada[] = [];
-    legs.forEach((leg, i) => {
-      const dep = leg.segments?.[0]?.departure ?? null;
-      out.push({
-        key: `voo-${i}`,
-        dia: diaDe(dep),
-        ord: ordDe(dep, "00:00"),
-        node: <FlightLegCard leg={leg} direction={direcaoLeg(leg, i, legs.length)} />,
+    if (!voosPrimeiro) {
+      legs.forEach((leg, i) => {
+        const dep = leg.segments?.[0]?.departure ?? null;
+        out.push({
+          key: `voo-${i}`,
+          dia: diaDe(dep),
+          ord: ordDe(dep, "00:00"),
+          node: <FlightLegCard leg={leg} direction={direcaoLeg(leg, i, legs.length)} />,
+        });
       });
-    });
+    }
+
     hotels.forEach((h) => {
       out.push({
         key: `hotel-${h.id}`,
