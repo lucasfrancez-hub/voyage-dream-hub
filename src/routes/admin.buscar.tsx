@@ -327,6 +327,8 @@ export function SearchEngine({
 
   const [combo, setCombo] = useState<ComboForm>(COMBO_INITIAL);
   const [runToken, setRunToken] = useState(0);
+  /** Chave única da jornada Aéreo + Hotel (voo e hotel usam a MESMA). */
+  const [combinedKey, setCombinedKey] = useState<string | null>(null);
   const [step, setStep] = useState<ComboStep>(1);
   const [flightPick, setFlightPick] = useState<ComboPick | null>(null);
   const [hotelPick, setHotelPick] = useState<ComboPick | null>(null);
