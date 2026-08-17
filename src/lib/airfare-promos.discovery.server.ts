@@ -805,6 +805,21 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     const lead = restantesFila[0];
     if (!lead) break;
     progresso(`Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`);
+    // Confirma a retirada ANTES da chamada externa. Assim uma morte abrupta
+    // nunca consulta a mesma rota de novo na retomada. O custo dessa garantia
+    // é conservador: se o processo morrer exatamente durante a chamada, a rota
+    // é considerada tentada e o próximo ciclo diário poderá reencontrá-la.
+    restantesFila.shift();
+    datesDone++;
+    await gravarCheckpoint("datas", {
+      pendingLeads: restantesFila,
+      candidates: selecionadas,
+      metrics,
+      dedupTotal,
+      datesTotal,
+      datesDone,
+    });
+    progresso(`Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`);
     let ofertas: Array<{
       departDate: string;
       returnDate: string | null;
@@ -891,8 +906,8 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
         radar_external_url: d.externalUrl,
       });
     }
-    restantesFila.shift();
-    datesDone++;
+    // Segundo checkpoint persiste apenas o resultado encontrado. A posição da
+    // fila já foi confirmada antes da rede e não pode regredir.
     await gravarCheckpoint("datas", {
       pendingLeads: restantesFila,
       candidates: selecionadas,
@@ -901,7 +916,6 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
       datesTotal,
       datesDone,
     });
-    progresso(`Consultando oportunidades ${datesTotal}/${datesTotal} · Datas reais ${datesDone}/${datesTotal}`);
   }
 
 
