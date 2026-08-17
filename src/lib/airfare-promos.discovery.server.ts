@@ -197,6 +197,8 @@ export type DiscoveryState = {
   brutas: number;
   radarErrors: number;
   originsDone: string[];
+  /** tentativas por origem: origem que mata a invocação 2x é descartada */
+  originAttempts?: Record<string, number>;
   statusOrigem: Record<string, { status: string; note: string | null }>;
   pool: Record<string, Lead[]>;
   /** etapa `datas`: leads selecionados ainda sem consulta de datas reais */
@@ -263,8 +265,13 @@ type DiscoverOptions = {
 };
 
 /** margem mínima para começar mais uma origem/lote sem morrer no meio */
-const SLICE_MIN_MS = 25_000;
-const BATCH_MIN_MS = 18_000;
+// A invocação real vive bem menos que o orçamento teórico (mede-se ~25-30s).
+// Por isso a fatia de cada origem é curta: o que importa é FECHAR a origem e
+// gravar o checkpoint dentro da invocação, não varrer tudo de uma vez.
+const SLICE_MIN_MS = 10_000;
+const BATCH_MIN_MS = 10_000;
+/** teto de tempo de UMA origem (o radar responde em ~3-8s por origem) */
+const ORIGIN_SLICE_MAX_MS = 14_000;
 
 /**
  * Descoberta 100% via API JSON do Melhores Destinos (radar).
@@ -303,6 +310,9 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   const pool = new Map<string, Map<string, Lead>>();
   let brutas = retomada?.brutas ?? 0;
   const originsDone = new Set<string>(retomada?.originsDone ?? []);
+  const originAttempts = new Map<string, number>(
+    Object.entries(retomada?.originAttempts ?? {}),
+  );
   if (retomada) {
     for (const [origem, leads] of Object.entries(retomada.pool ?? {})) {
       pool.set(origem, new Map(leads.map((l) => [l.destination_iata, l])));
@@ -361,6 +371,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     brutas,
     radarErrors,
     originsDone: [...originsDone],
+    originAttempts: Object.fromEntries(originAttempts),
     statusOrigem: Object.fromEntries(statusOrigem),
     pool: serializarPool(),
     ...extra,
@@ -442,15 +453,45 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     }
     // fatia justa: tempo restante ÷ origens restantes
     const restantes = Math.max(1, totalOrigens - indiceOrigem + 1);
-    const fatia = Math.max(20_000, Math.floor((leadsDeadline - Date.now()) / restantes));
+    const fatia = Math.min(
+      ORIGIN_SLICE_MAX_MS,
+      Math.max(8_000, Math.floor((leadsDeadline - Date.now()) / restantes)),
+    );
     const deadlineOrigem = Math.min(leadsDeadline, Date.now() + fatia);
     progresso(`Radar de oportunidades — ${origem} (${indiceOrigem}/${totalOrigens})...`);
-    try {
-      const leads = await radarLeadsForOrigin(origem, {
-        cancel,
-        onProgress: progresso,
-        deadline: deadlineOrigem,
+
+    // Origem que já derrubou a invocação duas vezes não pode travar a fila:
+    // fica registrada como timeout e a descoberta segue para a próxima.
+    const tentativas = (originAttempts.get(origem) ?? 0) + 1;
+    originAttempts.set(origem, tentativas);
+    if (tentativas > 2) {
+      statusOrigem.set(origem, {
+        status: "timeout",
+        note: "radar não respondeu dentro do prazo em 2 tentativas",
       });
+      originsDone.add(origem);
+      await gravarCheckpoint("leads");
+      continue;
+    }
+    // A tentativa vira checkpoint ANTES da chamada: se a invocação morrer no
+    // meio, a próxima sabe que esta origem já foi tentada.
+    await gravarCheckpoint("leads");
+
+    try {
+      // Teto DURO: nem que a chamada ignore o deadline interno, a fatia acaba.
+      const leads = await Promise.race([
+        radarLeadsForOrigin(origem, {
+          cancel,
+          onProgress: progresso,
+          deadline: deadlineOrigem,
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new RadarDeadlineError()),
+            Math.max(5_000, deadlineOrigem - Date.now() + 5_000),
+          ),
+        ),
+      ]);
       for (const l of leads) {
         addLead({
           origin_iata: l.origin.iata,
