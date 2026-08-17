@@ -98,6 +98,11 @@ function TesteCheckoutOwnerPage() {
   const [log, setLog] = useState<LogItem[]>([]);
   const [passageiros, setPassageiros] = useState<Passageiro[]>([passageiroVazio()]);
   const [checkout, setCheckout] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [ultimaConsulta, setUltimaConsulta] = useState<
+    Awaited<ReturnType<typeof ownerConsultarCarrinho>> | null
+  >(null);
+
 
   const addLog = (item: LogItem) => setLog((l) => [...l, item]);
   const logErro = (
