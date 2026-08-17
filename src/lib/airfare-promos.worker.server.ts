@@ -351,6 +351,32 @@ export async function processPendingCandidates(args: {
     console.warn("[airfare-falha]", JSON.stringify(item));
   };
 
+  /* ─── HEARTBEAT DOS WORKERS (quem está validando o quê, agora) ─── */
+  type JobVivo = {
+    workerId: number;
+    ctrl: AbortController;
+    cand: CandidateRow;
+    startedAt: number;
+    lastActivity: number;
+    attempt: number;
+    status: "VALIDATING" | "ABORTING";
+  };
+  const emVoo = new Map<number, JobVivo>();
+
+  const heartbeat = (): WorkerHeartbeat[] =>
+    [...emVoo.values()].map((j) => ({
+      worker_id: j.workerId,
+      opportunity_id: j.cand.id,
+      origin: j.cand.origin_iata,
+      destination: j.cand.destination_iata,
+      started_at: new Date(j.startedAt).toISOString(),
+      last_activity_at: new Date(j.lastActivity).toISOString(),
+      elapsed_ms: Date.now() - j.startedAt,
+      attempt: j.attempt,
+      status: j.status,
+    }));
+
+
   const telemetria = (): ValidationTelemetry => ({
     concurrency,
     ...tele,
