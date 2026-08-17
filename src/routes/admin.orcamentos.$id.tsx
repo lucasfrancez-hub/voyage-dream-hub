@@ -364,8 +364,25 @@ function QuoteDetailPage() {
               {[quote.client_phone, quote.client_email].filter(Boolean).join(" · ") || "Sem contato informado"}
             </div>
             <div className="mt-4 max-w-xl">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Título da viagem</div>
-              <Input readOnly value={quote.title ?? quote.destination ?? ""} className="mt-1" />
+              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Título da viagem (aparece no link público)
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                <Input
+                  value={tituloEdit ?? tituloPublico}
+                  onChange={(e) => setTituloEdit(e.target.value)}
+                  placeholder={tituloPublico}
+                />
+                {tituloEdit !== null && tituloEdit.trim() !== tituloPublico && (
+                  <Button
+                    size="sm"
+                    disabled={tituloMutation.isPending || tituloEdit.trim().length < 2}
+                    onClick={() => tituloMutation.mutate(tituloEdit.trim())}
+                  >
+                    {tituloMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+                  </Button>
+                )}
+              </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {[quote.origin, quote.destination].filter(Boolean).join(" → ") || "—"} ·{" "}
                 {dt(quote.start_date)} – {dt(quote.end_date)}
