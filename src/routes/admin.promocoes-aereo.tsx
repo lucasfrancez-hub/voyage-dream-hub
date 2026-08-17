@@ -1023,7 +1023,14 @@ function PromocoesAereoPage() {
       error?: number;
       requeued?: number;
       avg_duration_ms?: number | null;
+      p90_duration_ms?: number | null;
       p95_duration_ms?: number | null;
+      p99_duration_ms?: number | null;
+      max_duration_ms?: number | null;
+      slow_ok?: number;
+      engine_timeout?: number;
+      tech_error?: number;
+      no_fare?: number;
       failures?: Array<{
         origin: string;
         destination: string;
@@ -1265,11 +1272,43 @@ function PromocoesAereoPage() {
                   ? `${Math.round(info.validation_metrics.avg_duration_ms / 100) / 10}s`
                   : "—"}
               </span>
+              {(
+                [
+                  ["p90", info.validation_metrics.p90_duration_ms],
+                  ["p95", info.validation_metrics.p95_duration_ms],
+                  ["p99", info.validation_metrics.p99_duration_ms],
+                  ["máx", info.validation_metrics.max_duration_ms],
+                ] as Array<[string, number | null | undefined]>
+              ).map(([rotulo, valor]) => (
+                <span key={rotulo}>
+                  {rotulo}: {valor ? `${Math.round(valor / 100) / 10}s` : "—"}
+                </span>
+              ))}
               <span>
-                p95:{" "}
-                {info.validation_metrics.p95_duration_ms
-                  ? `${Math.round(info.validation_metrics.p95_duration_ms / 100) / 10}s`
+                Timeout aplicado:{" "}
+                {info.validation_metrics.candidate_timeout_ms
+                  ? `${Math.round(info.validation_metrics.candidate_timeout_ms / 1000)}s`
                   : "—"}
+              </span>
+            </div>
+          ) : null}
+
+          {/* Desfechos separados: o que é timeout do motor, o que só demorou,
+              o que é falha técnica e o que é rota realmente sem tarifa. */}
+          {info.validation_metrics ? (
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-[11px]">
+              <span className="font-bold text-foreground">Desfechos</span>
+              <span className="text-amber-600 dark:text-amber-400">
+                Timeout real do motor: {info.validation_metrics.engine_timeout ?? 0}
+              </span>
+              <span className="text-sky-600 dark:text-sky-400">
+                Lenta mas concluída: {info.validation_metrics.slow_ok ?? 0}
+              </span>
+              <span className="text-destructive">
+                Falha técnica: {info.validation_metrics.tech_error ?? 0}
+              </span>
+              <span className="text-muted-foreground">
+                Rota sem tarifa: {info.validation_metrics.no_fare ?? 0}
               </span>
             </div>
           ) : null}
