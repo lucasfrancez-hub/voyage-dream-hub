@@ -230,21 +230,27 @@ export function curateOrigin<T extends CurationInput>(
     }
   }
 
-  // ÚLTIMA PASSADA — completar até o LIMITE da origem.
-  // As cotas acima são preferência de composição, não teto do universo:
-  // se ainda há vaga (limite) e sobra oportunidade dentro do teto de
-  // qualidade, ela entra. Assim 69 elegíveis nunca viram "só 7 analisadas".
-  // No internacional as cotas + excepcionalidade continuam mandando; no
-  // nacional as cotas (4+2+1) eram um teto artificial de 7.
-  if (scope === "nacional") {
+  // ÚLTIMA PASSADA — GARANTIA DE VOLUME POR ORIGEM.
+  // Regra dura: selecionadas = min(elegiveis, limite). As cotas, tetos de
+  // qualidade e a diversidade por destino acima definem QUAIS entram
+  // (ordem de prioridade), nunca QUANTAS. Se ainda há vaga, completamos
+  // com as melhores elegíveis restantes.
+  if (selecionadas.length < limit) {
+    // 1) preferindo manter diversidade de destino
     for (const d of elegiveis) {
       if (selecionadas.length >= limit) break;
       if (d.status === "selecionada") continue;
-      if (d.ratio > NATIONAL_QUALITY_MAX_RATIO) continue;
       if (!cabeNoDestino(d)) continue;
       aceitar(d, `completar_vagas_${d.region}`);
     }
+    // 2) se ainda faltar, completa ignorando o limite por destino
+    for (const d of elegiveis) {
+      if (selecionadas.length >= limit) break;
+      if (d.status === "selecionada") continue;
+      aceitar(d, `completar_vagas_repetido_${d.region}`);
+    }
   }
+
 
   decisions.push(...elegiveis);
 
