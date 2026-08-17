@@ -508,7 +508,24 @@ export async function processPendingCandidates(args: {
     timeout: 0,
     error: 0,
     requeued: 0,
+    /* SEPARAÇÃO EXIGIDA NO PAINEL — cada desfecho tem significado próprio */
+    slow_ok: 0,
+    engine_timeout: 0,
+    tech_error: 0,
+    no_fare: 0,
   };
+
+  /** Faixa de timeout adaptativo realmente aplicada nesta invocação. */
+  let timeoutMinAplicado: number | null = null;
+  let timeoutMaxAplicado: number | null = null;
+  const registrarTimeoutAplicado = (ms: number) => {
+    timeoutMinAplicado = timeoutMinAplicado == null ? ms : Math.min(timeoutMinAplicado, ms);
+    timeoutMaxAplicado = timeoutMaxAplicado == null ? ms : Math.max(timeoutMaxAplicado, ms);
+  };
+
+  /** p95 corrente — realimenta o timeout adaptativo das próximas candidatas. */
+  const p95Corrente = () => (duracoes.length >= 5 ? percentil(duracoes, 95) : null);
+
 
   const falhas: ValidationFailure[] = [];
 
