@@ -92,6 +92,39 @@ export function boletoInstallments(total: number, max = BOLETO_MAX_INSTALLMENTS)
   return out;
 }
 
+/** Dias mínimos entre a quitação e a viagem no boleto "até a data da viagem". */
+export const BOLETO_QUITACAO_DIAS_ANTES = 30;
+
+function isoMenosDias(startDate: string, dias: number): string | null {
+  const m = String(startDate).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) - dias * 86_400_000);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Boleto "até a data da viagem": a antecedência define o número de parcelas
+ * mensais. A entrada é sempre o valor de UMA parcela (paga na contratação) e
+ * a última parcela vence 30 dias antes do embarque.
+ */
+export function boletoAteViagem(total: number, startDate?: string | null) {
+  const dias = diasAteViagem(startDate);
+  if (!startDate || dias == null || total <= 0) return null;
+  const prazo = dias - BOLETO_QUITACAO_DIAS_ANTES;
+  if (prazo < 30) return null;
+  const parcelas = Math.max(2, Math.min(BOLETO_MAX_INSTALLMENTS, Math.floor(prazo / 30) + 1));
+  const parcela = round2(total / parcelas);
+  return {
+    enabled: true,
+    installments: parcelas,
+    entrada: parcela,
+    parcela,
+    total: round2(total),
+    lastDueDate: isoMenosDias(startDate, BOLETO_QUITACAO_DIAS_ANTES),
+    note: `Entrada de ${brl(parcela)} na contratação e mais ${parcelas - 1}x de ${brl(parcela)}, com quitação total até 30 dias antes da viagem.`,
+  };
+}
+
 export function buildPayment(params: {
   type: QuoteType;
   total: number;
@@ -110,8 +143,12 @@ export function buildPayment(params: {
   const pixPercent = type === "AIR_ONLY" ? 0 : (params.pixDiscountPercent ?? PIX_DISCOUNT_PERCENT);
   const pixTotal = round2(total * (1 - pixPercent / 100));
   const dias = diasAteViagem(params.startDate);
-  // Boleto 10x: exclusivo de pacote com 60+ dias de antecedência.
-  const boletoEnabled = type === "TRIP_PACKAGE" && dias != null && dias >= BOLETO_MIN_DAYS;
+  // Boleto 10x financiado: exclusivo de pacote com 60+ dias de antecedência.
+  const boletoFinanciado = type === "TRIP_PACKAGE" && dias != null && dias >= BOLETO_MIN_DAYS;
+  // Boleto até a data da viagem: vale sempre que houver 60+ dias (30 de prazo
+  // de parcelamento + 30 dias de quitação antes do embarque).
+  const ateViagem = boletoAteViagem(total, params.startDate);
+  const boletoEnabled = boletoFinanciado || !!ateViagem;
 
   return {
     methods: boletoEnabled ? ["CARD", "BOLETO", "PIX"] : ["CARD", "PIX"],
@@ -122,14 +159,16 @@ export function buildPayment(params: {
     },
     boleto: {
       enabled: boletoEnabled,
-      installments: boletoEnabled
+      installments: boletoFinanciado
         ? boletoInstallments(total, params.boletoMax ?? BOLETO_MAX_INSTALLMENTS)
         : [],
-      note: boletoEnabled ? (params.boletoNote ?? null) : null,
+      note: boletoFinanciado ? (params.boletoNote ?? null) : null,
+      untilTravel: ateViagem,
     },
     pix: { enabled: true, discountPercent: pixPercent, total: pixTotal },
   };
 }
+
 
 
 
