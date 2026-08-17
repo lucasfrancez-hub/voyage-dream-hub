@@ -98,7 +98,23 @@ export type ValidationTelemetry = {
   error: number;
   requeued: number;
   avg_duration_ms: number | null;
+  p90_duration_ms?: number | null;
   p95_duration_ms: number | null;
+  p99_duration_ms?: number | null;
+  max_duration_ms?: number | null;
+  /** amostra usada nas estatísticas de latência */
+  samples?: number;
+  /** RESPOSTA LENTA MAS CONCLUÍDA (>= 75% do próprio timeout) */
+  slow_ok?: number;
+  /** TIMEOUT REAL DO MOTOR (a consulta foi abortada no limite) */
+  engine_timeout?: number;
+  /** FALHA TÉCNICA (HTTP, parsing, gravação, indisponibilidade) */
+  tech_error?: number;
+  /** ROTA SEM TARIFA (motor respondeu, mas não há oferta) */
+  no_fare?: number;
+  /** faixa de timeout adaptativo aplicada nesta execução */
+  timeout_min_ms?: number;
+  timeout_max_ms?: number;
   /** detalhamento das últimas falhas (origem, destino, motivo técnico...) */
   failures?: ValidationFailure[];
   /** heartbeat: o que cada worker está validando AGORA */
@@ -114,6 +130,8 @@ export type ValidationTelemetry = {
   /** claims recusados por não caber no orçamento restante da invocação */
   claims_skipped_budget?: number;
   updated_at: string;
+
+
 
 };
 
