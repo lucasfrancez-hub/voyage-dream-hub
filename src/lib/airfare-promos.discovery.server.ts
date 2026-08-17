@@ -197,6 +197,8 @@ export type DiscoveryState = {
   brutas: number;
   radarErrors: number;
   originsDone: string[];
+  /** tentativas por origem: origem que mata a invocação 2x é descartada */
+  originAttempts?: Record<string, number>;
   statusOrigem: Record<string, { status: string; note: string | null }>;
   pool: Record<string, Lead[]>;
   /** etapa `datas`: leads selecionados ainda sem consulta de datas reais */
@@ -303,6 +305,9 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
   const pool = new Map<string, Map<string, Lead>>();
   let brutas = retomada?.brutas ?? 0;
   const originsDone = new Set<string>(retomada?.originsDone ?? []);
+  const originAttempts = new Map<string, number>(
+    Object.entries(retomada?.originAttempts ?? {}),
+  );
   if (retomada) {
     for (const [origem, leads] of Object.entries(retomada.pool ?? {})) {
       pool.set(origem, new Map(leads.map((l) => [l.destination_iata, l])));
@@ -361,6 +366,7 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     brutas,
     radarErrors,
     originsDone: [...originsDone],
+    originAttempts: Object.fromEntries(originAttempts),
     statusOrigem: Object.fromEntries(statusOrigem),
     pool: serializarPool(),
     ...extra,
@@ -445,12 +451,39 @@ export async function discoverCandidates(opts?: DiscoverOptions): Promise<Discov
     const fatia = Math.max(20_000, Math.floor((leadsDeadline - Date.now()) / restantes));
     const deadlineOrigem = Math.min(leadsDeadline, Date.now() + fatia);
     progresso(`Radar de oportunidades — ${origem} (${indiceOrigem}/${totalOrigens})...`);
-    try {
-      const leads = await radarLeadsForOrigin(origem, {
-        cancel,
-        onProgress: progresso,
-        deadline: deadlineOrigem,
+
+    // Origem que já derrubou a invocação duas vezes não pode travar a fila:
+    // fica registrada como timeout e a descoberta segue para a próxima.
+    const tentativas = (originAttempts.get(origem) ?? 0) + 1;
+    originAttempts.set(origem, tentativas);
+    if (tentativas > 2) {
+      statusOrigem.set(origem, {
+        status: "timeout",
+        note: "radar não respondeu dentro do prazo em 2 tentativas",
       });
+      originsDone.add(origem);
+      await gravarCheckpoint("leads");
+      continue;
+    }
+    // A tentativa vira checkpoint ANTES da chamada: se a invocação morrer no
+    // meio, a próxima sabe que esta origem já foi tentada.
+    await gravarCheckpoint("leads");
+
+    try {
+      // Teto DURO: nem que a chamada ignore o deadline interno, a fatia acaba.
+      const leads = await Promise.race([
+        radarLeadsForOrigin(origem, {
+          cancel,
+          onProgress: progresso,
+          deadline: deadlineOrigem,
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new RadarDeadlineError(`prazo da origem ${origem} esgotado`)),
+            Math.max(5_000, deadlineOrigem - Date.now() + 5_000),
+          ),
+        ),
+      ]);
       for (const l of leads) {
         addLead({
           origin_iata: l.origin.iata,
