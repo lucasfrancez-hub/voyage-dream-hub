@@ -62,6 +62,9 @@ type QuoteRow = {
   source: string | null;
   total: number | null;
   title: string | null;
+  client_name: string | null;
+  consultant: string | null;
+  public_quote_id: string | null;
   destination: string | null;
   start_date: string | null;
   end_date: string | null;
@@ -100,7 +103,7 @@ export async function mutateQuoteNormalized(
 
   const { data: row, error } = await supabaseAdmin
     .from("quotes")
-    .select("id, normalized, source, total, title, destination, start_date, end_date")
+    .select("id, normalized, source, total, title, client_name, consultant, public_quote_id, destination, start_date, end_date")
     .eq("id", quoteId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -145,6 +148,23 @@ export async function mutateQuoteNormalized(
   if (upErr) throw new Error(upErr.message);
 
   await syncQuoteOptions(quoteId, normalized);
+
+  // Mantém o link público já criado sincronizado com itens, valores e modo
+  // roteiro. Antes, marcar "É roteiro?" alterava apenas o editor interno e o
+  // cliente continuava vendo a versão antiga agrupada por categoria.
+  if (quote.public_quote_id) {
+    const { buildPublicQuoteFromImported } = await import("./to-public-quote.server");
+    const { refreshPublicQuote } = await import("@/lib/public-quote/store.server");
+    const dto = buildPublicQuoteFromImported({
+      normalized,
+      title: quote.title,
+      headline: normalized.headline ?? null,
+      clientName: quote.client_name,
+      agentName: quote.consultant,
+    });
+    await refreshPublicQuote(quote.public_quote_id, dto as never);
+  }
+
   return { total: totalOrcamento, options: normalized.options };
 }
 

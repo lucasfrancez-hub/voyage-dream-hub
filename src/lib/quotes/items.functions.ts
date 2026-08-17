@@ -6,65 +6,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import type { ExtractedQuoteItems, ItemKind } from "./items.server";
+import {
+  assertQuoteStaff,
+  FlightSchema,
+  HotelSchema,
+  KindSchema,
+  ServiceSchema,
+} from "./items-functions-support.server";
 
 export type { ExtractedQuoteItems } from "./items.server";
-
-const HotelSchema = z.object({
-  name: z.string().trim().min(1).max(160),
-  city: z.string().trim().max(120).nullish(),
-  address: z.string().trim().max(240).nullish(),
-  checkin: z.string().trim().max(10).nullish(),
-  checkout: z.string().trim().max(10).nullish(),
-  nights: z.number().min(0).max(365).nullish(),
-  roomDescription: z.string().trim().max(200).nullish(),
-  board: z.string().trim().max(120).nullish(),
-  photos: z.array(z.string().trim().max(600)).max(12).optional(),
-  total: z.number().min(0).nullish(),
-});
-
-const SegmentSchema = z.object({
-  airline: z.string().trim().max(80).nullish(),
-  airlineIata: z.string().trim().max(4).nullish(),
-  flightNumber: z.string().trim().max(12).nullish(),
-  fromIata: z.string().trim().max(4).nullish(),
-  toIata: z.string().trim().max(4).nullish(),
-  departure: z.string().trim().max(30).nullish(),
-  arrival: z.string().trim().max(30).nullish(),
-  duration: z.string().trim().max(20).nullish(),
-  cabin: z.string().trim().max(40).nullish(),
-  baggage: z.string().trim().max(80).nullish(),
-});
-
-const FlightSchema = z.object({
-  direction: z.enum(["OUTBOUND", "INBOUND"]).nullish(),
-  airline: z.string().trim().max(80).nullish(),
-  fromIata: z.string().trim().max(4).nullish(),
-  toIata: z.string().trim().max(4).nullish(),
-  departure: z.string().trim().max(30).nullish(),
-  arrival: z.string().trim().max(30).nullish(),
-  duration: z.string().trim().max(20).nullish(),
-  stops: z.number().min(0).max(10).nullish(),
-  segments: z.array(SegmentSchema).max(12).default([]),
-  total: z.number().min(0).nullish(),
-});
-
-const ServiceSchema = z.object({
-  name: z.string().trim().min(1).max(160),
-  description: z.string().trim().max(600).nullish(),
-  date: z.string().trim().max(10).nullish(),
-  quantity: z.number().min(0).max(999).nullish(),
-  total: z.number().min(0).nullish(),
-});
-
-const KindSchema = z.enum(["hotel", "flight", "service"]);
-
-async function assertStaff(supabase: {
-  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-}, userId: string) {
-  const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
-}
 
 /** Cria ou atualiza um item da opção. `index` null = novo item. */
 export const salvarItemOrcamento = createServerFn({ method: "POST" })
@@ -83,7 +33,7 @@ export const salvarItemOrcamento = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    await assertStaff(context.supabase as never, context.userId);
+    await assertQuoteStaff(context.supabase as never, context.userId);
     const { mutateQuoteOption } = await import("./items.server");
 
     return mutateQuoteOption(data.quoteId, data.optionNumber, (opt) => {
@@ -117,7 +67,7 @@ export const removerItemOrcamento = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    await assertStaff(context.supabase as never, context.userId);
+    await assertQuoteStaff(context.supabase as never, context.userId);
     const { mutateQuoteOption } = await import("./items.server");
 
     return mutateQuoteOption(data.quoteId, data.optionNumber, (opt) => {
@@ -141,7 +91,7 @@ export const lerArquivoOrcamento = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }): Promise<ExtractedQuoteItems> => {
-    await assertStaff(context.supabase as never, context.userId);
+    await assertQuoteStaff(context.supabase as never, context.userId);
     const { lerDocumentoOrcamento } = await import("./items.server");
     return lerDocumentoOrcamento({
       filename: data.filename,
@@ -166,7 +116,7 @@ export const aplicarItensExtraidos = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    await assertStaff(context.supabase as never, context.userId);
+    await assertQuoteStaff(context.supabase as never, context.userId);
     const { mutateQuoteOption } = await import("./items.server");
 
     return mutateQuoteOption(data.quoteId, data.optionNumber, (opt) => {
@@ -194,7 +144,7 @@ export const criarOpcaoOrcamento = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    await assertStaff(context.supabase as never, context.userId);
+    await assertQuoteStaff(context.supabase as never, context.userId);
     const { mutateQuoteNormalized, garantirOpcao } = await import("./items.server");
 
     let novoNumero = 1;
@@ -227,7 +177,7 @@ export const renomearOpcaoOrcamento = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    await assertStaff(context.supabase as never, context.userId);
+    await assertQuoteStaff(context.supabase as never, context.userId);
     const { mutateQuoteNormalized } = await import("./items.server");
     await mutateQuoteNormalized(data.quoteId, (normalized) => {
       const opt = normalized.options.find((o) => o.optionNumber === data.optionNumber);
@@ -250,7 +200,7 @@ export const definirRoteiroOpcao = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    await assertStaff(context.supabase as never, context.userId);
+    await assertQuoteStaff(context.supabase as never, context.userId);
     const { mutateQuoteNormalized } = await import("./items.server");
     await mutateQuoteNormalized(data.quoteId, (normalized) => {
       const opt = normalized.options.find((o) => o.optionNumber === data.optionNumber);
@@ -267,7 +217,7 @@ export const removerOpcaoOrcamento = createServerFn({ method: "POST" })
     z.object({ quoteId: z.string().uuid(), optionNumber: z.number().int().min(1).max(20) }).parse(i),
   )
   .handler(async ({ data, context }) => {
-    await assertStaff(context.supabase as never, context.userId);
+    await assertQuoteStaff(context.supabase as never, context.userId);
     const { mutateQuoteNormalized } = await import("./items.server");
     await mutateQuoteNormalized(data.quoteId, (normalized) => {
       if (normalized.options.length <= 1) throw new Error("O orçamento precisa ter ao menos uma opção");
@@ -293,7 +243,7 @@ export const atualizarValorItemOrcamento = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    await assertStaff(context.supabase as never, context.userId);
+    await assertQuoteStaff(context.supabase as never, context.userId);
     const { mutateQuoteOption } = await import("./items.server");
 
     return mutateQuoteOption(data.quoteId, data.optionNumber, (opt) => {
