@@ -737,7 +737,7 @@ export async function processPendingCandidates(args: {
 
   /** Progresso gravado no máximo 1x/s â a UI reflete cada resultado sem inundar o banco. */
   let ultimoTouch = 0;
-  const progresso = async (label: string, forcar = false) => {
+  const progresso = async (label: string | null, forcar = false) => {
     if (!forcar && Date.now() - ultimoTouch < 1000) return;
     ultimoTouch = Date.now();
     await touch({
@@ -749,7 +749,8 @@ export async function processPendingCandidates(args: {
       error_count: counters.error_count,
       new_count: counters.new_count,
       updated_count: counters.updated_count,
-      last_label: label,
+      // null = não houve novo estado final; mantém a última realmente concluída
+      ...(label === null ? {} : { last_label: label }),
       origin_metrics: metricasSnapshot(),
       validation_metrics: telemetria(),
     });
