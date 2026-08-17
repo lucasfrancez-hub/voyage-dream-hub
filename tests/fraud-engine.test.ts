@@ -5,7 +5,7 @@ import {
   levelFromScore,
   preFormattedScore,
   type FraudMessage,
-} from "../fraud/signals";
+} from "../src/lib/whatsapp/fraud/signals";
 
 const msg = (content: string, direction: "inbound" | "outbound" = "inbound"): FraudMessage => ({
   direction,
