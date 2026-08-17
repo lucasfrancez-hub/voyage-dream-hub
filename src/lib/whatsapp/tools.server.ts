@@ -250,7 +250,7 @@ export function buildCamilaTools(conversation: WaConversation) {
             faltam_dados: true,
             confirmacao_ainda_nao_enviada: !confirmacaoEnviada,
             campos_faltando: faltando,
-            instrucao: `NÃO pesquise nem mande card ainda. Mesmo que os dados já apareçam no histórico, esta é uma NOVA solicitação: confirme com o cliente, citando ${destino}, em UMA mensagem natural — ex: "Claro! Para ${destino}, continuam sendo as mesmas pessoas saindo de ${origem ?? "qual cidade"}? E mantenho ${periodo ?? "o mesmo período"}, com aproximadamente quantas noites?". Espere a resposta dele. Depois mande a transição ("Perfeito! Vou verificar as opções de ${destino} com essas condições e já te mostro 😊") e só então chame buscar_pacotes de novo com confirmado_para_este_destino=true.`,
+            instrucao: `NÃO pesquise nem mande card ainda. Mesmo que os dados já apareçam no histórico, esta é uma NOVA solicitação. Mande EXATAMENTE 2 balões e espere a resposta: (1) "Claro! Para ${destino}, continuam sendo as mesmas ${"{quantidade}"} pessoas saindo de ${origem ?? "qual cidade"}?" — troque {quantidade} pelo número de passageiros já dito na conversa; (2) "Vocês têm alguma data específica em mente? E mais ou menos quantas noites gostariam de ficar? Se estiverem flexíveis, posso procurar o período com melhor custo-benefício." NUNCA empilhe alternativas com "ou ... ou ..." na mesma frase. Depois da resposta dele, mande a transição ("Perfeito! Vou verificar as opções de ${destino} com essas condições e já te mostro 😊") e só então chame buscar_pacotes com confirmado_para_este_destino=true.`,
           };
         }
 
