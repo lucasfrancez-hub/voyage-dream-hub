@@ -115,66 +115,6 @@ function StarsDisplay({ value, className = "" }: { value: number; className?: st
   );
 }
 
-// Opções padrão de hospedagem (mesmas usadas no cadastro de pacotes).
-const HOSP_REGIMES: string[] = [
-  "Sem refeição",
-  "Café da manhã",
-  "Meia pensão",
-  "Pensão completa",
-  "All inclusive",
-];
-const HOSP_CATEGORIAS: string[] = [
-  "Standard", "Superior", "Luxo", "Suíte", "Suíte Master", "Suíte Presidencial", "Bangalô", "Chalé",
-];
-const HOSP_CAMAS: string[] = [
-  "1 cama de casal", "1 cama king", "1 cama queen", "2 camas de solteiro", "2 camas queen",
-  "2 camas de casal", "1 casal + 1 solteiro", "1 casal + 2 solteiros", "3 camas de solteiro",
-  "Cama de casal + sofá-cama",
-];
-const HOSP_VISTAS: string[] = [
-  "Vista interna", "Vista cidade", "Vista jardim", "Vista piscina", "Vista parcial mar",
-  "Vista mar", "Frente mar", "Vista montanha",
-];
-
-function StarsInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-
-  const v = Math.max(0, Math.min(5, Number(value) || 0));
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center">
-        {[0, 1, 2, 3, 4].map((i) => {
-          const fill = Math.max(0, Math.min(1, v - i));
-          return (
-            <div key={i} className="relative h-6 w-6">
-              <Star className="absolute inset-0 h-6 w-6 text-brand-orange/30" />
-              <span className="absolute inset-0 overflow-hidden pointer-events-none" style={{ width: `${fill * 100}%` }}>
-                <Star className="h-6 w-6 text-brand-orange fill-brand-orange" />
-              </span>
-              <button
-                type="button"
-                aria-label={`${i + 0.5} estrelas`}
-                className="absolute left-0 top-0 h-6 w-3 cursor-pointer"
-                onClick={() => onChange(i + 0.5)}
-              />
-              <button
-                type="button"
-                aria-label={`${i + 1} estrelas`}
-                className="absolute right-0 top-0 h-6 w-3 cursor-pointer"
-                onClick={() => onChange(i + 1)}
-              />
-            </div>
-          );
-        })}
-      </div>
-      <span className="text-xs text-muted-foreground tabular-nums">{v ? v.toFixed(1) : "—"}</span>
-      {v > 0 && (
-        <button type="button" onClick={() => onChange(0)} className="text-[10px] text-muted-foreground hover:text-foreground underline">
-          limpar
-        </button>
-      )}
-    </div>
-  );
-}
 
 function OrderDetailPage() {
   const { id } = Route.useParams();
