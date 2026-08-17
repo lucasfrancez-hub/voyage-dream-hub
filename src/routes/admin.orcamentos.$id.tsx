@@ -856,14 +856,58 @@ function QuoteDetailPage() {
                   {linhasFinanceiro.length === 0 && (
                     <tr><td colSpan={4} className="py-6 text-center text-xs text-muted-foreground">Nenhum item neste orçamento.</td></tr>
                   )}
-                  {linhasFinanceiro.map((l, i) => (
-                    <tr key={i} className="border-b border-border/50">
-                      <td className="py-2 px-2 text-xs">{l.item}</td>
-                      <td className="py-2 px-2 text-xs">{l.tipo}</td>
-                      <td className="py-2 px-2 text-xs">{l.periodo}</td>
-                      <td className="py-2 px-2 text-right text-xs font-semibold">{formatBRL(l.total)}</td>
-                    </tr>
-                  ))}
+                  {linhasFinanceiro.map((l, i) => {
+                    const editando =
+                      !!l.kind && valorEdit?.kind === l.kind && valorEdit?.index === l.index;
+                    const salvar = () => {
+                      if (!l.kind) return;
+                      const bruto = (valorEdit?.valor ?? "").trim().replace(/\./g, "").replace(",", ".");
+                      const n = bruto === "" ? null : Number(bruto);
+                      if (n != null && !Number.isFinite(n)) { toast.error("Valor inválido"); return; }
+                      valorMutation.mutate({ kind: l.kind, index: l.index, total: n });
+                    };
+                    return (
+                      <tr key={i} className="border-b border-border/50">
+                        <td className="py-2 px-2 text-xs">{l.item}</td>
+                        <td className="py-2 px-2 text-xs">{l.tipo}</td>
+                        <td className="py-2 px-2 text-xs">{l.periodo}</td>
+                        <td className="py-2 px-2 text-right text-xs font-semibold">
+                          {editando ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Input
+                                autoFocus
+                                inputMode="decimal"
+                                className="h-8 w-28 text-right"
+                                value={valorEdit?.valor ?? ""}
+                                onChange={(e) => setValorEdit({ kind: l.kind!, index: l.index, valor: e.target.value })}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") salvar();
+                                  if (e.key === "Escape") setValorEdit(null);
+                                }}
+                              />
+                              <Button size="sm" className="h-8" disabled={valorMutation.isPending} onClick={salvar}>OK</Button>
+                              <Button size="sm" variant="ghost" className="h-8" onClick={() => setValorEdit(null)}>×</Button>
+                            </span>
+                          ) : l.kind ? (
+                            <button
+                              type="button"
+                              title="Clique para alterar o valor"
+                              className="inline-flex items-center gap-1 rounded px-1.5 py-1 hover:bg-muted"
+                              onClick={() =>
+                                setValorEdit({ kind: l.kind!, index: l.index, valor: l.total ? String(l.total) : "" })
+                              }
+                            >
+                              {formatBRL(l.total)}
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </button>
+                          ) : (
+                            formatBRL(l.total)
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+
                 </tbody>
                 <tfoot>
                   <tr>
