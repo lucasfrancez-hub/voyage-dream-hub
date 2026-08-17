@@ -546,6 +546,7 @@ export function SearchEngine({
               <div className={step === 1 ? "" : "hidden"}>
                 <VoosPage
                   hideForm
+                  combinedKey={combinedKey}
                   preset={flightPreset}
                   runToken={runToken}
                   onComboSelect={(pick) => {
@@ -559,6 +560,7 @@ export function SearchEngine({
               <div className={step === 2 ? "" : "hidden"}>
                 <HoteisPage
                   hideForm
+                  combinedKey={combinedKey}
                   preset={hotelPreset}
                   runToken={runToken}
                   onComboSelect={(pick) => {
