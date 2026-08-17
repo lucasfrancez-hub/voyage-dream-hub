@@ -87,6 +87,17 @@ export function extrairCartId(entrada: string): string | null {
   return m ? m[0].toLowerCase() : null;
 }
 
+/** Normaliza a data de nascimento para o formato ISO completo exigido pela Owner:
+ *  "1998-04-09" -> "1998-04-09T00:00:00.000Z".
+ *  Se já vier com horário, preserva o valor original.
+ */
+export function ownerNormalizeDateOfBirth(dateOfBirth: string): string {
+  const d = String(dateOfBirth ?? "").trim();
+  if (d.includes("T")) return d;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return `${d}T00:00:00.000Z`;
+  return d;
+}
+
 /** Data/hora atual com offset (ex.: 2026-08-17T01:20:33-03:00). */
 export function dateTimeClient(now = new Date()): string {
   const off = -now.getTimezoneOffset();
@@ -364,7 +375,13 @@ export async function ownerSavePassengers(
   passengers: PassageiroOwner[],
   token: string,
 ) {
-  const body = { cartId, passengers };
+  const body = {
+    cartId,
+    passengers: passengers.map((p) => ({
+      ...p,
+      dateOfBirth: ownerNormalizeDateOfBirth(p.dateOfBirth),
+    })),
+  };
   const r = await call<{ success?: boolean; message?: string }>(
     `${API}/api/booking/flight/passenger/${cartId}`,
     { method: "PUT", body, token },
