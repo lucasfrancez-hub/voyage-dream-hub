@@ -38,6 +38,13 @@ const CLAIM_STALE_MS = 6 * 60 * 1000;
 /** Execução sem nenhuma atualização por esse tempo é considerada travada. */
 export const RUN_STALE_MS = 45 * 60 * 1000;
 
+/** Folga do watchdog além do timeout da candidata antes de abortar à força. */
+const WATCHDOG_GRACE_MS = 15_000;
+
+/** Frequência do watchdog de workers. */
+const WATCHDOG_TICK_MS = 5_000;
+
+
 /**
  * Retry NÃO bloqueia worker: a candidata que falhou volta para o FIM da fila
  * (prioridade penalizada) e o worker segue imediatamente para a próxima.
