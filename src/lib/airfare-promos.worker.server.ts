@@ -1808,15 +1808,40 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
   // por vez segura o lease; as demais retornam sem trabalho.
   const agora = Date.now();
   const leaseAte = new Date(agora + budgetMs + WORKER_LEASE_SLACK_MS).toISOString();
-  const { data: lease } = await client
+  let { data: lease } = await client
     .from("airfare_promo_runs")
     .update({ worker_lease_until: leaseAte })
     .eq("id", run.id)
     .or(condicaoLease(agora))
     .select("id");
+
+  // REATIVAÇÃO AUTOMÁTICA: há candidatas pendentes e NENHUM worker vivo
+  // (nenhum heartbeat nos últimos 90s) há mais de 1 minuto. O lease de uma
+  // invocação morta não pode manter a fila parada — é roubado na hora.
+  if (!lease || lease.length === 0) {
+    const { count: vivos } = await client
+      .from("airfare_promo_candidates")
+      .select("id", { count: "exact", head: true })
+      .eq("run_id", run.id)
+      .eq("status", "processing")
+      .gt("heartbeat_at", new Date(agora - 90_000).toISOString());
+    if (Number(vivos ?? 0) === 0 && parada > 60_000) {
+      console.warn(
+        "[airfare-reativacao]",
+        JSON.stringify({ run: run.id, pendentes, parada_ms: parada, motivo: "0_workers_vivos" }),
+      );
+      const forcado = await client
+        .from("airfare_promo_runs")
+        .update({ worker_lease_until: leaseAte })
+        .eq("id", run.id)
+        .select("id");
+      lease = forcado.data;
+    }
+  }
   if (!lease || lease.length === 0) {
     return { resumed: false as const, reason: "worker_em_execucao" };
   }
+
 
   try {
     const res = await processPendingCandidates({ runId: run.id, budgetMs });
