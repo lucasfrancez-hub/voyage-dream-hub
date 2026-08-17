@@ -1136,7 +1136,8 @@ function PromocoesAereoPage() {
       {info && info.radar_available !== false && (info.fallback_count ?? 0) > 0 ? (
         <p className="mt-3 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
           {info.fallback_count} oportunidade(s) desta execução vieram de complemento interno (sem
-          referência do Melhores Destinos).
+          referência de outros sites).
+
         </p>
       ) : null}
 
