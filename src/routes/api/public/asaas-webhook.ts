@@ -158,7 +158,7 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
               order_id: cob.order_id,
               meta: {
                 payment_status: event === 'PAYMENT_REFUNDED' ? 'estornado' : 'falhou',
-                payment_method: 'pix',
+                payment_attempt_count: 1,
                 gateway_risk_result:
                   event === 'PAYMENT_CHARGEBACK_REQUESTED' ? 'fraud' : 'review',
 
