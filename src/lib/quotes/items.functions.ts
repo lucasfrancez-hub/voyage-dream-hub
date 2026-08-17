@@ -51,7 +51,7 @@ const FlightSchema = z.object({
 const ServiceSchema = z.object({
   name: z.string().trim().min(1).max(160),
   description: z.string().trim().max(600).nullish(),
-  date: z.string().trim().max(10).nullish(),
+  date: z.string().trim().max(30).nullish(),
   quantity: z.number().min(0).max(999).nullish(),
   total: z.number().min(0).nullish(),
 });

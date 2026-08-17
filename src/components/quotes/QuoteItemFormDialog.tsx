@@ -122,9 +122,11 @@ function hotelParaItem(h: NormalizedHotel | null | undefined): OrderItem | null 
 
 function servicoParaItem(s: NormalizedGenericItem | null | undefined): OrderItem | null {
   if (!s) return null;
+  const dataHora = txt(s.date);
   const details: Dict = {
     description: txt(s.description),
-    date_from: soData(s.date),
+    date_from: soData(dataHora),
+    time_from: dataHora.match(/(?:T|\s)(\d{2}:\d{2})/)?.[1] ?? "",
     quantity: txt(s.quantity),
   };
   if (s.total != null) details.value = String(s.total);
@@ -219,13 +221,15 @@ export function QuoteItemFormDialog(props: Props) {
 
       const nome = p.title.trim();
       if (!nome) throw new Error("Informe o nome do serviço");
+      const dataServico = soData(txt(main.date_from));
+      const horaServico = txt(main.time_from).trim();
       return salvar({
         data: {
           quoteId, optionNumber, kind, index,
           service: {
             name: nome,
             description: txt(main.description).trim() || null,
-            date: soData(txt(main.date_from)) || null,
+            date: dataServico ? `${dataServico}${horaServico ? `T${horaServico}` : ""}` : null,
             quantity: num(main.quantity),
             total,
           },
