@@ -380,7 +380,7 @@ export function SegurosPage({ header }: { header?: React.ReactNode } = {}) {
 
         {result && !run.isPending && (
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-            <aside className="space-y-4">
+            <FiltersAside count={cats.length + insurers.length + (maxPrice != null ? 1 : 0)} className="space-y-4">
               <div className="rounded-2xl border border-border/60 bg-card/60 p-4 backdrop-blur">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-sm font-semibold">Filtros</p>
@@ -460,7 +460,7 @@ export function SegurosPage({ header }: { header?: React.ReactNode } = {}) {
                   </div>
                 )}
               </div>
-            </aside>
+            </FiltersAside>
 
             <div>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
