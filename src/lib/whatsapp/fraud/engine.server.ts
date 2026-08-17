@@ -352,37 +352,82 @@ export async function evaluateConversationFraud(input: {
   });
   const ia = input.skipAi ? { signals: [], reducers: [], summary: null } : await analisarComIa(messages);
 
-  const signals = mergeSignals(det.signals, ia.signals);
+  const freshSignals = mergeSignals(det.signals, ia.signals);
   const reducers = mergeReducers(det.reducers, ia.reducers);
-  const calc = computeRisk(signals, reducers);
 
   const before = Number(convRow["fraud_risk_score"] ?? 0);
+  const confidenceBefore = Number(convRow["fraud_risk_confidence"] ?? 0);
   const levelBefore = (convRow["fraud_risk_level"] as string) ?? "baixo";
-  const antes = new Set(parseJsonArray<FraudSignal>(convRow["fraud_signals"]).map((s) => s.code));
-  const agora = new Set(signals.map((s) => s.code));
+  const previousSignals = parseJsonArray<StoredSignal>(convRow["fraud_signals"]);
+  const antes = new Set(previousSignals.map((s) => s.code));
   const reducersAntes = new Set(parseJsonArray<FraudReducer>(convRow["fraud_reducers"]).map((r) => r.code));
-
+  const overrides = parseJsonArray<ManualOverride>(convRow["fraud_manual_overrides"]);
+  const payment = (convRow["fraud_payment_meta"] as FraudPaymentMeta | null) ?? null;
   const nowIso = new Date().toISOString();
+  const history = await loadHistory(input.conversation_id);
+
+  const calc = evaluateDynamicRisk({
+    previousSignals,
+    freshSignals,
+    reducers,
+    history,
+    payment,
+    overrides,
+    messageCount: messages.length,
+    nowIso,
+  });
+  const agora = new Set(calc.signals.map((s) => s.code));
+
   const jaTransferido = !!convRow["fraud_transfer_required"];
-  const deveTransferir = calc.transfer_required;
+  const analiseAtiva = convRow["fraud_analysis_active"] !== false;
+  const deveTransferir = calc.transfer.required;
+  const maxScore = Math.max(Number(convRow["fraud_risk_max_score"] ?? 0), calc.score);
 
   await supabaseAdmin
     .from("wa_conversations")
     .update({
       fraud_risk_score: calc.score,
       fraud_risk_level: calc.level,
-      fraud_signals: signals,
+      fraud_risk_max_score: maxScore,
+      fraud_risk_confidence: calc.confidence,
+      fraud_risk_trend: calc.trend,
+      fraud_risk_velocity: calc.velocity,
+      fraud_risk_persistence: calc.persistence,
+      fraud_signals: calc.signals,
       fraud_reducers: reducers,
       fraud_clusters: calc.clusters,
+      fraud_critical_flags: calc.criticalFlags,
       fraud_summary: ia.summary,
       fraud_last_evaluation: nowIso,
+      fraud_analysis_active: true,
     })
     .eq("id", input.conversation_id);
 
   let transferiu = false;
   if (deveTransferir && !jaTransferido) {
-    transferiu = await enforceFraudTransfer(input.conversation_id);
+    transferiu = await enforceFraudTransfer(input.conversation_id, {
+      score: calc.score,
+      reason: calc.transfer.reason,
+    });
   }
+
+  await pushTimeline(input.conversation_id, {
+    kind: transferiu ? "transferencia" : "avaliacao",
+    score: calc.score,
+    confidence: calc.confidence,
+    level: calc.level,
+    label: transferiu
+      ? `Transferido para o Lucas — ${calc.transfer.reason ?? "risco da venda"}`
+      : (ia.summary ?? principaisFatores(calc.signals)),
+    detail: calc.transfer.scenario,
+    payload: {
+      clusters: calc.clusters.map((c) => c.code),
+      critical_flags: calc.criticalFlags,
+      trend: calc.trend,
+      velocity: calc.velocity,
+      after_human: jaTransferido || transferiu,
+    },
+  });
 
   try {
     await supabaseAdmin.from("wa_fraud_evaluations").insert({
@@ -390,13 +435,20 @@ export async function evaluateConversationFraud(input: {
       message_id: input.message_id ?? null,
       risk_before: before,
       risk_after: calc.score,
+      confidence_before: confidenceBefore,
+      confidence_after: calc.confidence,
       level_before: levelBefore,
       level_after: calc.level,
-      signals_added: signals.filter((s) => !antes.has(s.code)),
+      trend: calc.trend,
+      velocity: calc.velocity,
+      max_score: maxScore,
+      critical_flags: calc.criticalFlags,
+      transfer_reason: calc.transfer.reason,
+      signals_added: calc.signals.filter((s) => !antes.has(s.code)),
       signals_removed: [...antes].filter((c) => !agora.has(c)),
       reducers_added: reducers.filter((r) => !reducersAntes.has(r.code)),
       clusters_detected: calc.clusters,
-      signals_snapshot: signals,
+      signals_snapshot: calc.signals,
       summary: ia.summary,
       source: input.source ?? "auto",
       transfer_triggered: transferiu,
@@ -409,25 +461,248 @@ export async function evaluateConversationFraud(input: {
     `[antifraude] ${JSON.stringify({
       conversation_id: input.conversation_id,
       score: calc.score,
+      max: maxScore,
+      confidence: calc.confidence,
+      trend: calc.trend,
       level: LEVEL_LABEL[calc.level],
       clusters: calc.clusters.map((c) => c.code),
+      flags: calc.criticalFlags,
       transfer: transferiu,
+      scenario: calc.transfer.scenario,
     })}`,
   );
 
   return {
     conversation_id: input.conversation_id,
     score: calc.score,
+    max_score: maxScore,
+    confidence: calc.confidence,
     level: calc.level,
-    signals,
+    band: calc.band,
+    trend: calc.trend,
+    velocity: calc.velocity,
+    persistence: calc.persistence,
+    signals: calc.signals,
     reducers,
     clusters: calc.clusters,
+    critical_flags: calc.criticalFlags,
     summary: ia.summary,
     last_evaluation: nowIso,
     transfer_required: deveTransferir || jaTransferido,
     transfer_at: transferiu ? nowIso : ((convRow["fraud_transfer_at"] as string | null) ?? null),
+    transfer_reason: transferiu
+      ? calc.transfer.reason
+      : ((convRow["fraud_transfer_reason"] as string | null) ?? null),
+    score_at_transfer: transferiu
+      ? calc.score
+      : ((convRow["fraud_score_at_transfer"] as number | null) ?? null),
+    analysis_active: analiseAtiva,
+    payment,
+    overrides,
+    outcome: (convRow["fraud_outcome"] as string | null) ?? null,
   };
 }
+
+function principaisFatores(signals: StoredSignal[]): string {
+  const top = [...signals]
+    .filter((s) => s.status !== "esclarecido")
+    .sort((a, b) => b.strength - a.strength)
+    .slice(0, 2)
+    .map((s) => SIGNAL_LABEL[s.code] ?? s.code);
+  return top.length ? top.join(" · ") : "Sem sinais relevantes";
+}
+
+/** Linha do tempo do risco (item 18) — nunca quebra o fluxo principal. */
+export async function pushTimeline(
+  conversationId: string,
+  entry: {
+    kind: string;
+    score?: number | null;
+    confidence?: number | null;
+    level?: string | null;
+    label: string;
+    detail?: string | null;
+    payload?: Record<string, unknown>;
+    created_by?: string | null;
+  },
+): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("wa_fraud_events").insert({
+      conversation_id: conversationId,
+      kind: entry.kind,
+      score: entry.score ?? null,
+      confidence: entry.confidence ?? null,
+      level: entry.level ?? null,
+      label: entry.label.slice(0, 300),
+      detail: entry.detail ?? null,
+      payload: entry.payload ?? {},
+      created_by: entry.created_by ?? null,
+    });
+  } catch (e) {
+    console.warn("[antifraude] timeline falhou:", e instanceof Error ? e.message : e);
+  }
+}
+
+/** Série histórica do score usada para tendência/persistência. */
+async function loadHistory(conversationId: string): Promise<FraudHistoryEntry[]> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("wa_fraud_events")
+      .select("created_at, score, confidence, level, label, kind")
+      .eq("conversation_id", conversationId)
+      .not("score", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(12);
+    const rows = ((data ?? []) as Array<Record<string, unknown>>).reverse();
+    return rows.map((r) => ({
+      at: String(r["created_at"]),
+      score: Number(r["score"] ?? 0),
+      confidence: Number(r["confidence"] ?? 0),
+      level: (r["level"] as FraudLevel) ?? "baixo",
+      band: bandFromScore(Number(r["score"] ?? 0)),
+      label: String(r["label"] ?? ""),
+      kind: String(r["kind"] ?? ""),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Item 15/16 — eventos de PAGAMENTO continuam alimentando o score, inclusive
+ * (e principalmente) depois que o Lucas já assumiu. Só metadados seguros:
+ * nunca número completo de cartão, nunca CVV.
+ */
+export async function registerFraudPaymentEvent(input: {
+  conversation_id: string;
+  meta: Partial<FraudPaymentMeta>;
+  label?: string;
+}): Promise<FraudState | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("fraud_payment_meta")
+    .eq("id", input.conversation_id)
+    .maybeSingle();
+  const atual = ((data as { fraud_payment_meta?: FraudPaymentMeta } | null)?.fraud_payment_meta ??
+    {}) as FraudPaymentMeta;
+  const merged: FraudPaymentMeta = {
+    ...atual,
+    ...input.meta,
+    payment_attempt_count: Math.max(
+      atual.payment_attempt_count ?? 0,
+      input.meta.payment_attempt_count ?? (atual.payment_attempt_count ?? 0) + 1,
+    ),
+    different_card_attempts: Math.max(
+      atual.different_card_attempts ?? 0,
+      input.meta.different_card_attempts ?? 0,
+    ),
+    last_event_at: new Date().toISOString(),
+  };
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({ fraud_payment_meta: merged })
+    .eq("id", input.conversation_id);
+  await pushTimeline(input.conversation_id, {
+    kind: "pagamento",
+    label: input.label ?? "Evento de pagamento registrado",
+    payload: merged as unknown as Record<string, unknown>,
+  });
+  return evaluateConversationFraud({
+    conversation_id: input.conversation_id,
+    source: "manual",
+    skipAi: true,
+  });
+}
+
+/** Item 22 — avaliação manual do time alimenta o score (sem apagar histórico). */
+export async function registerFraudReview(input: {
+  conversation_id: string;
+  action: ManualOverride["action"];
+  signal_code?: string | null;
+  note?: string | null;
+  reviewer?: string | null;
+}): Promise<FraudState | null> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("wa_conversations")
+    .select("fraud_manual_overrides, fraud_risk_score")
+    .eq("id", input.conversation_id)
+    .maybeSingle();
+  const row = (data ?? {}) as Record<string, unknown>;
+  const overrides = parseJsonArray<ManualOverride>(row["fraud_manual_overrides"]);
+  const novo: ManualOverride = {
+    action: input.action,
+    signal_code: (input.signal_code as ManualOverride["signal_code"]) ?? null,
+    note: input.note ?? null,
+    at: new Date().toISOString(),
+    by: input.reviewer ?? null,
+  };
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({ fraud_manual_overrides: [...overrides, novo] })
+    .eq("id", input.conversation_id);
+  try {
+    await supabaseAdmin.from("wa_fraud_reviews").insert({
+      conversation_id: input.conversation_id,
+      action: input.action,
+      signal_code: input.signal_code ?? null,
+      note: input.note ?? null,
+      score_at_review: Number(row["fraud_risk_score"] ?? 0),
+      reviewer: input.reviewer ?? null,
+    });
+  } catch {
+    /* auditoria secundária */
+  }
+  await pushTimeline(input.conversation_id, {
+    kind: "revisao",
+    label: `Revisão manual: ${REVIEW_LABEL[input.action]}${input.signal_code ? ` (${input.signal_code})` : ""}`,
+    detail: input.note ?? null,
+    created_by: input.reviewer ?? null,
+  });
+  return evaluateConversationFraud({
+    conversation_id: input.conversation_id,
+    source: "manual",
+    skipAi: true,
+  });
+}
+
+export const REVIEW_LABEL: Record<ManualOverride["action"], string> = {
+  verificado: "Marcado como verificado",
+  sinal_esclarecido: "Sinal esclarecido",
+  risco_descartado: "Risco descartado",
+  observacao: "Manter em observação",
+  bloquear_venda: "Bloquear venda",
+};
+
+/** Item 23 — desfecho da venda, guardado junto do histórico do score. */
+export async function registerFraudOutcome(input: {
+  conversation_id: string;
+  outcome: "LEGITIMA" | "FRAUDE_CONFIRMADA" | "SUSPEITA_DESCARTADA" | "NAO_CONCLUSIVA" | "CANCELADA";
+  note?: string | null;
+  reviewer?: string | null;
+}): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("wa_conversations")
+    .update({
+      fraud_outcome: input.outcome,
+      fraud_outcome_at: new Date().toISOString(),
+      fraud_outcome_by: input.reviewer ?? null,
+      fraud_outcome_note: input.note ?? null,
+      fraud_analysis_active: false,
+    })
+    .eq("id", input.conversation_id);
+  await pushTimeline(input.conversation_id, {
+    kind: "desfecho",
+    label: `Desfecho da venda: ${input.outcome}`,
+    detail: input.note ?? null,
+    created_by: input.reviewer ?? null,
+  });
+}
+
 
 /**
  * Trava de segurança usada pelo runner da IA: se a conversa já foi marcada
