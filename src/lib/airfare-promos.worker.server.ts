@@ -669,25 +669,24 @@ export async function processPendingCandidates(args: {
   /** Token desta invocação — identifica o dono do lease de cada candidata. */
   const invocationToken = `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-  /** Tempo mínimo que precisa sobrar para aceitar mais uma candidata. */
-  const custoMaximoCandidata = CANDIDATE_TIMEOUT_MS + WATCHDOG_GRACE_MS + CLAIM_SAFETY_MS;
-
   /**
    * Reserva atomicamente a próxima candidata pendente (evita duplo trabalho)
-   * e grava o LEASE (validade + heartbeat + dono). Recusa o claim quando o
-   * tempo restante da invocação não comporta uma validação inteira.
+   * e grava o LEASE (validade + heartbeat + dono). O CUSTO é calculado com o
+   * TIMEOUT ADAPTATIVO DAQUELA candidata: quem não couber no tempo restante
+   * fica na fila para a próxima invocação — o worker nunca morre no meio.
    */
-  const claimNext = async (workerId: number): Promise<CandidateRow | null> => {
-    const restante = deadline - Date.now();
-    if (restante < custoMaximoCandidata) {
+  const claimNext = async (
+    workerId: number,
+  ): Promise<{ cand: CandidateRow; timeoutMs: number } | null> => {
+    if (deadline - Date.now() < CUSTO_MINIMO_MS) {
       claimsRecusadosPorOrcamento++;
       console.log(
         "[airfare-claim-recusado]",
         JSON.stringify({
           worker: workerId,
-          restante_ms: restante,
-          minimo_ms: custoMaximoCandidata,
-          motivo: "orcamento_insuficiente_para_nova_candidata",
+          restante_ms: deadline - Date.now(),
+          minimo_ms: CUSTO_MINIMO_MS,
+          motivo: "orcamento_insuficiente_para_qualquer_candidata",
         }),
       );
       return null;
@@ -703,6 +702,27 @@ export async function processPendingCandidates(args: {
         .limit(1)
         .maybeSingle();
       if (!data) return null;
+
+      const alvo = data as CandidateRow;
+      const timeoutMs = candidateTimeoutMs(alvo, p95Corrente());
+      const custo = custoDaCandidata(timeoutMs);
+      const restante = deadline - Date.now();
+      if (restante < custo) {
+        claimsRecusadosPorOrcamento++;
+        console.log(
+          "[airfare-claim-recusado]",
+          JSON.stringify({
+            worker: workerId,
+            rota: `${alvo.origin_iata}->${alvo.destination_iata}`,
+            restante_ms: restante,
+            timeout_candidata_ms: timeoutMs,
+            minimo_ms: custo,
+            motivo: "orcamento_insuficiente_para_esta_candidata",
+          }),
+        );
+        return null;
+      }
+
       const agoraIso = new Date().toISOString();
       const { data: claimed } = await client
         .from("airfare_promo_candidates")
@@ -710,17 +730,22 @@ export async function processPendingCandidates(args: {
           status: "processing",
           claimed_at: agoraIso,
           heartbeat_at: agoraIso,
-          lease_expires_at: new Date(Date.now() + CANDIDATE_LEASE_MS).toISOString(),
+          timeout_ms: timeoutMs,
+          lease_expires_at: new Date(Date.now() + leaseMsPara(timeoutMs)).toISOString(),
           worker_token: `${invocationToken}#${workerId}`,
         })
-        .eq("id", (data as CandidateRow).id)
+        .eq("id", alvo.id)
         .eq("status", "pending")
         .select("id")
         .maybeSingle();
-      if (claimed) return data as CandidateRow;
+      if (claimed) {
+        registrarTimeoutAplicado(timeoutMs);
+        return { cand: alvo, timeoutMs };
+      }
     }
     return null;
   };
+
 
 
   const processar = async (
