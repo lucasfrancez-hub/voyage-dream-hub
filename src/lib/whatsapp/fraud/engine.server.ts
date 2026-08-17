@@ -561,7 +561,7 @@ export async function pushTimeline(
       level: entry.level ?? null,
       label: entry.label.slice(0, 300),
       detail: entry.detail ?? null,
-      payload: entry.payload ?? {},
+      payload: (entry.payload ?? {}) as never,
       created_by: entry.created_by ?? null,
     });
   } catch (e) {
