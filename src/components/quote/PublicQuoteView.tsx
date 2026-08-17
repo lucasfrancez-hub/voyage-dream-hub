@@ -713,7 +713,7 @@ function ParcelamentoModal({
           ))}
         </div>
         <div className="vq-modal-foot">
-          <small>Quitação final até {brDateIso(ultima?.date ?? null)}</small>
+          <small>Última parcela em {brDateIso(ultima?.date ?? null)}</small>
           <button type="button" className="vq-modal-btn" onClick={onClose}>Fechar</button>
         </div>
       </div>
