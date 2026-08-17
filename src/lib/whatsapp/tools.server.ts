@@ -210,8 +210,37 @@ export function buildCamilaTools(conversation: WaConversation) {
               "NÃO liste pacotes. O cliente ainda não disse o destino. Pergunte, em um balão curto, para onde ele quer viajar (ou se quer sugestões de destino). Nunca mande pacote aleatório.",
           };
         }
-        // Novo destino sem confirmação dos parâmetros: bloqueia a busca.
-        if (confirmado_para_este_destino !== true) {
+        // Confirmação obrigatória por destino. Não basta a IA dizer que confirmou:
+        // exigimos a pergunta de confirmação realmente enviada nesta conversa,
+        // depois do pedido do cliente para ESTE destino.
+        let confirmacaoEnviada = false;
+        {
+          const chaveDestino = destino
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .split(/\s+/)
+            .filter((w) => w.length >= 4)[0] ?? destino.toLowerCase();
+          const { data: recentes } = await supabaseAdmin
+            .from("wa_messages")
+            .select("direction, content, created_at")
+            .eq("conversation_id", (conversation as any).id)
+            .order("created_at", { ascending: false })
+            .limit(14);
+          // Índice do último pedido do cliente citando este destino.
+          const lista = (recentes ?? []).slice().reverse();
+          const norm = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          let idxPedido = -1;
+          lista.forEach((m: any, i: number) => {
+            if (m.direction === "inbound" && norm(m.content).includes(chaveDestino)) idxPedido = i;
+          });
+          if (idxPedido >= 0) {
+            confirmacaoEnviada = lista
+              .slice(idxPedido + 1)
+              .some((m: any) => m.direction === "outbound" && norm(m.content).includes(chaveDestino) && m.content.includes("?"));
+          }
+        }
+        if (confirmado_para_este_destino !== true || !confirmacaoEnviada) {
           const faltando: string[] = [];
           if (!origem) faltando.push("origem");
           if (!periodo) faltando.push("período/noites");
@@ -219,10 +248,12 @@ export function buildCamilaTools(conversation: WaConversation) {
           return {
             encontrados: 0,
             faltam_dados: true,
+            confirmacao_ainda_nao_enviada: !confirmacaoEnviada,
             campos_faltando: faltando,
-            instrucao: `NÃO pesquise nem ofereça nada ainda. Para ${destino} você precisa CONFIRMAR com o cliente antes: origem${origem ? ` (ele saía de ${origem} — confirme se continua)` : ""}, quantidade de passageiros e período/quantidade de noites. Faça isso em UMA mensagem curta e natural, ex: "Claro! Para ${destino} seriam as mesmas pessoas, saindo de ${origem ?? "qual cidade"}? Tem alguma data ou período de preferência e quantas noites, ou posso buscar a melhor relação custo-benefício?" Só chame buscar_pacotes de novo depois que ele responder, aí com confirmado_para_este_destino=true.`,
+            instrucao: `NÃO pesquise nem mande card ainda. Mesmo que os dados já apareçam no histórico, esta é uma NOVA solicitação: confirme com o cliente, citando ${destino}, em UMA mensagem natural — ex: "Claro! Para ${destino}, continuam sendo as mesmas pessoas saindo de ${origem ?? "qual cidade"}? E mantenho ${periodo ?? "o mesmo período"}, com aproximadamente quantas noites?". Espere a resposta dele. Depois mande a transição ("Perfeito! Vou verificar as opções de ${destino} com essas condições e já te mostro 😊") e só então chame buscar_pacotes de novo com confirmado_para_este_destino=true.`,
           };
         }
+
 
         const cap = limit ?? 5;
         const COLS = "slug, title, destination, origin, going_date, return_date, nights, price_per_person, hotel_name, hotel_stars, base_occupancy, image_url, meal_plan, includes, services, outbound_flight, return_flight";
