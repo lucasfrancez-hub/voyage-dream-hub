@@ -1205,7 +1205,8 @@ export async function processPendingCandidates(args: {
         }),
       );
 
-      duracoes.push(Date.now() - iniciou);
+      const duracaoTotal = finishedAt - iniciou;
+      duracoes.push(duracaoTotal);
       if (saida.desfecho === "requeue") {
         tele.requeued++;
         tele.queued++;
@@ -1218,6 +1219,40 @@ export async function processPendingCandidates(args: {
         counters.processed++;
         processadasAgora++;
       }
+
+      /* ─── SEPARAÇÃO DOS DESFECHOS (painel) ───
+         timeout real do motor x resposta lenta mas concluída x falha técnica
+         x rota sem tarifa. "Lenta" é sucesso: só sinaliza risco de corte. */
+      const lenta =
+        (saida.desfecho === "with_fare" || saida.desfecho === "without_fare") &&
+        duracaoTotal >= timeoutMs * SLOW_RESPONSE_RATIO;
+      let outcomeKind: string;
+      if (saida.desfecho === "timeout") {
+        outcomeKind = "engine_timeout";
+        tele.engine_timeout++;
+      } else if (saida.desfecho === "error") {
+        outcomeKind = "tech_error";
+        tele.tech_error++;
+      } else if (saida.desfecho === "without_fare") {
+        outcomeKind = lenta ? "no_fare_slow" : "no_fare";
+        tele.no_fare++;
+        if (lenta) tele.slow_ok++;
+      } else if (saida.desfecho === "with_fare") {
+        outcomeKind = lenta ? "validated_slow" : "validated";
+        if (lenta) tele.slow_ok++;
+      } else {
+        outcomeKind = "requeued";
+      }
+
+      if (saida.desfecho !== "requeue") {
+        await setCandidato(cand.id, {
+          duration_ms: duracaoTotal,
+          motor_ms: (saida.responseAt ?? finishedAt) - iniciou,
+          timeout_ms: timeoutMs,
+          outcome_kind: outcomeKind,
+        });
+      }
+
       if (cancelada || abortController.signal.aborted) return;
       // "Última processada" só muda em estado FINAL — requeue continua "em processamento".
       await progresso(saida.desfecho === "requeue" ? null : label, saida.desfecho !== "requeue");
