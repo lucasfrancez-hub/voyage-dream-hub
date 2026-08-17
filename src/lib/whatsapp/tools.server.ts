@@ -190,8 +190,16 @@ export function buildCamilaTools(conversation: WaConversation) {
         destino: z.string().nullable().describe("Cidade/país (ex: 'Buenos Aires', 'Nordeste')"),
         origem: z.string().nullable().describe("Cidade/origem preferida do cliente (ex: 'Curitiba'). Pacotes dessa origem vêm primeiro; se não houver, entram os de outras origens."),
         limit: z.number().nullable().describe("Máximo de resultados, padrão 5"),
+        confirmado_para_este_destino: z
+          .boolean()
+          .nullable()
+          .describe("true SOMENTE se, PARA ESTE destino, o cliente já confirmou nesta conversa origem, quantidade de passageiros e período/noites. Se ainda não confirmou, mande false."),
+        periodo: z
+          .string()
+          .nullable()
+          .describe("Período/mês confirmado pelo cliente PARA ESTE destino (ex: 'setembro'). Null se ele ainda não disse."),
       }),
-      execute: async ({ destino, origem, limit }) => {
+      execute: async ({ destino, origem, limit, confirmado_para_este_destino, periodo }) => {
         // Sem destino a busca devolveria pacotes aleatórios: bloqueia e manda perguntar.
         if (!destino || destino.trim().length < 2) {
           return {
@@ -202,6 +210,20 @@ export function buildCamilaTools(conversation: WaConversation) {
               "NÃO liste pacotes. O cliente ainda não disse o destino. Pergunte, em um balão curto, para onde ele quer viajar (ou se quer sugestões de destino). Nunca mande pacote aleatório.",
           };
         }
+        // Novo destino sem confirmação dos parâmetros: bloqueia a busca.
+        if (confirmado_para_este_destino !== true) {
+          const faltando: string[] = [];
+          if (!origem) faltando.push("origem");
+          if (!periodo) faltando.push("período/noites");
+          faltando.push("quantidade de passageiros");
+          return {
+            encontrados: 0,
+            faltam_dados: true,
+            campos_faltando: faltando,
+            instrucao: `NÃO pesquise nem ofereça nada ainda. Para ${destino} você precisa CONFIRMAR com o cliente antes: origem${origem ? ` (ele saía de ${origem} — confirme se continua)` : ""}, quantidade de passageiros e período/quantidade de noites. Faça isso em UMA mensagem curta e natural, ex: "Claro! Para ${destino} seriam as mesmas pessoas, saindo de ${origem ?? "qual cidade"}? Tem alguma data ou período de preferência e quantas noites, ou posso buscar a melhor relação custo-benefício?" Só chame buscar_pacotes de novo depois que ele responder, aí com confirmado_para_este_destino=true.`,
+          };
+        }
+
         const cap = limit ?? 5;
 
         let base = supabaseAdmin
