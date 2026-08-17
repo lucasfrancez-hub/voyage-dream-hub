@@ -1255,6 +1255,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             <span className="hidden sm:inline">{aiPaused ? "Retomar IA" : "Pausar IA"}</span>
           </button>
         )}
+        <FraudRiskBadge conversationId={conv.id} />
         <button
           onClick={() => toggleMut.mutate(conv.mode === "ai" ? "human" : "ai")}
           className="shrink-0 rounded-md border border-slate-200 px-2 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50 sm:px-3 sm:text-xs"
