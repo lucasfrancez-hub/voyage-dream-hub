@@ -1192,6 +1192,27 @@ function PromocoesAereoPage() {
             </div>
           ) : null}
 
+          {info.validation_metrics?.failures?.length ? (
+            <div className="mt-2 rounded-xl border border-destructive/40 bg-destructive/5 px-3 py-2 text-[11px]">
+              <p className="font-bold text-destructive">Últimas falhas</p>
+              <ul className="mt-1 space-y-1 text-muted-foreground">
+                {info.validation_metrics.failures.map((f, i) => (
+                  <li key={`${f.origin}-${f.destination}-${i}`}>
+                    <span className="font-bold text-foreground">
+                      {f.origin} → {f.destination}
+                    </span>{" "}
+                    <span>({f.scope === "internacional" ? "internacional" : "nacional"})</span> •{" "}
+                    {f.motive_label ?? f.motive ?? "falha"} • etapa: {f.step ?? "—"} •{" "}
+                    {f.duration_ms ? `${Math.round(f.duration_ms / 100) / 10}s` : "—"} •{" "}
+                    {f.attempts ?? 1} tentativa(s)
+                    {f.message ? <span className="block opacity-80">{f.message}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+
           {info.origin_metrics?.length ? (
             <div className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               {info.origin_metrics.map((m) => (
