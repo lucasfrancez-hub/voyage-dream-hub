@@ -1862,6 +1862,7 @@ export function VoosPage({
   multiSaved,
   multiPax,
   multiQuoteToken,
+  combinedKey,
 }: {
   header?: React.ReactNode;
   hideForm?: boolean;
@@ -1884,6 +1885,8 @@ export function VoosPage({
   multiSaved?: SavedPick[];
   multiPax?: { adults: number; children: number; infants: number };
   multiQuoteToken?: string;
+  /** Jornada Aéreo + Hotel: mesma searchKey usada na busca de hospedagem. */
+  combinedKey?: string | null;
 } = {}) {
   const search = useServerFn(publicMode ? onerFlightSearchPublic : onerFlightSearch);
   const searchInbound = useServerFn(publicMode ? onerInboundSearchPublic : onerInboundSearch);
@@ -1973,6 +1976,8 @@ export function VoosPage({
     // Códigos de cidade (SAO, RIO...) buscam todos os aeroportos da cidade.
     departureIsCity: CITY_CODES.has(form.departureIata.trim().toUpperCase()),
     arrivalIsCity: CITY_CODES.has(form.arrivalIata.trim().toUpperCase()),
+    // Aéreo + Hotel: a operadora precisa do contexto /combined/flight.
+    combinedKey: combinedKey ?? null,
   });
 
   const mut = useMutation({
