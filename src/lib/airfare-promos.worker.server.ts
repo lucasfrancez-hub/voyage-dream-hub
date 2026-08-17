@@ -1482,7 +1482,9 @@ export async function finalizeCancelledRun(runId: string) {
 /** Descoberta parada por mais que isso é retomada pelo worker (heartbeat = 20s). */
 // checkpoint da descoberta acontece a cada origem/lote (~20-40s): sem sinal
 // por 60s a invocação morreu e outra pode retomar do último checkpoint.
-const DISCOVERY_STALE_MS = 60 * 1000;
+// O heartbeat da descoberta bate a cada 20s: 30s de silêncio já significa
+// invocação morta. Esperar 60s só atrasava a retomada.
+const DISCOVERY_STALE_MS = 30 * 1000;
 
 
 /**
@@ -1490,6 +1492,17 @@ const DISCOVERY_STALE_MS = 60 * 1000;
  * Também retoma a DESCOBERTA quando a invocação que a iniciou morreu,
  * e conclui execuções com cancelamento pedido.
  */
+/**
+ * Condição de tomada do lease. Além do lease vencido, uma invocação que morreu
+ * no meio (sem heartbeat há mais de 90s) libera o lease imediatamente — antes
+ * disso a execução ficava bloqueada por todo o orçamento do worker.
+ */
+function condicaoLease(agoraMs: number): string {
+  const agoraIso = new Date(agoraMs).toISOString();
+  const mortoIso = new Date(agoraMs - 90_000).toISOString();
+  return `worker_lease_until.is.null,worker_lease_until.lt.${agoraIso},updated_at.lt.${mortoIso}`;
+}
+
 export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
   const client = await db();
   const { data: run } = await client
@@ -1538,7 +1551,7 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
         .from("airfare_promo_runs")
         .update({ worker_lease_until: new Date(agoraD + budgetMs + WORKER_LEASE_SLACK_MS).toISOString() })
         .eq("id", run.id)
-        .or(`worker_lease_until.is.null,worker_lease_until.lt.${new Date(agoraD).toISOString()}`)
+        .or(condicaoLease(agoraD))
         .select("id");
       if (!leaseD || leaseD.length === 0) {
         return { resumed: false as const, reason: "descoberta_em_execucao" };
@@ -1572,7 +1585,7 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
     .from("airfare_promo_runs")
     .update({ worker_lease_until: leaseAte })
     .eq("id", run.id)
-    .or(`worker_lease_until.is.null,worker_lease_until.lt.${new Date(agora).toISOString()}`)
+    .or(condicaoLease(agora))
     .select("id");
   if (!lease || lease.length === 0) {
     return { resumed: false as const, reason: "worker_em_execucao" };

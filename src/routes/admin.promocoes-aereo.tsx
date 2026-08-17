@@ -1,6 +1,6 @@
 import { cityLabel } from "@/lib/iata-lookup";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -32,6 +32,7 @@ import {
   generatePromotionLink,
   cancelAirfarePromoCollection,
   getAirfarePromoRun,
+  resumeAirfarePromoCollection,
   listAirfarePromotions,
   listInstallmentMarkups,
   refreshAirfarePromotion,
@@ -913,6 +914,21 @@ function PromocoesAereoPage() {
       return st === "running" ? 5000 : 60000;
     },
   });
+
+  // Auto-retomada: a invocação do servidor pode morrer no meio da coleta.
+  // Em produção o cron retoma a cada minuto; aqui a tela cobre o intervalo
+  // (e o preview inteiro, que não tem cron) sempre que o progresso trava.
+  const retomar = useServerFn(resumeAirfarePromoCollection);
+  const ultimaRetomada = useRef(0);
+  useEffect(() => {
+    const r = run as { status?: string; updated_at?: string } | null;
+    if (!r || r.status !== "running" || !r.updated_at) return;
+    const parado = Date.now() - new Date(r.updated_at).getTime();
+    if (parado < 20_000) return;
+    if (Date.now() - ultimaRetomada.current < 20_000) return;
+    ultimaRetomada.current = Date.now();
+    void retomar().catch(() => {});
+  }, [run, retomar]);
 
   const runStatusValue = (run as { status?: string } | null)?.status ?? "";
   const cancelando = runStatusValue === "cancel_requested";

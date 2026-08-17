@@ -285,6 +285,28 @@ export const runAirfarePromoCollection = createServerFn({ method: "POST" })
 
   });
 
+/**
+ * Retoma a execução ativa NO MESMO AMBIENTE (usado pelo painel).
+ * Em produção o cron faz isso a cada minuto; no preview não existe cron,
+ * então a própria tela chama esta função quando percebe a coleta parada.
+ */
+export const resumeAirfarePromoCollection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const url = hookUrl();
+    const disparo = fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resume: true }),
+    }).catch((e) => {
+      console.error("[airfare-promos] falha ao retomar coleta", url, e);
+      return null;
+    });
+    await Promise.race([disparo, new Promise((r) => setTimeout(r, 1500))]);
+    return { ok: true as const };
+  });
+
 /** Estado da coleta (progresso real; nada é estimado). */
 export const getAirfarePromoRun = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
