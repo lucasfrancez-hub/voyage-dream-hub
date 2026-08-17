@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { combinedHotelHref } from "@/lib/combined-journey";
 
 /**
  * Hotéis na operadora Öner Travel (Comprar Viagem / VIA AIR).
