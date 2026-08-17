@@ -145,9 +145,12 @@ export type WorkerHeartbeat = {
   last_activity_at: string;
   elapsed_ms: number;
   attempt: number;
+  /** timeout adaptativo aplicado a ESTA candidata (ms) */
+  timeout_ms?: number;
   /** VALIDATING | ABORTING */
   status: string;
 };
+
 
 
 /** Falha individual de validação — nunca vira "sem tarifa". */
