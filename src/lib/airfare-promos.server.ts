@@ -898,14 +898,27 @@ export async function collectAirfarePromotions(opts?: {
   const touch = async (patch: Record<string, unknown>) => {
     if (!runId) return;
     try {
-      await db
+      const { error } = await db
         .from("airfare_promo_runs")
         .update({ ...patch, updated_at: new Date().toISOString() })
         .eq("id", runId);
-    } catch {
-      /* progresso é best-effort */
+      if (!error) return;
+      // O progresso NUNCA pode sumir em silêncio (ex.: coluna nova ainda fora do
+      // cache da API). Loga e regrava sem os campos novos, para pelo menos
+      // manter o heartbeat/nota vivos.
+      console.warn("[airfare-radar] falha ao gravar progresso:", error.message, Object.keys(patch).join(","));
+      const { discovery_state: _s, discovery_origins_done: _d, discovery_origins_total: _t, ...resto } = patch as Record<string, unknown>;
+      if (Object.keys(resto).length) {
+        await db
+          .from("airfare_promo_runs")
+          .update({ ...resto, updated_at: new Date().toISOString() })
+          .eq("id", runId);
+      }
+    } catch (e) {
+      console.warn("[airfare-radar] erro inesperado ao gravar progresso:", e instanceof Error ? e.message : String(e));
     }
   };
+
 
   await touch({ phase: "descobrindo", total: 0, processed: 0, saved: 0, radar_note: "Consultando radar de oportunidades..." });
   console.info(
