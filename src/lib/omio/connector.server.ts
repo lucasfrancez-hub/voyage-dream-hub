@@ -9,14 +9,17 @@
 import { ExpediaCdp, openRemoteBrowser, closeRemoteBrowser } from "@/lib/expedia/browser.server";
 import {
   OMIO_BASE,
+  deepLinkResultsUrl,
   journeyPageUrl,
   pageFetchScript,
   readSearchIdScript,
   resultsApiUrl,
   resultsPageUrl,
+  searchTriggerGetUrl,
   submitSearchScript,
   suggesterUrl,
 } from "./queries";
+
 import { normalizarExtras, normalizarResultados, normalizarTarifas } from "./normalize";
 import type { OmioBusca, OmioDetalhe, OmioPosition } from "./types";
 
@@ -64,6 +67,12 @@ function ddmmyyyy(iso: string) {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Navega a aba atual (Page.navigate) e dá um tempo pro contexto reconstruir. */
+async function navegar(cdp: ExpediaCdp, url: string) {
+  await cdp.send("Page.navigate", { url }).catch(() => null);
+  await sleep(2500);
+}
 
 /** Autocomplete de estações/cidades. */
 export async function omioSugerir(termo: string, locale = "en"): Promise<OmioPosition[]> {
@@ -119,34 +128,83 @@ export async function omioBuscar(input: {
   const adultos = input.adultos ?? 1;
 
   return withOmioPage(`${OMIO_BASE}/?locale=${locale}`, async (cdp, diag) => {
-    await cdp.evaluate<string>(
-      submitSearchScript({
-        departureFk: input.origemId,
-        arrivalFk: input.destinoId,
-        departureDate: ddmmyyyy(input.data),
-        passengerAges: Array.from({ length: adultos }, () => 30),
-        currency: input.moeda ?? "EUR",
-        locale,
-        travelMode: modo,
-      }),
-    );
-    diag.push("Formulário de busca enviado");
+    const params = {
+      departureFk: input.origemId,
+      arrivalFk: input.destinoId,
+      departureDate: ddmmyyyy(input.data),
+      passengerAges: Array.from({ length: adultos }, () => 30),
+      currency: input.moeda ?? "EUR",
+      locale,
+      travelMode: modo,
+    };
 
-    let searchId: string | null = null;
-    let urlResultados = "";
-    for (let i = 0; i < 25; i++) {
-      await sleep(1200);
+    const estado = async () => {
       const raw = await cdp.evaluate<string>(readSearchIdScript);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { url: string; searchId: string | null };
-        urlResultados = parsed.url;
-        if (parsed.searchId) {
-          searchId = parsed.searchId;
-          break;
-        }
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw) as {
+          url: string;
+          searchId: string | null;
+          title: string;
+          challenge: boolean;
+          preview: string;
+        };
+      } catch {
+        return null;
       }
+    };
+
+    // Espera o searchId aparecer; retorna também a última URL vista.
+    const aguardarSearchId = async (tentativas: number) => {
+      let ultimaUrl = "";
+      for (let i = 0; i < tentativas; i++) {
+        await sleep(1200);
+        const st = await estado();
+        if (!st) continue; // contexto sendo trocado por navegação
+        ultimaUrl = st.url || ultimaUrl;
+        if (st.challenge) {
+          diag.push(`Cloudflare exibindo desafio ("${st.title}") — aguardando resolver`);
+          continue;
+        }
+        if (st.searchId) return { searchId: st.searchId, url: st.url };
+      }
+      return { searchId: null as string | null, url: ultimaUrl };
+    };
+
+    await cdp.evaluate<string>(submitSearchScript(params));
+    diag.push("Formulário de busca enviado (POST)");
+    let { searchId, url: urlResultados } = await aguardarSearchId(14);
+
+    if (!searchId) {
+      diag.push(`POST não redirecionou (última URL: ${urlResultados || "desconhecida"}) — tentando GET`);
+      await navegar(cdp, searchTriggerGetUrl(params));
+      ({ searchId, url: urlResultados } = await aguardarSearchId(12));
     }
-    if (!searchId) throw new Error("Omio não redirecionou para a página de resultados (possível bloqueio Cloudflare)");
+
+    if (!searchId) {
+      diag.push("GET também não redirecionou — tentando deep link de resultados");
+      await navegar(
+        cdp,
+        deepLinkResultsUrl({
+          departureFk: input.origemId,
+          arrivalFk: input.destinoId,
+          departureDate: ddmmyyyy(input.data),
+          travelMode: modo,
+          locale,
+        }),
+      );
+      ({ searchId, url: urlResultados } = await aguardarSearchId(12));
+    }
+
+    if (!searchId) {
+      const st = await estado();
+      const motivo = st?.challenge
+        ? `Cloudflare bloqueou a sessão ("${st.title}")`
+        : `Omio não redirecionou para os resultados (URL final: ${st?.url || urlResultados || "desconhecida"})`;
+      diag.push(motivo);
+      if (st?.preview) diag.push(`Conteúdo da página: ${st.preview.slice(0, 200)}`);
+      return { searchId: "", urlResultados: urlResultados || "", resultados: [], diagnostico: diag };
+    }
     diag.push(`searchId=${searchId}`);
 
     let resultados = normalizarResultados(null, searchId, modo);
@@ -166,6 +224,7 @@ export async function omioBuscar(input: {
       diagnostico: diag,
     };
   });
+
 }
 
 /** Detalhe de uma viagem: tarifas (Super Saver/Savings/Flex) e extras. */
