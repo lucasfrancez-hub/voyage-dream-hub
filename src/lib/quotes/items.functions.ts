@@ -40,7 +40,29 @@ export const salvarItemOrcamento = createServerFn({ method: "POST" })
       if (data.kind === "hotel") {
         if (!data.hotel) throw new Error("Dados da hospedagem ausentes");
         if (data.index == null) opt.hotels.push(data.hotel as never);
-        else opt.hotels[data.index] = data.hotel as never;
+        else {
+          // Preserva o que o formulário não envia (coordenadas, dados de
+          // enriquecimento TripAdvisor, fotos já salvas etc.).
+          const atual = (opt.hotels[data.index] ?? {}) as Record<string, unknown>;
+          const enviado = data.hotel as Record<string, unknown>;
+          const mesclado: Record<string, unknown> = { ...atual };
+          for (const [k, v] of Object.entries(enviado)) {
+            if (v === undefined) continue;
+            if (k === "photos" && (!Array.isArray(v) || v.length === 0)) continue;
+            mesclado[k] = v;
+          }
+          const mudouIdentidade =
+            String(atual.name ?? "").trim().toLowerCase() !== String(enviado.name ?? "").trim().toLowerCase();
+          if (mudouIdentidade) {
+            // Hotel diferente: coordenadas/fotos antigas não valem mais.
+            delete mesclado.latitude;
+            delete mesclado.longitude;
+            if (!Array.isArray(enviado.photos) || (enviado.photos as unknown[]).length === 0) {
+              delete mesclado.photos;
+            }
+          }
+          opt.hotels[data.index] = mesclado as never;
+        }
       } else if (data.kind === "flight") {
         if (!data.flight) throw new Error("Dados do voo ausentes");
         if (data.index == null) opt.flights.push(data.flight as never);
