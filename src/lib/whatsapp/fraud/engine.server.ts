@@ -13,7 +13,6 @@
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import {
-  computeRisk,
   detectDeterministicSignals,
   LEVEL_LABEL,
   REDUCER_LABEL,
@@ -26,6 +25,19 @@ import {
   type FraudSignal,
   type FraudSignalCode,
 } from "./signals";
+import {
+  bandFromScore,
+  evaluateDynamicRisk,
+  type FraudBand,
+  type FraudCriticalFlag,
+  type FraudHistoryEntry,
+  type FraudPaymentMeta,
+  type FraudTrend,
+  type FraudVelocity,
+  type ManualOverride,
+  type StoredSignal,
+} from "./dynamic";
+
 
 export type FraudState = {
   conversation_id: string;
