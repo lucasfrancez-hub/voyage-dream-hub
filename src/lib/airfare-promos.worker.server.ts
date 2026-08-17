@@ -736,6 +736,14 @@ export async function processPendingCandidates(args: {
         saida.desfecho = /timeout/i.test(msg) ? "timeout" : "error";
         counters.error_count++;
         label = `${cand.origin_iata}→${cand.destination_iata}`;
+        registrarFalha(cand, {
+          message: msg,
+          step: "fila_worker",
+          duration_ms: Date.now() - iniciou,
+          attempts: Number(cand.attempts ?? 0) + 1,
+        });
+        metricaDe(cand.origin_iata).errors++;
+
         await setCandidato(cand.id, {
           status: "error",
           last_error: msg,
