@@ -956,14 +956,16 @@ export async function processPendingCandidates(args: {
   await contarFila();
 
   const worker = async (workerId: number) => {
-    while (Date.now() < deadline) {
+    // Sai antes do fim do orçamento: nada de aceitar trabalho que não cabe.
+    while (Date.now() < deadline - custoMaximoCandidata) {
       if (cancelada || abortController.signal.aborted || (await cancelamentoPedido())) {
         cancelada = true;
         abortController.abort();
         return;
       }
-      const cand = await claimNext();
+      const cand = await claimNext(workerId);
       if (!cand) return;
+
 
       tele.running++;
       tele.queued = Math.max(0, tele.queued - 1);
