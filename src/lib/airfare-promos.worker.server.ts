@@ -44,6 +44,24 @@ const WATCHDOG_GRACE_MS = 15_000;
 /** Frequência do watchdog de workers. */
 const WATCHDOG_TICK_MS = 5_000;
 
+/**
+ * LEASE POR CANDIDATA. `processing` sozinho não prova nada: se a invocação
+ * morre (kill da plataforma), a linha ficaria presa. O lease é renovado por
+ * heartbeat enquanto o processo está vivo; quando ele morre, o lease vence e a
+ * próxima invocação recupera a candidata.
+ */
+const CANDIDATE_LEASE_MS = CANDIDATE_TIMEOUT_MS + 60_000;
+
+/** Frequência de renovação do lease/heartbeat no banco. */
+const HEARTBEAT_TICK_MS = 15_000;
+
+/**
+ * Margem de segurança para NÃO aceitar trabalho que não cabe no orçamento
+ * restante da invocação (raiz do problema: claim tardio → worker morto).
+ */
+const CLAIM_SAFETY_MS = 20_000;
+
+
 
 /**
  * Retry NÃO bloqueia worker: a candidata que falhou volta para o FIM da fila
