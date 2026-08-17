@@ -375,7 +375,13 @@ export async function ownerSavePassengers(
   passengers: PassageiroOwner[],
   token: string,
 ) {
-  const body = { cartId, passengers };
+  const body = {
+    cartId,
+    passengers: passengers.map((p) => ({
+      ...p,
+      dateOfBirth: ownerNormalizeDateOfBirth(p.dateOfBirth),
+    })),
+  };
   const r = await call<{ success?: boolean; message?: string }>(
     `${API}/api/booking/flight/passenger/${cartId}`,
     { method: "PUT", body, token },
