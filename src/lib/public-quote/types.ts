@@ -159,7 +159,22 @@ export type PaymentConfiguration = {
     enabled: boolean;
     installments: Installment[];
     note?: string | null;
+    /**
+     * Boleto "até a data da viagem": entrada = valor de 1 parcela e
+     * quitação obrigatória 30 dias antes do embarque.
+     */
+    untilTravel?: {
+      enabled: boolean;
+      installments: number;
+      entrada: number;
+      parcela: number;
+      total: number;
+      /** Data limite de quitação (YYYY-MM-DD), 30 dias antes da viagem. */
+      lastDueDate: string | null;
+      note?: string | null;
+    } | null;
   };
+
   pix: {
     enabled: boolean;
     discountPercent: number;
