@@ -464,7 +464,7 @@ export function buildCamilaTools(conversation: WaConversation) {
 
         if (!caption) {
           // Fallback determinístico com as MESMAS regras da curadoria
-          const brl2 = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const brl2 = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           const dateRange = (() => {
             try {
               const d1 = new Date(String(pkg.going_date) + "T12:00:00");
