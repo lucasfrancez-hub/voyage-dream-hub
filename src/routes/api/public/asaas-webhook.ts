@@ -159,7 +159,9 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
               meta: {
                 payment_status: event === 'PAYMENT_REFUNDED' ? 'estornado' : 'falhou',
                 payment_method: 'pix',
-                gateway_risk_result: event,
+                gateway_risk_result:
+                  event === 'PAYMENT_CHARGEBACK_REQUESTED' ? 'fraud' : 'review',
+
               },
               label:
                 event === 'PAYMENT_REFUNDED'
