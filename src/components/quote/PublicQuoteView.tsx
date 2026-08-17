@@ -7,7 +7,14 @@ import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 import heroFallback from "@/assets/hero-destino.jpg.asset.json";
 import { airlineLogo } from "@/lib/airlines";
-import { brl } from "@/lib/public-quote/payments";
+import {
+  boletoAteViagemOpcoes,
+  brDateIso,
+  brl,
+  scheduleBoletoAteViagem,
+  scheduleBoletoFinanciado,
+  type ParcelaAgendada,
+} from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
 import { agentPhoto, agentProfile } from "@/lib/public-quote/agents";
 import { formatRoom } from "@/lib/public-quote/room-label";
