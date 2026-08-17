@@ -530,11 +530,11 @@ export function ItemDialog({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Valor total (R$)</Label>
-                <Input inputMode="decimal" value={String(details.value ?? "")} onChange={(e) => setMoneyField("value", e.target.value)} placeholder="11.406,30" />
+                <Input {...moneyProps("value")} placeholder="11.406,30" />
               </div>
               <div>
                 <Label>Taxas inclusas (R$)</Label>
-                <Input inputMode="decimal" value={String(details.tax_value ?? "")} onChange={(e) => setMoneyField("tax_value", e.target.value)} placeholder="0,00" />
+                <Input {...moneyProps("tax_value")} placeholder="0,00" />
                 <p className="mt-1 text-[10px] text-muted-foreground">As taxas já fazem parte do valor total.</p>
               </div>
             </div>
@@ -730,11 +730,11 @@ export function ItemDialog({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label>Valor total (R$)</Label>
-                  <Input inputMode="decimal" value={String(details.value ?? "")} onChange={(e) => setMoneyField("value", e.target.value)} placeholder="0,00" />
+                  <Input {...moneyProps("value")} placeholder="0,00" />
                 </div>
                 <div>
                   <Label>Taxa inclusa (R$)</Label>
-                  <Input inputMode="decimal" value={String(details.tax_value ?? "")} onChange={(e) => setMoneyField("tax_value", e.target.value)} placeholder="0,00" />
+                  <Input {...moneyProps("tax_value")} placeholder="0,00" />
                   <p className="mt-1 text-[10px] text-muted-foreground">Parte não comissionável.</p>
                 </div>
                 <div>
