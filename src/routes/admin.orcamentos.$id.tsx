@@ -318,6 +318,12 @@ function QuoteDetailPage() {
             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${og.className}`}>
               {og.label}
             </span>
+            {quote.consultant && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                <Users className="h-3 w-3" /> {quote.consultant}
+              </span>
+            )}
+
             {ext && (
               <button
                 type="button"
