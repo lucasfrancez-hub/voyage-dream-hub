@@ -582,6 +582,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
                 items: [
                   { to: "/admin/checkin-treino", label: "Treinador de check-in" },
                   { to: "/admin/expedia", label: "Expedia TAAP" },
+                  { to: "/admin/teste-checkout-owner", label: "Teste Checkout Owner" },
                   { to: "/admin/usuarios", label: "Usuários", icon: Users },
                 ],
               } as NavMenuGroup,
