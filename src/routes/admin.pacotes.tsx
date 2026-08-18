@@ -181,8 +181,11 @@ type PackageRow = {
     tripadvisor_url?: string | null;
     tripadvisor_address?: string | null;
     tripadvisor_photos?: string[] | null;
+    stays?: any[] | null;
   }> | null;
 
+  /** Hospedagens sequenciais do roteiro (2+ hotéis na mesma viagem) */
+  hotel_stays: any[] | null;
 
   hotel_stars: number | null;
   meal_plan: string | null;
