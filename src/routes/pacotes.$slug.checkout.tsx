@@ -355,6 +355,10 @@ function Checkout() {
   const prepaidEligible = prepaid.eligible;
   const prepaidMax = prepaid.maxInstallments;
 
+  // Boleto bancário (financiado): 1ª parcela sempre 30 dias após a compra.
+  const boletoSchedule = buildFinancedBoletoSchedule(totalPrice, boletoInstallments);
+
+
   // Bandeiras com limite reduzido em pacotes Cativa (Hipercard, Diners, Elo, Amex): até 6x.
   // Pacotes FRT: até 15x sem juros (cartão e boleto financiado).
   const { data: installmentRules } = useQuery(installmentRulesQuery);
