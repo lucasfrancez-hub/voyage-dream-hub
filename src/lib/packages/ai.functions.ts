@@ -51,7 +51,7 @@ export const generatePackageSummary = createServerFn({ method: "POST" })
     // não apenas do destino.
     const tituloBase = `${data.title ?? ""} ${data.brief}`;
     const eventoMatch = tituloBase.match(
-      /\b(show|shows|turn[êe]|tour|festival|rock in rio|lollapalooza|the town|jogo|final|copa|gp\b|f[óo]rmula\s*1|r[ée]veillon|carnaval|congresso|feira|cruzeiro tem[áa]tico|concerto|�pera|[óo]pera)\b/i,
+      /\b(show|shows|turn[êe]|tour|festival|rock in rio|lollapalooza|the town|jogo|final|copa|gp\b|f[óo]rmula\s*1|r[ée]veillon|carnaval|congresso|feira|cruzeiro tem[áa]tico|concerto|[óo]pera)\b/i,
     );
     const evento = eventoMatch
       ? (data.title || data.brief)
@@ -82,7 +82,9 @@ Regras rígidas:
 - Sem emojis, sem hashtags, sem markdown, sem aspas.
 - Responda APENAS com o texto final, sem rótulos.`;
 
-    const userMsg = dest
+    const userMsg = evento
+      ? `Evento: ${evento}\nCidade: ${dest || "não informada"}\nBriefing/contexto: ${data.brief}\nEscreva o resumo falando sobre o evento.`
+      : dest
       ? `Destino: ${dest}\nBriefing/contexto: ${data.brief}\nEscreva o resumo sobre ${dest}, com foco em ${angle}.`
       : data.brief;
 
