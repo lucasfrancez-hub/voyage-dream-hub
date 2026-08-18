@@ -64,7 +64,7 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
             console.error("[instagram-dm-queue] resposta pública falhou:", (e as Error).message);
             await supabaseAdmin
               .from("instagram_comments")
-              .update({ reply_scheduled_at: new Date(Date.now() + 60_000).toISOString() })
+              .update({ reply_scheduled_at: new Date(Date.now() + 20_000).toISOString() })
               .eq("id", c.id);
           }
         }
@@ -119,7 +119,7 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
             // tenta de novo no próximo minuto, até 10 min depois do previsto
             await supabaseAdmin
               .from("instagram_comments")
-              .update({ dm_scheduled_at: new Date(Date.now() + 60_000).toISOString() })
+              .update({ dm_scheduled_at: new Date(Date.now() + 20_000).toISOString() })
               .eq("id", c.id);
           }
         }
