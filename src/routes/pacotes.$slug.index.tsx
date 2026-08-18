@@ -242,6 +242,9 @@ function PackageDetails() {
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
       if (!data) throw notFound();
+      // pacote com data de ida já passada sai do portal
+      const hoje = new Date().toISOString().slice(0, 10);
+      if (!preview && data.going_date && String(data.going_date) < hoje) throw notFound();
       return data;
     },
   });
