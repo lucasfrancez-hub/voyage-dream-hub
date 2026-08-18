@@ -207,24 +207,37 @@ export function completarCampos(pacote: any, opcoes: any[]): Record<string, any>
     if (destino) patch['destino'] = String(destino);
   }
 
-  // Aéreo: SOMENTE o valor dos voos (nunca o total da opção, que inclui hotel).
+  // Aéreo: SOMENTE a tarifa por passageiro, sem taxas. Importações antigas não
+  // têm `fare`, então o total do voo continua como fallback.
   if (!pacote.aereo_por) {
     const porOpcao = opcoes
       .map((o: any) => {
         const fs = Array.isArray(o?.flights) ? o.flights : [];
-        const soma = fs.reduce((acc: number, f: any) => acc + (num(f?.total) ?? 0), 0);
+        const tarifas = fs.map((f: any) => num(f?.fare)).filter((v: number | null): v is number => v != null);
+        const soma = tarifas.length
+          ? tarifas.reduce((acc: number, valor: number) => acc + valor, 0)
+          : fs.reduce((acc: number, f: any) => acc + (num(f?.total) ?? 0), 0);
         return soma > 0 ? soma : null;
       })
       .filter((n: number | null): n is number => n != null);
     if (porOpcao.length) patch['aereo_por'] = Math.round(Math.min(...porOpcao) * 100) / 100;
   }
 
-  // Taxas: quando a planilha não trouxe, usa a do hotel da própria linha.
+  // Taxas: prioriza a composição aérea retornada pela Infotravel. A API marca
+  // BOARDING_RATE/TAX_ADM (e demais itens isFareRate) separadamente da tarifa.
   if (pacote.taxas == null) {
+    const porOpcao = opcoes
+      .map((o: any) => {
+        const fs = Array.isArray(o?.flights) ? o.flights : [];
+        const soma = fs.reduce((acc: number, f: any) => acc + (num(f?.taxes) ?? 0), 0);
+        return soma > 0 ? soma : null;
+      })
+      .filter((n: number | null): n is number => n != null);
     const hotelTaxa = (Array.isArray(pacote.hoteis) ? pacote.hoteis : [])
       .map((h: any) => num(h?.taxas))
       .find((n: number | null) => n != null);
-    if (hotelTaxa) patch['taxas'] = hotelTaxa;
+    if (porOpcao.length) patch['taxas'] = Math.round(Math.min(...porOpcao) * 100) / 100;
+    else if (hotelTaxa) patch['taxas'] = hotelTaxa;
   }
 
   if (patch['aereo_por'] || patch['taxas']) {
