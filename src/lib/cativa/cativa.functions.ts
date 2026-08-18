@@ -273,6 +273,7 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
         .eq("status", "ativo")
         .is("importado_em", null)
         .eq("voos_status", "pendente")
+        .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`)
         .lte("voos_proxima_em", new Date().toISOString());
       return { ...res, restantes: count ?? 0 };
     }
@@ -283,6 +284,7 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
       .eq("status", "ativo")
       .is("importado_em", null)
       .not("link_orcamento", "is", null)
+      .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`)
       .limit(limite);
     if (!data.tudo) q = q.or("voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_opcoes.is.null,voos_opcoes.eq.0");
 
@@ -298,7 +300,8 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
       .select("id", { count: "exact", head: true })
       .eq("status", "ativo")
       .is("importado_em", null)
-      .not("link_orcamento", "is", null);
+      .not("link_orcamento", "is", null)
+      .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
     if (!data.tudo) {
       restantesQ = restantesQ.or(
         "voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_status.eq.pendente,voos_opcoes.is.null,voos_opcoes.eq.0",
