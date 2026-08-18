@@ -50,6 +50,7 @@ import { TopBar } from "@/components/TopBar";
 import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 import { HotelDetailsDialog } from "@/components/HotelDetailsDialog";
 import { WhatsAppText } from "@/lib/wa-format";
+import { OtherDatesBlock } from "@/components/packages/OtherDatesBlock";
 
 function cleanHotelDetail(value: string | null | undefined) {
   const cleaned = value
@@ -230,8 +231,10 @@ function PackageDetails() {
   const { slug } = Route.useParams();
   const { preview } = Route.useSearch();
 
-  const { data: pkg, isLoading } = useQuery({
+  const { data: pkg, isLoading, isFetching } = useQuery({
     queryKey: ["package", slug, preview ? "preview" : "public"],
+    // mantém o pacote anterior visível enquanto o novo carrega (troca de data sem piscar)
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const slugs = slug.includes("#") ? [slug, slug.replace(/#/g, "-")] : [slug];
       let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_options,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services,cruise_details,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates").in("slug", slugs);
@@ -242,6 +245,8 @@ function PackageDetails() {
       return data;
     },
   });
+  const switching = isFetching && pkg?.slug !== slug;
+
 
   const { data: datePrices = [] } = useQuery({
     queryKey: ["package-date-prices", pkg?.id],
@@ -262,7 +267,10 @@ function PackageDetails() {
   const [hotelDialogOpen, setHotelDialogOpen] = useState(false);
   const [dialogPhotoIndex, setDialogPhotoIndex] = useState(0);
   const [preOpen, setPreOpen] = useState(false);
-  const [hotelIdx, setHotelIdx] = useState(0);
+  const [hotelSel, setHotelSel] = useState<Record<string, number>>({});
+  const hotelIdx = hotelSel[slug] ?? 0;
+  const setHotelIdx = (i: number) => setHotelSel((s) => ({ ...s, [slug]: i }));
+
 
 
   if (isLoading || !pkg) {
@@ -337,7 +345,13 @@ function PackageDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div
+      className={cn(
+        "min-h-screen bg-background text-foreground transition-opacity duration-200",
+        switching && "opacity-60",
+      )}
+    >
+
       <TopBar backTo="/pacotes" backLabel="Todos os pacotes" />
 
       {/* Hero image */}
@@ -575,6 +589,22 @@ function PackageDetails() {
               </ul>
             </section>
           )}
+
+          <OtherDatesBlock
+            pkg={{
+              id: pkg.id,
+              slug: pkg.slug,
+              origin: pkg.origin,
+              destination: pkg.destination,
+              going_date: pkg.going_date,
+              return_date: pkg.return_date,
+              nights: pkg.nights,
+              hotel_name: hotelName,
+              price_per_person: pricePerPerson,
+              base_occupancy: baseOccupancy,
+            }}
+          />
+
 
           <TicketRules services={pkg.services} />
 
