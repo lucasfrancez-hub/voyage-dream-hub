@@ -1,5 +1,4 @@
-import { FileText, Check, ArrowRight } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { FileText, Check } from "lucide-react";
 
 /**
  * Card informativo do Boleto Pré-pago na página pública do pacote.
@@ -44,17 +43,9 @@ export function PrepaidBoletoCard({
       </div>
 
       <div className="mt-3 border-t border-brand-orange/15 pt-2.5">
-        <p className="mb-2.5 text-[10px] leading-snug text-muted-foreground">
+        <p className="text-[10px] leading-snug text-muted-foreground">
           Até <span className="font-bold text-foreground">{maxInstallments}x sem juros</span> disponível para esta viagem.
         </p>
-        <Link
-          to="/pacotes/$slug/checkout"
-          params={{ slug }}
-          search={{ ...(search ?? {}), pay: "prepaid" } as never}
-          className="flex w-full items-center justify-center gap-1.5 rounded-full border border-brand-orange/30 bg-brand-orange/10 px-4 py-2.5 text-[11px] font-extrabold text-brand-orange transition hover:bg-brand-orange/15"
-        >
-          Finalize sua compra <ArrowRight className="h-3 w-3" />
-        </Link>
       </div>
     </div>
   );

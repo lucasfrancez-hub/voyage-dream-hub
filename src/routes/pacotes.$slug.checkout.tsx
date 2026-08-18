@@ -981,14 +981,14 @@ function Checkout() {
                   onClick={() => setPayment("credit_card")}
                   icon={CreditCard}
                   title="Cartão de crédito"
-                  desc="Parcele em até 10x sem juros em ambiente seguro e criptografado."
+                  desc="Parcelar em até 10 vezes sem juros."
                 />
                 <PaymentOption
                   active={payment === "pix"}
                   onClick={() => setPayment("pix")}
                   icon={QrCode}
                   title="Pix"
-                  desc="QR Code gerado na hora, com baixa automática assim que o pagamento cair."
+                  desc="Com baixa automática."
                   badge="-5% de desconto"
                 />
                 {!isService && (
@@ -997,7 +997,7 @@ function Checkout() {
                     onClick={() => setPayment("boleto")}
                     icon={FileText}
                     title="Boleto bancário"
-                    desc="Financiamento da viagem com pagamento parcelado. Sujeito à análise e aprovação."
+                    desc="Financiamento parcelado sem juros, sujeito à análise e aprovação."
                     badge="Financiamento"
                   />
                 )}
@@ -1007,7 +1007,7 @@ function Checkout() {
                     onClick={() => setPayment("prepaid_boleto")}
                     icon={FileText}
                     title="Boleto Pré-pago"
-                    desc={`Até ${prepaid.maxInstallments}x sem juros para esta viagem. Pagamento antecipado no boleto, sem comprometer o limite do cartão.`}
+                    desc={`Até ${prepaid.maxInstallments}x sem juros.`}
                     badge={`Até ${prepaid.maxInstallments}x sem juros`}
                   />
                 )}
@@ -1099,25 +1099,6 @@ function Checkout() {
 
               {payment === "boleto" && (
                 <div className="mt-6 pt-6 border-t border-border space-y-5">
-                  <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-4 text-xs text-muted-foreground leading-relaxed space-y-2">
-                    <p className="text-sm text-foreground font-semibold">
-                      Parcelamos em até 10x sem juros no boleto.
-                    </p>
-                    <p>
-                      <span className="text-foreground font-semibold">Como funciona:</span> ao enviar, os dados são encaminhados para <span className="text-foreground font-semibold">análise de crédito</span>. A finalização não é concluída online — um consultor entra em contato pelo WhatsApp com o resultado e as próximas etapas.
-                    </p>
-                    <p>
-                      <span className="text-foreground font-semibold">Quem pode financiar:</span> o financiamento deve estar no nome de um dos viajantes ou de um parente de primeiro grau (pai, mãe, irmão(ã), cônjuge). Em casos específicos, aceitamos avó(ô) como financiador.
-                    </p>
-                    <p>
-                      <span className="text-foreground font-semibold">Boleto pré-pago:</span> é uma modalidade separada, <span className="text-foreground font-semibold">sem juros e sem análise de crédito</span>. Quando disponível para a viagem escolhida, ela aparece como uma opção própria aqui no checkout.
-                    </p>
-
-                    <p>
-                      <span className="text-foreground font-semibold">Todos os campos abaixo são obrigatórios.</span>
-                    </p>
-                  </div>
-
                   <div className="rounded-xl border border-border bg-card p-4 space-y-2">
                     <label className="block">
                       <span className="block text-xs text-muted-foreground mb-1.5">

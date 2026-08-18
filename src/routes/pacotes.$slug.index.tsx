@@ -835,28 +835,6 @@ function PackageDetails() {
                 search={hasHotelChoice ? { hotel: hotelIdxSafe } : undefined}
               />
             )}
-
-            {!isTicket && (
-              <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-[11px] text-muted-foreground leading-relaxed">
-                <span className="text-foreground font-medium">Também parcelamos no boleto bancário.</span>{" "}
-                Essa modalidade não é finalizada de forma online — a solicitação é feita diretamente com nosso consultor{" "}
-                <a
-                  href={customQuoteWhatsappUrl(pkg.title)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand-orange hover:underline font-medium"
-                >
-                  pelo WhatsApp
-                </a>
-                .
-              </div>
-            )}
-            <p className="mt-3 text-[10px] text-muted-foreground text-center">
-              {(pkg as unknown as { flexible_dates?: boolean }).flexible_dates
-                ? "Datas flexíveis — sujeitas à disponibilidade e alteração de valor sem aviso prévio."
-                : "Sujeito à disponibilidade de voos e hospedagem."}
-            </p>
-
           </div>
         </aside>
       </div>
@@ -1371,10 +1349,6 @@ function TicketDetailsView({
 
             <p className="mt-3 text-[11px] text-muted-foreground text-center leading-relaxed">
               Você preenche seus dados e finaliza o pagamento na próxima etapa.
-            </p>
-
-            <p className="mt-4 pt-4 border-t border-border text-[11px] text-muted-foreground/80 text-center">
-              Sujeito à disponibilidade.
             </p>
 
           </div>
@@ -2077,9 +2051,6 @@ function PreCheckoutDialog({
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
-          <p className="text-center text-[10px] text-muted-foreground/80 mt-4 uppercase tracking-widest font-medium">
-            Sujeito à disponibilidade • Cancelamento conforme política
-          </p>
         </div>
       </DialogContent>
     </Dialog>
