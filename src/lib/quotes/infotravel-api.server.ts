@@ -48,6 +48,8 @@ export class QuoteParseError extends Error {
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36";
 
+const FETCH_TIMEOUT_MS = 15_000;
+
 const log = (...a: unknown[]) => console.log("[Via Air Orçamentos]", ...a);
 
 export type InfotravelRef = {
@@ -134,7 +136,10 @@ async function trpc<T>(ref: InfotravelRef, procedure: string, input: Record<stri
   const endpoint = `${ref.origin}${ref.basePath}/api/trpc/${procedure}?input=${qs}`;
   let res: Response;
   try {
-    res = await fetch(endpoint, { headers: { "User-Agent": UA, Accept: "application/json" } });
+    res = await fetch(endpoint, {
+      headers: { "User-Agent": UA, Accept: "application/json" },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
   } catch (e) {
     throw new QuoteParseError("INFOTRAVEL_DATA_ENDPOINT_FAILED", `${procedure}: ${(e as Error).message}`);
   }
@@ -579,6 +584,7 @@ export async function fetchInfotravelHtml(url: string, tentativas = 4, esperaMs 
     try {
       const res = await fetch(url, {
         headers: { "User-Agent": UA, "Accept-Language": "pt-BR,pt;q=0.9" },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
       if (res.ok) {
         const html = await res.text();
