@@ -93,6 +93,12 @@ function PacotesList() {
       (r.boleto_financiado_max ?? r.max_installments) >= 15,
   );
   const [installmentFilter, setInstallmentFilter] = useState<string>("all");
+
+  // Campanha de 15x expirou: o filtro volta para "Qualquer" sozinho.
+  useEffect(() => {
+    if (installmentFilter === "cartao_15" && !has15Cartao) setInstallmentFilter("all");
+    if (installmentFilter === "boleto_15" && !has15Boleto) setInstallmentFilter("all");
+  }, [installmentFilter, has15Cartao, has15Boleto]);
   const [budgetMode, setBudgetMode] = useState<BudgetMode>("total");
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(null);
 
