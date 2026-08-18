@@ -248,7 +248,17 @@ type Item = {
   insights: Record<string, number>;
 };
 
-function CardPost({ item }: { item: Item }) {
+function CardPost({
+  item,
+  boosts,
+  onTurbinar,
+  onVerDesempenho,
+}: {
+  item: Item;
+  boosts: Boost[];
+  onTurbinar: () => void;
+  onVerDesempenho: (b: Boost) => void;
+}) {
   const tipo = item.is_story
     ? "Story"
     : String(item.media_product_type ?? "").toUpperCase() === "REELS"
