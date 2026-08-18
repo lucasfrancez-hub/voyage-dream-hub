@@ -602,13 +602,23 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     d.outbound_flight = mapFlight(ida);
     d.return_flight = volta && volta !== ida ? mapFlight(volta) : null;
 
-    const { services, todos, destaques, resumoTexto, temTransfer, passeios, ingressos } =
+    const { services, todos, resumoTexto, temTransfer, passeios, ingressos } =
       servicosDaOpcao(principal.detalhes);
     d.services = services;
     const RUIDO_INCLUSO =
       /isen[cç][aã]o de multa|cr[eé]dito para nova viagem|voucher\)? no valor|cobre impedimentos|v[aá]lido para pacotes e servi[cç]os|cancelamento eleg[ií]vel/i;
-    const bullets = (destaques.length ? destaques : todos).filter((b) => !RUIDO_INCLUSO.test(b));
-    if (bullets.length) d.includes = [...new Set([...(d.includes as string[]), ...bullets])];
+    // "O que inclui" = só o NOME do serviço. Detalhes ficam no diálogo de cada item.
+    const bullets = todos.filter((b) => b && !RUIDO_INCLUSO.test(b));
+    if (bullets.length) {
+      const vistosInc = new Set<string>();
+      d.includes = [...(d.includes as string[]), ...bullets].filter((b) => {
+        const k = b.toLowerCase().replace(/\s+/g, " ").trim();
+        if (!k || vistosInc.has(k)) return false;
+        vistosInc.add(k);
+        return true;
+      });
+    }
+
 
     if (resumoTexto) d.summary = [d.summary, resumoTexto].filter(Boolean).join("\n\n").trim();
     // Roteiro em linha do tempo (Dia 1, Dia 2 …) — sem os textões do operador.
