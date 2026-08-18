@@ -49,7 +49,7 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
               message: c.auto_reply_text,
             });
 
-            const espera = 90_000 + Math.floor(Math.random() * 30_000);
+            const espera = 30_000 + Math.floor(Math.random() * 20_000);
             await supabaseAdmin
               .from("instagram_comments")
               .update({
