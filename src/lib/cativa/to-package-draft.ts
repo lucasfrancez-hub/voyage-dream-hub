@@ -554,20 +554,21 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     d.outbound_flight = mapFlight(ida);
     d.return_flight = volta && volta !== ida ? mapFlight(volta) : null;
 
-    const { services, todos, destaques, observacoes, resumoTexto, roteiro } = servicosDaOpcao(
-      principal.detalhes,
-    );
+    const { services, todos, destaques, resumoTexto, temTransfer, passeios, ingressos } =
+      servicosDaOpcao(principal.detalhes);
     d.services = services;
     const bullets = destaques.length ? destaques : todos;
     if (bullets.length) d.includes = [...new Set([...(d.includes as string[]), ...bullets])];
     if (resumoTexto) d.summary = [d.summary, resumoTexto].filter(Boolean).join("\n\n").trim();
-    if (roteiro) d.itinerary = [d.itinerary, roteiro].filter(Boolean).join("\n\n").trim();
-    if (observacoes.length) {
-      d.itinerary = [d.itinerary, `Importante:\n${observacoes.map((o) => `• ${o}`).join("\n")}`]
-        .filter(Boolean)
-        .join("\n\n")
-        .trim();
-    }
+    // Roteiro em linha do tempo (Dia 1, Dia 2 …) — sem os textões do operador.
+    d.itinerary = gerarRoteiro({
+      destino: destino,
+      noites: d.nights,
+      temTransfer,
+      passeios,
+      ingressos,
+    });
+
 
     if (typeof principal.total === "number" && !d.price_per_person) {
       d.price_per_person = Math.round((principal.total / 2) * 100) / 100;
