@@ -88,6 +88,7 @@ import {
 import { useIgnoredHotels } from "@/lib/ignored-hotels";
 
 import { CurationTab } from "@/components/packages/CurationTab";
+import { CativaTab, CativaCountBadge } from "@/components/packages/CativaTab";
 import {
   PackageSocialDialog,
   WhatsAppIcon,
@@ -251,7 +252,7 @@ function AdminPackages() {
   const [sortMode, setSortMode] = useState<
     "manual" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("manual");
-  const [view, setView] = useState<"list" | "curadoria">("list");
+  const [view, setView] = useState<"list" | "curadoria" | "cativa">("list");
   const [cruiseImportOpen, setCruiseImportOpen] = useState(false);
   const [socialPkg, setSocialPkg] = useState<any | null>(null);
   const [socialChannel, setSocialChannel] = useState<"whatsapp" | "instagram" | undefined>(
@@ -1036,6 +1037,15 @@ function AdminPackages() {
         >
           <SparklesIcon className="h-3.5 w-3.5" /> Curadoria IA
         </button>
+        <button
+          type="button"
+          onClick={() => setView("cativa")}
+          title="Catálogo Cativa — pacotes disponíveis para importar"
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${view === "cativa" ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+        >
+          <PackageIcon className="h-3.5 w-3.5" /> Pacotes Cativa
+          <CativaCountBadge active={view === "cativa"} />
+        </button>
       </div>
 
       {view === "list" && (
@@ -1090,7 +1100,27 @@ function AdminPackages() {
 
 
 
-      {view === "curadoria" ? (
+      {view === "cativa" ? (
+        <CativaTab
+          onImport={async (list) => {
+            if (!list.length) return;
+            const drafts = list.map((d) => ({
+              ...emptyForm,
+              ...d,
+              kind: "package" as PackageKind,
+              cruise_details: null,
+            })) as Partial<PackageRow>[];
+            try {
+              const base = await nextPackageBaseNumber();
+              setPendingNumbers(drafts.map((_, i) => base + i));
+            } catch {
+              setPendingNumbers(null);
+            }
+            setView("list");
+            openDrafts(drafts);
+          }}
+        />
+      ) : view === "curadoria" ? (
         <CurationTab
           packages={((packages || []) as any[]).filter(
             (p) => !p?.kind || p.kind === "package",
