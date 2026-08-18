@@ -342,7 +342,13 @@ function PackageDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div
+      className={cn(
+        "min-h-screen bg-background text-foreground transition-opacity duration-200",
+        switching && "opacity-60",
+      )}
+    >
+
       <TopBar backTo="/pacotes" backLabel="Todos os pacotes" />
 
       {/* Hero image */}
