@@ -1101,6 +1101,20 @@ function AdminPackages() {
               </button>
             );
           })}
+          <button
+            type="button"
+            title="Pacotes com data de ida já passada — não aparecem mais no portal"
+            onClick={() => {
+              setExpiredView(true);
+              setPage(1);
+            }}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${expiredView ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <CalendarRange className="h-3.5 w-3.5" /> Expirados
+            <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${expiredView ? "bg-white/20" : "bg-muted"}`}>
+              {(packages || []).filter((p) => isExpired(p)).length}
+            </span>
+          </button>
           <Link
             to="/admin/cruzeiros"
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
