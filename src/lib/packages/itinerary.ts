@@ -62,3 +62,21 @@ export function gerarRoteiro({
 
   return linhas.join("\n");
 }
+
+/** Nome curto e apresentável de um serviço (sem textão do operador). */
+export function nomeCurtoServico(v: unknown): string {
+  let t = String(v ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/leia\s+atentamente\s+a\s+descri[cç][aã]o\s+do\s+servi[cç]o/gi, " ")
+    .replace(/^[\s•\-–—:*]+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  t = t.split(/[.;]\s+|\s+\|\s+/)[0] ?? t;
+  t = t.replace(/\([^)]{25,}\)/g, "").replace(/\s{2,}/g, " ").trim();
+  if (t.length > 60) {
+    const corte = t.slice(0, 60);
+    const p = corte.lastIndexOf(" ");
+    t = p > 25 ? corte.slice(0, p) : corte;
+  }
+  return t.replace(/[.,;:–-]+$/, "").trim();
+}
