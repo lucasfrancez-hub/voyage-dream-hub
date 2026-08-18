@@ -88,12 +88,14 @@ export const resumoCativa = createServerFn({ method: "POST" })
       return count ?? 0;
     };
 
-    const [ativos, esgotados, pendentes, comVoos, erros] = await Promise.all([
-      conta((q: any) => q.eq("status", "ativo").is("importado_em", null)),
+    const semCircuito = (q: any) => q.or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
+    const [ativos, esgotados, pendentes, comVoos, erros, circuitos] = await Promise.all([
+      conta((q: any) => semCircuito(q.eq("status", "ativo").is("importado_em", null))),
       conta((q: any) => q.eq("status", "esgotado")),
-      conta((q: any) => q.eq("status", "ativo").eq("voos_status", "pendente")),
-      conta((q: any) => q.eq("status", "ativo").eq("voos_status", "ok")),
-      conta((q: any) => q.eq("voos_status", "erro")),
+      conta((q: any) => semCircuito(q.eq("status", "ativo").eq("voos_status", "pendente"))),
+      conta((q: any) => semCircuito(q.eq("status", "ativo").eq("voos_status", "ok"))),
+      conta((q: any) => semCircuito(q.eq("voos_status", "erro"))),
+      conta((q: any) => q.eq("status", "ativo").is("importado_em", null).eq("categoria", CATEGORIA_CIRCUITO)),
     ]);
 
     const { data: runs } = await supabaseAdmin
@@ -102,8 +104,9 @@ export const resumoCativa = createServerFn({ method: "POST" })
       .order("iniciado_em", { ascending: false })
       .limit(10);
 
-    return { ativos, esgotados, pendentes, comVoos, erros, runs: runs ?? [] };
+    return { ativos, esgotados, pendentes, comVoos, erros, circuitos, runs: runs ?? [] };
   });
+
 
 export const historicoPacoteCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
