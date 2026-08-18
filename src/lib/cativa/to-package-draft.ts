@@ -452,6 +452,36 @@ function categoriaQuarto(desc: string): string {
   return semCama || desc;
 }
 
+/**
+ * Roteiro com mais de uma hospedagem (ex.: 2 noites em Salvador + 2 em Morro de São Paulo).
+ * Cada estadia é sequencial (check-in/check-out diferentes), não é alternativa de hotel.
+ */
+function estadiasDaOpcao(op: CativaVooRow | null) {
+  const lista = Array.isArray(op?.hoteis) ? (op!.hoteis as any[]) : [];
+  return lista
+    .map((h) => {
+      const nome = String(h?.name ?? "").replace(/[,\s]+$/, "").trim();
+      if (!nome) return null;
+      const desc = descricaoQuarto(h?.roomDescription);
+      const checkin = dia(h?.checkin);
+      const checkout = dia(h?.checkout);
+      return {
+        hotel_name: nome,
+        room_type: desc,
+        room_category: categoriaQuarto(desc),
+        bed_type: tipoCama(desc),
+        meal_plan: regime(h?.board),
+        checkin,
+        checkout,
+        nights: Number(h?.nights) || noitesEntre(checkin, checkout) || null,
+        address: String(h?.address ?? "").trim() || null,
+        photo: Array.isArray(h?.photos) ? (h.photos[0] ?? null) : null,
+      };
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => String(a.checkin ?? "").localeCompare(String(b.checkin ?? ""))) as Array<Record<string, any>>;
+}
+
 function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
   const h = (op?.hoteis ?? [])[0];
   if (h) {
@@ -588,7 +618,12 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
       .map((op) => {
         const ho = hotelDaOpcao(op, pacote);
         if (!ho.hotel_name) return null;
-        const chaveHotel = `${ho.hotel_name}|${ho.room_type}`.toLowerCase();
+        const estadias = estadiasDaOpcao(op);
+        // Roteiros com mais de uma hospedagem: a chave considera TODOS os hotéis da opção.
+        const chaveHotel = (estadias.length > 1
+          ? estadias.map((s) => `${s.hotel_name}|${s.room_type}`).join(" + ")
+          : `${ho.hotel_name}|${ho.room_type}`
+        ).toLowerCase();
         if (vistos.has(chaveHotel)) return null;
         vistos.add(chaveHotel);
         const total = typeof op.total === "number" ? op.total : null;
@@ -599,11 +634,16 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
           room_category: ho.room_category,
           bed_type: ho.bed_type,
           meal_plan: ho.meal_plan,
+          stays: estadias.length > 1 ? estadias : null,
           price_per_person: total != null ? Math.round((total / ocupacao) * 100) / 100 : Number(d.price_per_person) || 0,
           total,
         };
       })
       .filter(Boolean) as Array<Record<string, any>>;
+
+    // Hospedagens sequenciais da opção principal (roteiro com 2+ hotéis)
+    const estadiasPrincipal = estadiasDaOpcao(principal);
+    d.hotel_stays = estadiasPrincipal.length > 1 ? estadiasPrincipal : null;
 
     if (hoteis.length > 1) {
       d.hotel_options = hoteis;
@@ -613,6 +653,7 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
       d.room_category = maisBarato.room_category;
       d.bed_type = maisBarato.bed_type;
       d.meal_plan = maisBarato.meal_plan;
+      d.hotel_stays = Array.isArray(maisBarato.stays) && maisBarato.stays.length > 1 ? maisBarato.stays : d.hotel_stays;
       if (maisBarato.price_per_person) d.price_per_person = maisBarato.price_per_person;
     }
 

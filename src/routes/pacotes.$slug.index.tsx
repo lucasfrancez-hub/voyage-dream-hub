@@ -53,6 +53,7 @@ import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 import { HotelDetailsDialog } from "@/components/HotelDetailsDialog";
+import { HotelStaysList, normalizeStays } from "@/components/packages/HotelStaysList";
 import { WhatsAppText } from "@/lib/wa-format";
 import { OtherDatesBlock } from "@/components/packages/OtherDatesBlock";
 import IncludedServices from "@/components/packages/IncludedServices";
@@ -251,7 +252,7 @@ function PackageDetails() {
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const slugs = slug.includes("#") ? [slug, slug.replace(/#/g, "-")] : [slug];
-      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_options,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,supplier_name,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services,cruise_details,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates").in("slug", slugs);
+      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_options,hotel_stays,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,supplier_name,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services,cruise_details,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates").in("slug", slugs);
       if (!preview) query = query.eq("is_active", true);
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
@@ -301,6 +302,7 @@ function PackageDetails() {
     tripadvisor_url?: string | null;
     tripadvisor_address?: string | null;
     tripadvisor_photos?: string[] | null;
+    stays?: any[] | null;
   };
   const hotelOptions = useMemo<HotelOpcao[]>(
     () =>
@@ -363,6 +365,14 @@ function PackageDetails() {
   const selInfo = (selQuery?.data ?? null) as PublicHotelOptionInfo | null;
   const hotelInfoLoading = !!selQuery?.isLoading;
   const pricePerPerson = Number(selHotel?.price_per_person || pkg.price_per_person) || 0;
+
+  // Roteiro com mais de uma hospedagem (hotéis sequenciais na mesma viagem).
+  const stays = (() => {
+    const daOpcao = normalizeStays(selHotel?.stays);
+    if (daOpcao.length > 1) return daOpcao;
+    const doPacote = normalizeStays((pkg as any).hotel_stays);
+    return doPacote.length > 1 ? doPacote : [];
+  })();
 
   // Boleto Pré-pago — recalculado sempre pela data atual + data do embarque.
   const prepaid = getPrepaidBoletoConditions({
@@ -502,7 +512,9 @@ function PackageDetails() {
                   <Hotel className="h-5 w-5 text-brand-orange" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold">Hospedagem</h3>
+                  <h3 className="font-semibold">
+                    {stays.length > 1 ? `Hospedagens (${stays.length})` : "Hospedagem"}
+                  </h3>
                   <div className="mt-1 flex items-center gap-2">
                     <span>{hotelName}</span>
                     {hotelStars ? (
@@ -534,6 +546,18 @@ function PackageDetails() {
                   )}
                 </div>
               </div>
+
+              {stays.length > 1 && (
+                <div className="mt-5">
+                  <div className="text-sm font-semibold">Hotéis do roteiro</div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Esta viagem inclui {stays.length} hospedagens, na sequência abaixo.
+                  </p>
+                  <div className="mt-3">
+                    <HotelStaysList stays={stays} />
+                  </div>
+                </div>
+              )}
 
               {hasHotelChoice && (
                 <div className="mt-5">
@@ -574,7 +598,11 @@ function PackageDetails() {
                             <div className="text-[10px] font-bold uppercase tracking-wide text-brand-orange h-3">
                               {ativo ? "Selecionado" : ""}
                             </div>
-                            <div className="truncate text-sm font-medium">{h.hotel_name}</div>
+                            <div className="truncate text-sm font-medium">
+                              {normalizeStays(h.stays).length > 1
+                                ? normalizeStays(h.stays).map((st) => st.hotel_name).join(" + ")
+                                : h.hotel_name}
+                            </div>
                             <div className="truncate text-[11px] text-muted-foreground">
                               {[h.room_type, h.meal_plan].filter(Boolean).join(" · ")}
                             </div>

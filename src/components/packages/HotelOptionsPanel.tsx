@@ -1,8 +1,10 @@
 import { BedDouble, Check, Trash2 } from "lucide-react";
+import { HotelStaysList, normalizeStays, type HotelStay } from "./HotelStaysList";
 
 export type HotelOption = {
   opcao?: number | null;
   hotel_name: string;
+  stays?: HotelStay[] | null;
   room_type?: string | null;
   room_category?: string | null;
   bed_type?: string | null;
@@ -92,10 +94,26 @@ export function HotelOptionsPanel({
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold">{o.hotel_name}</div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {[o.room_type, o.bed_type, o.meal_plan].filter(Boolean).join(" · ") || "—"}
-                    </div>
+                    {normalizeStays(o.stays).length > 1 ? (
+                      <>
+                        <div className="truncate text-sm font-semibold">
+                          {normalizeStays(o.stays).map((s) => s.hotel_name).join(" + ")}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Roteiro com {normalizeStays(o.stays).length} hospedagens
+                        </div>
+                        <div className="mt-1.5">
+                          <HotelStaysList stays={normalizeStays(o.stays)} compact />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="truncate text-sm font-semibold">{o.hotel_name}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {[o.room_type, o.bed_type, o.meal_plan].filter(Boolean).join(" · ") || "—"}
+                        </div>
+                      </>
+                    )}
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
                       {vinculado ? (
                         <span className="text-emerald-600 dark:text-emerald-400">

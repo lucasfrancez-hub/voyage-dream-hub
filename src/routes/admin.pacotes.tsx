@@ -90,6 +90,7 @@ import { useIgnoredHotels } from "@/lib/ignored-hotels";
 import { CurationTab } from "@/components/packages/CurationTab";
 import { CativaTab, CativaCountBadge } from "@/components/packages/CativaTab";
 import { HotelOptionsPanel } from "@/components/packages/HotelOptionsPanel";
+import { HotelStaysList, normalizeStays } from "@/components/packages/HotelStaysList";
 import { gerarRoteiro, nomeCurtoServico as nomeItem } from "@/lib/packages/itinerary";
 
 import {
@@ -181,8 +182,11 @@ type PackageRow = {
     tripadvisor_url?: string | null;
     tripadvisor_address?: string | null;
     tripadvisor_photos?: string[] | null;
+    stays?: any[] | null;
   }> | null;
 
+  /** Hospedagens sequenciais do roteiro (2+ hotéis na mesma viagem) */
+  hotel_stays: any[] | null;
 
   hotel_stars: number | null;
   meal_plan: string | null;
@@ -659,6 +663,10 @@ function AdminPackages() {
         Array.isArray((pkg as any).hotel_options) && (pkg as any).hotel_options.length > 1
           ? (pkg as any).hotel_options
           : null,
+      hotel_stays:
+        Array.isArray((pkg as any).hotel_stays) && (pkg as any).hotel_stays.length > 1
+          ? (pkg as any).hotel_stays
+          : null,
 
       meal_plan: pkg.meal_plan || null,
       room_type: cleanRoomLabel(pkg.room_type),
@@ -720,6 +728,7 @@ function AdminPackages() {
       // Ingresso/serviço: sem hospedagem, sem aéreo, sem cruzeiro
       payload.hotel_name = null;
       payload.hotel_options = null;
+      payload.hotel_stays = null;
 
       payload.hotel_stars = null;
       payload.meal_plan = null;
@@ -2849,6 +2858,10 @@ function PackageEditorModal({
                             room_category: (base as any).room_category ?? editing.room_category,
                             bed_type: (base as any).bed_type ?? editing.bed_type,
                             meal_plan: base.meal_plan ?? editing.meal_plan,
+                            hotel_stays:
+                              Array.isArray((base as any).stays) && (base as any).stays.length > 1
+                                ? ((base as any).stays as any[])
+                                : null,
                             price_per_person: Number(base.price_per_person) || editing.price_per_person,
                             ...(base.tripadvisor_location_id
                               ? {
@@ -2866,7 +2879,17 @@ function PackageEditorModal({
 
                 />
 
-
+                {normalizeStays((editing as any).hotel_stays).length > 1 && (
+                  <div className="sm:col-span-2 rounded-2xl border border-border bg-muted/30 p-3">
+                    <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Roteiro com {normalizeStays((editing as any).hotel_stays).length} hospedagens
+                    </div>
+                    <HotelStaysList stays={normalizeStays((editing as any).hotel_stays)} />
+                    <p className="mt-2 text-[10px] text-muted-foreground">
+                      Todas as hospedagens acima aparecem para o cliente na página do pacote.
+                    </p>
+                  </div>
+                )}
 
                 <FormField
                   label={
