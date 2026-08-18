@@ -1813,6 +1813,7 @@ function PackageEditorModal({
   >([]);
   const draftsScrollRef = useRef<HTMLDivElement | null>(null);
   const [hotelOptIdx, setHotelOptIdx] = useState(0);
+  const [staySelIdx, setStaySelIdx] = useState(-1);
   const [hotelMode, setHotelMode] = useState<"live" | "manual" | null>(
     editing.tripadvisor_location_id ? "live" : editing.hotel_name ? "manual" : null,
   );
