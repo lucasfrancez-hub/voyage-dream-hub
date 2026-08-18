@@ -164,6 +164,15 @@ type PackageRow = {
   itinerary: string | null;
   includes: string[] | null;
   hotel_name: string | null;
+  /** Hospedagens alternativas (mesmos voos/datas) — a 1ª é a mais barata/padrão */
+  hotel_options: Array<{
+    hotel_name: string;
+    room_type?: string | null;
+    meal_plan?: string | null;
+    price_per_person?: number | null;
+    opcao?: number | null;
+  }> | null;
+
   hotel_stars: number | null;
   meal_plan: string | null;
   room_type: string | null;
