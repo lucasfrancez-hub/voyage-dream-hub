@@ -108,6 +108,51 @@ const semIata = (v: unknown): string => {
   return t;
 };
 
+/** Acentuação/caixa correta de destinos que a operadora manda em caixa alta. */
+const DESTINO_CANONICO: Record<string, string> = {
+  "cancun": "Cancún", "punta cana": "Punta Cana", "milao": "Milão", "milan": "Milão",
+  "barcelona": "Barcelona", "buenos aires": "Buenos Aires", "bariloche": "Bariloche",
+  "orlando": "Orlando", "paris": "Paris", "roma": "Roma", "lisboa": "Lisboa",
+  "madri": "Madri", "madrid": "Madri", "santiago": "Santiago", "maceio": "Maceió",
+  "salvador": "Salvador", "recife": "Recife", "natal": "Natal", "fortaleza": "Fortaleza",
+  "porto seguro": "Porto Seguro", "porto de galinhas": "Porto de Galinhas",
+  "gramado": "Gramado", "foz do iguacu": "Foz do Iguaçu", "sao paulo": "São Paulo",
+  "rio de janeiro": "Rio de Janeiro", "nova york": "Nova York", "new york": "Nova York",
+  "miami": "Miami", "aruba": "Aruba", "curacao": "Curaçao", "montevideu": "Montevidéu",
+};
+
+const MINUSCULAS_TITULO = new Set(["de", "da", "do", "das", "dos", "e", "em", "na", "no", "a", "o"]);
+
+/** "PUNTA CANA" → "Punta Cana"; mantém nomes já bem escritos. */
+function tituloCidade(v: unknown): string {
+  const t = String(v ?? "").trim().replace(/\s{2,}/g, " ");
+  if (!t) return "";
+  const chave = t
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (DESTINO_CANONICO[chave]) return DESTINO_CANONICO[chave]!;
+  // só normaliza a caixa quando vem tudo em maiúsculas/minúsculas
+  if (!/[A-ZÀ-Ý]/.test(t) || t === t.toUpperCase()) {
+    return t
+      .toLowerCase()
+      .split(" ")
+      .map((w, i) => (i > 0 && MINUSCULAS_TITULO.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+      .join(" ");
+  }
+  return t;
+}
+
+/** Temas/eventos que devem continuar no título ("Halloween na Disney"). */
+const RE_TEMA =
+  /(halloween|natal|r[eé]veillon|ano\s*novo|carnaval|p[aá]scoa|festival|show\b|lollapalooza|rock in rio|gp\b|f[oó]rmula\s*1|copa\b|oktoberfest|new\s*year|christmas|semana\s*santa|feriad[oa])/i;
+
+/** Enfeites comerciais que não podem virar título de pacote. */
+const RE_TITULO_MARKETING =
+  /(onde\s+a\s+|essencial|imperd[ií]vel|inesquec[ií]vel|dos\s+sonhos|sol,?\s*mar|paradis|encanto|magia|aventura|tranquilidade|se\s+encontram|melhor\s+d[oa]|especial|promo|super\s*oferta|transfer|s[oó]\s+ida|completo\b)/i;
+
+
+
 /** ISO da operadora → valor aceito pelo input datetime-local (YYYY-MM-DDTHH:mm). */
 const dataHora = (v: unknown): string | undefined => {
   const t = String(v ?? "").trim();
