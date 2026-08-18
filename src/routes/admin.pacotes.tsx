@@ -1769,7 +1769,7 @@ function deriveFromFlights(editing: Partial<PackageRow>): {
   const destCity = last?.to_city?.trim() || editing.destination?.trim() || undefined;
   const title =
     destCity && originCity
-      ? `${destCity} - Saída de ${originCity}`
+      ? `${destCity} - Saindo de ${originCity}`
       : destCity
         ? destCity
         : undefined;
@@ -2396,7 +2396,7 @@ function PackageEditorModal({
                     className={inp}
                     value={editing.title || derived.title || ""}
                     onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                    placeholder="Ex: Aracaju - Saída de São Paulo"
+                    placeholder="Ex: Aracaju - Saindo de São Paulo"
                   />
                 </FormField>
                 <FormField label="Slug (URL, auto)">
@@ -5148,7 +5148,7 @@ function MultiPackageImportButton({
         const going = p.going_date ? String(p.going_date) : "";
         const ret = p.return_date ? String(p.return_date) : "";
         const title =
-          destination && origin ? `${destination} - Saída de ${origin}` : destination || "";
+          destination && origin ? `${destination} - Saindo de ${origin}` : destination || "";
         const baseSlug = (destination || "pacote")
           .toLowerCase()
           .normalize("NFD")

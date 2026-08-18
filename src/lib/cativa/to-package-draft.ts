@@ -637,12 +637,35 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     ? [...new Set(pacote.incluso.map(nomePublicoServico).filter(Boolean))]
     : [];
 
+  // Título padronizado: "<núcleo do pacote> - Saindo de <origem>".
+  // Ex.: "Europa: Réveillon 2027 em Madri com aéreo" -> "Réveillon 2027 em Madri"
+  //      "Maceió com Praias do Gunga, Francês & Pratagy Acqua Park GRÁTIS" -> "Maceió"
+  const nucleo = (() => {
+    let t = nomePacote
+      .replace(/^[^:]{2,20}:\s*/, "") // prefixo de região ("Europa: ")
+      .split(/\s+[—–|]\s+/)[0]!
+      .split(/\s+com\s+/i)[0]!
+      .split(/\s+[-]\s+saindo\s+de\s+/i)[0]!
+      .trim();
+    t = t.replace(/\s*\b(gr[áa]tis|com a[ée]reo)\b\s*$/i, "").replace(/[,;&]\s*$/, "").trim();
+    return t || destino;
+  })();
+
+  const titulo = nucleo
+    ? origem
+      ? `${nucleo} - Saindo de ${origem}`
+      : nucleo
+    : destino && origem
+      ? `${destino} - Saindo de ${origem}`
+      : destino;
+
   const base = (inicio: string | null, fim: string | null): CativaDraft => ({
     cativa_pacote_id: pacote.id,
     cativa_datas_label:
       inicio && fim ? `${inicio.split("-").reverse().join("/")} → ${fim.split("-").reverse().join("/")}` : "Datas a definir",
-    slug: slugify(nomePacote || destino || "pacote"),
-    title: nomePacote || (destino && origem ? `${destino} - Saída de ${origem}` : destino),
+    slug: slugify(titulo || nomePacote || destino || "pacote"),
+    title: titulo,
+
     kind: "package",
     destination: destino,
     origin: origem,
