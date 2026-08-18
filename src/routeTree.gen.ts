@@ -67,6 +67,7 @@ import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminPromocoesAereoRouteImport } from './routes/admin.promocoes-aereo'
 import { Route as AdminRecebimentosRouteImport } from './routes/admin.recebimentos'
 import { Route as AdminRedesSociaisRouteImport } from './routes/admin.redes-sociais'
+import { Route as AdminRegrasParcelamentoRouteImport } from './routes/admin.regras-parcelamento'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminSegurosRouteImport } from './routes/admin.seguros'
 import { Route as AdminTesteCheckoutOwnerRouteImport } from './routes/admin.teste-checkout-owner'
@@ -457,6 +458,11 @@ const AdminRecebimentosRoute = AdminRecebimentosRouteImport.update({
 const AdminRedesSociaisRoute = AdminRedesSociaisRouteImport.update({
   id: '/redes-sociais',
   path: '/redes-sociais',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRegrasParcelamentoRoute = AdminRegrasParcelamentoRouteImport.update({
+  id: '/regras-parcelamento',
+  path: '/regras-parcelamento',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSegurancaRoute = AdminSegurancaRouteImport.update({
@@ -1061,6 +1067,7 @@ export interface FileRoutesByFullPath {
   '/admin/promocoes-aereo': typeof AdminPromocoesAereoRoute
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
+  '/admin/regras-parcelamento': typeof AdminRegrasParcelamentoRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
   '/admin/teste-checkout-owner': typeof AdminTesteCheckoutOwnerRoute
@@ -1220,6 +1227,7 @@ export interface FileRoutesByTo {
   '/admin/promocoes-aereo': typeof AdminPromocoesAereoRoute
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
+  '/admin/regras-parcelamento': typeof AdminRegrasParcelamentoRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
   '/admin/teste-checkout-owner': typeof AdminTesteCheckoutOwnerRoute
@@ -1382,6 +1390,7 @@ export interface FileRoutesById {
   '/admin/promocoes-aereo': typeof AdminPromocoesAereoRoute
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
+  '/admin/regras-parcelamento': typeof AdminRegrasParcelamentoRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
   '/admin/teste-checkout-owner': typeof AdminTesteCheckoutOwnerRoute
@@ -1545,6 +1554,7 @@ export interface FileRouteTypes {
     | '/admin/promocoes-aereo'
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
+    | '/admin/regras-parcelamento'
     | '/admin/seguranca'
     | '/admin/seguros'
     | '/admin/teste-checkout-owner'
@@ -1704,6 +1714,7 @@ export interface FileRouteTypes {
     | '/admin/promocoes-aereo'
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
+    | '/admin/regras-parcelamento'
     | '/admin/seguranca'
     | '/admin/seguros'
     | '/admin/teste-checkout-owner'
@@ -1865,6 +1876,7 @@ export interface FileRouteTypes {
     | '/admin/promocoes-aereo'
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
+    | '/admin/regras-parcelamento'
     | '/admin/seguranca'
     | '/admin/seguros'
     | '/admin/teste-checkout-owner'
@@ -2465,6 +2477,13 @@ declare module '@tanstack/react-router' {
       path: '/redes-sociais'
       fullPath: '/admin/redes-sociais'
       preLoaderRoute: typeof AdminRedesSociaisRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/regras-parcelamento': {
+      id: '/admin/regras-parcelamento'
+      path: '/regras-parcelamento'
+      fullPath: '/admin/regras-parcelamento'
+      preLoaderRoute: typeof AdminRegrasParcelamentoRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/seguranca': {
@@ -3226,6 +3245,7 @@ interface AdminRouteChildren {
   AdminPromocoesAereoRoute: typeof AdminPromocoesAereoRoute
   AdminRecebimentosRoute: typeof AdminRecebimentosRoute
   AdminRedesSociaisRoute: typeof AdminRedesSociaisRoute
+  AdminRegrasParcelamentoRoute: typeof AdminRegrasParcelamentoRoute
   AdminSegurancaRoute: typeof AdminSegurancaRoute
   AdminSegurosRoute: typeof AdminSegurosRoute
   AdminTesteCheckoutOwnerRoute: typeof AdminTesteCheckoutOwnerRoute
@@ -3278,6 +3298,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPromocoesAereoRoute: AdminPromocoesAereoRoute,
   AdminRecebimentosRoute: AdminRecebimentosRoute,
   AdminRedesSociaisRoute: AdminRedesSociaisRoute,
+  AdminRegrasParcelamentoRoute: AdminRegrasParcelamentoRoute,
   AdminSegurancaRoute: AdminSegurancaRoute,
   AdminSegurosRoute: AdminSegurosRoute,
   AdminTesteCheckoutOwnerRoute: AdminTesteCheckoutOwnerRoute,
