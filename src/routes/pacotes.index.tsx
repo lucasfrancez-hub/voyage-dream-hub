@@ -79,6 +79,7 @@ function PacotesList() {
   const [sortBy, setSortBy] = useState<
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("sort_order");
+  const [installmentFilter, setInstallmentFilter] = useState<string>("all");
   const [budgetMode, setBudgetMode] = useState<BudgetMode>("total");
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(null);
 
@@ -174,7 +175,22 @@ function PacotesList() {
           (budgetRange.max === null || total <= budgetRange.max);
       }
 
-      return originMatch && destinationMatch && monthMatch && rangeMatch && budgetMatch;
+      let installmentMatch = true;
+      if (installmentFilter !== "all") {
+        const maxParc = packageMaxInstallments({
+          supplierName: (p as { supplier_name?: string | null }).supplier_name,
+        });
+        installmentMatch = maxParc >= Number(installmentFilter);
+      }
+
+      return (
+        originMatch &&
+        destinationMatch &&
+        monthMatch &&
+        rangeMatch &&
+        budgetMatch &&
+        installmentMatch
+      );
 
     });
 
@@ -252,7 +268,7 @@ function PacotesList() {
     }
 
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange]);
+  }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange, installmentFilter]);
 
 
   const hasActiveFilters =
@@ -261,6 +277,7 @@ function PacotesList() {
     monthFilter !== "all" ||
     !!dateRange?.from ||
     !!budgetRange ||
+    installmentFilter !== "all" ||
     sortBy !== "sort_order";
 
   const clearFilters = () => {
@@ -270,11 +287,12 @@ function PacotesList() {
     setDateRange(undefined);
     setSortBy("sort_order");
     setBudgetRange(null);
+    setInstallmentFilter("all");
   };
 
   useEffect(() => {
     setPage(1);
-  }, [originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange]);
+  }, [originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange, installmentFilter]);
 
 
   const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
@@ -488,6 +506,25 @@ function PacotesList() {
             />
           </div>
 
+
+          <div className="flex-1 min-w-[160px]">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Parcelamento
+            </label>
+            <Select value={installmentFilter} onValueChange={setInstallmentFilter}>
+              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-3.5 w-3.5 text-brand-orange" />
+                  <SelectValue placeholder="Qualquer" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Qualquer</SelectItem>
+                <SelectItem value="10">Até 10x sem juros</SelectItem>
+                <SelectItem value="15">Até 15x sem juros</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex-1">
 
