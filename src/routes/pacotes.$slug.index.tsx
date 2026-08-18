@@ -830,15 +830,16 @@ function PackageDetails() {
       )}
       <ContactFooter whatsappMessage={`Olá! Tenho interesse no pacote e quero mais informações.`} />
       {(() => {
-        const taId = (pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null;
-        const photos = ((pkg as unknown as { tripadvisor_photos?: string[] | null }).tripadvisor_photos) ?? [];
+        const taId = hotelTaId;
+        const photos = hotelPhotos;
         if (!taId) return null;
         return (
           <HotelDetailsDialog
+            key={taId}
             open={hotelDialogOpen}
             onOpenChange={setHotelDialogOpen}
             locationId={taId}
-            hotelName={pkg.hotel_name ?? ""}
+            hotelName={hotelName ?? ""}
             fallbackPhotos={photos}
             initialPhotoIndex={dialogPhotoIndex}
           />
