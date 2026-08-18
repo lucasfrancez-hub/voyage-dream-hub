@@ -188,7 +188,7 @@ export function resolveRef(rawUrl: string, html?: string): InfotravelRef {
 }
 
 
-async function trpc<T>(ref: InfotravelRef, procedure: string, input: Record<string, unknown>): Promise<T> {
+export async function trpc<T>(ref: InfotravelRef, procedure: string, input: Record<string, unknown>): Promise<T> {
   const qs = encodeURIComponent(JSON.stringify({ json: input }));
   const endpoint = `${ref.origin}${ref.basePath}/api/trpc/${procedure}?input=${qs}`;
   let res: Response;
