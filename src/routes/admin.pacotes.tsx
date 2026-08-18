@@ -1845,6 +1845,24 @@ function PackageEditorModal({
   const stayIdx =
     staysList.length > 1 && staySelIdx >= 0 ? Math.min(staySelIdx, staysList.length - 1) : -1;
   const hv: any = stayIdx >= 0 ? staysList[stayIdx] : hotelBase;
+  // Com uma única hospedagem, mostramos o mesmo cartão (somente leitura de
+  // preço) para conferir hotel, regime e quarto sem precisar de opções extras.
+  const hotelPainelOpts: any[] = hotelOpts.length
+    ? hotelOpts
+    : [
+        {
+          hotel_name: (editing as any).hotel_name || "Hospedagem",
+          stays: (editing as any).hotel_stays,
+          room_type: (editing as any).room_type,
+          room_category: (editing as any).room_category,
+          bed_type: (editing as any).bed_type,
+          meal_plan: (editing as any).meal_plan,
+          price_per_person: Number((editing as any).price_from) || 0,
+          hotel_stars: (editing as any).hotel_stars,
+          tripadvisor_location_id: (editing as any).tripadvisor_location_id,
+          tripadvisor_photos: (editing as any).tripadvisor_photos,
+        },
+      ];
 
   const setHotelBase = (p: Record<string, any>) => {
     if (hotelSelIdx < 0) {
@@ -2881,7 +2899,7 @@ function PackageEditorModal({
             {tab === "hotel" && kind !== "cruise" && (
               <div className="grid sm:grid-cols-2 gap-3">
                 <HotelOptionsPanel
-                  options={(Array.isArray((editing as any).hotel_options) ? (editing as any).hotel_options : []) as any}
+                  options={hotelPainelOpts as any}
                   occupancy={Number(editing.base_occupancy) || 2}
                   selectedIndex={hotelSelIdx < 0 ? 0 : hotelSelIdx}
                   onSelectIndex={setHotelOptIdx}

@@ -41,6 +41,7 @@ export function HotelOptionsPanel({
 }) {
   if (!options?.length) return null;
 
+  const unica = options.length === 1;
   const preco = (o: HotelOption) => Number(o.price_per_person) || 0;
   const base = options[0]!;
   const precoBase = preco(base);
@@ -66,7 +67,7 @@ export function HotelOptionsPanel({
     <div className="sm:col-span-2 rounded-2xl border border-border bg-muted/30 p-3">
       <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
         <BedDouble className="h-3.5 w-3.5 text-brand-orange" />
-        Opções de hospedagem ({options.length}) · clique para editar
+        {unica ? "Hospedagem" : `Opções de hospedagem (${options.length}) · clique para editar`}
       </div>
       <ul className="space-y-2">
         {options.map((o, i) => {
@@ -110,7 +111,7 @@ export function HotelOptionsPanel({
                       <>
                         <div className="truncate text-sm font-semibold">{o.hotel_name}</div>
                         <div className="truncate text-xs text-muted-foreground">
-                          {[o.room_type, o.bed_type, o.meal_plan].filter(Boolean).join(" · ") || "—"}
+                          {[o.room_type, o.bed_type, o.meal_plan || "Regime não informado"].filter(Boolean).join(" · ")}
                         </div>
                       </>
                     )}
@@ -135,7 +136,7 @@ export function HotelOptionsPanel({
                     </div>
                   </div>
                   <div className="w-full sm:w-auto sm:min-w-[190px] sm:text-right">
-                    {ehBase ? (
+                    {unica ? null : ehBase ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
                         <Check className="h-3 w-3" /> Valor base (mais barato)
                       </span>
@@ -148,7 +149,7 @@ export function HotelOptionsPanel({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 ${unica ? "hidden" : ""}`}>
                     {!ehBase && (
                       <button
                         type="button"
@@ -179,7 +180,7 @@ export function HotelOptionsPanel({
           );
         })}
       </ul>
-      <p className="mt-2 text-[10px] text-muted-foreground">
+      <p className={`mt-2 text-[10px] text-muted-foreground ${unica ? "hidden" : ""}`}>
         O preço do pacote segue a opção base. As demais aparecem para o cliente com a diferença
         somada. Os campos abaixo editam a opção selecionada.
       </p>
