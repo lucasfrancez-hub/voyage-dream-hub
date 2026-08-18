@@ -576,6 +576,22 @@ function PackageDetails() {
             </section>
           )}
 
+          <OtherDatesBlock
+            pkg={{
+              id: pkg.id,
+              slug: pkg.slug,
+              origin: pkg.origin,
+              destination: pkg.destination,
+              going_date: pkg.going_date,
+              return_date: pkg.return_date,
+              nights: pkg.nights,
+              hotel_name: hotelName,
+              price_per_person: pricePerPerson,
+              base_occupancy: baseOccupancy,
+            }}
+          />
+
+
           <TicketRules services={pkg.services} />
 
         </div>
