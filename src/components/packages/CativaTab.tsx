@@ -83,6 +83,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
           arquivados,
           modo,
           incompletos: incompletos || undefined,
+          somenteCompletos: !incompletos && !arquivados,
         },
       }),
     refetchInterval: 120_000,
