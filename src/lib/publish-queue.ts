@@ -2,11 +2,18 @@ import { useSyncExternalStore } from "react";
 
 export type PublishJobStatus = "queued" | "running" | "done" | "error";
 
+/**
+ * Canais são FILAS INDEPENDENTES: salvar promoção, reprocessar promoção,
+ * WhatsApp e Instagram rodam em paralelo. Dentro do mesmo canal a execução
+ * continua sequencial (evita duplicar postagem/cotação do mesmo tipo).
+ */
+export type PublishChannel = "whatsapp" | "instagram" | "promocao" | "reprocessar";
+
 export type PublishJob = {
   id: string;
   label: string;
-  /** canal de destino, só para exibição */
-  channel: "whatsapp" | "instagram" | "promocao";
+  /** canal de destino — também define a fila paralela usada */
+  channel: PublishChannel;
   status: PublishJobStatus;
   detail?: string;
   error?: string;
@@ -16,7 +23,7 @@ export type PublishJob = {
 type InternalJob = PublishJob & { run: () => Promise<string | void> };
 
 let jobs: InternalJob[] = [];
-let running = false;
+const running = new Set<PublishChannel>();
 const listeners = new Set<() => void>();
 let snapshot: PublishJob[] = [];
 
@@ -34,12 +41,12 @@ function getSnapshot() {
   return snapshot;
 }
 
-async function pump() {
-  if (running) return;
-  running = true;
+async function pump(channel: PublishChannel) {
+  if (running.has(channel)) return;
+  running.add(channel);
   try {
     for (;;) {
-      const next = jobs.find((j) => j.status === "queued");
+      const next = jobs.find((j) => j.channel === channel && j.status === "queued");
       if (!next) break;
       next.status = "running";
       emit();
@@ -54,13 +61,13 @@ async function pump() {
       emit();
     }
   } finally {
-    running = false;
+    running.delete(channel);
   }
 }
 
 export function enqueuePublish(job: {
   label: string;
-  channel: PublishJob["channel"];
+  channel: PublishChannel;
   detail?: string;
   run: () => Promise<string | void>;
 }) {
@@ -70,7 +77,7 @@ export function enqueuePublish(job: {
     { id, label: job.label, channel: job.channel, detail: job.detail, status: "queued", createdAt: Date.now(), run: job.run },
   ];
   emit();
-  void pump();
+  void pump(job.channel);
   return id;
 }
 
