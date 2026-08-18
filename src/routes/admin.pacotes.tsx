@@ -1901,6 +1901,8 @@ function PackageEditorModal({
   }, [editing.supplier_name]);
 
   // Montar "O que inclui" a partir dos campos efetivamente preenchidos/marcados.
+  // Só o nome do serviço — nada de textão do operador.
+
   const derivedIncludes = useMemo(() => {
     const list: string[] = [];
     const hasOutbound = !!editing.outbound_flight;
