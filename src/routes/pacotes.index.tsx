@@ -300,7 +300,17 @@ function PacotesList() {
           <FeaturedCarousel packages={(packages || []) as any} mixMode />
         </div>
 
-        <div className="mt-2 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
+        <div className="mt-6">
+          <BudgetFilter
+            mode={budgetMode}
+            onModeChange={setBudgetMode}
+            range={budgetRange}
+            onRangeChange={setBudgetRange}
+          />
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
+
           <div className="flex items-center gap-2 text-sm font-medium text-foreground sm:pb-2.5">
             <SlidersHorizontal className="h-4 w-4 text-brand-orange" />
             Filtrar por
