@@ -368,7 +368,7 @@ function PackageDetails() {
   const hotelName = selHotel?.hotel_name || pkg.hotel_name;
   const isBaseHotel =
     !selHotel || norm(selHotel.hotel_name) === norm(baseHotelName);
-  const selQuery = hasHotelChoice ? hotelInfoQueries[hotelIdxSafe] : undefined;
+  const selQuery = hotelInfoQueries[hotelIdxSafe];
   const selInfo = (selQuery?.data ?? null) as PublicHotelOptionInfo | null;
   const hotelInfoLoading = !!selQuery?.isLoading;
   const pricePerPerson = Number(selHotel?.price_per_person || pkg.price_per_person) || 0;
