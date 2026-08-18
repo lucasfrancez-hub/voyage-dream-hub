@@ -598,7 +598,11 @@ function PackageDetails() {
                             <div className="text-[10px] font-bold uppercase tracking-wide text-brand-orange h-3">
                               {ativo ? "Selecionado" : ""}
                             </div>
-                            <div className="truncate text-sm font-medium">{h.hotel_name}</div>
+                            <div className="truncate text-sm font-medium">
+                              {normalizeStays(h.stays).length > 1
+                                ? normalizeStays(h.stays).map((st) => st.hotel_name).join(" + ")
+                                : h.hotel_name}
+                            </div>
                             <div className="truncate text-[11px] text-muted-foreground">
                               {[h.room_type, h.meal_plan].filter(Boolean).join(" · ")}
                             </div>
