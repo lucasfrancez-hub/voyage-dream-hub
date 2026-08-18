@@ -652,6 +652,8 @@ function PackageDetails() {
               <Link
                 to="/pacotes/$slug/checkout"
                 params={{ slug: pkg.slug }}
+                search={hasHotelChoice ? ({ hotel: Math.min(hotelIdx, hotelOptions.length - 1) } as any) : undefined}
+
                 className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-primary-foreground shadow-[var(--shadow-glow)] hover:opacity-90 transition"
               >
                 Reservar agora <ArrowRight className="h-4 w-4" />
