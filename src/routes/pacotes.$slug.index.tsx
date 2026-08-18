@@ -342,34 +342,57 @@ function PackageDetails() {
       ? formatDateBR(pkg.going_date)
       : null;
 
-  // Hospedagens alternativas: mesmos voos e datas, hotéis diferentes.
-  type HotelOpcao = {
-    hotel_name: string;
-    room_type?: string | null;
-    meal_plan?: string | null;
-    price_per_person?: number | null;
-  };
-  const hotelOptions = (
-    Array.isArray((pkg as any).hotel_options) ? ((pkg as any).hotel_options as HotelOpcao[]) : []
-  ).filter((h) => h?.hotel_name);
-  const hasHotelChoice = hotelOptions.length > 1;
-  const selHotel = hasHotelChoice ? (hotelOptions[Math.min(hotelIdx, hotelOptions.length - 1)] ?? null) : null;
+  // Hospedagem selecionada: a seção inteira é renderizada a partir dela.
+  const selHotel = hasHotelChoice ? (hotelOptions[hotelIdxSafe] ?? null) : null;
   const hotelName = selHotel?.hotel_name || pkg.hotel_name;
-  const isBaseHotel = !hasHotelChoice || hotelIdx === 0;
+  const isBaseHotel =
+    !selHotel || norm(selHotel.hotel_name) === norm(baseHotelName);
+  const selQuery = hasHotelChoice ? hotelInfoQueries[hotelIdxSafe] : undefined;
+  const selInfo = (selQuery?.data ?? null) as PublicHotelOptionInfo | null;
+  const hotelInfoLoading = !!selQuery?.isLoading;
   const pricePerPerson = Number(selHotel?.price_per_person || pkg.price_per_person) || 0;
+
+  const pkgIfBase = <T,>(value: T): T | null => (isBaseHotel ? value : null);
+  const hotelStars =
+    selHotel?.hotel_stars ?? pkgIfBase(pkg.hotel_stars ?? null) ?? selInfo?.stars ?? null;
+  const hotelAddress =
+    selHotel?.tripadvisor_address ??
+    pkgIfBase((pkg as unknown as { tripadvisor_address?: string | null }).tripadvisor_address ?? null) ??
+    selInfo?.address ??
+    null;
+  const hotelTaId =
+    selHotel?.tripadvisor_location_id ??
+    pkgIfBase((pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null) ??
+    selInfo?.location_id ??
+    null;
+  const hotelTaUrl =
+    selHotel?.tripadvisor_url ??
+    pkgIfBase((pkg as unknown as { tripadvisor_url?: string | null }).tripadvisor_url ?? null) ??
+    selInfo?.web_url ??
+    null;
+  const hotelPhotos: string[] = (() => {
+    const own = Array.isArray(selHotel?.tripadvisor_photos) ? selHotel!.tripadvisor_photos! : null;
+    if (own?.length) return own;
+    const base = pkgIfBase(
+      ((pkg as unknown as { tripadvisor_photos?: string[] | null }).tripadvisor_photos ?? null) as string[] | null,
+    );
+    if (base?.length) return base;
+    return selInfo?.photos ?? [];
+  })();
 
   const hotelDetails = Array.from(
     new Map(
       [
-        { value: cleanHotelDetail(selHotel?.meal_plan || pkg.meal_plan), icon: null as LucideIcon | null, resolve: mealIcon },
-        { value: cleanHotelDetail(pkg.bed_type), icon: null as LucideIcon | null, resolve: bedIcon },
-        { value: cleanHotelDetail(selHotel?.room_type || pkg.room_type), icon: null as LucideIcon | null, resolve: roomTypeIcon },
-        { value: cleanHotelDetail(selHotel ? null : pkg.room_category), icon: null as LucideIcon | null, resolve: roomCategoryIcon },
+        { value: cleanHotelDetail(selHotel?.meal_plan ?? pkgIfBase(pkg.meal_plan)), icon: null as LucideIcon | null, resolve: mealIcon },
+        { value: cleanHotelDetail(selHotel?.bed_type ?? pkgIfBase(pkg.bed_type)), icon: null as LucideIcon | null, resolve: bedIcon },
+        { value: cleanHotelDetail(selHotel?.room_type ?? pkgIfBase(pkg.room_type)), icon: null as LucideIcon | null, resolve: roomTypeIcon },
+        { value: cleanHotelDetail(selHotel?.room_category ?? pkgIfBase(pkg.room_category)), icon: null as LucideIcon | null, resolve: roomCategoryIcon },
       ]
         .filter((detail): detail is { value: string; icon: LucideIcon | null; resolve: (v: string) => LucideIcon } => Boolean(detail.value))
         .map((detail) => [detail.value.toLocaleLowerCase("pt-BR"), { value: detail.value, icon: detail.icon ?? detail.resolve(detail.value) }]),
     ).values(),
   );
+
 
 
   if (isCruise) {
