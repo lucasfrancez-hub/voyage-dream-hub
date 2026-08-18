@@ -502,13 +502,16 @@ function somarTaxasDoPacote(pkg: any): number | null {
       for (const f of no.fares as any[]) {
         const amount = amountOf(f?.price);
         if (amount == null) continue;
+        // Descontos (PROMOTION_DISCOUNT etc.) abatem os PRODUTOS, não as taxas.
+        if (f?.discount) continue;
         const tipo = String(f?.type ?? "").toUpperCase();
-        const ehTaxa = f?.isFareRate === true || (tipo !== "FARE" && tipo !== "");
+        const ehTaxa = f?.isFareRate === true || /TAX|RATE|FEE|IOF/.test(tipo);
         if (!ehTaxa) continue;
-        total += f?.discount ? -Math.abs(amount) : amount;
+        total += amount;
         achou = true;
       }
     }
+
     for (const v of Object.values(no)) if (v && typeof v === "object") anda(v);
   };
   anda(pkg);
