@@ -276,6 +276,44 @@ function PackageDetails() {
   const hotelIdx = hotelSel[slug] ?? 0;
   const setHotelIdx = (i: number) => setHotelSel((s) => ({ ...s, [slug]: i }));
 
+  // ---- Hospedagens alternativas (mesmos voos/datas, hotéis diferentes) ----
+  type HotelOpcao = {
+    hotel_name: string;
+    room_type?: string | null;
+    room_category?: string | null;
+    bed_type?: string | null;
+    meal_plan?: string | null;
+    price_per_person?: number | null;
+    hotel_stars?: number | null;
+    tripadvisor_location_id?: number | null;
+    tripadvisor_url?: string | null;
+    tripadvisor_address?: string | null;
+    tripadvisor_photos?: string[] | null;
+  };
+  const hotelOptions = useMemo<HotelOpcao[]>(
+    () =>
+      (Array.isArray((pkg as any)?.hotel_options) ? ((pkg as any).hotel_options as HotelOpcao[]) : []).filter(
+        (h) => h?.hotel_name,
+      ),
+    [pkg],
+  );
+  const hasHotelChoice = hotelOptions.length > 1;
+  const hotelIdxSafe = hasHotelChoice ? Math.min(hotelIdx, hotelOptions.length - 1) : 0;
+  const baseHotelName = ((pkg as any)?.hotel_name ?? "") as string;
+  const hotelCity = ((pkg as any)?.destination ?? null) as string | null;
+
+  const fetchHotelInfo = useServerFn(getPackageHotelOptionInfo);
+  // Uma query por hospedagem: cache do React Query mantém a troca instantânea
+  // (item 19 do briefing) e o servidor já cacheia o TripAdvisor por 30 dias.
+  const hotelInfoQueries = useQueries({
+    queries: hotelOptions.map((h) => ({
+      queryKey: ["package-hotel-option", h.hotel_name, hotelCity],
+      queryFn: () => fetchHotelInfo({ data: { hotelName: h.hotel_name, city: hotelCity } }),
+      staleTime: 30 * 60_000,
+      gcTime: 60 * 60_000,
+      enabled: hasHotelChoice,
+    })),
+  });
 
 
   if (isLoading || !pkg) {
