@@ -43,6 +43,7 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
 
     try {
       const { normalized } = await importInfotravelQuote(p.link_orcamento);
+      void 0;
       const opcoes = normalized.options ?? [];
 
       await supabaseAdmin.from("cativa_pacote_voos").delete().eq("pacote_id", p.id);
