@@ -19,7 +19,8 @@ import {
   type BudgetMode,
   type BudgetRange,
 } from "@/components/packages/BudgetFilter";
-import { BudgetFloating } from "@/components/packages/BudgetFloating";
+import { BudgetRuler } from "@/components/packages/BudgetRuler";
+
 
 
 
@@ -329,15 +330,8 @@ function PacotesList() {
           </div>
         </div>
 
-        <BudgetFloating
-          mode={budgetMode}
-          onModeChange={setBudgetMode}
-          range={budgetRange}
-          onRangeChange={setBudgetRange}
-          min={0}
-          max={maxBudget}
-          step={100}
-        />
+
+
 
 
         <div className="mt-8">
@@ -479,6 +473,18 @@ function PacotesList() {
                 </div>
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="flex-[1.6] min-w-[220px] sm:pb-0.5">
+            <BudgetRuler
+              mode={budgetMode}
+              onModeChange={setBudgetMode}
+              range={budgetRange}
+              onRangeChange={setBudgetRange}
+              min={0}
+              max={maxBudget}
+              step={100}
+            />
           </div>
 
 
