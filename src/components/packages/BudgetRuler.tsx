@@ -43,7 +43,7 @@ export function BudgetRuler({
     <div className={cn("flex flex-col gap-1.5", className)}>
       <div className="flex items-center justify-between gap-3">
         <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-          Quanto você quer pagar?
+          Quantos você quer pagar?
         </label>
         <div className="flex shrink-0 rounded-full border border-border bg-background/60 p-0.5">
           {(["total", "parcela"] as BudgetMode[]).map((m) => (
