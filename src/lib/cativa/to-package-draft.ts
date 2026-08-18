@@ -151,6 +151,48 @@ const RE_TEMA =
 const RE_TITULO_MARKETING =
   /(onde\s+a\s+|essencial|imperd[ií]vel|inesquec[ií]vel|dos\s+sonhos|sol,?\s*mar|paradis|encanto|magia|aventura|tranquilidade|se\s+encontram|melhor\s+d[oa]|especial|promo|super\s*oferta|transfer|s[oó]\s+ida|completo\b)/i;
 
+/**
+ * Extrai o destino real do nome comercial do pacote.
+ * "Porto de Galinhas com Maragogi e Carneiros" → "Porto de Galinhas"
+ * "Réveillon em Madri com aéreo" → "Madri"
+ */
+function destinoDoNome(nome: unknown): string {
+  let t = String(nome ?? "")
+    .trim()
+    .replace(/^[^:]{2,20}:\s*/, "")
+    .split(/\s+[—–|]\s+/)[0]!
+    .split(/\s+-\s+saindo\s+de\s+/i)[0]!
+    .split(/\s+[-]\s+/)[0]!
+    .trim();
+  const em = t.match(/\b(?:em|na|no|para|pra)\s+(.+)$/i);
+  if (em) t = em[1]!;
+  t = t
+    .split(/\s+(?:com|e|mais|\+|&)\s+/i)[0]!
+    .split("/")[0]!
+    .split(",")[0]!
+    .replace(/\b(resort|hotel|pousada|all\s*inclusive|a[ée]reo|pacote|feriado)\b.*$/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (!t || t.length < 3) return "";
+  if (RE_TEMA.test(t) || RE_TITULO_MARKETING.test(t)) return "";
+  if (t.split(" ").length > 4) return "";
+  return t;
+}
+
+/**
+ * Destino comercial do pacote: o lugar onde o cliente realmente fica
+ * (Porto de Galinhas), e não o aeroporto de chegada (Recife).
+ */
+export function destinoComercial(pacote: {
+  nome?: string | null;
+  destino?: string | null;
+  hoteis?: any[] | null;
+}): string {
+  const hotel = (pacote.hoteis ?? [])[0] as Record<string, unknown> | undefined;
+  const cidadeHotel = String(hotel?.["cidade"] ?? hotel?.["city"] ?? hotel?.["localidade"] ?? "").trim();
+  const doNome = destinoDoNome(pacote.nome);
+  return tituloCidade(semIata(doNome || cidadeHotel || (pacote.destino ?? "").trim()));
+}
 
 
 /** ISO da operadora → valor aceito pelo input datetime-local (YYYY-MM-DDTHH:mm). */
