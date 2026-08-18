@@ -6,12 +6,22 @@ async function exigirAdmin(context: any) {
   if (!isAdmin) throw new Error("Forbidden");
 }
 
+export const CATEGORIA_CIRCUITO = "Circuito";
+
 export const listarPacotesCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     (
       input:
-        | { busca?: string; fonte?: string; status?: string; pagina?: number; arquivados?: boolean }
+        | {
+            busca?: string;
+            fonte?: string;
+            status?: string;
+            pagina?: number;
+            arquivados?: boolean;
+            /** "circuitos" mostra só circuitos; por padrão circuitos ficam fora da lista */
+            modo?: "pacotes" | "circuitos" | "todos";
+          }
         | undefined,
     ) => input ?? {},
   )
@@ -30,12 +40,16 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
 
     // pacotes já importados ficam arquivados e só aparecem quando pedido
     q = data.arquivados ? q.not("importado_em", "is", null) : q.is("importado_em", null);
+    const modo = data.modo ?? "pacotes";
+    if (modo === "circuitos") q = q.eq("categoria", CATEGORIA_CIRCUITO);
+    else if (modo === "pacotes") q = q.or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
     if (data.fonte) q = q.eq("fonte", data.fonte);
     if (data.status) q = q.eq("status", data.status);
     if (data.busca) {
       const b = `%${data.busca}%`;
       q = q.or(`nome.ilike.${b},destino.ilike.${b},origem_iata.ilike.${b},origem_cidade.ilike.${b}`);
     }
+
 
     const { data: rows, count, error } = await q;
     if (error) throw new Error(error.message);
@@ -74,12 +88,14 @@ export const resumoCativa = createServerFn({ method: "POST" })
       return count ?? 0;
     };
 
-    const [ativos, esgotados, pendentes, comVoos, erros] = await Promise.all([
-      conta((q: any) => q.eq("status", "ativo").is("importado_em", null)),
+    const semCircuito = (q: any) => q.or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
+    const [ativos, esgotados, pendentes, comVoos, erros, circuitos] = await Promise.all([
+      conta((q: any) => semCircuito(q.eq("status", "ativo").is("importado_em", null))),
       conta((q: any) => q.eq("status", "esgotado")),
-      conta((q: any) => q.eq("status", "ativo").eq("voos_status", "pendente")),
-      conta((q: any) => q.eq("status", "ativo").eq("voos_status", "ok")),
-      conta((q: any) => q.eq("voos_status", "erro")),
+      conta((q: any) => semCircuito(q.eq("status", "ativo").eq("voos_status", "pendente"))),
+      conta((q: any) => semCircuito(q.eq("status", "ativo").eq("voos_status", "ok"))),
+      conta((q: any) => semCircuito(q.eq("voos_status", "erro"))),
+      conta((q: any) => q.eq("status", "ativo").is("importado_em", null).eq("categoria", CATEGORIA_CIRCUITO)),
     ]);
 
     const { data: runs } = await supabaseAdmin
@@ -88,8 +104,9 @@ export const resumoCativa = createServerFn({ method: "POST" })
       .order("iniciado_em", { ascending: false })
       .limit(10);
 
-    return { ativos, esgotados, pendentes, comVoos, erros, runs: runs ?? [] };
+    return { ativos, esgotados, pendentes, comVoos, erros, circuitos, runs: runs ?? [] };
   });
+
 
 export const historicoPacoteCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -256,6 +273,7 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
         .eq("status", "ativo")
         .is("importado_em", null)
         .eq("voos_status", "pendente")
+        .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`)
         .lte("voos_proxima_em", new Date().toISOString());
       return { ...res, restantes: count ?? 0 };
     }
@@ -266,6 +284,7 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
       .eq("status", "ativo")
       .is("importado_em", null)
       .not("link_orcamento", "is", null)
+      .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`)
       .limit(limite);
     if (!data.tudo) q = q.or("voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_opcoes.is.null,voos_opcoes.eq.0");
 
@@ -281,7 +300,8 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
       .select("id", { count: "exact", head: true })
       .eq("status", "ativo")
       .is("importado_em", null)
-      .not("link_orcamento", "is", null);
+      .not("link_orcamento", "is", null)
+      .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
     if (!data.tudo) {
       restantesQ = restantesQ.or(
         "voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_status.eq.pendente,voos_opcoes.is.null,voos_opcoes.eq.0",

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, ExternalLink, Loader2, Plane, RefreshCw, Search, History } from "lucide-react";
+import { AlertTriangle, ExternalLink, Loader2, Plane, RefreshCw, Search, History, Route as RouteIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,7 @@ function StatusVoos({ status, opcoes }: { status: string; opcoes: number }) {
   if (status === "pendente") return <Badge variant="outline">Voos na fila</Badge>;
   if (status === "processando") return <Badge variant="outline">Consultando…</Badge>;
   if (status === "sem_opcoes") return <Badge variant="outline">Sem opções</Badge>;
+  if (status === "circuito") return <Badge variant="secondary">Circuito (sem aéreo)</Badge>;
   return <Badge variant="destructive">{status}</Badge>;
 }
 
@@ -69,13 +70,15 @@ function PacotesCativaPage() {
   const [status, setStatus] = useState<string>("ativo");
   const [pagina, setPagina] = useState(0);
   const [detalhe, setDetalhe] = useState<{ id: string; nome: string } | null>(null);
+  const [modo, setModo] = useState<"pacotes" | "circuitos">("pacotes");
   const [reprocessandoTudo, setReprocessandoTudo] = useState(false);
   const cancelarReprocessamento = useRef(false);
 
   const resumoQ = useQuery({ queryKey: ["cativa-resumo"], queryFn: () => resumo({ data: undefined }) });
   const listaQ = useQuery({
-    queryKey: ["cativa-pacotes", filtro, fonte, status, pagina],
-    queryFn: () => listar({ data: { busca: filtro || undefined, fonte: fonte || undefined, status: status || undefined, pagina } }),
+    queryKey: ["cativa-pacotes", filtro, fonte, status, pagina, modo],
+    queryFn: () =>
+      listar({ data: { busca: filtro || undefined, fonte: fonte || undefined, status: status || undefined, pagina, modo } }),
   });
   const detalheQ = useQuery({
     queryKey: ["cativa-detalhe", detalhe?.id],
@@ -183,6 +186,16 @@ function PacotesCativaPage() {
             )}
             {reprocessandoTudo ? "Pausar reprocessamento" : "Reprocessar zerados"}
           </Button>
+          <Button
+            variant={modo === "circuitos" ? "default" : "outline"}
+            onClick={() => {
+              setPagina(0);
+              setModo((m) => (m === "circuitos" ? "pacotes" : "circuitos"));
+            }}
+          >
+            <RouteIcon className="mr-2 h-4 w-4" />
+            {modo === "circuitos" ? "Ver pacotes" : "Circuitos"}
+          </Button>
           <Button onClick={() => sync.mutate(20)} disabled={sync.isPending}>
             <Plane className="mr-2 h-4 w-4" />
             Sincronizar + voos
@@ -190,13 +203,14 @@ function PacotesCativaPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
         {[
           { label: "Ativos", valor: r?.ativos },
           { label: "Esgotados", valor: r?.esgotados },
           { label: "Voos na fila", valor: r?.pendentes },
           { label: "Com voos", valor: r?.comVoos },
           { label: "Com erro", valor: r?.erros },
+          { label: "Circuitos", valor: (r as any)?.circuitos },
         ].map((c) => (
           <div key={c.label} className="rounded-lg border bg-card p-3">
             <div className="text-xs text-muted-foreground">{c.label}</div>
@@ -255,7 +269,9 @@ function PacotesCativaPage() {
           </div>
         ) : !listaQ.data?.rows.length ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
-            Nenhum pacote encontrado. Rode a sincronização para carregar o catálogo.
+            {modo === "circuitos"
+              ? "Nenhum circuito encontrado."
+              : "Nenhum pacote encontrado. Rode a sincronização para carregar o catálogo."}
           </div>
         ) : (
           <ul className="divide-y">
@@ -324,7 +340,9 @@ function PacotesCativaPage() {
       </div>
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>{total} pacotes</span>
+        <span>
+          {total} {modo === "circuitos" ? "circuitos" : "pacotes"}
+        </span>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" disabled={pagina === 0} onClick={() => setPagina((p) => p - 1)}>
             Anterior

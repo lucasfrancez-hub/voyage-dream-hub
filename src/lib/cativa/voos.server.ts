@@ -21,15 +21,25 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
     .eq("voos_status", "processando")
     .lte("voos_proxima_em", agora);
 
+  // Circuitos não têm aéreo: a Infotravel devolve PASSENGERS_NOT_FOUND.
+  // Eles saem da fila e ficam marcados como "circuito" para o painel próprio.
+  await supabaseAdmin
+    .from("cativa_pacotes")
+    .update({ voos_status: "circuito", voos_erro: null, voos_tentativas: 0 } as any)
+    .eq("categoria", "Circuito")
+    .in("voos_status", ["pendente", "processando", "erro", "sem_opcoes"]);
+
   const { data: pendentes } = await supabaseAdmin
     .from("cativa_pacotes")
     .select("id, link_orcamento, voos_tentativas")
     .eq("status", "ativo")
     .eq("voos_status", "pendente")
+    .or("categoria.is.null,categoria.neq.Circuito")
     .lte("voos_proxima_em", agora)
     .order("voos_prioridade", { ascending: true })
     .order("voos_proxima_em", { ascending: true })
     .limit(limite);
+
 
   const res: ResultadoVoos = { processados: 0, ok: 0, erros: 0 };
 

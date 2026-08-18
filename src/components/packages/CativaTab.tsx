@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Search, PackageSearch, Plane, RefreshCw, Archive, ArchiveRestore } from "lucide-react";
+import { Loader2, Search, PackageSearch, Plane, RefreshCw, Archive, ArchiveRestore, Route as RouteIcon } from "lucide-react";
 import {
   resumoCativa,
   listarPacotesCativa,
@@ -46,13 +46,14 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
   const [importando, setImportando] = useState(false);
   const [sincronizando, setSincronizando] = useState(false);
   const [arquivados, setArquivados] = useState(false);
+  const [modo, setModo] = useState<"pacotes" | "circuitos">("pacotes");
 
   // status "ativo": pacotes esgotados somem sozinhos da lista
   const q = useQuery({
-    queryKey: ["cativa-tab", filtro, fonte, pagina, arquivados],
+    queryKey: ["cativa-tab", filtro, fonte, pagina, arquivados, modo],
     queryFn: () =>
       listar({
-        data: { busca: filtro || undefined, fonte: fonte || undefined, status: "ativo", pagina, arquivados },
+        data: { busca: filtro || undefined, fonte: fonte || undefined, status: "ativo", pagina, arquivados, modo },
       }),
     refetchInterval: 120_000,
   });
@@ -145,6 +146,18 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
           onClick={() => {
             setPagina(0);
             setSel([]);
+            setModo((m) => (m === "circuitos" ? "pacotes" : "circuitos"));
+          }}
+          className={`inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-bold uppercase tracking-wider transition ${modo === "circuitos" ? "border-brand-orange bg-brand-orange/10 text-brand-orange" : "border-border bg-card text-muted-foreground hover:text-foreground"}`}
+        >
+          <RouteIcon className="h-3.5 w-3.5" />
+          {modo === "circuitos" ? "Ver pacotes" : "Circuitos"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setPagina(0);
+            setSel([]);
             setArquivados((v) => !v);
           }}
           className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
@@ -184,7 +197,9 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
 
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
         {arquivados
-          ? `${total} pacote(s) arquivados (já importados)`
+          ? `${total} ${modo === "circuitos" ? "circuito(s)" : "pacote(s)"} arquivados (já importados)`
+          : modo === "circuitos"
+          ? `${total} circuito(s) disponíveis · circuitos não têm aéreo, então não entram na fila de voos`
           : `${total} pacote(s) disponíveis no catálogo Cativa · esgotados e já importados saem da lista automaticamente`}
       </p>
 
@@ -195,7 +210,11 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
           </div>
         ) : !rows.length ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
-            {arquivados ? "Nenhum pacote arquivado." : "Nenhum pacote disponível no momento."}
+            {arquivados
+              ? "Nenhum registro arquivado."
+              : modo === "circuitos"
+                ? "Nenhum circuito disponível no momento."
+                : "Nenhum pacote disponível no momento."}
           </div>
         ) : (
           <ul className="divide-y divide-border">
