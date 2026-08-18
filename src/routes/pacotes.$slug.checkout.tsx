@@ -1110,7 +1110,7 @@ function Checkout() {
                       <span className="text-foreground font-semibold">Quem pode financiar:</span> o financiamento deve estar no nome de um dos viajantes ou de um parente de primeiro grau (pai, mãe, irmão(ã), cônjuge). Em casos específicos, aceitamos avó(ô) como financiador.
                     </p>
                     <p>
-                      <span className="text-foreground font-semibold">Boleto pré-pago (quitação até a data da viagem):</span> essa modalidade <span className="text-foreground font-semibold">não passa por análise de crédito</span> e não pode ser solicitada pelo portal. A reserva deve ser feita diretamente com nosso consultor pelo WhatsApp.
+                      <span className="text-foreground font-semibold">Boleto pré-pago:</span> é uma modalidade separada, <span className="text-foreground font-semibold">sem juros e sem análise de crédito</span>. Quando disponível para a viagem escolhida, ela aparece como uma opção própria aqui no checkout.
                     </p>
 
                     <p>
@@ -1334,7 +1334,7 @@ function Checkout() {
           onClose={() => navigate({ to: "/pacotes" })}
         />
       )}
-      {success && (payment === "credit_card" || payment === "boleto") && (
+      {success && (payment === "credit_card" || payment === "boleto" || payment === "prepaid_boleto") && (
         <SuccessOverlay
           title="Muito obrigado pela compra!"
           message="Seu pedido foi enviado com sucesso. Nossa equipe entrará em contato em breve para confirmar sua reserva."
