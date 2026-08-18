@@ -31,7 +31,8 @@ export const Route = createFileRoute("/sitemap.xml")({
           const { data } = await supabaseAdmin
             .from("packages")
             .select("slug, updated_at, is_active")
-            .eq("is_active", true);
+            .eq("is_active", true)
+            .or(`going_date.is.null,going_date.gte.${new Date().toISOString().slice(0, 10)}`);
           for (const row of data ?? []) {
             if (!row.slug) continue;
             entries.push({
