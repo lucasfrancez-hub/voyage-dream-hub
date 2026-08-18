@@ -14,6 +14,7 @@ import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/comp
 import { DateBRInput } from "@/components/DateBRInput";
 import { PixQrOverlay } from "@/components/PixQrOverlay";
 import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
+import { maxCardInstallments, cardInstallmentOptions } from "@/lib/packages/card-installments";
 
 
 import { ContactFooter } from "@/components/ContactFooter";
@@ -353,6 +354,17 @@ function Checkout() {
 
   const prepaidEligible = prepaid.eligible;
   const prepaidMax = prepaid.maxInstallments;
+
+  // Bandeiras com limite reduzido em pacotes Cativa (Hipercard, Diners, Elo, Amex): até 6x.
+  const maxCardParcelas = maxCardInstallments({
+    brand: card.brand || detectBrand(card.cardNumber),
+    supplierName: (pkg as { supplier_name?: string | null } | undefined)?.supplier_name ?? null,
+    defaultMax: MAX_INSTALLMENTS,
+  });
+  useEffect(() => {
+    setInstallments((n) => Math.min(n, maxCardParcelas));
+  }, [maxCardParcelas]);
+
 
   // Abre já no Boleto Pré-pago quando veio do card do pacote.
   useEffect(() => {
@@ -1136,9 +1148,15 @@ function Checkout() {
                     onChange={patchCard}
                     installments={installments}
                     onInstallmentsChange={setInstallments}
-                    installmentsOptions={Array.from({ length: MAX_INSTALLMENTS }, (_, i) => i + 1)}
+                    installmentsOptions={cardInstallmentOptions(maxCardParcelas)}
                     total={totalPrice}
                   />
+                  {maxCardParcelas < MAX_INSTALLMENTS && (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      Hipercard, Diners, Elo e Amex: parcelamento em até {maxCardParcelas}x sem juros.
+                    </p>
+                  )}
+
                 </div>
               )}
 
