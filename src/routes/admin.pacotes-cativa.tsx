@@ -19,6 +19,7 @@ import {
   resumoCativa,
   sincronizarCativa,
   reprocessarVoosCativa,
+  reprocessarLoteCativa,
   historicoPacoteCativa,
 } from "@/lib/cativa/cativa.functions";
 
@@ -59,6 +60,7 @@ function PacotesCativaPage() {
   const resumo = useServerFn(resumoCativa);
   const sincronizar = useServerFn(sincronizarCativa);
   const reprocessar = useServerFn(reprocessarVoosCativa);
+  const reprocessarLote = useServerFn(reprocessarLoteCativa);
   const historico = useServerFn(historicoPacoteCativa);
 
   const [busca, setBusca] = useState("");
@@ -103,6 +105,16 @@ function PacotesCativaPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const refazLote = useMutation({
+    mutationFn: (tudo: boolean) => reprocessarLote({ data: { tudo, limite: 25 } }),
+    onSuccess: (r: any) => {
+      toast.success(`Reprocessados ${r?.processados ?? 0} pacotes (${r?.ok ?? 0} ok, ${r?.erros ?? 0} com erro)`);
+      qc.invalidateQueries({ queryKey: ["cativa-resumo"] });
+      qc.invalidateQueries({ queryKey: ["cativa-pacotes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const total = listaQ.data?.total ?? 0;
   const r = resumoQ.data;
 
@@ -119,6 +131,14 @@ function PacotesCativaPage() {
           <Button variant="outline" onClick={() => sync.mutate(0)} disabled={sync.isPending}>
             {sync.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Sincronizar planilhas
+          </Button>
+          <Button variant="outline" onClick={() => refazLote.mutate(false)} disabled={refazLote.isPending}>
+            {refazLote.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Reprocessar zerados
           </Button>
           <Button onClick={() => sync.mutate(20)} disabled={sync.isPending}>
             <Plane className="mr-2 h-4 w-4" />
