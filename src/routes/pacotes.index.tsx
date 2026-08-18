@@ -518,7 +518,7 @@ function PacotesList() {
 
           <div className="flex-1 min-w-[160px]">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Parcelamento
+              Formas de pagamento
             </label>
             <Select value={installmentFilter} onValueChange={setInstallmentFilter}>
               <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
