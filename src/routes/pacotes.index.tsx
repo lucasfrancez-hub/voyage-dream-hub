@@ -329,15 +329,8 @@ function PacotesList() {
           </div>
         </div>
 
-        <BudgetFloating
-          mode={budgetMode}
-          onModeChange={setBudgetMode}
-          range={budgetRange}
-          onRangeChange={setBudgetRange}
-          min={0}
-          max={maxBudget}
-          step={100}
-        />
+
+
 
 
         <div className="mt-8">
