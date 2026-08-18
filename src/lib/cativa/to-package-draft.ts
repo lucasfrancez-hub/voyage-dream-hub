@@ -744,16 +744,10 @@ function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
  */
 export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]): CativaDraft[] {
   const nomePacote = limpo(pacote.nome);
-  const destinoFonte = (pacote.destino ?? "").trim();
-  const hotelFonte = (pacote.hoteis ?? [])[0] as Record<string, unknown> | undefined;
-  const destinoHotel = limpo(hotelFonte?.cidade ?? hotelFonte?.city ?? hotelFonte?.localidade);
-  const destinoTitulo = nomePacote
-    .match(/\bem\s+(.+?)(?=\s+com\s+|\s+[—–|-]\s+|$)/i)?.[1]
-    ?.replace(/\b(resort|hotel|pousada)\b.*$/i, "")
-    .trim();
   // O aeroporto de chegada (ex.: Recife) não substitui o destino real do pacote
-  // (ex.: Porto de Galinhas). Cidade do hotel e nome comercial têm prioridade.
-  const destino = tituloCidade(semIata(destinoHotel || destinoTitulo || destinoFonte));
+  // (ex.: Porto de Galinhas). Nome comercial e cidade do hotel têm prioridade.
+  const destino = destinoComercial(pacote);
+
   const origem = tituloCidade(semIata((pacote.origem_cidade ?? pacote.origem_iata ?? "").trim()));
   const incluso = Array.isArray(pacote.incluso)
     ? [...new Set(pacote.incluso.map(nomePublicoServico).filter(Boolean))]
