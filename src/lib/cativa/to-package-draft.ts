@@ -783,6 +783,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
       d.meal_plan = maisBarato.meal_plan;
       d.hotel_stays = Array.isArray(maisBarato.stays) && maisBarato.stays.length > 1 ? maisBarato.stays : d.hotel_stays;
       if (maisBarato.price_per_person) d.price_per_person = maisBarato.price_per_person;
+      d.includes = ajustarInclusos(d.includes as string[], d.meal_plan as string);
+
     }
 
     d.cativa_alternativas = opcoes.length;
