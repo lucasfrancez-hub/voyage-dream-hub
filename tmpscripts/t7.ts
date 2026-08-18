@@ -2,7 +2,7 @@ import { resolveRef, trpc } from "../src/lib/quotes/infotravel-api.server";
 const ref: any = resolveRef(process.argv[2]!);
 const b: any = await trpc<any>(ref, "main.getBooking", { companyCode: ref.companyCode, bookingId: ref.bookingId, ...(ref.bookingIndex != null ? { bookingIndex: ref.bookingIndex } : {}), clientUrl: ref.clientUrl });
 const pkgs = b.bookingPackages ?? [];
-const p = pkgs[0];
+const p = pkgs[Number(process.argv[3] ?? 0)];
 console.log("pkg keys", Object.keys(p));
 const dump = (n: any, path: string, d = 0) => {
   if (!n || typeof n !== "object" || d > 6) return;
