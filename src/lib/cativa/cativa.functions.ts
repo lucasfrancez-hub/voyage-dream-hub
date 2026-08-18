@@ -125,7 +125,7 @@ export const resumoCativa = createServerFn({ method: "POST" })
       return count ?? 0;
     };
 
-    const semCircuito = (q: any) => q.or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
+    const semCircuito = (q: any) => q.or(FILTRO_CATEGORIA_PACOTES);
     const [ativos, esgotados, pendentes, comVoos, erros, circuitos, incompletos] = await Promise.all([
       conta((q: any) => semCircuito(q.eq("status", "ativo").is("importado_em", null))),
       conta((q: any) => q.eq("status", "esgotado")),
