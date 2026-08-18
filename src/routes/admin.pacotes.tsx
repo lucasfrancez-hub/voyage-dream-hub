@@ -1791,9 +1791,11 @@ function PackageEditorModal({
     Array<{ thumb: string; url: string; title: string; source: string; author: string }>
   >([]);
   const draftsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [hotelOptIdx, setHotelOptIdx] = useState(0);
   const [hotelMode, setHotelMode] = useState<"live" | "manual" | null>(
     editing.tripadvisor_location_id ? "live" : editing.hotel_name ? "manual" : null,
   );
+
   // Sincroniza o modo do hotel sempre que o pacote em edição muda (ex.: abrir
   // pacote salvo, importar por IA, etc.) — evita "voltar pro manual" após picar TA.
   useEffect(() => {
