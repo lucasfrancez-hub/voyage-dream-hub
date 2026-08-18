@@ -178,10 +178,17 @@ function PacotesList() {
 
       let installmentMatch = true;
       if (installmentFilter !== "all") {
-        const maxParc = maxInstallmentsForPackage(installmentRules, {
-          supplierName: (p as { supplier_name?: string | null }).supplier_name,
-        });
-        installmentMatch = maxParc >= Number(installmentFilter);
+        const supplierName = (p as { supplier_name?: string | null }).supplier_name;
+        if (installmentFilter === "prepago") {
+          installmentMatch = getPrepaidBoletoConditions({
+            supplierName,
+            departureDate: p.going_date,
+            totalAmount: Number(p.price_per_person || 0) * (p.base_occupancy ?? 2),
+          }).eligible;
+        } else {
+          const maxParc = maxInstallmentsForPackage(installmentRules, { supplierName });
+          installmentMatch = maxParc >= Number(installmentFilter);
+        }
       }
 
       return (
