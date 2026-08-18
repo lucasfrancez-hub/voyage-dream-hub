@@ -312,11 +312,50 @@ function PacotesCativaPage() {
                         <ul className="mt-1 text-xs text-muted-foreground">
                           {((o.voos as any[]) ?? []).map((f: any, i: number) => (
                             <li key={i}>
-                              {f.airline ?? ""} {f.flightNumber ?? ""} {f.from ?? f.origin ?? ""} →{" "}
-                              {f.to ?? f.destination ?? ""} {f.departureAt ?? f.departure ?? ""}
+                              {f.airline ?? ""} {f.flightNumber ?? ""} {f.fromIata ?? f.from ?? f.origin ?? ""} →{" "}
+                              {f.toIata ?? f.to ?? f.destination ?? ""} {f.departure ?? f.departureAt ?? ""}
                             </li>
                           ))}
                         </ul>
+                        {((o.hoteis as any[]) ?? []).length ? (
+                          <ul className="mt-1 text-xs text-muted-foreground">
+                            {((o.hoteis as any[]) ?? []).map((h: any, i: number) => (
+                              <li key={i}>
+                                🏨 {h.name} {h.board ? `· ${h.board}` : ""} {h.checkin ? `· ${dataBr(h.checkin)}` : ""}
+                                {h.checkout ? ` a ${dataBr(h.checkout)}` : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        {(() => {
+                          const d = (o.detalhes ?? {}) as any;
+                          const extras = [
+                            ...(d.transfers ?? []).map((x: any) => ["Transfer", x] as const),
+                            ...(d.tickets ?? []).map((x: any) => ["Ingresso", x] as const),
+                            ...(d.activities ?? []).map((x: any) => ["Passeio", x] as const),
+                            ...(d.insurance ?? []).map((x: any) => ["Seguro", x] as const),
+                            ...(d.services ?? []).map((x: any) => ["Serviço", x] as const),
+                          ];
+                          if (!extras.length) return null;
+                          return (
+                            <div className="mt-2 rounded bg-muted/40 p-2">
+                              <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                                Serviços adicionais
+                              </div>
+                              <ul className="space-y-0.5 text-xs text-muted-foreground">
+                                {extras.map(([tipo, x]: any, i: number) => (
+                                  <li key={i} className="flex justify-between gap-2">
+                                    <span>
+                                      {tipo}: {x?.name ?? "—"}
+                                      {x?.date ? ` · ${dataBr(String(x.date).slice(0, 10))}` : ""}
+                                    </span>
+                                    <span>{brl(typeof x?.total === "number" ? x.total : null)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        })()}
                       </li>
                     ))}
                   </ul>
