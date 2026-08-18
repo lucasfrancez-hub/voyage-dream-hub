@@ -120,6 +120,38 @@ function bagagens(textos: string[]) {
   };
 }
 
+/** Cabine da operadora ("ECONOMIC") → rótulo do cadastro. */
+function cabine(v: unknown): string | undefined {
+  const t = String(v ?? "").toUpperCase().trim();
+  if (!t) return undefined;
+  if (/FIRST|PRIMEIRA/.test(t)) return "Primeira Classe";
+  if (/BUSINESS|EXECUT/.test(t)) return "Executiva";
+  if (/PREMIUM/.test(t)) return "Premium Economy";
+  if (/ECONOM|COACH|TURIST/.test(t)) return "Econômica";
+  return undefined;
+}
+
+/** Marca tarifária por cia, deduzida da bagagem quando a operadora não informa. */
+function marcaTarifaria(iata: string | undefined, temDespachada: boolean): string {
+  const cia = String(iata ?? "").toUpperCase();
+  const tabela: Record<string, [string, string]> = {
+    LA: ["Light", "Plus"],
+    G3: ["Light", "Max"],
+    AD: ["Azul Basic", "Mais Azul"],
+    AV: ["Basic", "Classic"],
+    CM: ["Economy Basic", "Economy Classic"],
+    AA: ["Basic Economy", "Main Cabin"],
+    UA: ["Basic Economy", "Economy"],
+    DL: ["Basic Economy", "Main Cabin"],
+    TP: ["Basic", "Classic"],
+    AF: ["Light", "Standard"],
+    KL: ["Light", "Standard"],
+    IB: ["Basic", "Classic"],
+  };
+  const par = tabela[cia] ?? ["Light", "Standard"];
+  return temDespachada ? par[1]! : par[0]!;
+}
+
 function mapFlight(f: any) {
   if (!f) return null;
   const segs = Array.isArray(f.segments) ? f.segments : [];
@@ -127,9 +159,9 @@ function mapFlight(f: any) {
   const last = segs[segs.length - 1] ?? first;
   const textosBagagem = segs.map((s: any) => String(s?.baggage ?? "")).filter(Boolean);
   const bags = bagagens(textosBagagem);
+  const ciaIata = String(first.airlineIata ?? f.airlineIata ?? "").toUpperCase() || undefined;
   const fareClass =
-    String(first.fareClass ?? "").trim() ||
-    (textosBagagem.length ? (bags.checked_bag ? "STANDARD" : "LIGHT") : "");
+    String(first.fareClass ?? "").trim() || marcaTarifaria(ciaIata, bags.checked_bag);
 
   return {
     airline: f.airline ?? first.airline ?? undefined,
@@ -142,7 +174,7 @@ function mapFlight(f: any) {
     arrive_at: dataHora(f.arrival ?? last.arrival),
     duration: f.duration ?? undefined,
     stops: typeof f.stops === "number" ? f.stops : segs.length ? segs.length - 1 : 0,
-    cabin_class: first.cabin ?? undefined,
+    cabin_class: cabine(first.cabin ?? f.cabin),
     fare_class: fareClass || undefined,
     ...bags,
     baggage_text: textosBagagem.length ? [...new Set(textosBagagem)].join(" · ") : undefined,
@@ -156,8 +188,8 @@ function mapFlight(f: any) {
       depart_at: dataHora(s.departure),
       arrive_at: dataHora(s.arrival),
       duration: s.duration ?? undefined,
-      cabin_class: s.cabin ?? undefined,
-      fare_class: s.fareClass ?? undefined,
+      cabin_class: cabine(s.cabin),
+      fare_class: s.fareClass ? String(s.fareClass) : fareClass || undefined,
       aircraft: s.aircraft ?? undefined,
       baggage: s.baggage ?? undefined,
       // conexão: tempo de espera até o próximo trecho
@@ -165,6 +197,7 @@ function mapFlight(f: any) {
     })),
   };
 }
+
 
 /** "2h 15min" entre a chegada de um trecho e a partida do seguinte. */
 function conexao(chegada: unknown, partida: unknown): string | undefined {
@@ -196,60 +229,162 @@ function nomeCurto(v: unknown): string {
   return `${(p > 40 ? corte.slice(0, p) : corte).replace(/[.,;:–-]+$/, "")}…`;
 }
 
+/** Limpa HTML/entidades do texto da operadora. */
+function limpo(v: unknown): string {
+  return String(v ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Quebra o texto do serviço em blocos ("➡️ TRANSFER IN: …", "➡️ TICKET …"). */
+function blocos(desc: string): string[] {
+  return desc
+    .split(/➡️|➔|\u27A1/g)
+    .map((b) => limpo(b))
+    .filter((b) => b.length > 8);
+}
+
+const RE_COMERCIAL =
+  /(forma[s]?\s+de\s+pagamento|parcelamento|sem\s+juros|cart[aã]o\s+de\s+cr[eé]dito|dep[oó]sito|pix\b|multicr[eé]dito|negativa[cç][aã]o|pre[cç]os?\s+calculados|sujeit[ao]s?\s+a\s+.*reajuste|tarifas?\s+dispon[ií]veis|parcela\s+m[ií]nima)/i;
+
+const eComercial = (t: string) => RE_COMERCIAL.test(t);
+
+type ItemServico = { nome: string; descricao: string; total: number | null };
+
 /** Serviços adicionais (transfers, ingressos, passeios, seguro, outros) da opção. */
 function servicosDaOpcao(detalhes: any) {
-  const lista = (v: any): any[] => (Array.isArray(v) ? v : []);
-  const resumoIA: ServicoResumidoIA[] = lista(detalhes?.resumo_ia);
+  const lista = (v: any): ItemServico[] =>
+    (Array.isArray(v) ? v : [])
+      .map((i: any) => ({
+        nome: limpo(i?.name),
+        descricao: limpo(i?.description),
+        total: typeof i?.total === "number" ? i.total : null,
+      }))
+      .filter((i) => i.nome || i.descricao);
 
-  // quando a IA resumiu, usa o nome bonito dela no lugar do texto original
-  const nomeIA = (tipo: string, original: string, ordem: number) => {
-    const doTipo = resumoIA.filter((r) => r.tipo === tipo);
-    const r = doTipo[ordem];
-    return nomeCurto(r?.nome || original);
-  };
+  const resumoIA: ServicoResumidoIA[] = Array.isArray(detalhes?.resumo_ia) ? detalhes.resumo_ia : [];
 
-  const nomes = (v: any, tipo: string) =>
-    lista(v)
-      .map((i, idx) => nomeIA(tipo, String(i?.name ?? "").trim(), idx))
-      .filter(Boolean);
+  const transfers = lista(detalhes?.transfers);
+  const tickets = lista(detalhes?.tickets);
+  const activities = lista(detalhes?.activities);
+  const insurance = lista(detalhes?.insurance);
+  const genericos = lista(detalhes?.services);
 
-  const transfers = nomes(detalhes?.transfers, "Transfer");
-  const tickets = nomes(detalhes?.tickets, "Ingresso");
-  const activities = nomes(detalhes?.activities, "Passeio");
-  const insurance = nomes(detalhes?.insurance, "Seguro / proteção");
-  const outrosServicos = nomes(detalhes?.services, "Serviço");
+  // Serviços "combo" da operadora podem conter transfer + ingresso no mesmo item:
+  // separa em blocos e distribui para o bloco certo do cadastro.
+  const detTransfer: string[] = transfers.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
+  const detTickets: string[] = tickets.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
+  const detPasseios: string[] = activities.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
+  const detSeguro: string[] = insurance.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
+  const outros: string[] = [];
+  const outrosDetalhe: string[] = [];
+
+  for (const g of genericos) {
+    const partes = blocos(g.descricao);
+    const alvo = partes.length ? partes : [g.descricao].filter(Boolean);
+    let classificado = false;
+    for (const p of alvo) {
+      const ref = `${g.nome} ${p}`;
+      // o rótulo do bloco (início do texto) manda na classificação
+      const rotulo = p.slice(0, 60);
+      if (/ticket|ingresso|bustour|bus tour|park|entrada/i.test(rotulo)) {
+        detTickets.push(p);
+        classificado = true;
+      } else if (/transfer|traslado|transporte/i.test(rotulo)) {
+        detTransfer.push(p);
+        classificado = true;
+      } else if (/city ?tour|passeio|excurs[aã]o|visita/i.test(rotulo)) {
+        detPasseios.push(p);
+        classificado = true;
+      } else if (/seguro|cobertura|assist[eê]ncia/i.test(rotulo)) {
+        detSeguro.push(p);
+        classificado = true;
+      } else if (/transfer|traslado|transporte/i.test(ref)) {
+        detTransfer.push(p);
+        classificado = true;
+      } else if (/seguro|cobertura|assist[eê]ncia/i.test(ref)) {
+        detSeguro.push(p);
+        classificado = true;
+      }
+    }
+
+    if (!classificado) {
+      outros.push(nomeCurto(g.nome || g.descricao));
+      if (g.descricao) outrosDetalhe.push(`${g.nome || "Serviço"} — ${g.descricao}`);
+    }
+  }
 
   const services: Record<string, any> = {};
-  if (transfers.length) {
-    services.transfer = { enabled: true, sentido: "in_out", pickup_points: transfers.join(" · ") };
+  if (detTransfer.length) {
+    services.transfer = {
+      enabled: true,
+      sentido: "in_out",
+      pickup_points: detTransfer.join("\n\n"),
+    };
   }
-  if (tickets.length) services.tickets = { enabled: true, parks: tickets };
-  if (activities.length) {
-    // passeios/city tour: liga o bloco e já preenche os detalhes com os itens da operadora
-    services.passeios = activities;
-    services.city_tour = { enabled: true, detalhe: activities.join(" · ") };
+  if (detTickets.length) {
+    services.tickets = { enabled: true, parks: detTickets.map((t) => nomeCurto(t)) };
   }
-  if (insurance.length) {
-    services.seguro = { enabled: true, cobertura: insurance.join(" · "), moeda: "USD" };
+  if (detPasseios.length) {
+    services.passeios = detPasseios.map((t) => nomeCurto(t));
+    services.city_tour = { enabled: true, detalhe: detPasseios.join("\n\n") };
   }
-  if (outrosServicos.length) services.outros = outrosServicos;
+  if (detSeguro.length) {
+    const moeda = /R\$|BRL/i.test(detSeguro.join(" ")) ? "BRL" : "USD";
+    services.seguro = { enabled: true, cobertura: detSeguro.join("\n\n"), moeda };
+  }
+  if (outros.length) services.outros = outros;
 
-  // bullets curtos e observações vindos do resumo da IA
+  const nomesCurtos = [
+    ...detTransfer,
+    ...detTickets,
+    ...detPasseios,
+    ...detSeguro,
+    ...outros,
+  ].map((t) => nomeCurto(t));
+
   const destaques = [...new Set(resumoIA.flatMap((r) => r.destaques ?? []).map((s) => s.trim()).filter(Boolean))];
-  const observacoes = [...new Set(resumoIA.flatMap((r) => r.observacoes ?? []).map((s) => s.trim()).filter(Boolean))];
+  // Observações: só o que interessa ao viajante — condições comerciais entram fora do roteiro.
+  const observacoes = [
+    ...new Set(
+      [
+        ...resumoIA.flatMap((r) => r.observacoes ?? []),
+        ...(Array.isArray(detalhes?.notes) ? detalhes.notes : []),
+      ]
+        .map((s: unknown) => limpo(s))
+        .filter(Boolean)
+        .filter((s) => !eComercial(s)),
+    ),
+  ];
   const resumoTexto = resumoIA
     .map((r) => [r.nome ? `${r.nome}` : "", r.resumo].filter(Boolean).join(" — "))
     .filter(Boolean)
     .join("\n");
 
+  // Roteiro montado a partir dos serviços realmente contratados.
+  const roteiro = [
+    detTransfer.length ? `Chegada\n${detTransfer.map((t) => `• ${t}`).join("\n")}` : "",
+    detPasseios.length ? `Durante a viagem\n${detPasseios.map((t) => `• ${t}`).join("\n")}` : "",
+    detTickets.length ? `Ingressos e passeios inclusos\n${detTickets.map((t) => `• ${t}`).join("\n")}` : "",
+    outrosDetalhe.length ? `Outros serviços\n${outrosDetalhe.map((t) => `• ${t}`).join("\n")}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   return {
     services,
-    todos: [...transfers, ...tickets, ...activities, ...insurance, ...outrosServicos],
+    todos: nomesCurtos,
     destaques,
     observacoes,
     resumoTexto,
+    roteiro,
   };
 }
+
 
 function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
   const h = (op?.hoteis ?? [])[0];
@@ -349,17 +484,21 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     d.outbound_flight = mapFlight(ida);
     d.return_flight = volta && volta !== ida ? mapFlight(volta) : null;
 
-    const { services, todos, destaques, observacoes, resumoTexto } = servicosDaOpcao(principal.detalhes);
+    const { services, todos, destaques, observacoes, resumoTexto, roteiro } = servicosDaOpcao(
+      principal.detalhes,
+    );
     d.services = services;
     const bullets = destaques.length ? destaques : todos;
     if (bullets.length) d.includes = [...new Set([...(d.includes as string[]), ...bullets])];
     if (resumoTexto) d.summary = [d.summary, resumoTexto].filter(Boolean).join("\n\n").trim();
+    if (roteiro) d.itinerary = [d.itinerary, roteiro].filter(Boolean).join("\n\n").trim();
     if (observacoes.length) {
       d.itinerary = [d.itinerary, `Importante:\n${observacoes.map((o) => `• ${o}`).join("\n")}`]
         .filter(Boolean)
         .join("\n\n")
         .trim();
     }
+
     if (typeof principal.total === "number" && !d.price_per_person) {
       d.price_per_person = Math.round((principal.total / 2) * 100) / 100;
     }

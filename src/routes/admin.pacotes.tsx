@@ -172,7 +172,13 @@ type PackageRow = {
     meal_plan?: string | null;
     price_per_person?: number | null;
     opcao?: number | null;
+    hotel_stars?: number | null;
+    tripadvisor_location_id?: string | null;
+    tripadvisor_url?: string | null;
+    tripadvisor_address?: string | null;
+    tripadvisor_photos?: string[] | null;
   }> | null;
+
 
   hotel_stars: number | null;
   meal_plan: string | null;
@@ -2800,10 +2806,20 @@ function PackageEditorModal({
                             room_type: base.room_type ?? editing.room_type,
                             meal_plan: base.meal_plan ?? editing.meal_plan,
                             price_per_person: Number(base.price_per_person) || editing.price_per_person,
+                            ...(base.tripadvisor_location_id
+                              ? {
+                                  hotel_stars: base.hotel_stars ?? editing.hotel_stars,
+                                  tripadvisor_location_id: base.tripadvisor_location_id,
+                                  tripadvisor_url: base.tripadvisor_url ?? null,
+                                  tripadvisor_address: base.tripadvisor_address ?? null,
+                                  tripadvisor_photos: base.tripadvisor_photos ?? null,
+                                }
+                              : {}),
                           }
                         : {}),
                     })
                   }
+
                 />
 
 
