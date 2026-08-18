@@ -15,6 +15,13 @@ import { FeaturedCarousel } from "@/components/packages/FeaturedCarousel";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import { dedupeDestinations, destinationKey } from "@/lib/packages/destination";
 import { Button } from "@/components/ui/button";
+import {
+  BudgetFilter,
+  type BudgetMode,
+  type BudgetRange,
+} from "@/components/packages/BudgetFilter";
+
+
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -69,6 +76,9 @@ function PacotesList() {
   const [sortBy, setSortBy] = useState<
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("sort_order");
+  const [budgetMode, setBudgetMode] = useState<BudgetMode>("total");
+  const [budgetRange, setBudgetRange] = useState<BudgetRange>(null);
+
 
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
@@ -153,7 +163,16 @@ function PacotesList() {
         }
       }
 
-      return originMatch && destinationMatch && monthMatch && rangeMatch;
+      let budgetMatch = true;
+      if (budgetRange) {
+        const total = Number(p.price_per_person || 0) * (p.base_occupancy ?? 2);
+        budgetMatch =
+          total >= budgetRange.min &&
+          (budgetRange.max === null || total <= budgetRange.max);
+      }
+
+      return originMatch && destinationMatch && monthMatch && rangeMatch && budgetMatch;
+
     });
 
 
@@ -230,7 +249,7 @@ function PacotesList() {
     }
 
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy]);
+  }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange]);
 
 
   const hasActiveFilters =
@@ -238,6 +257,7 @@ function PacotesList() {
     destinationFilter !== "all" ||
     monthFilter !== "all" ||
     !!dateRange?.from ||
+    !!budgetRange ||
     sortBy !== "sort_order";
 
   const clearFilters = () => {
@@ -246,11 +266,13 @@ function PacotesList() {
     setMonthFilter("all");
     setDateRange(undefined);
     setSortBy("sort_order");
+    setBudgetRange(null);
   };
 
   useEffect(() => {
     setPage(1);
-  }, [originFilter, destinationFilter, monthFilter, dateRange, sortBy]);
+  }, [originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange]);
+
 
   const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -300,7 +322,17 @@ function PacotesList() {
           <FeaturedCarousel packages={(packages || []) as any} mixMode />
         </div>
 
-        <div className="mt-2 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
+        <div className="mt-6">
+          <BudgetFilter
+            mode={budgetMode}
+            onModeChange={setBudgetMode}
+            range={budgetRange}
+            onRangeChange={setBudgetRange}
+          />
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
+
           <div className="flex items-center gap-2 text-sm font-medium text-foreground sm:pb-2.5">
             <SlidersHorizontal className="h-4 w-4 text-brand-orange" />
             Filtrar por
