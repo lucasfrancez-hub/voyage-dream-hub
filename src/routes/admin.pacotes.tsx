@@ -2872,12 +2872,20 @@ function PackageEditorModal({
 
 
 
-                <FormField label="Hotel" wide>
+                <FormField
+                  label={
+                    hotelSelIdx >= 0
+                      ? `Hotel — opção ${hotelSelIdx + 1}${hotelSelIdx === 0 ? " (base)" : ""}`
+                      : "Hotel"
+                  }
+                  wide
+                >
                   <HotelAutocomplete
-                    value={editing.hotel_name ?? ""}
-                    mode={hotelMode}
+                    key={`hotel-${hotelSelIdx}`}
+                    value={hv.hotel_name ?? ""}
+                    mode={hotelSelIdx >= 0 ? (hv.tripadvisor_location_id ? "live" : hotelMode) : hotelMode}
                     onModeChange={setHotelMode}
-                    onChangeText={(v) => setEditing({ ...editing, hotel_name: v })}
+                    onChangeText={(v) => setHotel({ hotel_name: v })}
                     onSelect={(h) => {
                       const automaticStars =
                         h.rating != null
@@ -2885,19 +2893,19 @@ function PackageEditorModal({
                           : h.hotel_class != null
                             ? Math.min(5, Math.max(1, Math.round(h.hotel_class)))
                             : 3;
-                      setEditing({
-                        ...editing,
+                      setHotel({
                         hotel_name: h.name,
                         hotel_stars: automaticStars,
-                        image_url:
-                          editing.image_url && editing.image_url.length > 0
-                            ? editing.image_url
-                            : (h.photos[0] ?? editing.image_url ?? ""),
                         tripadvisor_location_id: String(h.location_id),
                         tripadvisor_url: h.tripadvisor_url ?? null,
                         tripadvisor_address: h.address ?? null,
                         tripadvisor_photos: h.photos && h.photos.length > 0 ? h.photos : null,
                       });
+                      if (hotelSelIdx <= 0 && !(editing.image_url && editing.image_url.length > 0)) {
+                        setEditing((prev: any) =>
+                          prev ? { ...prev, image_url: h.photos[0] ?? prev.image_url ?? "" } : prev,
+                        );
+                      }
                     }}
                   />
                 </FormField>
@@ -2907,12 +2915,11 @@ function PackageEditorModal({
                     min={1}
                     max={5}
                     className={inp}
-                    value={editing.hotel_stars ?? 3}
-                    onChange={(e) =>
-                      setEditing({ ...editing, hotel_stars: Number(e.target.value) })
-                    }
+                    value={hv.hotel_stars ?? 3}
+                    onChange={(e) => setHotel({ hotel_stars: Number(e.target.value) })}
                   />
                 </FormField>
+
                 <FormField label="Regime de alimentação">
                   <select
                     className={inp}
