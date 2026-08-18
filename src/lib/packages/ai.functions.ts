@@ -61,31 +61,32 @@ export const generatePackageSummary = createServerFn({ method: "POST" })
       : "";
 
     const system = evento
-      ? `Você é copywriter da agência de viagens VIA AIR. Escreva um RESUMO CURTO e envolvente sobre o EVENTO "${evento}"${dest ? ` em ${dest}` : ""}, em português do Brasil.
+      ? `Você é copywriter da agência de viagens VIA AIR. Escreva um RESUMO CURTO e envolvente sobre A VIAGEM para o evento "${evento}"${dest ? ` em ${dest}` : ""}, em português do Brasil.
 Regras rígidas:
 - 2 a 3 frases, no máximo 350 caracteres.
-- O protagonista é o EVENTO: fale do artista/atração, do clima do público, do que torna essa edição especial e do local/arena/cidade onde acontece.
-- Cite 1 elemento concreto da cidade só como complemento (bairro, gastronomia, ponto conhecido), nunca como foco principal.
-- PROIBIDO inventar datas, setlist, escalação, preços de ingresso ou informações que você não tem certeza.
-- PROIBIDO falar do pacote, do preço, de hotel, de companhia aérea ou da agência.
+- Fale com o cliente sobre O QUE ELE VAI VIVER NESSA VIAGEM. Comece por uma abertura no estilo "Nessa viagem você vai...", "Aproveite o ${evento}...", "Curta o ${evento} e ainda...". Varie a abertura.
+- O protagonista é o EVENTO: artista/atração, clima do público, arena/local onde acontece.
+- Complemente com 1 elemento concreto da cidade (praia, bairro, gastronomia, ponto conhecido) como parte do que ele vai aproveitar na viagem.
+- PROIBIDO inventar datas, setlist, escalação ou preços de ingresso.
+- PROIBIDO citar preço, hotel específico, companhia aérea ou o nome da agência.
 - PROIBIDO clichês como "experiência inesquecível", "imperdível", "único", "momento mágico".
 - Sem emojis, sem hashtags, sem markdown, sem aspas.
 - Responda APENAS com o texto final, sem rótulos.`
-      : `Você é copywriter da agência de viagens VIA AIR. Escreva um RESUMO CURTO e envolvente sobre o DESTINO de um pacote turístico, em português do Brasil.
+      : `Você é copywriter da agência de viagens VIA AIR. Escreva um RESUMO CURTO e envolvente sobre A VIAGEM${dest ? ` para ${dest}` : ""}, em português do Brasil.
 Regras rígidas:
 - 2 a 3 frases, no máximo 350 caracteres.
-- Fale ESPECIFICAMENTE sobre o lugar: cite pelo menos 2 elementos concretos e reconhecíveis do destino (praias, bairros, pratos típicos, pontos históricos, natureza, cultura local). Nada genérico.
-- PROIBIDO usar frases-clichê como "central de espera para suas férias", "destino perfeito", "experiência inesquecível", "paraíso", "único", "imperdível", "escapada dos sonhos", "cenário deslumbrante", "encanta a todos".
-- PROIBIDO falar do pacote, do preço, de hotel, de companhia aérea, de datas ou da agência.
-- Foco autoral: descreva o LUGAR como um guia local descreveria — concreto, sensorial, específico.
+- Fale com o cliente sobre O QUE ELE VAI APROVEITAR NESSA VIAGEM, não só sobre o lugar. Abra no estilo "Nessa viagem você vai...", "Aproveite ...", "Curta dias entre ...". Varie a abertura entre as versões.
+- Ainda assim, cite pelo menos 2 elementos concretos e reconhecíveis do destino (praias, bairros, pratos típicos, pontos históricos, natureza, cultura local). Nada genérico.
 - Ângulo desta versão: ${angle}. Priorize esse recorte, mas mantenha a fluidez.
+- PROIBIDO citar preço, hotel específico, companhia aérea, datas ou o nome da agência.
+- PROIBIDO clichês como "destino perfeito", "experiência inesquecível", "paraíso", "único", "imperdível", "escapada dos sonhos", "cenário deslumbrante", "encanta a todos".
 - Sem emojis, sem hashtags, sem markdown, sem aspas.
 - Responda APENAS com o texto final, sem rótulos.`;
 
     const userMsg = evento
-      ? `Evento: ${evento}\nCidade: ${dest || "não informada"}\nBriefing/contexto: ${data.brief}\nEscreva o resumo falando sobre o evento.`
+      ? `Evento: ${evento}\nCidade: ${dest || "não informada"}\nBriefing/contexto: ${data.brief}\nEscreva o resumo da viagem, com o evento como protagonista.`
       : dest
-      ? `Destino: ${dest}\nBriefing/contexto: ${data.brief}\nEscreva o resumo sobre ${dest}, com foco em ${angle}.`
+      ? `Destino: ${dest}\nBriefing/contexto: ${data.brief}\nEscreva o resumo da viagem para ${dest}, com foco em ${angle}.`
       : data.brief;
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
