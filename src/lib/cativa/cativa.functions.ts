@@ -18,6 +18,8 @@ const FILTRO_INCOMPLETO = [
   "destino.is.null",
   `and(origem_iata.is.null,voos_status.neq.circuito)`,
   "and(voos_status.neq.ok,voos_status.neq.circuito)",
+  // sem taxas gravadas (a Infotravel informa taxas em todo orçamento com aéreo)
+  "and(taxas.is.null,voos_status.neq.circuito)",
 ].join(",");
 
 /** Pacote pronto pro Command Center: completo ou liberado manualmente. */
