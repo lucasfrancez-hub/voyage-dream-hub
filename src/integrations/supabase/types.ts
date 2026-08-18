@@ -4601,6 +4601,120 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_ad_boosts: {
+        Row: {
+          ad_account_id: string
+          ad_id: string | null
+          adset_id: string | null
+          audience: Json
+          budget_amount: number
+          budget_type: string
+          campaign_id: string | null
+          created_at: string
+          created_by: string | null
+          creative_id: string | null
+          duration_days: number
+          effective_status: string | null
+          end_date: string
+          id: string
+          ig_account_id: string | null
+          ig_caption: string | null
+          ig_media_id: string
+          ig_permalink: string | null
+          ig_thumbnail: string | null
+          ig_user_id: string | null
+          insights: Json
+          last_synced_at: string | null
+          meta_error: string | null
+          objetivo: string
+          page_id: string | null
+          social_post_id: string | null
+          start_date: string
+          status: string
+          total_budget: number
+          updated_at: string
+        }
+        Insert: {
+          ad_account_id: string
+          ad_id?: string | null
+          adset_id?: string | null
+          audience?: Json
+          budget_amount: number
+          budget_type?: string
+          campaign_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          creative_id?: string | null
+          duration_days: number
+          effective_status?: string | null
+          end_date: string
+          id?: string
+          ig_account_id?: string | null
+          ig_caption?: string | null
+          ig_media_id: string
+          ig_permalink?: string | null
+          ig_thumbnail?: string | null
+          ig_user_id?: string | null
+          insights?: Json
+          last_synced_at?: string | null
+          meta_error?: string | null
+          objetivo: string
+          page_id?: string | null
+          social_post_id?: string | null
+          start_date: string
+          status?: string
+          total_budget: number
+          updated_at?: string
+        }
+        Update: {
+          ad_account_id?: string
+          ad_id?: string | null
+          adset_id?: string | null
+          audience?: Json
+          budget_amount?: number
+          budget_type?: string
+          campaign_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          creative_id?: string | null
+          duration_days?: number
+          effective_status?: string | null
+          end_date?: string
+          id?: string
+          ig_account_id?: string | null
+          ig_caption?: string | null
+          ig_media_id?: string
+          ig_permalink?: string | null
+          ig_thumbnail?: string | null
+          ig_user_id?: string | null
+          insights?: Json
+          last_synced_at?: string | null
+          meta_error?: string | null
+          objetivo?: string
+          page_id?: string | null
+          social_post_id?: string | null
+          start_date?: string
+          status?: string
+          total_budget?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_ad_boosts_ig_account_id_fkey"
+            columns: ["ig_account_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_ad_boosts_social_post_id_fkey"
+            columns: ["social_post_id"]
+            isOneToOne: false
+            referencedRelation: "social_scheduled_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monde_sync_state: {
         Row: {
           error: string | null
