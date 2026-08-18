@@ -206,24 +206,44 @@ export function completarCampos(pacote: any, opcoes: any[]): Record<string, any>
   return patch;
 }
 
-/** Força a reconsulta imediata da Infotravel para pacotes específicos. */
+/**
+ * Reconsulta a Infotravel AGORA para os pacotes indicados.
+ * Não passa pela fila geral: antes, o item só voltava para "pendente" e a fila
+ * podia processar outros pacotes, deixando o reprocessado sem nada.
+ */
 export async function reprocessarPacotes(ids: string[]): Promise<ResultadoVoos> {
   if (!ids.length) return { processados: 0, ok: 0, erros: 0 };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { importInfotravelQuoteResilient } = await import("@/lib/quotes/infotravel-api.server");
+
+  // Mantém cada chamada abaixo do limite de tempo do servidor.
+  const alvo = ids.slice(0, 5);
   const agora = new Date().toISOString();
+
   await supabaseAdmin
     .from("cativa_pacotes")
     .update({
-      voos_status: "pendente",
+      voos_status: "processando",
       voos_prioridade: 1,
       voos_tentativas: 0,
-      voos_proxima_em: agora,
+      voos_proxima_em: new Date(Date.now() + 10 * 60_000).toISOString(),
     } as any)
-    .in("id", ids)
-    // Não devolve à fila um item que outro worker ainda está processando.
-    // Só recupera "processando" quando a lease já venceu.
+    .in("id", alvo)
+    // Não rouba um item que outro worker ainda está processando dentro da lease.
     .or(`voos_status.neq.processando,voos_proxima_em.lte.${agora}`);
-  // Mantém cada chamada abaixo do limite do servidor. A continuação é feita
-  // pelo painel/cron em novos lotes, sem perder o progresso já salvo.
-  return await processarFilaVoos(Math.min(ids.length, 5));
+
+  const { data: pacotes } = await supabaseAdmin
+    .from("cativa_pacotes")
+    .select("id, link_orcamento, voos_tentativas, origem_iata, origem_cidade, destino, aereo_por, taxas, valor_total, hoteis")
+    .in("id", alvo);
+
+  const res: ResultadoVoos = { processados: 0, ok: 0, erros: 0 };
+  for (const p of (pacotes ?? []) as any[]) {
+    const r = await processarPacote(p, supabaseAdmin, importInfotravelQuoteResilient);
+    res.processados += 1;
+    if (r === "ok") res.ok++;
+    else res.erros++;
+  }
+  return res;
 }
+
