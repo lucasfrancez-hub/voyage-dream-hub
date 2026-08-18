@@ -60,34 +60,121 @@ function slugify(v: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+const IATA_CITY: Record<string, string> = {
+  GRU: "São Paulo", CGH: "São Paulo", VCP: "Campinas",
+  GIG: "Rio de Janeiro", SDU: "Rio de Janeiro",
+  BSB: "Brasília", CNF: "Belo Horizonte", PLU: "Belo Horizonte",
+  CWB: "Curitiba", POA: "Porto Alegre", FLN: "Florianópolis",
+  SSA: "Salvador", REC: "Recife", FOR: "Fortaleza", NAT: "Natal",
+  MCZ: "Maceió", AJU: "Aracaju", THE: "Teresina", SLZ: "São Luís",
+  BEL: "Belém", MAO: "Manaus", MGF: "Maringá", LDB: "Londrina",
+  CGB: "Cuiabá", CGR: "Campo Grande", GYN: "Goiânia", VIX: "Vitória",
+  IGU: "Foz do Iguaçu", NVT: "Navegantes", JPA: "João Pessoa",
+  PMW: "Palmas", MCP: "Macapá", PVH: "Porto Velho", RBR: "Rio Branco",
+  BVB: "Boa Vista", STM: "Santarém", PNZ: "Petrolina", IOS: "Ilhéus",
+  BPS: "Porto Seguro", JJD: "Jericoacoara", JOI: "Joinville", XAP: "Chapecó",
+  MIA: "Miami", MCO: "Orlando", JFK: "Nova York", LGA: "Nova York", EWR: "Newark",
+  LAX: "Los Angeles", SFO: "São Francisco", ORD: "Chicago", IAH: "Houston",
+  DFW: "Dallas", ATL: "Atlanta", BOS: "Boston", LAS: "Las Vegas",
+  LIS: "Lisboa", OPO: "Porto", MAD: "Madri", BCN: "Barcelona",
+  CDG: "Paris", ORY: "Paris", LHR: "Londres", LGW: "Londres",
+  FCO: "Roma", MXP: "Milão", FRA: "Frankfurt", MUC: "Munique",
+  AMS: "Amsterdã", ZRH: "Zurique", GVA: "Genebra",
+  EZE: "Buenos Aires", AEP: "Buenos Aires", SCL: "Santiago", LIM: "Lima",
+  BOG: "Bogotá", MEX: "Cidade do México", CUN: "Cancún",
+  DXB: "Dubai", DOH: "Doha", IST: "Istambul", CCP: "Concepción",
+};
+
+const cidadeDe = (iata: unknown, fallback?: unknown) => {
+  const dado = String(fallback ?? "").trim();
+  if (dado) return dado;
+  const k = String(iata ?? "").toUpperCase().trim();
+  return IATA_CITY[k] ?? "";
+};
+
+/** ISO da operadora → valor aceito pelo input datetime-local (YYYY-MM-DDTHH:mm). */
+const dataHora = (v: unknown): string | undefined => {
+  const t = String(v ?? "").trim();
+  if (!t) return undefined;
+  const m = t.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+  if (m) return `${m[1]}T${m[2]}`;
+  const d = new Date(t);
+  if (Number.isNaN(d.getTime())) return undefined;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
+/** Interpreta o texto de bagagem da operadora nas 3 caixinhas do cadastro. */
+function bagagens(textos: string[]) {
+  const t = textos.join(" · ").toLowerCase();
+  const semDespachada = /(sem|n[aã]o inclui|no)\s+(bagagem\s+)?(despachada|checked)/.test(t) || /0\s*(pc|pe[çc]a|bagagem despachada)/.test(t);
+  const despachada =
+    !semDespachada &&
+    /(despachad|checked|\b\d+\s*(pc|pe[çc]as?)\b|\b(1|2|3)\s*x?\s*\d{2}\s*kg)/.test(t);
+  const mao = /(m[aã]o|carry[- ]?on|bordo)/.test(t);
+  const pessoal = /(pessoal|personal item|mochila|under seat)/.test(t);
+  return {
+    personal_item: pessoal || mao || despachada,
+    carry_on: mao || despachada,
+    checked_bag: despachada,
+  };
+}
+
 function mapFlight(f: any) {
   if (!f) return null;
   const segs = Array.isArray(f.segments) ? f.segments : [];
   const first = segs[0] ?? {};
   const last = segs[segs.length - 1] ?? first;
+  const textosBagagem = segs.map((s: any) => String(s?.baggage ?? "")).filter(Boolean);
+  const bags = bagagens(textosBagagem);
+  const fareClass =
+    String(first.fareClass ?? "").trim() ||
+    (textosBagagem.length ? (bags.checked_bag ? "STANDARD" : "LIGHT") : "");
+
   return {
     airline: f.airline ?? first.airline ?? undefined,
     flight_number: first.flightNumber ?? undefined,
     from_iata: f.fromIata ?? first.fromIata ?? undefined,
+    from_city: cidadeDe(f.fromIata ?? first.fromIata, first.fromCity) || undefined,
     to_iata: f.toIata ?? last.toIata ?? undefined,
-    depart_at: f.departure ?? first.departure ?? undefined,
-    arrive_at: f.arrival ?? last.arrival ?? undefined,
+    to_city: cidadeDe(f.toIata ?? last.toIata, last.toCity) || undefined,
+    depart_at: dataHora(f.departure ?? first.departure),
+    arrive_at: dataHora(f.arrival ?? last.arrival),
     duration: f.duration ?? undefined,
     stops: typeof f.stops === "number" ? f.stops : segs.length ? segs.length - 1 : 0,
     cabin_class: first.cabin ?? undefined,
-    segments: segs.map((s: any) => ({
+    fare_class: fareClass || undefined,
+    ...bags,
+    baggage_text: textosBagagem.length ? [...new Set(textosBagagem)].join(" · ") : undefined,
+    segments: segs.map((s: any, i: number) => ({
       airline: s.airline ?? undefined,
       flight_number: s.flightNumber ?? undefined,
       from_iata: s.fromIata ?? undefined,
+      from_city: cidadeDe(s.fromIata, s.fromCity) || undefined,
       to_iata: s.toIata ?? undefined,
-      depart_at: s.departure ?? undefined,
-      arrive_at: s.arrival ?? undefined,
+      to_city: cidadeDe(s.toIata, s.toCity) || undefined,
+      depart_at: dataHora(s.departure),
+      arrive_at: dataHora(s.arrival),
       duration: s.duration ?? undefined,
       cabin_class: s.cabin ?? undefined,
+      fare_class: s.fareClass ?? undefined,
       aircraft: s.aircraft ?? undefined,
       baggage: s.baggage ?? undefined,
+      // conexão: tempo de espera até o próximo trecho
+      layover: i < segs.length - 1 ? conexao(s.arrival, segs[i + 1]?.departure) : undefined,
     })),
   };
+}
+
+/** "2h 15min" entre a chegada de um trecho e a partida do seguinte. */
+function conexao(chegada: unknown, partida: unknown): string | undefined {
+  const a = new Date(String(chegada ?? "")).getTime();
+  const b = new Date(String(partida ?? "")).getTime();
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return undefined;
+  const min = Math.round((b - a) / 60000);
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h ? `${h}h${m ? ` ${m}min` : ""}` : `${m}min`;
 }
 
 export type ServicoResumidoIA = {
