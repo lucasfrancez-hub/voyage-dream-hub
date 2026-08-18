@@ -12,6 +12,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CruiseDetailsView } from "@/components/cruise/CruiseDetailsView";
+import { PrepaidBoletoCard } from "@/components/packages/PrepaidBoletoCard";
+import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
 
 import {
   MapPin,
@@ -248,7 +250,7 @@ function PackageDetails() {
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const slugs = slug.includes("#") ? [slug, slug.replace(/#/g, "-")] : [slug];
-      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_options,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services,cruise_details,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates").in("slug", slugs);
+      let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_options,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,supplier_name,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services,cruise_details,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates").in("slug", slugs);
       if (!preview) query = query.eq("is_active", true);
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
@@ -360,6 +362,13 @@ function PackageDetails() {
   const selInfo = (selQuery?.data ?? null) as PublicHotelOptionInfo | null;
   const hotelInfoLoading = !!selQuery?.isLoading;
   const pricePerPerson = Number(selHotel?.price_per_person || pkg.price_per_person) || 0;
+
+  // Boleto Pré-pago — recalculado sempre pela data atual + data do embarque.
+  const prepaid = getPrepaidBoletoConditions({
+    supplierName: (pkg as { supplier_name?: string | null }).supplier_name ?? null,
+    departureDate: pkg.going_date ?? null,
+    totalAmount: pricePerPerson * (isPerUnit ? 1 : baseOccupancy),
+  });
 
   const pkgIfBase = <T,>(value: T): T | null => (isBaseHotel ? value : null);
   const hotelStars =
@@ -797,6 +806,14 @@ function PackageDetails() {
             <p className="mt-3 text-[11px] text-muted-foreground text-center">
               Você preenche seus dados e finaliza o pagamento na próxima etapa.
             </p>
+            {prepaid.eligible && (
+              <PrepaidBoletoCard
+                slug={pkg.slug}
+                maxInstallments={prepaid.maxInstallments}
+                search={hasHotelChoice ? { hotel: hotelIdxSafe } : undefined}
+              />
+            )}
+
             {!isTicket && (
               <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-[11px] text-muted-foreground leading-relaxed">
                 <span className="text-foreground font-medium">Também parcelamos no boleto bancário.</span>{" "}

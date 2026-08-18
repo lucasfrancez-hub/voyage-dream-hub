@@ -13,6 +13,7 @@ import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/components/BoletoForm";
 import { DateBRInput } from "@/components/DateBRInput";
 import { PixQrOverlay } from "@/components/PixQrOverlay";
+import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
 
 
 import { ContactFooter } from "@/components/ContactFooter";
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     nights?: number;
     birthday?: number;
     hotel?: number;
+    pay?: string;
   } => {
 
     const raw = Number(s?.qty);
@@ -48,13 +50,14 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     const birthday = s?.birthday === 1 || s?.birthday === "1" ? 1 : undefined;
     const hotelRaw = Number(s?.hotel);
     const hotel = Number.isFinite(hotelRaw) && hotelRaw >= 0 ? Math.floor(hotelRaw) : undefined;
-    return { qty, date, addons, modality, time, nights, birthday, hotel };
+    const pay = s?.pay === "prepaid" ? "prepaid" : undefined;
+    return { qty, date, addons, modality, time, nights, birthday, hotel, pay };
   },
 
 });
 
 
-type PaymentMethod = "credit_card" | "pix" | "boleto";
+type PaymentMethod = "credit_card" | "pix" | "boleto" | "prepaid_boleto";
 
 
 const MAX_INSTALLMENTS = 10;
@@ -71,6 +74,7 @@ function Checkout() {
     nights: nightsFromSearch,
     birthday: birthdayFromSearch,
     hotel: hotelFromSearch,
+    pay: payFromSearch,
   } = Route.useSearch();
   const navigate = useNavigate();
   const notifyPix = useServerFn(notifyPixOrder);
@@ -154,6 +158,9 @@ function Checkout() {
   const MAX_BOLETO_INSTALLMENTS = 10;
   const { data: card, patch: patchCard } = useCardData();
   const [boleto, setBoleto] = useState<BoletoData>(emptyBoleto);
+  // Boleto Pré-pago — estado independente do financiamento
+  const [prepaidData, setPrepaidData] = useState<BoletoData>(emptyBoleto);
+  const [prepaidInstallments, setPrepaidInstallments] = useState<number>(1);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -217,6 +224,10 @@ function Checkout() {
 
   function patchBoleto(patch: Partial<BoletoData>) {
     setBoleto((prev) => ({ ...prev, ...patch }));
+  }
+
+  function patchPrepaid(patch: Partial<BoletoData>) {
+    setPrepaidData((prev) => ({ ...prev, ...patch }));
   }
 
   // Once the package loads, default the passenger count to its base occupancy.
@@ -331,6 +342,32 @@ function Checkout() {
   const pixFeeValue = payment === "pix" ? PIX_FEE : 0;
   const totalPrice = subtotalPrice - pixDiscountValue + pixFeeValue + addonsTotal;
 
+  // Boleto Pré-pago — regra única, recalculada sempre pela data atual.
+  const prepaid = getPrepaidBoletoConditions({
+    supplierName: (pkg as { supplier_name?: string | null } | undefined)?.supplier_name ?? null,
+    departureDate: (pkg as { going_date?: string | null } | undefined)?.going_date ?? null,
+    totalAmount: totalPrice,
+  });
+  const prepaidOption =
+    prepaid.options.find((o) => o.installments === prepaidInstallments) ?? prepaid.options[0] ?? null;
+
+  const prepaidEligible = prepaid.eligible;
+  const prepaidMax = prepaid.maxInstallments;
+
+  // Abre já no Boleto Pré-pago quando veio do card do pacote.
+  useEffect(() => {
+    if (payFromSearch === "prepaid" && prepaidEligible) setPayment("prepaid_boleto");
+  }, [payFromSearch, prepaidEligible]);
+
+  // Deixou de ser elegível (data trocou / tempo passou) — não manter condição antiga.
+  useEffect(() => {
+    if (!prepaidEligible) {
+      setPayment((p) => (p === "prepaid_boleto" ? "credit_card" : p));
+      return;
+    }
+    setPrepaidInstallments((n) => Math.min(Math.max(1, n), Math.max(1, prepaidMax)));
+  }, [prepaidEligible, prepaidMax]);
+
   const baseOccupancy = pkg?.base_occupancy ?? 2;
   const occupancyMismatch = !isPerUnit && !!pkg && adults + children !== baseOccupancy;
 
@@ -387,6 +424,20 @@ function Checkout() {
 
     if (payment === "boleto") {
       const err = validateBoleto(boleto, isThirdPartyFinancier);
+      if (err) {
+        toast.error(err);
+        return;
+      }
+    }
+
+    if (payment === "prepaid_boleto") {
+      // Revalida a elegibilidade no momento da finalização (aba aberta por dias).
+      if (!prepaid.eligible || !prepaidOption) {
+        toast.error("A condição de boleto pré-pago não está mais disponível para esta viagem.");
+        setPayment("credit_card");
+        return;
+      }
+      const err = validateBoleto(prepaidData, false);
       if (err) {
         toast.error(err);
         return;
@@ -480,6 +531,19 @@ function Checkout() {
                 },
               }
             : {}),
+          ...(payment === "prepaid_boleto" && prepaidOption
+            ? {
+                prepaid_boleto_capture: prepaidData,
+                prepaid_boleto: {
+                  installment_count: prepaidOption.installments,
+                  installment_amounts: prepaidOption.installmentAmounts,
+                  entry_amount: prepaidOption.entryAmount,
+                  payment_schedule: prepaidOption.schedule,
+                  payoff_deadline: prepaid.payoffDeadline,
+                  max_installments: prepaid.maxInstallments,
+                },
+              }
+            : {}),
           ...(payment === "boleto"
             ? {
                 boleto_capture: boleto,
@@ -500,7 +564,9 @@ function Checkout() {
               ? `credit_card_${installments}x`
               : payment === "boleto"
                 ? (boletoInstallments > 1 ? `boleto_${boletoInstallments}x` : "boleto")
-                : payment,
+                : payment === "prepaid_boleto"
+                  ? `prepaid_boleto_${prepaidOption?.installments ?? 1}x`
+                  : payment,
           total_price: totalPrice,
           notes: notes || null,
           supplier_name: (pkg as { supplier_name?: string | null }).supplier_name ?? null,
@@ -901,7 +967,15 @@ function Checkout() {
             {/* Pagamento */}
             <Card title="Pagamento">
               <p className="text-sm text-muted-foreground mb-4">Como prefere pagar?</p>
-              <div className={`grid gap-3 ${isService ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+              <div
+                className={`grid gap-3 ${
+                  isService
+                    ? "sm:grid-cols-2"
+                    : payment === "prepaid_boleto" || prepaid.eligible
+                      ? "grid-cols-2 sm:grid-cols-2 lg:grid-cols-4"
+                      : "sm:grid-cols-3"
+                }`}
+              >
                 <PaymentOption
                   active={payment === "credit_card"}
                   onClick={() => setPayment("credit_card")}
@@ -923,10 +997,105 @@ function Checkout() {
                     onClick={() => setPayment("boleto")}
                     icon={FileText}
                     title="Boleto bancário"
-                    desc="Parcelamos em até 10x sem juros no boleto. Finalização feita via WhatsApp com nosso consultor."
+                    desc="Financiamento da viagem com pagamento parcelado. Sujeito à análise e aprovação."
+                    badge="Financiamento"
+                  />
+                )}
+                {!isService && prepaid.eligible && (
+                  <PaymentOption
+                    active={payment === "prepaid_boleto"}
+                    onClick={() => setPayment("prepaid_boleto")}
+                    icon={FileText}
+                    title="Boleto Pré-pago"
+                    desc={`Até ${prepaid.maxInstallments}x sem juros para esta viagem. Pagamento antecipado no boleto, sem comprometer o limite do cartão.`}
+                    badge={`Até ${prepaid.maxInstallments}x sem juros`}
                   />
                 )}
               </div>
+
+              {payment === "prepaid_boleto" && prepaid.eligible && prepaidOption && (
+                <div className="mt-6 pt-6 border-t border-border space-y-5">
+                  <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-4 space-y-3">
+                    <p className="text-sm font-semibold text-foreground">Compre no boleto pré-pago</p>
+                    <p className="text-xs text-muted-foreground">
+                      Viaje sem se preocupar com o limite do cartão de crédito.
+                    </p>
+                    <div className="space-y-1.5 text-xs text-muted-foreground">
+                      {[
+                        "Sem consulta ao SPC/SERASA;",
+                        "Sem necessidade de comprovação de renda;",
+                        "Parcelamento sem juros.",
+                      ].map((t) => (
+                        <div key={t} className="flex items-center gap-2">
+                          <Check className="h-3.5 w-3.5 shrink-0 text-brand-orange" /> {t}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-foreground font-semibold">
+                      Até {prepaid.maxInstallments}x disponível para esta viagem.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <label className="block">
+                      <span className="block text-xs text-muted-foreground mb-1.5">
+                        Em quantas vezes deseja parcelar? (sem juros)
+                      </span>
+                      <select
+                        value={prepaidOption.installments}
+                        onChange={(e) => setPrepaidInstallments(Number(e.target.value))}
+                        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
+                      >
+                        {prepaid.options.map((o) => (
+                          <option key={o.installments} value={o.installments}>
+                            {o.installments}x de {formatBRL(o.installmentAmounts[o.installmentAmounts.length - 1] ?? 0)} sem juros
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs space-y-1.5">
+                      <div className="text-[11px] uppercase tracking-widest text-brand-orange font-semibold">
+                        Sua condição
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Entrada hoje</span>
+                        <strong className="text-foreground">{formatBRL(prepaidOption.entryAmount)}</strong>
+                      </div>
+                      {prepaidOption.installments > 1 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            + {prepaidOption.installments - 1} parcela{prepaidOption.installments - 1 > 1 ? "s" : ""} mensa{prepaidOption.installments - 1 > 1 ? "is" : "l"}
+                          </span>
+                          <strong className="text-foreground">
+                            de {formatBRL(prepaidOption.installmentAmounts[1] ?? 0)}
+                          </strong>
+                        </div>
+                      )}
+                      <div className="flex justify-between border-t border-border pt-1.5">
+                        <span className="text-muted-foreground">Total</span>
+                        <strong className="text-foreground">{formatBRL(totalPrice)}</strong>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">Sem juros</div>
+                      <ul className="pt-1.5 space-y-1 text-[11px] text-muted-foreground">
+                        {prepaidOption.schedule.map((it) => (
+                          <li key={it.installment} className="flex justify-between gap-2">
+                            <span>
+                              {it.installment}. {it.type === "entry" ? "Entrada" : "Parcela"} · {formatDateBR(it.dueDate)}
+                            </span>
+                            <span className="text-foreground">{formatBRL(it.amount)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="pt-1 text-[11px] text-muted-foreground">
+                        O pagamento precisa estar concluído antes do embarque, conforme o cronograma apresentado.
+                      </p>
+                    </div>
+                  </div>
+
+                  <BoletoForm data={prepaidData} onChange={patchPrepaid} isThirdParty={false} />
+                </div>
+              )}
 
               {payment === "boleto" && (
                 <div className="mt-6 pt-6 border-t border-border space-y-5">
