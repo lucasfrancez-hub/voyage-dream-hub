@@ -3101,13 +3101,26 @@ function PackageEditorModal({
 
             {tab === "extras" && (
               <div className="grid grid-cols-1 gap-3">
-                <FormField label="Roteiro (uma linha por dia)" wide>
+                <div className="sm:col-span-2">
+                  <div className="mb-1 flex items-center justify-between gap-3">
+                    <span className="text-xs text-muted-foreground">
+                      Roteiro (linha do tempo — um dia por linha)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleGenerateItinerary}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-semibold text-brand-orange transition hover:bg-brand-orange/20"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" /> Gerar roteiro
+                    </button>
+                  </div>
                   <textarea
                     className={`${inp} min-h-[140px]`}
                     value={editing.itinerary ?? ""}
                     onChange={(e) => setEditing({ ...editing, itinerary: e.target.value })}
                   />
-                </FormField>
+                </div>
+
 
                 <ServicesEditor
                   value={(editing.services ?? {}) as PackageServices}
