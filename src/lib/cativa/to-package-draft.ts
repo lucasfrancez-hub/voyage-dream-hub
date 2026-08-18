@@ -2,6 +2,10 @@
 // em rascunhos no formato do cadastro de pacotes VIA AIR.
 // Browser-safe: sem imports de servidor.
 
+import { gerarRoteiro } from "@/lib/packages/itinerary";
+
+
+
 export type CativaVooRow = {
   id: string;
   opcao_numero: number;
