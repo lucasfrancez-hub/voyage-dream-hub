@@ -129,6 +129,8 @@ async function processarPacote(
             services: o.services ?? [],
             notes: o.notes ?? null,
             taxas: typeof o.taxes === "number" ? o.taxes : null,
+            // ocupação do orçamento: o total da Infotravel é do grupo todo
+            pax: normalized.passengers ?? null,
             startDate: o.startDate ?? null,
             endDate: o.endDate ?? null,
           },
