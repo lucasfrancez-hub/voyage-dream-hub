@@ -54,6 +54,15 @@ import { HotelDetailsDialog } from "@/components/HotelDetailsDialog";
 import { WhatsAppText } from "@/lib/wa-format";
 import { OtherDatesBlock } from "@/components/packages/OtherDatesBlock";
 
+function norm(s: string | null | undefined) {
+  return (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 function cleanHotelDetail(value: string | null | undefined) {
   const cleaned = value
     ?.trim()
