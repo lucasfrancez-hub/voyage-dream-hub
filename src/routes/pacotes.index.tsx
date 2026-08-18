@@ -299,55 +299,45 @@ function PacotesList() {
       <TopBar backHref="https://viaair.tur.br" backLabel="Voltar ao site" />
 
       <main>
-      <section className="mx-auto max-w-7xl px-6 pt-12 pb-8 md:pt-16 md:pb-10">
+      <section className="mx-auto max-w-7xl px-6 py-12 md:py-16">
 
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#15202b]/80 via-[#101922]/80 to-[#0a131a]/80 p-6 shadow-2xl backdrop-blur-3xl md:p-8">
-          {/* reflexo sutil de luz / glow */}
-          <div className="pointer-events-none absolute -top-40 -right-40 h-96 w-96 rounded-full bg-brand-orange/10 blur-[100px]" />
-          <div className="pointer-events-none absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-brand-blue/10 blur-[90px]" />
-
-          <div className="relative z-10 grid gap-8 lg:grid-cols-2 lg:items-center">
-            <div className="max-w-lg">
-              <span className="inline-flex items-center gap-2 rounded-full border border-brand-orange/30 bg-brand-orange/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-orange">
-                Pacotes disponíveis
-              </span>
-              <h1 className="mt-4 font-display text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-                Roteiros prontos para <span className="text-brand-orange">embarcar</span>
-              </h1>
-              <p className="mt-4 text-sm text-white/70 leading-relaxed">
-                Aéreo, hospedagem, transfer e passeio inclusos no orçamento. Escolha o destino
-                e finalize a reserva com o nosso time.
-              </p>
-              <p className="mt-3 text-[11px] text-white/50 leading-relaxed">
-                Garanta seu pacote com tranquilidade: o valor anunciado não sofre alteração
-                conforme a proximidade da data de embarque. As reservas estão sujeitas apenas
-                à disponibilidade de vagas.
-              </p>
-              <div className="mt-6">
-                <Link
-                  to="/minhas-reservas"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-orange hover:text-white hover:border-brand-orange transition active:scale-95"
-                >
-                  <Ticket className="h-4 w-4" />
-                  Ver minhas reservas
-                </Link>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 md:p-6">
-              <BudgetFilter
-                variant="glass"
-                mode={budgetMode}
-                onModeChange={setBudgetMode}
-                range={budgetRange}
-                onRangeChange={setBudgetRange}
-                sliderMin={0}
-                sliderMax={maxBudget}
-                sliderStep={100}
-              />
-            </div>
+        <div className="max-w-prose">
+          <span className="text-brand-orange text-sm uppercase tracking-widest">
+            Pacotes disponíveis
+          </span>
+          <h1 className="mt-2 font-display text-4xl md:text-5xl font-bold">
+            Roteiros prontos para <span className="text-gradient-brand">embarcar</span>
+          </h1>
+          <p className="mt-4 text-muted-foreground leading-relaxed">
+            Aéreo, hospedagem, transfer e passeio inclusos no orçamento. Escolha o destino
+            e finalize a reserva com o nosso time.
+          </p>
+          <p className="mt-6 text-xs text-muted-foreground/80 leading-loose">
+            Garanta seu pacote com tranquilidade: o valor anunciado não sofre alteração
+            conforme a proximidade da data de embarque. As reservas estão sujeitas apenas
+            à disponibilidade de vagas.
+          </p>
+          <div className="mt-6">
+            <Link
+              to="/minhas-reservas"
+              className="inline-flex items-center gap-2 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-4 py-2 text-sm font-semibold text-brand-orange hover:bg-brand-orange hover:text-white transition"
+            >
+              <Ticket className="h-4 w-4" />
+              Ver minhas reservas
+            </Link>
           </div>
         </div>
+
+        <BudgetFloating
+          mode={budgetMode}
+          onModeChange={setBudgetMode}
+          range={budgetRange}
+          onRangeChange={setBudgetRange}
+          min={0}
+          max={maxBudget}
+          step={100}
+        />
+
 
         <div className="mt-8">
           <FeaturedCarousel packages={(packages || []) as any} mixMode />
