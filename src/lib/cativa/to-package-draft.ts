@@ -753,33 +753,53 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     .trim();
   // O aeroporto de chegada (ex.: Recife) não substitui o destino real do pacote
   // (ex.: Porto de Galinhas). Cidade do hotel e nome comercial têm prioridade.
-  const destino = semIata(destinoHotel || destinoTitulo || destinoFonte);
-  const origem = semIata((pacote.origem_cidade ?? pacote.origem_iata ?? "").trim());
+  const destino = tituloCidade(semIata(destinoHotel || destinoTitulo || destinoFonte));
+  const origem = tituloCidade(semIata((pacote.origem_cidade ?? pacote.origem_iata ?? "").trim()));
   const incluso = Array.isArray(pacote.incluso)
     ? [...new Set(pacote.incluso.map(nomePublicoServico).filter(Boolean))]
     : [];
 
-  // Título padronizado: "<núcleo do pacote> - Saindo de <origem>".
-  // Ex.: "Europa: Réveillon 2027 em Madri com aéreo" -> "Réveillon 2027 em Madri"
-  //      "Maceió com Praias do Gunga, Francês & Pratagy Acqua Park GRÁTIS" -> "Maceió"
+  // Título padronizado: "<destino> - Saindo de <origem>".
+  // Só mantém o texto comercial quando ele é um TEMA/EVENTO ("Halloween na Disney",
+  // "Réveillon 2027 em Madri"). Enfeites ("Essencial", "Sol, mar e Magia",
+  // "Onde a Aventura e a Tranquilidade se Encontram") são descartados.
   const nucleo = (() => {
     let t = nomePacote
       .replace(/^[^:]{2,20}:\s*/, "") // prefixo de região ("Europa: ")
-      .split(/\s+[—–|-]\s+/)[0]! // "Show Ed Sheeran - Loop Tour" -> "Show Ed Sheeran"
-      .split(/\s+com\s+/i)[0]!
+      .split(/\s+[—–|]\s+/)[0]!
       .split(/\s+[-]\s+saindo\s+de\s+/i)[0]!
       .trim();
-    t = t.replace(/\s*\b(gr[áa]tis|com a[ée]reo)\b\s*$/i, "").replace(/[,;&]\s*$/, "").trim();
+
+    const temTema = RE_TEMA.test(t);
+    if (!temTema) return destino;
+
+    // "Orlando - Halloween na Disney" / "Disney: Natal" → fica só o trecho do tema
+    const partes = t.split(/\s+[-]\s+/).map((p) => p.trim()).filter(Boolean);
+    t = partes.find((p) => RE_TEMA.test(p)) ?? t;
+    t = t
+      .split(/\s+com\s+a[ée]reo/i)[0]!
+      .replace(/\s*\b(gr[áa]tis|com a[ée]reo|pacote)\b\s*/gi, " ")
+      .replace(/[,;&]\s*$/, "")
+      .replace(/[!]+/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    // tema solto ("Halloween") ganha o destino: "Halloween em Orlando"
+    if (destino && !new RegExp(destino.slice(0, 6), "i").test(t) && t.split(" ").length <= 2) {
+      t = `${t} em ${destino}`;
+    }
     return t || destino;
   })();
 
-  const titulo = nucleo
+  const nucleoFinal = !nucleo || (RE_TITULO_MARKETING.test(nucleo) && !RE_TEMA.test(nucleo)) ? destino : nucleo;
+
+  const titulo = nucleoFinal
     ? origem
-      ? `${nucleo} - Saindo de ${origem}`
-      : nucleo
+      ? `${nucleoFinal} - Saindo de ${origem}`
+      : nucleoFinal
     : destino && origem
       ? `${destino} - Saindo de ${origem}`
       : destino;
+
 
   const base = (inicio: string | null, fim: string | null): CativaDraft => ({
     cativa_pacote_id: pacote.id,
