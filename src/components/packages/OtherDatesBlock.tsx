@@ -190,38 +190,61 @@ export function OtherDatesBlock({ pkg }: { pkg: CurrentPkg }) {
               className="min-w-[190px] flex-[0_0_190px] snap-start rounded-[13px] border border-border bg-transparent px-3 py-[11px] text-left transition hover:border-brand-orange/40 hover:bg-brand-orange/5 disabled:opacity-60"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[8px] font-extrabold uppercase tracking-[0.08em] text-brand-orange">
-                  {a.id === bestId && dif < 0 ? "Melhor preço" : "Outra"}
+                <span
+                  className={
+                    "text-[8px] font-extrabold uppercase tracking-[0.08em] " +
+                    (a.id === bestId && dif < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")
+                  }
+                >
+                  {a.id === bestId && dif < 0 ? "Melhor preço" : "Outra data"}
                 </span>
-                {a.nights != null && <span className="text-[9px] text-muted-foreground">{a.nights} noites</span>}
+                {dif !== 0 ? (
+                  <span
+                    className={
+                      "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-[3px] text-[11px] font-extrabold " +
+                      (dif < 0
+                        ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "border-brand-orange/25 bg-brand-orange/10 text-brand-orange")
+                    }
+                  >
+                    {dif < 0 ? <ArrowDown className="h-3 w-3" strokeWidth={3} /> : <ArrowUp className="h-3 w-3" strokeWidth={3} />}
+                    {dif < 0 ? "− " : "+ "}
+                    {formatBRL(Math.abs(dif))}
+                  </span>
+                ) : (
+                  a.nights != null && <span className="text-[9px] text-muted-foreground">{a.nights} noites</span>
+                )}
               </div>
               <div className="mt-[7px] text-[13px] font-bold tracking-tight">
                 {ddmm(a.going_date)}
                 <span className="mx-1 text-brand-orange">→</span>
                 {ddmm(a.return_date)}
               </div>
-              <div className="mt-[3px] truncate text-[9.5px] text-muted-foreground">{a.hotel_name || "—"}</div>
-              <div className="mt-[9px] flex items-end justify-between gap-2 border-t border-border pt-2">
-                <div>
-                  <div className="text-[8px] text-muted-foreground">
+              <div className="mt-[3px] truncate text-[9.5px] text-muted-foreground">
+                {a.hotel_name || "—"}
+                {a.nights != null && dif !== 0 ? <span className="mx-1 opacity-40">•</span> : null}
+                {a.nights != null && dif !== 0 ? `${a.nights} noites` : null}
+              </div>
+              <div className="mt-[9px] border-t border-border pt-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[8px] uppercase tracking-wider text-muted-foreground">
                     {occ} {occ === 1 ? "adulto" : "adultos"}
-                  </div>
-                  <div className="mt-px text-[15px] font-extrabold">{formatBRL(total)}</div>
+                  </span>
+                  {dif !== 0 && (
+                    <span
+                      className={
+                        "rounded px-1.5 py-[2px] text-[9.5px] font-bold " +
+                        (dif < 0
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : "bg-brand-orange/10 text-brand-orange")
+                      }
+                    >
+                      {dif < 0 ? "Economize " : "Diferença "}
+                      {formatBRL(Math.abs(dif))}
+                    </span>
+                  )}
                 </div>
-                {dif !== 0 && (
-                  <div
-                    className={
-                      "whitespace-nowrap text-right text-[8px] font-bold " +
-                      (dif < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-brand-orange")
-                    }
-                  >
-                    {dif < 0 ? "− " : "+ "}
-                    {formatBRL(Math.abs(dif))}
-                    <br />
-                    {dif < 0 ? "mais barato" : "mais"}
-                  </div>
-                )}
-
+                <div className="mt-1 text-[17px] font-extrabold tracking-tight">{formatBRL(total)}</div>
               </div>
               <div className="mt-1.5 flex items-center gap-1 text-[9px] font-bold text-brand-orange">
                 {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
