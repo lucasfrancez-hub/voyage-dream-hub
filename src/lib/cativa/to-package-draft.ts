@@ -326,23 +326,54 @@ function chaveServico(s: string): string {
     .join(" ");
 }
 
-/** Deduplica e aplica o regime de alimentação na linha de hospedagem. */
+/**
+ * Deduplica (inclusive quando o mesmo atrativo aparece como passeio e solto),
+ * remove marcações de "grátis", aplica o regime de alimentação na hospedagem
+ * e ordena: aéreo → hospedagem → transfer → passeios → ingressos → resto.
+ */
 function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[] {
   const visto = new Set<string>();
   const out: string[] = [];
   for (const raw of lista) {
-    let item = String(raw ?? "").trim();
+    let item = semGratis(String(raw ?? "").trim());
     if (!item) continue;
-    if (/^hospedagem/i.test(item)) {
+    if (/hospedagem|di[aá]rias?\b|consulte\s+o?\s*regime/i.test(item)) {
       const r = (regimeAtual ?? "").trim();
       item = r && !/sem refei/i.test(r) ? `Hospedagem com ${r.toLowerCase()}` : "Hospedagem";
     }
     const k = chaveServico(item);
     if (!k || visto.has(k)) continue;
+
+    // Mesmo atrativo repetido (ex.: "Passeio a Praia do Gunga" e "Praia do Gunga",
+    // "Ingresso para Pratagy Acqua Park" e "Pratagy Acqua Park"): fica o mais completo.
+    const toks = tokensServico(item);
+    if (toks.size) {
+      let repetido = false;
+      for (let i = 0; i < out.length; i++) {
+        const anteriores = tokensServico(out[i]!);
+        if (!anteriores.size) continue;
+        const contidoNoAnterior = [...toks].every((t) => anteriores.has(t));
+        const contemAnterior = [...anteriores].every((t) => toks.has(t));
+        if (contidoNoAnterior) {
+          repetido = true;
+          break;
+        }
+        if (contemAnterior) {
+          out[i] = item; // o novo é mais descritivo
+          repetido = true;
+          break;
+        }
+      }
+      if (repetido) continue;
+    }
+
     visto.add(k);
     out.push(item);
   }
-  return out;
+  return out
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => ordemServico(a.s) - ordemServico(b.s) || a.i - b.i)
+    .map((x) => x.s);
 }
 
 
