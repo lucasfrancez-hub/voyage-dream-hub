@@ -340,6 +340,64 @@ function CardPost({
             </span>
           ))}
       </div>
+      {!item.is_story && (
+        <div className="border-t border-border p-2">
+          {boosts.length > 0 ? (
+            <BlocoBoost boost={boosts[0]!} onVer={() => onVerDesempenho(boosts[0]!)} onTurbinar={onTurbinar} />
+          ) : (
+            <button
+              onClick={onTurbinar}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#F26B1F] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-95"
+            >
+              <Rocket className="h-3.5 w-3.5" /> Turbinar publicação
+            </button>
+          )}
+        </div>
+      )}
     </article>
   );
 }
+
+function BlocoBoost({
+  boost,
+  onVer,
+  onTurbinar,
+}: {
+  boost: Boost;
+  onVer: () => void;
+  onTurbinar: () => void;
+}) {
+  const info = STATUS_INFO[boost.status] ?? STATUS_INFO.criando!;
+  const i = boost.insights ?? {};
+  const encerrado = boost.status === "finalizado" || boost.status === "erro";
+  return (
+    <div className="space-y-1.5">
+      <div className={`text-[11px] font-semibold ${info.cor}`}>
+        {info.bolinha} {info.nome}
+      </div>
+      {(i.spend || i.results) && (
+        <div className="text-[11px] text-muted-foreground">
+          {brl(i.spend ?? 0)} gastos · {(i.results ?? 0).toLocaleString("pt-BR")}{" "}
+          {ROTULO_RESULTADO[boost.objetivo] ?? "resultados"}
+        </div>
+      )}
+      <div className="flex gap-1.5">
+        <button
+          onClick={onVer}
+          className="flex-1 rounded-md border border-border px-2 py-1.5 text-[11px] font-medium hover:bg-muted"
+        >
+          Ver desempenho
+        </button>
+        {encerrado && (
+          <button
+            onClick={onTurbinar}
+            className="inline-flex items-center gap-1 rounded-md bg-[#F26B1F] px-2 py-1.5 text-[11px] font-semibold text-white hover:brightness-95"
+          >
+            <Rocket className="h-3 w-3" /> Turbinar de novo
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
