@@ -12,6 +12,15 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
   const { importInfotravelQuoteResilient } = await import("@/lib/quotes/infotravel-api.server");
 
   const agora = new Date().toISOString();
+
+  // Reclama leases vencidos: se um processamento morreu no meio (timeout/deploy),
+  // o pacote ficaria preso em "processando" para sempre.
+  await supabaseAdmin
+    .from("cativa_pacotes")
+    .update({ voos_status: "pendente" } as any)
+    .eq("voos_status", "processando")
+    .lte("voos_proxima_em", agora);
+
   const { data: pendentes } = await supabaseAdmin
     .from("cativa_pacotes")
     .select("id, link_orcamento, voos_tentativas")
