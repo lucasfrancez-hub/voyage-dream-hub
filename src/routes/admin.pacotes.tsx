@@ -2839,6 +2839,9 @@ function PackageEditorModal({
                 <HotelOptionsPanel
                   options={(Array.isArray((editing as any).hotel_options) ? (editing as any).hotel_options : []) as any}
                   occupancy={Number(editing.base_occupancy) || 2}
+                  selectedIndex={hotelSelIdx < 0 ? 0 : hotelSelIdx}
+                  onSelectIndex={setHotelOptIdx}
+
                   onChange={(next, base) =>
                     setEditing({
                       ...editing,
