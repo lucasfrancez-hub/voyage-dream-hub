@@ -620,7 +620,8 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Baixa o HTML da página do orçamento, aguardando a hidratação do Next (__NEXT_DATA__). */
-export async function fetchInfotravelHtml(url: string, tentativas = 4, esperaMs = 2500): Promise<string | undefined> {
+export async function fetchInfotravelHtml(rawUrl: string, tentativas = 4, esperaMs = 2500): Promise<string | undefined> {
+  const url = normalizarUrlOrcamento(rawUrl);
   for (let i = 0; i < tentativas; i++) {
     try {
       const res = await fetch(url, {
@@ -650,9 +651,10 @@ const opcaoVazia = (o: NormalizedOption) =>
  * quando a Infotravel devolve opções sem voos/valores (payload ainda frio).
  */
 export async function importInfotravelQuoteResilient(
-  url: string,
+  rawUrl: string,
   { tentativas = 3, esperaMs = 3500 }: { tentativas?: number; esperaMs?: number } = {},
 ): Promise<InfotravelImport> {
+  const url = normalizarUrlOrcamento(rawUrl);
   const html = await fetchInfotravelHtml(url);
   let melhor: InfotravelImport | null = null;
   let ultimoErro: unknown = null;
