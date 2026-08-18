@@ -36,7 +36,7 @@ export function BudgetRuler({
 
   const label = (value: number) =>
     mode === "parcela"
-      ? `${BUDGET_INSTALLMENTS}x ${compact(Math.round(value / BUDGET_INSTALLMENTS))}`
+      ? compact(Math.round(value / BUDGET_INSTALLMENTS))
       : compact(value);
 
   return (
