@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, ExternalLink, Loader2, Plane, RefreshCw, Search, History, Route as RouteIcon } from "lucide-react";
+import { AlertTriangle, Check, ExternalLink, Loader2, Plane, RefreshCw, Search, History, Route as RouteIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import {
   reprocessarVoosCativa,
   reprocessarLoteCativa,
   historicoPacoteCativa,
+  liberarPacoteCativa,
 } from "@/lib/cativa/cativa.functions";
 
 export const Route = createFileRoute("/admin/pacotes-cativa")({
@@ -62,6 +63,7 @@ function PacotesCativaPage() {
   const reprocessar = useServerFn(reprocessarVoosCativa);
   const reprocessarLote = useServerFn(reprocessarLoteCativa);
   const historico = useServerFn(historicoPacoteCativa);
+  const liberar = useServerFn(liberarPacoteCativa);
 
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("");
@@ -106,6 +108,16 @@ function PacotesCativaPage() {
       toast.success("Voos reprocessados");
       qc.invalidateQueries({ queryKey: ["cativa-pacotes"] });
       qc.invalidateQueries({ queryKey: ["cativa-detalhe"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const liberarPacote = useMutation({
+    mutationFn: (v: { pacoteId: string; liberar: boolean }) => liberar({ data: v }),
+    onSuccess: (_r, v) => {
+      toast.success(v.liberar ? "Pacote liberado para o Command Center" : "Liberação removida");
+      qc.invalidateQueries({ queryKey: ["cativa-resumo"] });
+      qc.invalidateQueries({ queryKey: ["cativa-pacotes"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -299,6 +311,9 @@ function PacotesCativaPage() {
                     {p.categoria ? <Badge variant="outline">{p.categoria}</Badge> : null}
                     <StatusVoos status={p.voos_status} opcoes={p.voos_opcoes ?? 0} />
                     {p.status !== "ativo" ? <Badge variant="destructive">{p.status}</Badge> : null}
+                    {p.liberado_manual ? (
+                      <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Liberado manualmente</Badge>
+                    ) : null}
                   </div>
                   {p.voos_erro ? (
                     <div className="mt-1 flex items-center gap-1 text-xs text-destructive">
@@ -337,6 +352,16 @@ function PacotesCativaPage() {
                     ) : (
                       <RefreshCw className="h-4 w-4" />
                     )}
+                  </Button>
+                  <Button
+                    variant={p.liberado_manual ? "secondary" : "outline"}
+                    size="sm"
+                    disabled={liberarPacote.isPending}
+                    title="Mostrar este pacote no Command Center mesmo sem aéreo/dados completos"
+                    onClick={() => liberarPacote.mutate({ pacoteId: p.id, liberar: !p.liberado_manual })}
+                  >
+                    <Check className="mr-1 h-4 w-4" />
+                    {p.liberado_manual ? "Liberado" : "Ir do mesmo jeito"}
                   </Button>
                   {p.link_orcamento ? (
                     <a href={p.link_orcamento} target="_blank" rel="noreferrer" className="p-2 text-muted-foreground hover:text-foreground">
