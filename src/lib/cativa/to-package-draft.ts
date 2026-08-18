@@ -96,6 +96,18 @@ const cidadeDe = (iata: unknown, fallback?: unknown) => {
   return IATA_CITY[k] ?? "";
 };
 
+/** Remove código IATA do nome da cidade: "Recife (REC)" → "Recife"; "REC" → cidade conhecida. */
+const semIata = (v: unknown): string => {
+  let t = String(v ?? "").trim();
+  if (/^[A-Z]{3}$/.test(t)) return IATA_CITY[t] ?? t;
+  t = t
+    .replace(/\s*[\(\[\{]\s*[A-Za-z]{3}\s*[\)\]\}]/g, "")
+    .replace(/\s*[-–—/]\s*[A-Z]{3}\b/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return t;
+};
+
 /** ISO da operadora → valor aceito pelo input datetime-local (YYYY-MM-DDTHH:mm). */
 const dataHora = (v: unknown): string | undefined => {
   const t = String(v ?? "").trim();
@@ -561,8 +573,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     .trim();
   // O aeroporto de chegada (ex.: Recife) não substitui o destino real do pacote
   // (ex.: Porto de Galinhas). Cidade do hotel e nome comercial têm prioridade.
-  const destino = destinoHotel || destinoTitulo || destinoFonte;
-  const origem = (pacote.origem_cidade ?? pacote.origem_iata ?? "").trim();
+  const destino = semIata(destinoHotel || destinoTitulo || destinoFonte);
+  const origem = semIata((pacote.origem_cidade ?? pacote.origem_iata ?? "").trim());
   const incluso = Array.isArray(pacote.incluso)
     ? [...new Set(pacote.incluso.map(nomePublicoServico).filter(Boolean))]
     : [];
