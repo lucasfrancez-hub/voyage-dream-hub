@@ -153,7 +153,7 @@ export function OtherDatesBlock({ pkg }: { pkg: CurrentPkg }) {
 
       <div className="flex gap-2 overflow-x-auto pb-1.5 snap-x">
         {/* Data atual */}
-        <div className="min-w-[190px] flex-[0_0_190px] snap-start rounded-[13px] border border-brand-orange bg-brand-orange/10 px-3 py-[11px]">
+        <div className="min-w-[214px] flex-[0_0_214px] snap-start rounded-[13px] border border-brand-orange bg-brand-orange/10 px-3 py-[11px]">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[8px] font-extrabold uppercase tracking-[0.08em] text-brand-orange">
               Data atual
@@ -187,7 +187,7 @@ export function OtherDatesBlock({ pkg }: { pkg: CurrentPkg }) {
               disabled={!!switchingSlug}
               onMouseEnter={() => prefetch(a.slug)}
               onClick={() => void trocar(a)}
-              className="min-w-[190px] flex-[0_0_190px] snap-start rounded-[13px] border border-border bg-transparent px-3 py-[11px] text-left transition hover:border-brand-orange/40 hover:bg-brand-orange/5 disabled:opacity-60"
+              className="min-w-[214px] flex-[0_0_214px] snap-start rounded-[13px] border border-border bg-transparent px-3 py-[11px] text-left transition hover:border-brand-orange/40 hover:bg-brand-orange/5 disabled:opacity-60"
             >
               <div className="flex items-center justify-between gap-2">
                 <span
