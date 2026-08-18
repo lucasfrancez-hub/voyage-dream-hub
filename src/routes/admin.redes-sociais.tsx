@@ -48,8 +48,11 @@ type Filtro = "todos" | "feed" | "reels" | "stories";
 
 function RedesSociaisPage() {
   const fetchOverview = useServerFn(getSocialOverview);
+  const fetchBoosts = useServerFn(listarImpulsionamentos);
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [conta, setConta] = useState<string>("todas");
+  const [turbinar, setTurbinar] = useState<Item | null>(null);
+  const [detalhe, setDetalhe] = useState<Boost | null>(null);
 
   const { data, isFetching, refetch, error } = useQuery({
     queryKey: ["social-overview"],
@@ -57,6 +60,24 @@ function RedesSociaisPage() {
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
   });
+
+  const { data: boosts } = useQuery({
+    queryKey: ["meta-boosts"],
+    queryFn: () => fetchBoosts() as Promise<Boost[]>,
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+
+  const boostsPorMidia = useMemo(() => {
+    const mapa = new Map<string, Boost[]>();
+    for (const b of boosts ?? []) {
+      const lista = mapa.get(b.ig_media_id) ?? [];
+      lista.push(b);
+      mapa.set(b.ig_media_id, lista);
+    }
+    return mapa;
+  }, [boosts]);
+
 
   const contas = data?.contas ?? [];
   const visiveis = useMemo(
