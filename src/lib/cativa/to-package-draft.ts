@@ -712,15 +712,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     d.services = services;
     // "O que inclui" = só o NOME do serviço. Detalhes ficam no diálogo de cada item.
     const bullets = todos.filter((b) => b && !RE_RUIDO_SERVICO.test(b));
-    if (bullets.length) {
-      const vistosInc = new Set<string>();
-      d.includes = [...(d.includes as string[]), ...bullets].filter((b) => {
-        const k = b.toLowerCase().replace(/\s+/g, " ").trim();
-        if (!k || vistosInc.has(k)) return false;
-        vistosInc.add(k);
-        return true;
-      });
-    }
+    d.includes = ajustarInclusos([...(d.includes as string[]), ...bullets], d.meal_plan as string);
+
 
 
     // O resumo da operadora não vai para o campo público; a IA gera o texto no editor.
