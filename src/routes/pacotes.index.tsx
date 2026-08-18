@@ -526,7 +526,7 @@ function PacotesList() {
             </Popover>
           </div>
 
-          <div className="shrink-0 min-w-[280px] flex-[1.8] basis-[300px] overflow-hidden sm:pb-0.5">
+          <div className="flex-1 min-w-[280px] overflow-hidden sm:pb-0.5">
             <BudgetRuler
               mode={budgetMode}
               onModeChange={setBudgetMode}
@@ -535,7 +535,7 @@ function PacotesList() {
               min={0}
               max={maxBudget}
               step={100}
-              className="min-w-[260px]"
+              className="w-full min-w-[260px]"
             />
           </div>
 
