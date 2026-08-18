@@ -503,7 +503,7 @@ function PacotesList() {
             </Popover>
           </div>
 
-          <div className="flex-[1.6] min-w-[220px] sm:pb-0.5">
+          <div className="min-w-0 flex-[1.6] basis-[260px] sm:pb-0.5">
             <BudgetRuler
               mode={budgetMode}
               onModeChange={setBudgetMode}
