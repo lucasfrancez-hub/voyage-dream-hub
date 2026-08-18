@@ -492,14 +492,36 @@ function regime(v: unknown): string {
   return limpo(v);
 }
 
-/** Tipo de cama deduzido da descrição do quarto. */
+/** Tipo de cama normalizado para as opções do cadastro. */
 function tipoCama(v: string): string {
   const t = v.toLowerCase();
-  if (/quadrupl|qu[aá]drupl/.test(t)) return "Quádruplo";
-  if (/tripl/.test(t)) return "Triplo";
-  if (/casal|double|matrimonial|king|queen/.test(t)) return "Casal";
-  if (/twin|duas camas|2 camas|solteiro/.test(t)) return "Solteiro (twin)";
-  if (/individual|single/.test(t)) return "Individual";
+  if (/2\s*camas?\s*queen|duas\s*camas?\s*queen/.test(t)) return "2 camas queen";
+  if (/2\s*camas?\s*de\s*casal|duas\s*camas?\s*de\s*casal/.test(t)) return "2 camas de casal";
+  if (/3\s*camas?\s*de\s*solteiro|tr[eê]s\s*camas?\s*de\s*solteiro|tripl/.test(t)) return "3 camas de solteiro";
+  if (/casal\s*\+\s*2\s*solteir|casal\s*e\s*2\s*solteir/.test(t)) return "1 casal + 2 solteiros";
+  if (/casal\s*\+\s*(1\s*)?solteir|casal\s*e\s*(1\s*)?solteir/.test(t)) return "1 casal + 1 solteiro";
+  if (/sof[aá]\s*-?\s*cama/.test(t)) return "Cama de casal + sofá-cama";
+  if (/twin|2\s*camas?\s*de\s*solteiro|duas\s*camas?\s*de\s*solteiro|2\s*camas?\s*solteiro/.test(t))
+    return "2 camas de solteiro";
+  if (/king/.test(t)) return "1 cama king";
+  if (/queen/.test(t)) return "1 cama queen";
+  if (/casal|double|matrimonial/.test(t)) return "1 cama de casal";
+  if (/solteiro|individual|single/.test(t)) return "2 camas de solteiro";
+  return "";
+}
+
+/** Tipo de quarto normalizado para as opções do cadastro. */
+function tipoQuarto(desc: string): string {
+  const t = (desc || "").toLowerCase();
+  if (!t) return "";
+  if (/presidencial/.test(t)) return "Suíte Presidencial";
+  if (/master/.test(t)) return "Suíte Master";
+  if (/su[ií]te|suite/.test(t)) return "Suíte";
+  if (/bangal[oô]|bungalow/.test(t)) return "Bangalô";
+  if (/chal[eé]/.test(t)) return "Chalé";
+  if (/luxo|deluxe|de luxe|luxury/.test(t)) return "Luxo";
+  if (/superior/.test(t)) return "Superior";
+  if (/standard|standart|cl[aá]ssico|classic/.test(t)) return "Standard";
   return "";
 }
 
@@ -513,16 +535,21 @@ function descricaoQuarto(v: unknown): string {
     .trim();
 }
 
-/** Categoria do quarto (parte antes do tipo de cama/vista). */
+/** Categoria / vista do quarto — só preenche quando a vista está explícita. */
 function categoriaQuarto(desc: string): string {
-  if (!desc) return "";
-  const semCama = desc
-    .replace(/\b(casal|double|matrimonial|king|queen|twin|solteiro|tripl\w*|quadrupl\w*|individual|single)\b/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .replace(/[-–,]\s*$/, "")
-    .trim();
-  return semCama || desc;
+  const t = (desc || "").toLowerCase();
+  if (!t) return "";
+  if (/frente\s*(ao\s*)?mar|beach\s*front|ocean\s*front/.test(t)) return "Frente mar";
+  if (/vista\s*parcial\s*(ao\s*)?mar|parcial\s*mar/.test(t)) return "Vista parcial mar";
+  if (/vista\s*(para\s*o\s*)?mar|ocean\s*view|sea\s*view/.test(t)) return "Vista mar";
+  if (/vista\s*piscina|pool\s*view/.test(t)) return "Vista piscina";
+  if (/vista\s*jardim|garden\s*view/.test(t)) return "Vista jardim";
+  if (/vista\s*cidade|city\s*view/.test(t)) return "Vista cidade";
+  if (/vista\s*montanha|mountain\s*view/.test(t)) return "Vista montanha";
+  if (/vista\s*interna|interior/.test(t)) return "Vista interna";
+  return "";
 }
+
 
 /** Ocupação real do orçamento (o total da Infotravel é do grupo todo). */
 function paxDaOpcao(op: CativaVooRow | null): number {
