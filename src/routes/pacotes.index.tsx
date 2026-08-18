@@ -475,6 +475,18 @@ function PacotesList() {
             </Popover>
           </div>
 
+          <div className="flex-[1.6] min-w-[220px] sm:pb-0.5">
+            <BudgetRuler
+              mode={budgetMode}
+              onModeChange={setBudgetMode}
+              range={budgetRange}
+              onRangeChange={setBudgetRange}
+              min={0}
+              max={maxBudget}
+              step={100}
+            />
+          </div>
+
 
           <div className="flex-1">
 
