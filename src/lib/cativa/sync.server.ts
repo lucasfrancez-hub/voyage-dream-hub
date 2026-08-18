@@ -7,6 +7,32 @@ export const FONTES: CativaFonte[] = ["tradicionais", "eventos", "internacionais
 /** Dias até revalidar os voos de um pacote ativo sem alterações. */
 const REVALIDAR_VOOS_DIAS = 7;
 
+/** Intervalo mínimo entre reconsultas automáticas do mesmo pacote. */
+const RECONSULTA_MINIMA_HORAS = 20;
+
+/** Tira do portal os pacotes publicados vindos de itens esgotados no catálogo. */
+async function despublicarPacotesPublicados(ids: string[]) {
+  if (!ids.length) return;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("packages")
+    .update({ is_active: false } as any)
+    .in("cativa_pacote_id", ids)
+    .eq("is_active", true);
+}
+
+/** Volta ao ar o pacote publicado quando o item reaparece na planilha. */
+async function reativarPacotesPublicados(ids: string[]) {
+  if (!ids.length) return;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("packages")
+    .update({ is_active: true } as any)
+    .in("cativa_pacote_id", ids)
+    .eq("is_active", false);
+}
+
+
 type Resultado = {
   linhas: number;
   novos: number;
