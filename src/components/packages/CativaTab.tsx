@@ -65,16 +65,19 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
     setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   async function importar() {
-    if (!sel.length) return;
+    // Sem nada marcado, o botão pega automaticamente os próximos 10 da lista
+    // (ou todos, quando sobrarem menos de 10).
+    const ids = sel.length ? sel : rows.slice(0, 10).map((r) => String(r.id));
+    if (!ids.length) return;
     setImportando(true);
     try {
-      const { pacotes } = await carregar({ data: { ids: sel } });
+      const { pacotes } = await carregar({ data: { ids } });
       const drafts: CativaDraft[] = [];
       for (const item of pacotes as any[]) {
         drafts.push(...montarDraftsCativa(item.pacote, item.voos));
       }
       if (!drafts.length) throw new Error("Nenhum pacote pôde ser convertido");
-      const extras = drafts.length - sel.length;
+      const extras = drafts.length - ids.length;
       toast.success(
         extras > 0
           ? `${drafts.length} rascunhos gerados (${extras} por datas diferentes nas opções de voo).`
@@ -89,6 +92,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
       setImportando(false);
     }
   }
+
 
   return (
     <div className="space-y-4">
@@ -186,13 +190,14 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
         ) : null}
         <button
           type="button"
-          disabled={!sel.length || importando}
+          disabled={(!sel.length && !rows.length) || importando}
           onClick={importar}
           className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-orange px-4 text-xs font-bold uppercase tracking-wider text-white transition active:scale-95 disabled:opacity-50"
         >
           {importando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PackageSearch className="h-3.5 w-3.5" />}
-          Importar {sel.length ? `(${sel.length})` : ""}
+          Importar {sel.length ? `(${sel.length})` : `(próximos ${Math.min(10, rows.length)})`}
         </button>
+
       </div>
 
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">

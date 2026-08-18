@@ -89,6 +89,7 @@ import { useIgnoredHotels } from "@/lib/ignored-hotels";
 
 import { CurationTab } from "@/components/packages/CurationTab";
 import { CativaTab, CativaCountBadge } from "@/components/packages/CativaTab";
+import { arquivarPacotesCativa } from "@/lib/cativa/cativa.functions";
 import { HotelOptionsPanel } from "@/components/packages/HotelOptionsPanel";
 import { HotelStaysList, normalizeStays } from "@/components/packages/HotelStaysList";
 import { gerarRoteiro, nomeCurtoServico as nomeItem } from "@/lib/packages/itinerary";
@@ -260,6 +261,7 @@ function AdminPackages() {
   const searchHotelsFn = useServerFn(searchTripAdvisorHotels);
   const hotelDetailsFn = useServerFn(getTripAdvisorHotelDetails);
   const persistHotelPhotosFn = useServerFn(persistPackageHotelPhotos);
+  const arquivarCativaFn = useServerFn(arquivarPacotesCativa);
   // Multi-import drafts: array of partial packages open in tabs
   const [drafts, setDrafts] = useState<Partial<PackageRow>[] | null>(null);
   const [draftIndex, setDraftIndex] = useState(0);
@@ -775,6 +777,15 @@ function AdminPackages() {
       );
       if (priceErr) throw priceErr;
     }
+    // Só arquiva o pacote na Cativa depois que ele foi realmente gravado.
+    const cativaId = (pkg as any).cativa_pacote_id as string | undefined;
+    if (cativaId) {
+      try {
+        await arquivarCativaFn({ data: { ids: [cativaId], arquivar: true } });
+      } catch (e) {
+        console.warn("[packages] não foi possível arquivar o pacote Cativa", e);
+      }
+    }
     const sourcePhotos: string[] = (payload as any).tripadvisor_photos ?? [];
     if (
       sourcePhotos.length > 0 &&
@@ -1177,7 +1188,6 @@ function AdminPackages() {
             } catch {
               setPendingNumbers(null);
             }
-            setView("list");
             openDrafts(drafts);
           }}
         />
@@ -1803,6 +1813,7 @@ function PackageEditorModal({
   >([]);
   const draftsScrollRef = useRef<HTMLDivElement | null>(null);
   const [hotelOptIdx, setHotelOptIdx] = useState(0);
+  const [staySelIdx, setStaySelIdx] = useState(-1);
   const [hotelMode, setHotelMode] = useState<"live" | "manual" | null>(
     editing.tripadvisor_location_id ? "live" : editing.hotel_name ? "manual" : null,
   );
@@ -1825,8 +1836,17 @@ function PackageEditorModal({
     ? ((editing as any).hotel_options as any[])
     : [];
   const hotelSelIdx = hotelOpts.length > 1 ? Math.min(hotelOptIdx, hotelOpts.length - 1) : -1;
-  const hv: any = hotelSelIdx >= 0 ? hotelOpts[hotelSelIdx] : editing;
-  const setHotel = (p: Record<string, any>) => {
+  const hotelBase: any = hotelSelIdx >= 0 ? hotelOpts[hotelSelIdx] : editing;
+  // Roteiro com várias hospedagens (sequenciais): cada uma pode ser
+  // selecionada para editar nome, estrelas, TripAdvisor, regime etc.
+  const staysList = normalizeStays(
+    hotelSelIdx >= 0 ? hotelBase?.stays : (editing as any).hotel_stays,
+  );
+  const stayIdx =
+    staysList.length > 1 && staySelIdx >= 0 ? Math.min(staySelIdx, staysList.length - 1) : -1;
+  const hv: any = stayIdx >= 0 ? staysList[stayIdx] : hotelBase;
+
+  const setHotelBase = (p: Record<string, any>) => {
     if (hotelSelIdx < 0) {
       setEditing({ ...editing, ...p });
       return;
@@ -1834,6 +1854,25 @@ function PackageEditorModal({
     const next = hotelOpts.map((o, i) => (i === hotelSelIdx ? { ...o, ...p } : o));
     setEditing({ ...editing, hotel_options: next as any, ...(hotelSelIdx === 0 ? p : {}) });
   };
+
+  const setHotel = (p: Record<string, any>) => {
+    if (stayIdx < 0) {
+      setHotelBase(p);
+      return;
+    }
+    const nextStays = staysList.map((s, i) => (i === stayIdx ? { ...s, ...p } : s));
+    const patch: Record<string, any> =
+      hotelSelIdx >= 0 ? { stays: nextStays } : { hotel_stays: nextStays };
+    // a 1ª hospedagem também espelha os campos principais do pacote
+    setHotelBase(stayIdx === 0 ? { ...patch, ...p } : patch);
+  };
+
+  useEffect(() => {
+    if (staysList.length > 1 && staySelIdx < 0) setStaySelIdx(0);
+    if (staysList.length <= 1 && staySelIdx >= 0) setStaySelIdx(-1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staysList.length, hotelSelIdx, editing.id]);
+
 
   function handleGenerateItinerary() {
     const passeios = [
@@ -2879,31 +2918,46 @@ function PackageEditorModal({
 
                 />
 
-                {normalizeStays((editing as any).hotel_stays).length > 1 && (
+                {staysList.length > 1 && (
                   <div className="sm:col-span-2 rounded-2xl border border-border bg-muted/30 p-3">
                     <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Roteiro com {normalizeStays((editing as any).hotel_stays).length} hospedagens
+                      Roteiro com {staysList.length} hospedagens · clique para editar
                     </div>
-                    <HotelStaysList stays={normalizeStays((editing as any).hotel_stays)} />
+                    <HotelStaysList
+                      stays={staysList}
+                      selectedIndex={stayIdx}
+                      onSelect={setStaySelIdx}
+                    />
                     <p className="mt-2 text-[10px] text-muted-foreground">
-                      Todas as hospedagens acima aparecem para o cliente na página do pacote.
+                      Todas as hospedagens acima aparecem para o cliente. Os campos abaixo editam a
+                      hospedagem selecionada (nome, TripAdvisor, estrelas, regime, quarto e cama).
                     </p>
                   </div>
                 )}
 
+
                 <FormField
                   label={
-                    hotelSelIdx >= 0
-                      ? `Hotel — opção ${hotelSelIdx + 1}${hotelSelIdx === 0 ? " (base)" : ""}`
-                      : "Hotel"
+                    stayIdx >= 0
+                      ? `Hotel — ${stayIdx + 1}ª hospedagem`
+                      : hotelSelIdx >= 0
+                        ? `Hotel — opção ${hotelSelIdx + 1}${hotelSelIdx === 0 ? " (base)" : ""}`
+                        : "Hotel"
                   }
                   wide
                 >
                   <HotelAutocomplete
-                    key={`hotel-${hotelSelIdx}`}
+                    key={`hotel-${hotelSelIdx}-${stayIdx}`}
                     value={hv.hotel_name ?? ""}
-                    mode={hotelSelIdx >= 0 ? (hv.tripadvisor_location_id ? "live" : hotelMode) : hotelMode}
+                    mode={
+                      stayIdx >= 0 || hotelSelIdx >= 0
+                        ? hv.tripadvisor_location_id
+                          ? "live"
+                          : hotelMode
+                        : hotelMode
+                    }
                     onModeChange={setHotelMode}
+
                     onChangeText={(v) => setHotel({ hotel_name: v })}
                     onSelect={(h) => {
                       const automaticStars =
@@ -2919,8 +2973,14 @@ function PackageEditorModal({
                         tripadvisor_url: h.tripadvisor_url ?? null,
                         tripadvisor_address: h.address ?? null,
                         tripadvisor_photos: h.photos && h.photos.length > 0 ? h.photos : null,
+                        ...(stayIdx >= 0 && h.photos?.length ? { photo: h.photos[0] } : {}),
+                        ...(stayIdx >= 0 && h.address ? { address: h.address } : {}),
                       });
-                      if (hotelSelIdx <= 0 && !(editing.image_url && editing.image_url.length > 0)) {
+                      if (
+                        hotelSelIdx <= 0 &&
+                        stayIdx <= 0 &&
+                        !(editing.image_url && editing.image_url.length > 0)
+                      ) {
                         setEditing((prev: any) =>
                           prev ? { ...prev, image_url: h.photos[0] ?? prev.image_url ?? "" } : prev,
                         );

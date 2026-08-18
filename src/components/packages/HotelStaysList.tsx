@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from "react";
 import { BedDouble, CalendarDays, MapPin, Utensils } from "lucide-react";
 
 export type HotelStay = {
@@ -11,6 +12,11 @@ export type HotelStay = {
   nights?: number | null;
   address?: string | null;
   photo?: string | null;
+  hotel_stars?: number | null;
+  tripadvisor_location_id?: string | null;
+  tripadvisor_url?: string | null;
+  tripadvisor_address?: string | null;
+  tripadvisor_photos?: string[] | null;
 };
 
 export function normalizeStays(value: unknown): HotelStay[] {
@@ -23,13 +29,18 @@ const dataBr = (v?: string | null) => (v ? String(v).slice(0, 10).split("-").rev
 /**
  * Roteiro com mais de uma hospedagem: cada estadia é sequencial
  * (ex.: 2 noites em Salvador, depois 2 noites em Morro de São Paulo).
+ * Quando `onSelect` é informado, cada estadia vira clicável para edição.
  */
 export function HotelStaysList({
   stays,
   compact = false,
+  selectedIndex,
+  onSelect,
 }: {
   stays: HotelStay[];
   compact?: boolean;
+  selectedIndex?: number;
+  onSelect?: (i: number) => void;
 }) {
   if (!stays?.length) return null;
 
@@ -38,7 +49,26 @@ export function HotelStaysList({
       {stays.map((s, i) => (
         <li
           key={`${s.hotel_name}-${i}`}
-          className="flex gap-3 rounded-xl border border-border bg-card p-2.5"
+          {...(onSelect
+            ? {
+                role: "button" as const,
+                tabIndex: 0,
+                onClick: () => onSelect(i),
+                onKeyDown: (e: KeyboardEvent) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(i);
+                  }
+                },
+              }
+            : {})}
+          className={`flex gap-3 rounded-xl border p-2.5 transition ${
+            onSelect ? "cursor-pointer" : ""
+          } ${
+            onSelect && selectedIndex === i
+              ? "border-brand-orange bg-brand-orange/10 ring-1 ring-brand-orange/40"
+              : "border-border bg-card" + (onSelect ? " hover:border-brand-orange/40" : "")
+          }`}
         >
           {s.photo ? (
             <img
@@ -52,6 +82,7 @@ export function HotelStaysList({
               <BedDouble className="h-5 w-5 text-muted-foreground" />
             </div>
           )}
+
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-brand-orange/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-orange">
@@ -62,7 +93,24 @@ export function HotelStaysList({
                   {s.nights} {s.nights === 1 ? "noite" : "noites"}
                 </span>
               )}
+              {onSelect && (
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider ${
+                    s.tripadvisor_location_id
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-amber-600 dark:text-amber-400"
+                  }`}
+                >
+                  {s.tripadvisor_location_id ? "TripAdvisor vinculado" : "Sem TripAdvisor"}
+                </span>
+              )}
+              {onSelect && selectedIndex === i && (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-orange">
+                  Editando abaixo
+                </span>
+              )}
             </div>
+
             <div className="mt-0.5 truncate text-sm font-semibold">{s.hotel_name}</div>
             <div className="truncate text-xs text-muted-foreground">
               {[s.room_type, s.bed_type].filter(Boolean).join(" · ") || "—"}

@@ -591,8 +591,11 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     const { services, todos, destaques, resumoTexto, temTransfer, passeios, ingressos } =
       servicosDaOpcao(principal.detalhes);
     d.services = services;
-    const bullets = destaques.length ? destaques : todos;
+    const RUIDO_INCLUSO =
+      /isen[cç][aã]o de multa|cr[eé]dito para nova viagem|voucher\)? no valor|cobre impedimentos|v[aá]lido para pacotes e servi[cç]os|cancelamento eleg[ií]vel/i;
+    const bullets = (destaques.length ? destaques : todos).filter((b) => !RUIDO_INCLUSO.test(b));
     if (bullets.length) d.includes = [...new Set([...(d.includes as string[]), ...bullets])];
+
     if (resumoTexto) d.summary = [d.summary, resumoTexto].filter(Boolean).join("\n\n").trim();
     // Roteiro em linha do tempo (Dia 1, Dia 2 …) — sem os textões do operador.
     d.itinerary = gerarRoteiro({

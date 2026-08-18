@@ -19,6 +19,22 @@ const norm = (v: string) =>
     .trim();
 
 /**
+ * Frases que são detalhamento de cobertura (seguro/condições), não serviço
+ * incluso. Não devem aparecer na lista "O que inclui".
+ */
+const RUIDO = [
+  /isen[cç][aã]o de multa/i,
+  /cr[eé]dito para nova viagem/i,
+  /voucher\)? no valor/i,
+  /cobre impedimentos/i,
+  /v[aá]lido para pacotes e servi[cç]os/i,
+  /cancelamento eleg[ií]vel/i,
+];
+
+const ehRuido = (s: string) => RUIDO.some((r) => r.test(s));
+
+
+/**
  * Lista do que está incluso. Itens que têm detalhamento do operador
  * abrem uma janela com o texto completo daquele serviço.
  */
@@ -61,7 +77,8 @@ export default function IncludedServices({
   const linhas: Array<{ label: string; detalhe: ServiceDetail | null }> = [
     ...includes.map((i) => ({ label: i, detalhe: acharDetalhe(i) })),
     ...extras.map((d) => ({ label: d.titulo, detalhe: d })),
-  ];
+  ].filter(({ label }) => label && !ehRuido(label));
+
 
   if (!linhas.length) return null;
 
