@@ -482,7 +482,7 @@ function AdminPackages() {
       return sortDir === "asc" ? bc - ac : ac - bc;
     });
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, kindFilter, sortDir, sortMode]);
+  }, [packages, originFilter, destinationFilter, monthFilter, kindFilter, expiredView, sortDir, sortMode]);
 
   const [exporting, setExporting] = useState(false);
   const exportCsv = async () => {
