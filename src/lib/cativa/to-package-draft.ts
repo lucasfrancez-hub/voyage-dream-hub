@@ -412,6 +412,13 @@ function servicosDaOpcao(detalhes: any) {
 function regime(v: unknown): string {
   const t = limpo(v).toLowerCase();
   if (!t) return "";
+  // códigos curtos das operadoras (IA/AI = inclusive all, CM = café, MP, PC, SA)
+  const cod = t.replace(/[^a-z]/g, "");
+  if (cod === "ia" || cod === "ai" || cod === "ti") return "All inclusive";
+  if (cod === "pc" || cod === "fb") return "Pensão completa";
+  if (cod === "mp" || cod === "hb") return "Meia pensão";
+  if (cod === "cm" || cod === "ca" || cod === "bb") return "Café da manhã";
+  if (cod === "sa" || cod === "ro") return "Sem refeições";
   if (/all\s*inclusive|tudo\s*inclu/.test(t)) return "All inclusive";
   if (/pens[aã]o\s*completa|full\s*board/.test(t)) return "Pensão completa";
   if (/meia\s*pens[aã]o|half\s*board/.test(t)) return "Meia pensão";
