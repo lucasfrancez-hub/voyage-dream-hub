@@ -90,19 +90,47 @@ function mapFlight(f: any) {
   };
 }
 
+export type ServicoResumidoIA = {
+  tipo: string;
+  nome: string;
+  resumo: string;
+  destaques: string[];
+  observacoes: string[];
+};
+
+/** Nome curto e apresentável para o serviço (corta textões da operadora). */
+function nomeCurto(v: unknown): string {
+  const t = String(v ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (t.length <= 90) return t;
+  const corte = t.slice(0, 90);
+  const p = corte.lastIndexOf(" ");
+  return `${(p > 40 ? corte.slice(0, p) : corte).replace(/[.,;:–-]+$/, "")}…`;
+}
+
 /** Serviços adicionais (transfers, ingressos, passeios, seguro, outros) da opção. */
 function servicosDaOpcao(detalhes: any) {
   const lista = (v: any): any[] => (Array.isArray(v) ? v : []);
-  const nomes = (v: any) =>
+  const resumoIA: ServicoResumidoIA[] = lista(detalhes?.resumo_ia);
+
+  // quando a IA resumiu, usa o nome bonito dela no lugar do texto original
+  const nomeIA = (tipo: string, original: string, ordem: number) => {
+    const doTipo = resumoIA.filter((r) => r.tipo === tipo);
+    const r = doTipo[ordem];
+    return nomeCurto(r?.nome || original);
+  };
+
+  const nomes = (v: any, tipo: string) =>
     lista(v)
-      .map((i) => String(i?.name ?? "").trim())
+      .map((i, idx) => nomeIA(tipo, String(i?.name ?? "").trim(), idx))
       .filter(Boolean);
 
-  const transfers = nomes(detalhes?.transfers);
-  const tickets = nomes(detalhes?.tickets);
-  const activities = nomes(detalhes?.activities);
-  const insurance = nomes(detalhes?.insurance);
-  const outrosServicos = nomes(detalhes?.services);
+  const transfers = nomes(detalhes?.transfers, "Transfer");
+  const tickets = nomes(detalhes?.tickets, "Ingresso");
+  const activities = nomes(detalhes?.activities, "Passeio");
+  const insurance = nomes(detalhes?.insurance, "Seguro / proteção");
+  const outrosServicos = nomes(detalhes?.services, "Serviço");
 
   const services: Record<string, any> = {};
   if (transfers.length) {
@@ -114,7 +142,22 @@ function servicosDaOpcao(detalhes: any) {
     services.seguro = { enabled: true, cobertura: insurance.join(" · ") };
   }
   if (outrosServicos.length) services.outros = outrosServicos;
-  return { services, todos: [...transfers, ...tickets, ...activities, ...insurance, ...outrosServicos] };
+
+  // bullets curtos e observações vindos do resumo da IA
+  const destaques = [...new Set(resumoIA.flatMap((r) => r.destaques ?? []).map((s) => s.trim()).filter(Boolean))];
+  const observacoes = [...new Set(resumoIA.flatMap((r) => r.observacoes ?? []).map((s) => s.trim()).filter(Boolean))];
+  const resumoTexto = resumoIA
+    .map((r) => [r.nome ? `${r.nome}` : "", r.resumo].filter(Boolean).join(" — "))
+    .filter(Boolean)
+    .join("\n");
+
+  return {
+    services,
+    todos: [...transfers, ...tickets, ...activities, ...insurance, ...outrosServicos],
+    destaques,
+    observacoes,
+    resumoTexto,
+  };
 }
 
 function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
