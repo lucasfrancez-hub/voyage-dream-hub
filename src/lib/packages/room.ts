@@ -15,3 +15,13 @@ export function cleanRoomLabel(value: string | null | undefined): string | null 
     .trim();
   return cleaned || null;
 }
+
+/**
+ * Categoria/vista só aceita valores de vista. Tipos de quarto ("Standard",
+ * "Superior"…) não são vista e viram vazio ("— Não informado —").
+ */
+export function soVista(value: string | null | undefined): string {
+  const t = String(value ?? "").trim();
+  if (!t) return "";
+  return /vista|frente\s*mar|\bmar\b|jardim|piscina|cidade|montanha/i.test(t) ? t : "";
+}
