@@ -997,7 +997,7 @@ function Checkout() {
                   onClick={() => setPayment("credit_card")}
                   icon={CreditCard}
                   title="Cartão de crédito"
-                  desc="Parcelar em até 10 vezes sem juros."
+                  desc={`Parcelar em até ${maxParcelasPacote} vezes sem juros.`}
                 />
                 <PaymentOption
                   active={payment === "pix"}
