@@ -1807,8 +1807,45 @@ function PackageEditorModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing.tripadvisor_location_id, editing.id]);
 
+
+  // Hospedagem: quando há múltiplas opções, os campos abaixo editam a opção
+  // selecionada. A opção base (índice 0) também espelha no pacote.
+  const hotelOpts: any[] = Array.isArray((editing as any).hotel_options)
+    ? ((editing as any).hotel_options as any[])
+    : [];
+  const hotelSelIdx = hotelOpts.length > 1 ? Math.min(hotelOptIdx, hotelOpts.length - 1) : -1;
+  const hv: any = hotelSelIdx >= 0 ? hotelOpts[hotelSelIdx] : editing;
+  const setHotel = (p: Record<string, any>) => {
+    if (hotelSelIdx < 0) {
+      setEditing({ ...editing, ...p });
+      return;
+    }
+    const next = hotelOpts.map((o, i) => (i === hotelSelIdx ? { ...o, ...p } : o));
+    setEditing({ ...editing, hotel_options: next as any, ...(hotelSelIdx === 0 ? p : {}) });
+  };
+
+  function handleGenerateItinerary() {
+    const passeios = [
+      ...(Array.isArray((editing.services as any)?.passeios)
+        ? ((editing.services as any).passeios as string[])
+        : []),
+      ...(Array.isArray((editing.services as any)?.tickets?.parks)
+        ? ((editing.services as any).tickets.parks as string[])
+        : []),
+    ];
+    const texto = gerarRoteiro({
+      destino: editing.destination ?? "",
+      noites: Number(editing.nights) || 0,
+      temTransfer: !!(editing.services as any)?.transfer?.enabled,
+      passeios,
+    });
+    setEditing({ ...editing, itinerary: texto });
+    toast.success("Roteiro gerado em linha do tempo");
+  }
+
   const genSummary = useServerFn(generatePackageSummary);
   const searchImages = useServerFn(searchCoverImages);
+
 
   const derived = useMemo(
     () => deriveFromFlights(editing),
