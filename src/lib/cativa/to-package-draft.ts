@@ -445,7 +445,7 @@ function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[]
   const visto = new Set<string>();
   const out: string[] = [];
   for (const raw of lista) {
-    let item = semGratis(String(raw ?? "").trim());
+    let item = caixaServico(semGratis(String(raw ?? "").trim()));
     if (!item) continue;
     // Sobras de nome de plano/marca do seguro ("HERO", "Protect", "Plus"…): não são serviço.
     if (/^(hero|protect(\s*travel)?|travel|plus|premium|basic|standard|top|max)$/i.test(item)) continue;
@@ -457,11 +457,10 @@ function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[]
     if (/seguro|protect\s*travel|assist[eê]ncia\s+(de\s+)?viagem|cobertura\s+(de\s+)?cancelamento/i.test(item)) {
       item = "Seguro viagem";
     }
-    // Transfer aeroporto/hotel/aeroporto costuma vir duplicado como "Combo: traslado…".
-    const k = /transfer|traslado|translado/i.test(item) && /aeroporto/i.test(item)
-      ? "transfer aeroporto"
-      : chaveServico(item);
+    // Qualquer menção a transfer/traslado entra uma única vez na lista.
+    const k = /transfer|traslado|translado/i.test(item) ? "transfer" : chaveServico(item);
     if (!k || visto.has(k)) continue;
+
 
     // Mesmo atrativo repetido (ex.: "Passeio a Praia do Gunga" e "Praia do Gunga",
     // "Ingresso para Pratagy Acqua Park" e "Pratagy Acqua Park"): fica o mais completo.
