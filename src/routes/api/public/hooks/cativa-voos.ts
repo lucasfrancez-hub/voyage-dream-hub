@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/hooks/cativa-voos")({
           return new Response("Unauthorized", { status: 401 });
         }
 
-        let body: { limite?: number } = {};
+        let body: { limite?: number; recalcularTudo?: boolean } = {};
         try {
           body = (await request.json()) as typeof body;
         } catch {
@@ -25,6 +25,30 @@ export const Route = createFileRoute("/api/public/hooks/cativa-voos")({
         const limite = Math.min(20, Math.max(1, typeof body.limite === "number" ? body.limite : 6));
 
         try {
+          // Recalcular tudo: recoloca todos os pacotes ativos com link na fila,
+          // para regravar aéreo, taxas e valor total a partir da Infotravel.
+          if (body.recalcularTudo) {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { count } = await supabaseAdmin
+              .from("cativa_pacotes")
+              .select("id", { count: "exact", head: true })
+              .eq("status", "ativo")
+              .not("link_orcamento", "is", null);
+            await supabaseAdmin
+              .from("cativa_pacotes")
+              .update({
+                voos_status: "pendente",
+                voos_tentativas: 0,
+                voos_prioridade: 3,
+                voos_erro: null,
+                voos_proxima_em: new Date().toISOString(),
+              } as any)
+              .eq("status", "ativo")
+              .not("link_orcamento", "is", null);
+            return new Response(JSON.stringify({ enfileirados: count ?? 0 }), {
+              headers: { "Content-Type": "application/json" },
+            });
+          }
           const { processarFilaVoos } = await import("@/lib/cativa/voos.server");
           const voos = await processarFilaVoos(limite);
           return new Response(JSON.stringify({ voos }), {
