@@ -24,19 +24,30 @@ export const criarPixCobranca = createServerFn({ method: 'POST' })
 
     const { data: order, error: orderErr } = await supabaseAdmin
       .from('orders')
-      .select('id, order_number, total_price, payment_method, full_name, cpf, email, status')
+      .select('id, order_number, total_price, payment_method, full_name, cpf, email, status, package_snapshot')
       .eq('id', data.orderId)
       .maybeSingle()
 
     if (orderErr) throw new Error(`Falha ao buscar pedido: ${orderErr.message}`)
     if (!order) throw new Error('Pedido não encontrado.')
-    if (!String(order.payment_method || '').startsWith('pix')) {
+
+    const metodo = String(order.payment_method || '')
+    const isPrepaidEntry = metodo.startsWith('prepaid_boleto')
+    if (!metodo.startsWith('pix') && !isPrepaidEntry) {
       throw new Error('Este pedido não é Pix.')
     }
-    const total = Number(order.total_price ?? 0)
+
+    // Pedido Pix comum: cobra o total. Boleto pré-pago: cobra só a entrada.
+    const snapshot = (order.package_snapshot ?? {}) as {
+      prepaid_boleto?: { entry_amount?: number | null } | null
+    }
+    const entrada = Number(snapshot?.prepaid_boleto?.entry_amount ?? 0)
+    const total = isPrepaidEntry ? entrada : Number(order.total_price ?? 0)
+    if (!(total > 0)) throw new Error('Valor do pedido indisponível.')
     if (Math.abs(total - data.valorEsperado) > 0.01) {
       throw new Error('Valor divergente do pedido.')
     }
+
 
     // Reaproveita cobrança ativa se existir
     const nowIso = new Date().toISOString()
