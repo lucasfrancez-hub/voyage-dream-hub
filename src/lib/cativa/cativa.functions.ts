@@ -35,7 +35,10 @@ const FILTRO_INCOMPLETO = [
 ].join(",");
 
 /** Pacote pronto pro Command Center: completo ou liberado manualmente. */
-const FILTRO_COMPLETO = `liberado_manual.is.true,and(destino.not.is.null,or(origem_iata.not.is.null,origem_cidade.not.is.null),or(voos_status.eq.ok,voos_status.eq.circuito))`;
+const FILTRO_COMPLETO = `liberado_manual.is.true,and(destino.not.is.null,or(voos_status.eq.ok,voos_status.eq.circuito))`;
+
+/** Pacote sem origem nunca aparece no Command Center (nem liberado manualmente). */
+const FILTRO_TEM_ORIGEM = "origem_iata.not.is.null,origem_cidade.not.is.null";
 
 
 export const listarPacotesCativa = createServerFn({ method: "POST" })
@@ -79,7 +82,11 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
     if (modo === "circuitos") q = q.eq("categoria", CATEGORIA_CIRCUITO);
     else if (modo === "pacotes") q = q.or(FILTRO_CATEGORIA_PACOTES);
     if (data.incompletos) q = q.eq("liberado_manual", false).or(FILTRO_INCOMPLETO);
-    if (data.somenteCompletos && !data.incompletos) q = q.or(FILTRO_COMPLETO);
+    if (data.somenteCompletos && !data.incompletos) {
+      q = q.or(FILTRO_COMPLETO);
+      q = q.or(FILTRO_TEM_ORIGEM);
+      q = q.not("destino", "is", null);
+    }
 
     if (data.fonte) q = q.eq("fonte", data.fonte);
     if (data.status) q = q.eq("status", data.status);
