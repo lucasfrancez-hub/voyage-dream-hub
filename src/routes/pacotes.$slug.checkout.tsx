@@ -61,7 +61,6 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
 type PaymentMethod = "credit_card" | "pix" | "boleto" | "prepaid_boleto";
 
 
-const MAX_INSTALLMENTS = 10;
 const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
@@ -1277,7 +1276,7 @@ function Checkout() {
               {payment === "credit_card" && (
                 <div className="mt-1 text-right text-xs text-muted-foreground">
                   em {installments}x de {formatBRL(totalPrice / installments)}
-                  {installments <= 10 ? " sem juros" : ""}
+                  {installments <= maxParcelasPacote ? " sem juros" : ""}
                 </div>
               )}
 
