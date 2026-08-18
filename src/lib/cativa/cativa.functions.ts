@@ -8,6 +8,9 @@ async function exigirAdmin(context: any) {
 
 export const CATEGORIA_CIRCUITO = "Circuito";
 
+/** Pacote "incompleto": falta origem, destino, aéreo ou taxas. */
+const FILTRO_INCOMPLETO = "origem_iata.is.null,destino.is.null,aereo_por.is.null,taxas.is.null";
+
 export const listarPacotesCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -21,6 +24,8 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
             arquivados?: boolean;
             /** "circuitos" mostra só circuitos; por padrão circuitos ficam fora da lista */
             modo?: "pacotes" | "circuitos" | "todos";
+            /** só pacotes com dados faltando (origem, destino, aéreo ou taxas) */
+            incompletos?: boolean;
           }
         | undefined,
     ) => input ?? {},
@@ -43,6 +48,7 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
     const modo = data.modo ?? "pacotes";
     if (modo === "circuitos") q = q.eq("categoria", CATEGORIA_CIRCUITO);
     else if (modo === "pacotes") q = q.or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
+    if (data.incompletos) q = q.or(FILTRO_INCOMPLETO);
     if (data.fonte) q = q.eq("fonte", data.fonte);
     if (data.status) q = q.eq("status", data.status);
     if (data.busca) {
@@ -89,13 +95,14 @@ export const resumoCativa = createServerFn({ method: "POST" })
     };
 
     const semCircuito = (q: any) => q.or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
-    const [ativos, esgotados, pendentes, comVoos, erros, circuitos] = await Promise.all([
+    const [ativos, esgotados, pendentes, comVoos, erros, circuitos, incompletos] = await Promise.all([
       conta((q: any) => semCircuito(q.eq("status", "ativo").is("importado_em", null))),
       conta((q: any) => q.eq("status", "esgotado")),
       conta((q: any) => semCircuito(q.eq("status", "ativo").eq("voos_status", "pendente"))),
       conta((q: any) => semCircuito(q.eq("status", "ativo").eq("voos_status", "ok"))),
       conta((q: any) => semCircuito(q.eq("voos_status", "erro"))),
       conta((q: any) => q.eq("status", "ativo").is("importado_em", null).eq("categoria", CATEGORIA_CIRCUITO)),
+      conta((q: any) => semCircuito(q.eq("status", "ativo").is("importado_em", null)).or(FILTRO_INCOMPLETO)),
     ]);
 
     const { data: runs } = await supabaseAdmin
@@ -104,7 +111,7 @@ export const resumoCativa = createServerFn({ method: "POST" })
       .order("iniciado_em", { ascending: false })
       .limit(10);
 
-    return { ativos, esgotados, pendentes, comVoos, erros, circuitos, runs: runs ?? [] };
+    return { ativos, esgotados, pendentes, comVoos, erros, circuitos, incompletos, runs: runs ?? [] };
   });
 
 
@@ -258,7 +265,9 @@ export const arquivarPacotesCativa = createServerFn({ method: "POST" })
  */
 export const reprocessarLoteCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { tudo?: boolean; limite?: number; forcar?: boolean } | undefined) => input ?? {})
+  .inputValidator(
+    (input: { tudo?: boolean; limite?: number; forcar?: boolean; incompletos?: boolean } | undefined) => input ?? {},
+  )
   .handler(async ({ data, context }) => {
     await exigirAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -286,7 +295,8 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
       .not("link_orcamento", "is", null)
       .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`)
       .limit(limite);
-    if (!data.tudo) q = q.or("voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_opcoes.is.null,voos_opcoes.eq.0");
+    if (data.incompletos) q = q.or(FILTRO_INCOMPLETO);
+    else if (!data.tudo) q = q.or("voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_opcoes.is.null,voos_opcoes.eq.0");
 
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
@@ -302,7 +312,9 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
       .is("importado_em", null)
       .not("link_orcamento", "is", null)
       .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
-    if (!data.tudo) {
+    if (data.incompletos) {
+      restantesQ = restantesQ.or(FILTRO_INCOMPLETO);
+    } else if (!data.tudo) {
       restantesQ = restantesQ.or(
         "voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_status.eq.pendente,voos_opcoes.is.null,voos_opcoes.eq.0",
       );
