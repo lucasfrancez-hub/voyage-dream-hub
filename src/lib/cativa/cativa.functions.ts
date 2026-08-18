@@ -6,12 +6,22 @@ async function exigirAdmin(context: any) {
   if (!isAdmin) throw new Error("Forbidden");
 }
 
+export const CATEGORIA_CIRCUITO = "Circuito";
+
 export const listarPacotesCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     (
       input:
-        | { busca?: string; fonte?: string; status?: string; pagina?: number; arquivados?: boolean }
+        | {
+            busca?: string;
+            fonte?: string;
+            status?: string;
+            pagina?: number;
+            arquivados?: boolean;
+            /** "circuitos" mostra só circuitos; por padrão circuitos ficam fora da lista */
+            modo?: "pacotes" | "circuitos" | "todos";
+          }
         | undefined,
     ) => input ?? {},
   )
@@ -30,12 +40,16 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
 
     // pacotes já importados ficam arquivados e só aparecem quando pedido
     q = data.arquivados ? q.not("importado_em", "is", null) : q.is("importado_em", null);
+    const modo = data.modo ?? "pacotes";
+    if (modo === "circuitos") q = q.eq("categoria", CATEGORIA_CIRCUITO);
+    else if (modo === "pacotes") q = q.neq("categoria", CATEGORIA_CIRCUITO);
     if (data.fonte) q = q.eq("fonte", data.fonte);
     if (data.status) q = q.eq("status", data.status);
     if (data.busca) {
       const b = `%${data.busca}%`;
       q = q.or(`nome.ilike.${b},destino.ilike.${b},origem_iata.ilike.${b},origem_cidade.ilike.${b}`);
     }
+
 
     const { data: rows, count, error } = await q;
     if (error) throw new Error(error.message);
