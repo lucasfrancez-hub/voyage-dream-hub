@@ -39,7 +39,28 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
 
     const { data: rows, count, error } = await q;
     if (error) throw new Error(error.message);
-    return { rows: rows ?? [], total: count ?? 0 };
+
+    // menor total entre as opções de voo importadas (usado quando o aéreo veio vazio)
+    const lista = (rows ?? []) as any[];
+    if (lista.length) {
+      const { data: voos } = await supabaseAdmin
+        .from("cativa_pacote_voos")
+        .select("pacote_id, total")
+        .in(
+          "pacote_id",
+          lista.map((p) => p.id),
+        );
+      const menor = new Map<string, number>();
+      for (const v of (voos ?? []) as any[]) {
+        const t = Number(v.total);
+        if (!Number.isFinite(t) || t <= 0) continue;
+        const atual = menor.get(v.pacote_id);
+        if (atual === undefined || t < atual) menor.set(v.pacote_id, t);
+      }
+      for (const p of lista) p.voo_menor = menor.get(p.id) ?? null;
+    }
+
+    return { rows: lista, total: count ?? 0 };
   });
 
 export const resumoCativa = createServerFn({ method: "POST" })
