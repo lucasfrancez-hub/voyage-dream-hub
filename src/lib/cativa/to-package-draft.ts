@@ -337,9 +337,15 @@ function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[]
   for (const raw of lista) {
     let item = semGratis(String(raw ?? "").trim());
     if (!item) continue;
+    // Sobras de nome de plano/marca do seguro ("HERO", "Protect", "Plus"…): não são serviço.
+    if (/^(hero|protect(\s*travel)?|travel|plus|premium|basic|standard|top|max)$/i.test(item)) continue;
     if (/hospedagem|di[aá]rias?\b|consulte\s+o?\s*regime/i.test(item)) {
       const r = (regimeAtual ?? "").trim();
       item = r && !/sem refei/i.test(r) ? `Hospedagem com ${r.toLowerCase()}` : "Hospedagem";
+    }
+    // Seguro/assistência vira uma linha única e limpa.
+    if (/seguro|protect\s*travel|assist[eê]ncia\s+(de\s+)?viagem|cobertura\s+(de\s+)?cancelamento/i.test(item)) {
+      item = "Seguro viagem";
     }
     // Transfer aeroporto/hotel/aeroporto costuma vir duplicado como "Combo: traslado…".
     const k = /transfer|traslado|translado/i.test(item) && /aeroporto/i.test(item)
