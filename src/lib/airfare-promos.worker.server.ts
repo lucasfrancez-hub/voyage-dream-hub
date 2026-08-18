@@ -60,7 +60,7 @@ const MAX_REVIVE_ROUNDS = 3;
 export const RUN_STALE_MS = 45 * 60 * 1000;
 
 /** Folga do watchdog além do timeout da candidata antes de abortar à força. */
-const WATCHDOG_GRACE_MS = 15_000;
+const WATCHDOG_GRACE_MS = 10_000;
 
 /** Frequência do watchdog de workers. */
 const WATCHDOG_TICK_MS = 5_000;
@@ -81,7 +81,20 @@ const HEARTBEAT_TICK_MS = 15_000;
  * Margem de segurança para NÃO aceitar trabalho que não cabe no orçamento
  * restante da invocação (raiz do problema: claim tardio → worker morto).
  */
-const CLAIM_SAFETY_MS = 10_000;
+const CLAIM_SAFETY_MS = 5_000;
+
+/**
+ * MODO SLOT (padrão do robô da Cativa, que roda liso há semanas).
+ *
+ * Em vez de UMA invocação longa tentando esvaziar a fila inteira (que a
+ * plataforma mata no meio e gera `worker_morto`), o cron dispara VÁRIAS
+ * invocações curtas por minuto. Cada slot reserva UMA candidata de forma
+ * atômica, valida dentro do próprio tempo de vida e grava o resultado.
+ * Quem não termina não trava ninguém: a candidata volta para a fila.
+ */
+export const SLOT_BUDGET_MS = Number(
+  (typeof process !== "undefined" ? process.env?.["AIRFARE_SLOT_BUDGET_MS"] : undefined) ?? 90_000,
+);
 
 /**
  * A invocação autônoma dura cerca de 100s. Os timeouts nominais do motor
@@ -1857,6 +1870,47 @@ export async function resumeActiveRun(budgetMs = WORKER_BUDGET_MS) {
       );
   }
 }
+
+/**
+ * SLOT DE VALIDAÇÃO — o mesmo desenho do robô do catálogo de pacotes.
+ *
+ * O cron dispara vários slots por minuto (invocações independentes). Cada slot:
+ *  1. pega a execução ativa (sem criar nenhuma);
+ *  2. recupera candidatas órfãs (lease vencido) antes de reservar qualquer uma;
+ *  3. reserva UMA candidata de forma atômica e valida no motor dentro do
+ *     próprio orçamento (`SLOT_BUDGET_MS`), sempre menor que a vida útil da
+ *     invocação;
+ *  4. grava o resultado e sai.
+ *
+ * NÃO usa o lease global da execução: slots são paralelos entre si, como a fila
+ * de voos da Cativa. Nada fica travado esperando um worker longo terminar.
+ */
+export async function runValidationSlot(budgetMs = SLOT_BUDGET_MS) {
+  const client = await db();
+  const { data: run } = await client
+    .from("airfare_promo_runs")
+    .select("id,phase,status,updated_at,started_at")
+    .eq("status", "running")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!run) return { slot: false as const, reason: "sem_coleta_ativa" };
+  if (run.phase === "descobrindo") return { slot: false as const, reason: "descobrindo" };
+
+  const { count } = await client
+    .from("airfare_promo_candidates")
+    .select("id", { count: "exact", head: true })
+    .eq("run_id", run.id)
+    .in("status", ["pending", "processing"]);
+
+  if (Number(count ?? 0) === 0) return { slot: false as const, reason: "fila_vazia", runId: run.id };
+
+  const res = await processPendingCandidates({ runId: run.id, budgetMs, concurrency: 1 });
+  return { slot: true as const, runId: run.id, ...res };
+}
+
+
 
 
 /**
