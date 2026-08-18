@@ -5498,6 +5498,7 @@ export type Database = {
           hotel_name: string | null
           hotel_options: Json | null
           hotel_stars: number | null
+          hotel_stays: Json | null
           id: string
           image_url: string | null
           includes: string[] | null
@@ -5544,6 +5545,7 @@ export type Database = {
           hotel_name?: string | null
           hotel_options?: Json | null
           hotel_stars?: number | null
+          hotel_stays?: Json | null
           id?: string
           image_url?: string | null
           includes?: string[] | null
@@ -5590,6 +5592,7 @@ export type Database = {
           hotel_name?: string | null
           hotel_options?: Json | null
           hotel_stars?: number | null
+          hotel_stays?: Json | null
           id?: string
           image_url?: string | null
           includes?: string[] | null
