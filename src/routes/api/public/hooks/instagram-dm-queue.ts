@@ -3,10 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 /**
  * Fila do direct do Instagram.
  *
- * Quando alguém comenta numa publicação, a resposta pública sai na hora, mas o
- * direct fica agendado pra ~1min30/2min depois — assim não parece robô
- * respondendo tudo no mesmo segundo. Este cron (a cada 1 min) envia os directs
- * que já venceram.
+ * Quando alguém comenta numa publicação, a resposta pública sai em ~20-35s e o
+ * direct logo depois (~30-50s) — rápido, mas sem parecer robô respondendo no
+ * mesmo segundo. Este cron roda a cada 15s e envia o que já venceu.
  */
 
 export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
@@ -49,7 +48,7 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
               message: c.auto_reply_text,
             });
 
-            const espera = 90_000 + Math.floor(Math.random() * 30_000);
+            const espera = 30_000 + Math.floor(Math.random() * 20_000);
             await supabaseAdmin
               .from("instagram_comments")
               .update({
@@ -65,7 +64,7 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
             console.error("[instagram-dm-queue] resposta pública falhou:", (e as Error).message);
             await supabaseAdmin
               .from("instagram_comments")
-              .update({ reply_scheduled_at: new Date(Date.now() + 60_000).toISOString() })
+              .update({ reply_scheduled_at: new Date(Date.now() + 20_000).toISOString() })
               .eq("id", c.id);
           }
         }
@@ -120,7 +119,7 @@ export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
             // tenta de novo no próximo minuto, até 10 min depois do previsto
             await supabaseAdmin
               .from("instagram_comments")
-              .update({ dm_scheduled_at: new Date(Date.now() + 60_000).toISOString() })
+              .update({ dm_scheduled_at: new Date(Date.now() + 20_000).toISOString() })
               .eq("id", c.id);
           }
         }

@@ -405,9 +405,9 @@ async function processPayload(payload: IGPayload) {
               videoTranscricao,
             });
             if (resposta) {
-              // Nada de responder no mesmo segundo: a resposta pública fica
-              // agendada pra ~1 minuto depois (cron instagram-dm-queue).
-              const esperaResposta = 55_000 + Math.floor(Math.random() * 15_000);
+              // Nada de responder no mesmo segundo, mas sem demorar: a
+              // resposta pública sai em ~20-35s (cron instagram-dm-queue).
+              const esperaResposta = 20_000 + Math.floor(Math.random() * 15_000);
               const { contaEnviaDmAposComentario } = await import("@/lib/instagram/ai-toggle");
               const podeMandarDm = contaEnviaDmAposComentario(igMetadata);
               await supabaseAdmin
