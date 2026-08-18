@@ -18,17 +18,18 @@ export type PublicHotelOptionInfo = {
  * com cache de 30 dias no servidor.
  */
 export const getPackageHotelOptionInfo = createServerFn({ method: "POST" })
-  .inputValidator((i: { hotelName: string; city?: string | null }) =>
+  .inputValidator((i: { hotelName: string; city?: string | null; locationId?: number | null }) =>
     z
       .object({
         hotelName: z.string().min(2).max(200),
         city: z.string().max(160).nullable().optional(),
+        locationId: z.number().int().positive().nullable().optional(),
       })
       .parse(i),
   )
   .handler(async ({ data }): Promise<PublicHotelOptionInfo> => {
     const { enrichHotel } = await import("@/lib/public-quote/hotel-enrichment.server");
-    const info = await enrichHotel({ name: data.hotelName, city: data.city ?? null }).catch(() => null);
+    const info = await enrichHotel({ name: data.hotelName, city: data.city ?? null, locationId: data.locationId ?? null }).catch(() => null);
     return {
       location_id: info?.location_id ?? null,
       name: info?.name ?? data.hotelName,
