@@ -229,8 +229,8 @@ function nomeCurto(v: unknown): string {
     .replace(/^[\s•\-–—:*]+/, "")
     .replace(/\s+/g, " ")
     .trim();
-  // fica só com a primeira frase / primeiro rótulo
-  t = t.split(/[.;]\s+|\s+\|\s+/)[0] ?? t;
+  // fica só com o nome/rótulo; tudo após travessão costuma ser descrição.
+  t = t.split(/\s+[—–]\s+|[.;]\s+|\s+\|\s+/)[0] ?? t;
   // remove parênteses longos e sobras de pontuação
   t = t
     .replace(/\([^)]{25,}\)/g, "")
@@ -242,6 +242,28 @@ function nomeCurto(v: unknown): string {
     t = p > 25 ? corte.slice(0, p) : corte;
   }
   return t.replace(/[.,;:–-]+$/, "").trim();
+}
+
+const RE_RUIDO_SERVICO =
+  /programa de flexibilidade tarif[aá]ria|isen[cç][aã]o de multa|cr[eé]dito para nova viagem|voucher\)? no valor|cobre impedimentos|v[aá]lido para pacotes e servi[cç]os|cancelamento eleg[ií]vel/i;
+
+/** Converte textos da planilha/API em um único nome público, sem regras operacionais. */
+function nomePublicoServico(v: unknown): string {
+  const original = limpo(v);
+  if (!original || RE_RUIDO_SERVICO.test(original)) return "";
+  if (/passage[mn].*a[eé]rea/i.test(original)) return "Passagem aérea";
+  if (/noites?.*hospedagem|hospedagem.*regime/i.test(original)) {
+    return "Hospedagem (consulte o regime de alimentação)";
+  }
+
+  let nome = nomeCurto(original)
+    .replace(/\s*[-–—]\s*frequ[eê]ncia\s*:.*$/i, "")
+    .replace(/\s*\([^)]{1,8}\)\s*$/i, "")
+    .replace(/\s+\d+\s*$/, "")
+    .trim();
+  // “Grátis” é informação comercial relevante e deve ser preservada.
+  if (/gr[aá]tis/i.test(original) && !/gr[aá]tis/i.test(nome)) nome = `${nome} grátis`;
+  return nome;
 }
 
 
@@ -292,10 +314,10 @@ function servicosDaOpcao(detalhes: any) {
 
   // Serviços "combo" da operadora podem conter transfer + ingresso no mesmo item:
   // separa em blocos e distribui para o bloco certo do cadastro.
-  const detTransfer: string[] = transfers.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
-  const detTickets: string[] = tickets.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
-  const detPasseios: string[] = activities.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
-  const detSeguro: string[] = insurance.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
+  const detTransfer: string[] = transfers.map((t) => t.nome || t.descricao);
+  const detTickets: string[] = tickets.map((t) => t.nome || t.descricao);
+  const detPasseios: string[] = activities.map((t) => t.nome || t.descricao);
+  const detSeguro: string[] = insurance.map((t) => t.nome || t.descricao);
   const outros: string[] = [];
   const outrosDetalhe: string[] = [];
 
@@ -329,7 +351,7 @@ function servicosDaOpcao(detalhes: any) {
     }
 
     if (!classificado) {
-      outros.push(nomeCurto(g.nome || g.descricao));
+      outros.push(nomePublicoServico(g.nome || g.descricao));
       if (g.descricao) outrosDetalhe.push(`${g.nome || "Serviço"} — ${g.descricao}`);
     }
   }
@@ -374,7 +396,7 @@ function servicosDaOpcao(detalhes: any) {
     ...detPasseios,
     ...detSeguro,
     ...outros,
-  ].map((t) => nomeCurto(t));
+  ].map((t) => nomePublicoServico(t)).filter(Boolean);
 
   const destaques = [...new Set(resumoIA.flatMap((r) => r.destaques ?? []).map((s) => s.trim()).filter(Boolean))];
   // Observações: só o que interessa ao viajante — condições comerciais entram fora do roteiro.
@@ -529,16 +551,28 @@ function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
  * datas diferentes viram pacotes separados.
  */
 export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]): CativaDraft[] {
-  const destino = (pacote.destino ?? "").trim();
+  const nomePacote = limpo(pacote.nome);
+  const destinoFonte = (pacote.destino ?? "").trim();
+  const hotelFonte = (pacote.hoteis ?? [])[0] as Record<string, unknown> | undefined;
+  const destinoHotel = limpo(hotelFonte?.cidade ?? hotelFonte?.city ?? hotelFonte?.localidade);
+  const destinoTitulo = nomePacote
+    .match(/\bem\s+(.+?)(?=\s+com\s+|\s+[—–|-]\s+|$)/i)?.[1]
+    ?.replace(/\b(resort|hotel|pousada)\b.*$/i, "")
+    .trim();
+  // O aeroporto de chegada (ex.: Recife) não substitui o destino real do pacote
+  // (ex.: Porto de Galinhas). Cidade do hotel e nome comercial têm prioridade.
+  const destino = destinoHotel || destinoTitulo || destinoFonte;
   const origem = (pacote.origem_cidade ?? pacote.origem_iata ?? "").trim();
-  const incluso = Array.isArray(pacote.incluso) ? pacote.incluso.filter(Boolean) : [];
+  const incluso = Array.isArray(pacote.incluso)
+    ? [...new Set(pacote.incluso.map(nomePublicoServico).filter(Boolean))]
+    : [];
 
   const base = (inicio: string | null, fim: string | null): CativaDraft => ({
     cativa_pacote_id: pacote.id,
     cativa_datas_label:
       inicio && fim ? `${inicio.split("-").reverse().join("/")} → ${fim.split("-").reverse().join("/")}` : "Datas a definir",
-    slug: slugify(destino || pacote.nome || "pacote"),
-    title: destino && origem ? `${destino} - Saída de ${origem}` : destino || pacote.nome,
+    slug: slugify(nomePacote || destino || "pacote"),
+    title: nomePacote || (destino && origem ? `${destino} - Saída de ${origem}` : destino),
     kind: "package",
     destination: destino,
     origin: origem,
@@ -549,7 +583,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     price_per_person: 0,
     taxes: Number(pacote.taxas ?? 0) || 0,
     supplier_name: "Cativa / Viajando com Desconto",
-    summary: pacote.observacao ?? "",
+    // Vazio de propósito: o editor gera automaticamente um resumo autoral.
+    summary: "",
     includes: incluso,
     is_active: true,
     date_mode: "fixed",
@@ -605,10 +640,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     const { services, todos, resumoTexto, temTransfer, passeios, ingressos } =
       servicosDaOpcao(principal.detalhes);
     d.services = services;
-    const RUIDO_INCLUSO =
-      /isen[cç][aã]o de multa|cr[eé]dito para nova viagem|voucher\)? no valor|cobre impedimentos|v[aá]lido para pacotes e servi[cç]os|cancelamento eleg[ií]vel/i;
     // "O que inclui" = só o NOME do serviço. Detalhes ficam no diálogo de cada item.
-    const bullets = todos.filter((b) => b && !RUIDO_INCLUSO.test(b));
+    const bullets = todos.filter((b) => b && !RE_RUIDO_SERVICO.test(b));
     if (bullets.length) {
       const vistosInc = new Set<string>();
       d.includes = [...(d.includes as string[]), ...bullets].filter((b) => {
@@ -620,7 +653,7 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     }
 
 
-    if (resumoTexto) d.summary = [d.summary, resumoTexto].filter(Boolean).join("\n\n").trim();
+    // O resumo da operadora não vai para o campo público; a IA gera o texto no editor.
     // Roteiro em linha do tempo (Dia 1, Dia 2 …) — sem os textões do operador.
     d.itinerary = gerarRoteiro({
       destino: destino,

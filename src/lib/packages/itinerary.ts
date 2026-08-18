@@ -76,10 +76,13 @@ export function nomeCurtoServico(v: unknown): string {
   let t = String(v ?? "")
     .replace(/<[^>]+>/g, " ")
     .replace(/leia\s+atentamente\s+a\s+descri[cç][aã]o\s+do\s+servi[cç]o/gi, " ")
+    .replace(/servi[cç]o\s+de\s+traslado\s+regular/gi, " ")
+    .replace(/frequ[eê]ncia:\s*di[aá]ria/gi, " ")
+    .replace(/regular\s*—?$/gi, "")
     .replace(/^[\s•\-–—:*]+/, "")
     .replace(/\s+/g, " ")
     .trim();
-  t = t.split(/[.;]\s+|\s+\|\s+/)[0] ?? t;
+  t = t.split(/\s+[—–]\s+|[.;]\s+|\s+\|\s+/)[0] ?? t;
   t = t.replace(/\([^)]{25,}\)/g, "").replace(/\s{2,}/g, " ").trim();
   if (t.length > 60) {
     const corte = t.slice(0, 60);
