@@ -209,12 +209,19 @@ export function OtherDatesBlock({ pkg }: { pkg: CurrentPkg }) {
                   <div className="mt-px text-[15px] font-extrabold">{formatBRL(total)}</div>
                 </div>
                 {dif !== 0 && (
-                  <div className="whitespace-nowrap text-right text-[8px] font-bold text-brand-orange">
+                  <div
+                    className={
+                      "whitespace-nowrap text-right text-[8px] font-bold " +
+                      (dif < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-brand-orange")
+                    }
+                  >
+                    {dif < 0 ? "− " : "+ "}
                     {formatBRL(Math.abs(dif))}
                     <br />
-                    {dif < 0 ? "menos" : "mais"}
+                    {dif < 0 ? "mais barato" : "mais"}
                   </div>
                 )}
+
               </div>
               <div className="mt-1.5 flex items-center gap-1 text-[9px] font-bold text-brand-orange">
                 {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
