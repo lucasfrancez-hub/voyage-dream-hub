@@ -24,7 +24,23 @@ export type InstallmentRule = {
   priority: number;
   is_active: boolean;
   notes: string | null;
+  /** Boleto bancário financiado disponível para esta operadora? */
+  boleto_financiado_enabled: boolean;
+  /** Máximo de parcelas no boleto financiado (null = mesmo limite do cartão). */
+  boleto_financiado_max: number | null;
+  /** Boleto pré-pago disponível para esta operadora? */
+  boleto_prepago_enabled: boolean;
 };
+
+/** Bandeiras aceitas no checkout — usadas nos botões do admin. */
+export const CARD_BRANDS = [
+  "Visa",
+  "Mastercard",
+  "Elo",
+  "Amex",
+  "Hipercard",
+  "Diners",
+] as const;
 
 /** Limite padrão de parcelas quando nenhuma regra se aplica. */
 export const DEFAULT_MAX_INSTALLMENTS = 10;
@@ -97,7 +113,7 @@ export const installmentRulesQuery = queryOptions({
     const { data, error } = await supabase
       .from("installment_rules")
       .select(
-        "id,operator_label,match_pattern,max_installments,limited_brands,limited_brands_max,valid_from,valid_until,priority,is_active,notes",
+        "id,operator_label,match_pattern,max_installments,limited_brands,limited_brands_max,valid_from,valid_until,priority,is_active,notes,boleto_financiado_enabled,boleto_financiado_max,boleto_prepago_enabled",
       )
       .eq("is_active", true)
       .order("priority", { ascending: false });
@@ -105,3 +121,33 @@ export const installmentRulesQuery = queryOptions({
     return (data ?? []) as InstallmentRule[];
   },
 });
+
+export type BoletoRules = {
+  /** Boleto financiado (com análise) liberado. */
+  financedEnabled: boolean;
+  /** Máximo de parcelas no boleto financiado. */
+  financedMax: number;
+  /** Boleto pré-pago liberado. */
+  prepaidEnabled: boolean;
+};
+
+/** Regras de boleto vigentes para o pacote (espelham o admin). */
+export function boletoRulesForPackage(
+  rules: InstallmentRule[] | undefined,
+  input: { supplierName?: string | null; source?: string | null },
+  today = todayISO(),
+): BoletoRules {
+  const rule = findRule(rules, input, today);
+  if (!rule) {
+    return {
+      financedEnabled: true,
+      financedMax: DEFAULT_MAX_INSTALLMENTS,
+      prepaidEnabled: true,
+    };
+  }
+  return {
+    financedEnabled: rule.boleto_financiado_enabled !== false,
+    financedMax: rule.boleto_financiado_max ?? rule.max_installments,
+    prepaidEnabled: rule.boleto_prepago_enabled !== false,
+  };
+}

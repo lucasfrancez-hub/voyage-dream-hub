@@ -15,7 +15,7 @@ import { DateBRInput } from "@/components/DateBRInput";
 import { PixQrOverlay } from "@/components/PixQrOverlay";
 import { getPrepaidBoletoConditions, buildFinancedBoletoSchedule } from "@/lib/packages/prepaid-boleto";
 import { cardInstallmentOptions } from "@/lib/packages/card-installments";
-import { installmentRulesQuery, maxInstallmentsForCard, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
+import { boletoRulesForPackage, installmentRulesQuery, maxInstallmentsForCard, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
 
 
 import { ContactFooter } from "@/components/ContactFooter";
@@ -352,7 +352,6 @@ function Checkout() {
   const prepaidOption =
     prepaid.options.find((o) => o.installments === prepaidInstallments) ?? prepaid.options[0] ?? null;
 
-  const prepaidEligible = prepaid.eligible;
   const prepaidMax = prepaid.maxInstallments;
 
   // Boleto bancário (financiado): 1ª parcela sempre 30 dias após a compra.
@@ -366,7 +365,9 @@ function Checkout() {
   const maxParcelasPacote = maxInstallmentsForPackage(installmentRules, {
     supplierName: supplierNamePkg,
   });
-  const MAX_BOLETO_INSTALLMENTS = maxParcelasPacote;
+  const boletoRules = boletoRulesForPackage(installmentRules, { supplierName: supplierNamePkg });
+  const MAX_BOLETO_INSTALLMENTS = boletoRules.financedMax;
+  const prepaidEligible = prepaid.eligible && boletoRules.prepaidEnabled;
   const maxCardParcelas = maxInstallmentsForCard(installmentRules, {
     supplierName: supplierNamePkg,
     brand: card.brand || detectBrand(card.cardNumber),
@@ -374,6 +375,11 @@ function Checkout() {
   useEffect(() => {
     setInstallments((n) => Math.min(n, maxCardParcelas));
   }, [maxCardParcelas]);
+
+  useEffect(() => {
+    setBoletoInstallments((n) => Math.min(n, MAX_BOLETO_INSTALLMENTS));
+    if (!boletoRules.financedEnabled) setPayment((p) => (p === "boleto" ? "credit_card" : p));
+  }, [MAX_BOLETO_INSTALLMENTS, boletoRules.financedEnabled]);
 
 
   // Abre já no Boleto Pré-pago quando veio do card do pacote.
@@ -1031,17 +1037,17 @@ function Checkout() {
                   desc="Com baixa automática."
                   badge="-5% de desconto"
                 />
-                {!isService && (
+                {!isService && boletoRules.financedEnabled && (
                   <PaymentOption
                     active={payment === "boleto"}
                     onClick={() => setPayment("boleto")}
                     icon={FileText}
                     title="Boleto bancário"
-                    desc="Financiamento parcelado sem juros, sujeito à análise e aprovação."
+                    desc={`Parcelado em até ${MAX_BOLETO_INSTALLMENTS}x sem juros, sujeito à análise e aprovação.`}
                     badge="Financiamento"
                   />
                 )}
-                {!isService && prepaid.eligible && (
+                {!isService && prepaidEligible && (
                   <PaymentOption
                     active={payment === "prepaid_boleto"}
                     onClick={() => setPayment("prepaid_boleto")}
@@ -1053,7 +1059,7 @@ function Checkout() {
                 )}
               </div>
 
-              {payment === "prepaid_boleto" && prepaid.eligible && prepaidOption && (
+              {payment === "prepaid_boleto" && prepaidEligible && prepaidOption && (
                 <div className="mt-6 pt-6 border-t border-border space-y-5">
                   <div className="rounded-xl border border-brand-orange/40 bg-brand-orange/5 p-4 space-y-3">
                     <p className="text-sm font-semibold text-foreground">Compre no boleto pré-pago</p>

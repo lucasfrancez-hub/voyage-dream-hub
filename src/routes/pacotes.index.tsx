@@ -20,7 +20,7 @@ import {
   type BudgetRange,
 } from "@/components/packages/BudgetFilter";
 import { BudgetRuler } from "@/components/packages/BudgetRuler";
-import { installmentRulesQuery, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
+import { boletoRulesForPackage, installmentRulesQuery, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
 import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
 
 
@@ -181,11 +181,13 @@ function PacotesList() {
       if (installmentFilter !== "all") {
         const supplierName = (p as { supplier_name?: string | null }).supplier_name;
         if (installmentFilter === "prepago") {
-          installmentMatch = getPrepaidBoletoConditions({
-            supplierName,
-            departureDate: p.going_date,
-            totalAmount: Number(p.price_per_person || 0) * (p.base_occupancy ?? 2),
-          }).eligible;
+          installmentMatch =
+            boletoRulesForPackage(installmentRules, { supplierName }).prepaidEnabled &&
+            getPrepaidBoletoConditions({
+              supplierName,
+              departureDate: p.going_date,
+              totalAmount: Number(p.price_per_person || 0) * (p.base_occupancy ?? 2),
+            }).eligible;
         } else {
           const maxParc = maxInstallmentsForPackage(installmentRules, { supplierName });
           installmentMatch = maxParc >= Number(installmentFilter);
