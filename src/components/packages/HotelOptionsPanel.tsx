@@ -70,58 +70,127 @@ export function HotelOptionsPanel({
         {options.map((o, i) => {
           const dif = preco(o) - precoBase;
           const ehBase = i === 0;
+          const vinculado = !!o.tripadvisor_location_id;
+          const aberto = vinculando === i;
           return (
             <li
               key={`${o.hotel_name}-${i}`}
-              className={`flex flex-wrap items-center gap-2 rounded-xl border p-2.5 ${
+              className={`rounded-xl border p-2.5 ${
                 ehBase ? "border-brand-orange/60 bg-brand-orange/5" : "border-border bg-card"
               }`}
             >
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold">{o.hotel_name}</div>
-                <div className="truncate text-xs text-muted-foreground">
-                  {[o.room_type, o.meal_plan].filter(Boolean).join(" · ") || "—"}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold">{o.hotel_name}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {[o.room_type, o.meal_plan].filter(Boolean).join(" · ") || "—"}
+                  </div>
+                  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider">
+                    {vinculado ? (
+                      <span className="text-emerald-600 dark:text-emerald-400">
+                        TripAdvisor vinculado
+                        {o.tripadvisor_photos?.length ? ` · ${o.tripadvisor_photos.length} fotos` : ""}
+                      </span>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-400">Sem TripAdvisor</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-bold">{brl(preco(o))}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">por pessoa</div>
-              </div>
-              <div className="w-full sm:w-auto sm:min-w-[190px] sm:text-right">
-                {ehBase ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                    <Check className="h-3 w-3" /> Valor base (mais barato)
-                  </span>
-                ) : (
-                  <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                    + {brl(dif)} por pessoa
-                    <span className="block text-[10px] font-normal text-muted-foreground">
-                      + {brl(dif * (occupancy || 2))} no valor final
+                <div className="text-right">
+                  <div className="text-sm font-bold">{brl(preco(o))}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">por pessoa</div>
+                </div>
+                <div className="w-full sm:w-auto sm:min-w-[190px] sm:text-right">
+                  {ehBase ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                      <Check className="h-3 w-3" /> Valor base (mais barato)
                     </span>
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1">
-                {!ehBase && (
+                  ) : (
+                    <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                      + {brl(dif)} por pessoa
+                      <span className="block text-[10px] font-normal text-muted-foreground">
+                        + {brl(dif * (occupancy || 2))} no valor final
+                      </span>
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => usarComoBase(i)}
-                    className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
+                    onClick={() => setVinculando(aberto ? null : i)}
+                    title="Vincular esta hospedagem ao TripAdvisor"
+                    className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition ${
+                      aberto
+                        ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                        : "border-border text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    Usar como base
+                    <Link2 className="h-3 w-3" /> TripAdvisor
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => remover(i)}
-                  title="Remover esta hospedagem"
-                  className="rounded-lg border border-border p-1.5 text-muted-foreground transition hover:text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                  {!ehBase && (
+                    <button
+                      type="button"
+                      onClick={() => usarComoBase(i)}
+                      className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
+                    >
+                      Usar como base
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => remover(i)}
+                    title="Remover esta hospedagem"
+                    className="rounded-lg border border-border p-1.5 text-muted-foreground transition hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
+
+              {aberto && (
+                <div className="mt-2 rounded-lg border border-border bg-background p-2">
+                  <HotelAutocomplete
+                    value={o.hotel_name}
+                    initialMode="live"
+                    onChangeText={(v) => patch(i, { hotel_name: v })}
+                    onSelect={(h) => {
+                      patch(i, {
+                        hotel_name: h.name,
+                        hotel_stars:
+                          h.rating != null
+                            ? Math.min(5, Math.max(1, Math.round(h.rating)))
+                            : h.hotel_class != null
+                              ? Math.min(5, Math.max(1, Math.round(h.hotel_class)))
+                              : (o.hotel_stars ?? null),
+                        tripadvisor_location_id: String(h.location_id),
+                        tripadvisor_url: h.tripadvisor_url ?? null,
+                        tripadvisor_address: h.address ?? null,
+                        tripadvisor_photos: h.photos && h.photos.length > 0 ? h.photos : null,
+                      });
+                      setVinculando(null);
+                    }}
+                  />
+                  {vinculado && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        patch(i, {
+                          tripadvisor_location_id: null,
+                          tripadvisor_url: null,
+                          tripadvisor_address: null,
+                          tripadvisor_photos: null,
+                        })
+                      }
+                      className="mt-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-destructive"
+                    >
+                      Desvincular
+                    </button>
+                  )}
+                </div>
+              )}
             </li>
           );
+
         })}
       </ul>
       <p className="mt-2 text-[10px] text-muted-foreground">
