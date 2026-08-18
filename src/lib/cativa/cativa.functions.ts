@@ -226,11 +226,9 @@ export const carregarPacotesCativaParaImportar = createServerFn({ method: "POST"
       if (arr) arr.push(v);
       else porPacote.set(v.pacote_id, [v]);
     }
-    // já selecionados = arquivados: somem da lista da Cativa
-    await supabaseAdmin
-      .from("cativa_pacotes")
-      .update({ importado_em: new Date().toISOString() } as any)
-      .in("id", ids);
+    // O arquivamento só acontece depois que o pacote é realmente salvo
+    // (ver arquivarPacotesCativa chamado ao gravar o pacote no painel).
+
 
     return {
       pacotes: (pacotes ?? []).map((p: any) => ({ pacote: p, voos: porPacote.get(p.id) ?? [] })),
