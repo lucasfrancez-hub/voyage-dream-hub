@@ -10,6 +10,7 @@ import {
   sincronizarCativa,
   arquivarPacotesCativa,
   reprocessarLoteCativa,
+  recalcularTudoCativa,
 } from "@/lib/cativa/cativa.functions";
 import { montarDraftsCativa, type CativaDraft } from "@/lib/cativa/to-package-draft";
 
@@ -49,6 +50,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
   const sincronizar = useServerFn(sincronizarCativa);
   const arquivar = useServerFn(arquivarPacotesCativa);
   const reprocessarLote = useServerFn(reprocessarLoteCativa);
+  const recalcularTudo = useServerFn(recalcularTudoCativa);
   const resumo = useServerFn(resumoCativa);
 
   const [busca, setBusca] = useState("");
@@ -222,6 +224,26 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
             Reprocessar faltantes
           </button>
         ) : null}
+        <button
+          type="button"
+          disabled={corrigindo}
+          onClick={async () => {
+            setCorrigindo(true);
+            try {
+              const r: any = await recalcularTudo({ data: undefined } as any);
+              await Promise.all([q.refetch(), resumoQ.refetch()]);
+              toast.success(`${r?.enfileirados ?? 0} pacote(s) na fila de recálculo`);
+            } catch (e: any) {
+              toast.error(e?.message || "Falha ao recalcular");
+            } finally {
+              setCorrigindo(false);
+            }
+          }}
+          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground disabled:opacity-60"
+        >
+          {corrigindo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          Recalcular valores
+        </button>
         <button
           type="button"
           onClick={() => {
