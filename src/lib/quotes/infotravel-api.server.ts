@@ -274,28 +274,64 @@ function mapFlight(bf: any): { flights: NormalizedFlight[]; pax: { adults: numbe
   return { flights: out, pax: { adults, children }, total: sumFares(bf?.fares) };
 }
 
+/**
+ * O payload da Infotravel aninha o produto em chaves diferentes por tipo
+ * (`servicePackage`, `other`, `transfer`, `tour`, `ticket`, `insurance`...).
+ * Percorremos o próprio item e seus objetos filhos para achar nome/descrição.
+ */
+function nosDoItem(entry: any): any[] {
+  const nos = [entry];
+  for (const v of Object.values(entry ?? {})) {
+    if (v && typeof v === "object" && !Array.isArray(v)) nos.push(v);
+  }
+  return nos;
+}
+
+function primeiroTexto(nos: any[], chaves: string[]): string | null {
+  for (const no of nos) {
+    for (const k of chaves) {
+      const t = cleanText(no?.[k]);
+      if (t) return t;
+    }
+  }
+  return null;
+}
+
 function mapGeneric(entry: any, fallbackName: string): NormalizedGenericItem | null {
   if (!entry) return null;
-  const name =
-    cleanText(entry?.name) ??
-    cleanText(entry?.transfer?.name) ??
-    cleanText(entry?.tour?.name) ??
-    cleanText(entry?.ticket?.name) ??
-    cleanText(entry?.vehicle?.model) ??
-    cleanText(entry?.insurance?.name) ??
-    cleanText(entry?.service?.name) ??
-    cleanText(entry?.product?.name) ??
-    fallbackName;
+  const nos = nosDoItem(entry);
+  const name = primeiroTexto(nos, ["name", "title", "model", "productName"]) ?? fallbackName;
   const total =
     sumFares(entry?.fares) ??
     amountOf(entry?.price) ??
     amountOf(entry?.amount) ??
     sumFares(entry?.transfer?.fares) ??
+    (() => {
+      for (const no of nos) {
+        const v = sumFares(no?.fares) ?? amountOf(no?.price) ?? amountOf(no?.amount);
+        if (v != null) return v;
+      }
+      return null;
+    })() ??
     null;
   return {
     name,
-    description: cleanText(entry?.description ?? entry?.transfer?.description ?? entry?.tour?.description),
-    date: isoDate(entry?.date ?? entry?.transfer?.date ?? entry?.startDate ?? entry?.pickUp?.date),
+    description: primeiroTexto(nos, [
+      "description",
+      "observation",
+      "observations",
+      "remarks",
+      "notes",
+      "details",
+      "content",
+    ]),
+    date: isoDate(
+      entry?.date ??
+        entry?.transfer?.date ??
+        entry?.startDate ??
+        entry?.pickUp?.date ??
+        nos.map((n) => n?.date ?? n?.startDate).find(Boolean),
+    ),
     quantity: typeof entry?.quantity === "number" ? entry.quantity : null,
     total,
   };

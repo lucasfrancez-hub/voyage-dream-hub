@@ -133,8 +133,47 @@ export const carregarPacotesCativaParaImportar = createServerFn({ method: "POST"
         .in("pacote_id", ids)
         .order("opcao_numero", { ascending: true }),
     ]);
+    let linhas = (voos ?? []) as any[];
+
+    // se os serviços vieram sem descrição (importação antiga), reconsulta a Infotravel
+    const semDescricao = [
+      ...new Set(
+        linhas
+          .filter((v) => {
+            const d = v.detalhes ?? {};
+            const itens = [
+              ...(d.transfers ?? []),
+              ...(d.tickets ?? []),
+              ...(d.activities ?? []),
+              ...(d.insurance ?? []),
+              ...(d.services ?? []),
+            ];
+            return itens.length > 0 && !itens.some((i: any) => i?.description);
+          })
+          .map((v) => v.pacote_id as string),
+      ),
+    ];
+    if (semDescricao.length) {
+      const { reprocessarPacotes } = await import("@/lib/cativa/voos.server");
+      await reprocessarPacotes(semDescricao);
+      const { data: novos } = await supabaseAdmin
+        .from("cativa_pacote_voos")
+        .select("*")
+        .in("pacote_id", ids)
+        .order("opcao_numero", { ascending: true });
+      linhas = (novos ?? []) as any[];
+    }
+
+    // resume com IA as descrições longas dos serviços adicionais (com cache)
+    const { resumirServicosEmLote } = await import("@/lib/cativa/servicos-ia.server");
+    const resumos = await resumirServicosEmLote(linhas.map((v) => v.detalhes ?? {}));
+    linhas.forEach((v, i) => {
+      const r = resumos[i];
+      if (r && r.length) v.detalhes = { ...(v.detalhes ?? {}), resumo_ia: r };
+    });
+
     const porPacote = new Map<string, any[]>();
-    for (const v of (voos ?? []) as any[]) {
+    for (const v of linhas) {
       const arr = porPacote.get(v.pacote_id);
       if (arr) arr.push(v);
       else porPacote.set(v.pacote_id, [v]);
