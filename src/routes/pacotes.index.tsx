@@ -529,8 +529,9 @@ function PacotesList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Qualquer</SelectItem>
-                <SelectItem value="10">Até 10x sem juros</SelectItem>
-                <SelectItem value="15">Até 15x sem juros</SelectItem>
+                <SelectItem value="prepago">Boleto pré-pago</SelectItem>
+                <SelectItem value="10">Boleto financiado até 10x</SelectItem>
+                <SelectItem value="15">Boleto financiado até 15x</SelectItem>
               </SelectContent>
             </Select>
           </div>
