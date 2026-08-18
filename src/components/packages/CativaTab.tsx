@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Search, PackageSearch, Plane, RefreshCw } from "lucide-react";
+import { Loader2, Search, PackageSearch, Plane, RefreshCw, Archive, ArchiveRestore } from "lucide-react";
 import {
   resumoCativa,
   listarPacotesCativa,
   carregarPacotesCativaParaImportar,
   sincronizarCativa,
+  arquivarPacotesCativa,
 } from "@/lib/cativa/cativa.functions";
 import { montarDraftsCativa, type CativaDraft } from "@/lib/cativa/to-package-draft";
 
@@ -35,6 +36,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
   const listar = useServerFn(listarPacotesCativa);
   const carregar = useServerFn(carregarPacotesCativaParaImportar);
   const sincronizar = useServerFn(sincronizarCativa);
+  const arquivar = useServerFn(arquivarPacotesCativa);
 
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("");
@@ -43,12 +45,15 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
   const [sel, setSel] = useState<string[]>([]);
   const [importando, setImportando] = useState(false);
   const [sincronizando, setSincronizando] = useState(false);
+  const [arquivados, setArquivados] = useState(false);
 
   // status "ativo": pacotes esgotados somem sozinhos da lista
   const q = useQuery({
-    queryKey: ["cativa-tab", filtro, fonte, pagina],
+    queryKey: ["cativa-tab", filtro, fonte, pagina, arquivados],
     queryFn: () =>
-      listar({ data: { busca: filtro || undefined, fonte: fonte || undefined, status: "ativo", pagina } }),
+      listar({
+        data: { busca: filtro || undefined, fonte: fonte || undefined, status: "ativo", pagina, arquivados },
+      }),
     refetchInterval: 120_000,
   });
 
@@ -76,6 +81,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
       );
       onImport(drafts);
       setSel([]);
+      await q.refetch();
     } catch (e: any) {
       toast.error(e?.message || "Falha ao importar pacotes Cativa");
     } finally {
@@ -136,6 +142,37 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
         </button>
         <button
           type="button"
+          onClick={() => {
+            setPagina(0);
+            setSel([]);
+            setArquivados((v) => !v);
+          }}
+          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
+        >
+          <Archive className="h-3.5 w-3.5" />
+          {arquivados ? "Ver disponíveis" : "Arquivados"}
+        </button>
+        {sel.length ? (
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await arquivar({ data: { ids: sel, arquivar: !arquivados } });
+                setSel([]);
+                await q.refetch();
+                toast.success(arquivados ? "Pacotes devolvidos à lista" : "Pacotes arquivados");
+              } catch (e: any) {
+                toast.error(e?.message || "Falha ao arquivar");
+              }
+            }}
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
+          >
+            {arquivados ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+            {arquivados ? "Desarquivar" : "Arquivar"} ({sel.length})
+          </button>
+        ) : null}
+        <button
+          type="button"
           disabled={!sel.length || importando}
           onClick={importar}
           className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-orange px-4 text-xs font-bold uppercase tracking-wider text-white transition active:scale-95 disabled:opacity-50"
@@ -146,7 +183,9 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
       </div>
 
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-        {total} pacote(s) disponíveis no catálogo Cativa · esgotados saem da lista automaticamente
+        {arquivados
+          ? `${total} pacote(s) arquivados (já importados)`
+          : `${total} pacote(s) disponíveis no catálogo Cativa · esgotados e já importados saem da lista automaticamente`}
       </p>
 
       <div className="rounded-xl border border-border bg-card">
@@ -156,7 +195,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
           </div>
         ) : !rows.length ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
-            Nenhum pacote disponível no momento.
+            {arquivados ? "Nenhum pacote arquivado." : "Nenhum pacote disponível no momento."}
           </div>
         ) : (
           <ul className="divide-y divide-border">
