@@ -514,202 +514,242 @@ function PackageDetails() {
           )}
 
           {pkg.hotel_name && (
-            <section className="rounded-2xl border border-border bg-card p-6">
-              <div className="flex items-start gap-4">
-                <div className="h-11 w-11 rounded-xl bg-muted/50 border border-border flex items-center justify-center shrink-0">
-                  <Hotel className="h-5 w-5 text-brand-orange" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold">
-                    {stays.length > 1 ? `Hospedagens (${stays.length})` : "Hospedagem"}
-                  </h3>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span>{hotelName}</span>
-                    {hotelStars ? (
-                      <span className="inline-flex">
-                        {Array.from({ length: hotelStars }).map((_, i) => (
-                          <Star key={i} className="h-3.5 w-3.5 fill-brand-orange text-brand-orange" />
-                        ))}
-                      </span>
-                    ) : null}
+            <section>
+              {/* Cabeçalho da seção (modelo aprovado) */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-xl bg-brand-orange/10 border border-brand-orange/30 flex items-center justify-center shrink-0">
+                    <Hotel className="h-4.5 w-4.5 text-brand-orange" />
                   </div>
-                  {hotelAddress && (
-                    <div className="mt-1 text-xs text-muted-foreground flex items-start gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-brand-orange mt-0.5 shrink-0" />
-                      <span>{hotelAddress}</span>
-                    </div>
-                  )}
-                  {hotelDetails.length > 0 && (
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      {hotelDetails.map(({ value, icon: DetailIcon }) => (
-                        <span
-                          key={value}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs text-brand-orange"
-                        >
-                          <DetailIcon className="h-3.5 w-3.5" />
-                          {value}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <div>
+                    <h2 className="text-xl font-semibold leading-tight">
+                      {stays.length > 1 ? `Hospedagens (${stays.length})` : "Hospedagem"}
+                    </h2>
+                    {hasHotelChoice && (
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        Escolha a opção que combina melhor com a sua viagem
+                      </p>
+                    )}
+                  </div>
                 </div>
+                {hasHotelChoice && (
+                  <span className="hidden sm:inline-flex shrink-0 rounded-full border border-border px-2.5 py-1.5 text-[10px] text-muted-foreground">
+                    {hotelOptions.length} opções disponíveis
+                  </span>
+                )}
               </div>
 
-              {stays.length > 1 && (
-                <div className="mt-5">
-                  <div className="text-sm font-semibold">Hotéis do roteiro</div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Esta viagem inclui {stays.length} hospedagens, na sequência abaixo.
-                  </p>
-                  <div className="mt-3">
-                    <HotelStaysList stays={stays} />
-                  </div>
-                </div>
-              )}
-
+              {/* Seletor de hospedagens */}
               {hasHotelChoice && (
-                <div className="mt-5">
-                  <div className="text-sm font-semibold">Escolha a hospedagem</div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Mesmos voos e datas — muda apenas o hotel.
-                  </p>
-                  <div className="mt-3 flex gap-2 overflow-x-auto pb-2 snap-x">
-                    {hotelOptions.map((h, i) => {
-                      const ativo = i === hotelIdxSafe;
-                      const atual = Number(hotelOptions[hotelIdxSafe]?.price_per_person) || 0;
-                      const preco = Number(h.price_per_person) || 0;
-                      const dif = (preco - atual) * baseOccupancy;
-                      const thumb =
-                        (Array.isArray(h.tripadvisor_photos) && h.tripadvisor_photos[0]) ||
-                        hotelInfoQueries[i]?.data?.photos?.[0] ||
-                        null;
-                      return (
-                        <button
-                          type="button"
-                          key={`${h.hotel_name}-${i}`}
-                          onClick={() => setHotelIdx(i)}
-                          className={cn(
-                            "shrink-0 snap-start w-[220px] rounded-xl border p-2.5 text-left transition flex gap-2.5",
-                            ativo
-                              ? "border-brand-orange bg-brand-orange/10"
-                              : "border-border bg-card hover:border-brand-orange/50",
+                <div className="mt-3 flex gap-2 overflow-x-auto pb-2 snap-x">
+                  {hotelOptions.map((h, i) => {
+                    const ativo = i === hotelIdxSafe;
+                    const atual = Number(hotelOptions[hotelIdxSafe]?.price_per_person) || 0;
+                    const preco = Number(h.price_per_person) || 0;
+                    const dif = (preco - atual) * baseOccupancy;
+                    const thumb =
+                      (Array.isArray(h.tripadvisor_photos) && h.tripadvisor_photos[0]) ||
+                      hotelInfoQueries[i]?.data?.photos?.[0] ||
+                      null;
+                    return (
+                      <button
+                        type="button"
+                        key={`${h.hotel_name}-${i}`}
+                        onClick={() => setHotelIdx(i)}
+                        className={cn(
+                          "shrink-0 snap-start w-[220px] rounded-xl border p-2.5 text-left transition flex gap-2.5",
+                          ativo
+                            ? "border-brand-orange bg-brand-orange/10"
+                            : "border-border hover:border-brand-orange/50 hover:bg-brand-orange/5",
+                        )}
+                      >
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                          {thumb ? (
+                            <img src={thumb} alt={h.hotel_name} loading="lazy" className="h-full w-full object-cover" />
+                          ) : (
+                            <Hotel className="h-4 w-4 text-muted-foreground" />
                           )}
-                        >
-                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted/40 flex items-center justify-center">
-                            {thumb ? (
-                              <img src={thumb} alt={h.hotel_name} loading="lazy" className="h-full w-full object-cover" />
-                            ) : (
-                              <Hotel className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[9px] font-extrabold uppercase tracking-wider text-brand-orange h-3">
+                            {ativo ? "Selecionado" : ""}
+                          </div>
+                          <div className="truncate text-xs font-bold">
+                            {normalizeStays(h.stays).length > 1
+                              ? normalizeStays(h.stays).map((st) => st.hotel_name).join(" + ")
+                              : h.hotel_name}
+                          </div>
+                          <div className="truncate text-[10px] text-muted-foreground">
+                            {[h.room_type, h.meal_plan].filter(Boolean).join(" · ")}
+                          </div>
+                          <div
+                            className={cn(
+                              "mt-1 text-[10px] font-bold",
+                              !ativo && dif < 0
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-brand-orange",
                             )}
+                          >
+                            {ativo
+                              ? formatBRL(preco * baseOccupancy)
+                              : dif === 0
+                                ? "Mesmo valor"
+                                : dif > 0
+                                  ? `+ ${formatBRL(dif)}`
+                                  : `− ${formatBRL(Math.abs(dif))} mais barato`}
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[10px] font-bold uppercase tracking-wide text-brand-orange h-3">
-                              {ativo ? "Selecionado" : ""}
-                            </div>
-                            <div className="truncate text-sm font-medium">
-                              {normalizeStays(h.stays).length > 1
-                                ? normalizeStays(h.stays).map((st) => st.hotel_name).join(" + ")
-                                : h.hotel_name}
-                            </div>
-                            <div className="truncate text-[11px] text-muted-foreground">
-                              {[h.room_type, h.meal_plan].filter(Boolean).join(" · ")}
-                            </div>
-                            <div
-                              className={cn(
-                                "mt-1 text-[11px] font-semibold",
-                                !ativo && dif < 0
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : "text-brand-orange",
-                              )}
-                            >
-                              {ativo
-                                ? formatBRL(preco * baseOccupancy)
-                                : dif === 0
-                                  ? "Mesmo valor"
-                                  : dif > 0
-                                    ? `+ ${formatBRL(dif)}`
-                                    : `− ${formatBRL(Math.abs(dif))} mais barato`}
-                            </div>
-
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
-              {(() => {
-                const photos = hotelPhotos;
-                const taUrl = hotelTaUrl;
-                const taId = hotelTaId;
-                if (photos.length === 0 && !taUrl) {
-                  if (!hotelInfoLoading) return null;
-                  return (
-                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {[0, 1, 2, 3].map((i) => (
-                        <div key={i} className="aspect-[4/3] animate-pulse rounded-lg border border-border bg-muted/40" />
-                      ))}
+              {/* Card da hospedagem selecionada */}
+              <div className="mt-2 rounded-[19px] border border-border p-5">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[9px] uppercase tracking-[0.11em] text-muted-foreground">
+                      {hasHotelChoice ? "Hospedagem selecionada" : "Hospedagem"}
                     </div>
-                  );
-                }
-
-                return (
-                  <div className="mt-4">
-                    {photos.length > 0 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {photos.slice(0, 4).map((src, i) => (
-                          <button
-                            type="button"
-                            key={`${hotelName}-${i}`}
-                            onClick={() => {
-                              if (taId) {
-                                setDialogPhotoIndex(i);
-                                setHotelDialogOpen(true);
-                              } else if (taUrl) {
-                                window.open(taUrl, "_blank", "noreferrer");
-                              }
-                            }}
-                            className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border group cursor-pointer"
-                          >
-                            <img
-                              src={src}
-                              alt={`${hotelName} — foto ${i + 1}`}
-                              loading="lazy"
-                              className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition"
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <div className="mt-3 flex justify-end">
-                      {taId ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDialogPhotoIndex(0);
-                            setHotelDialogOpen(true);
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-medium text-brand-orange hover:bg-brand-orange/20 transition"
-                        >
-                          Ver fotos e avaliações <ArrowRight className="h-3.5 w-3.5" />
-                        </button>
-                      ) : taUrl ? (
-                        <a
-                          href={taUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-medium text-brand-orange hover:bg-brand-orange/20 transition"
-                        >
-                          Ver mais <ArrowRight className="h-3.5 w-3.5" />
-                        </a>
+                    <div className="mt-1 flex items-center gap-2 flex-wrap">
+                      <span className="text-lg font-extrabold">{hotelName}</span>
+                      {hotelStars ? (
+                        <span className="inline-flex">
+                          {Array.from({ length: hotelStars }).map((_, i) => (
+                            <Star key={i} className="h-3.5 w-3.5 fill-brand-orange text-brand-orange" />
+                          ))}
+                        </span>
                       ) : null}
                     </div>
+                    {hotelAddress && (
+                      <div className="mt-1 text-[10px] text-muted-foreground flex items-start gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-brand-orange mt-0.5 shrink-0" />
+                        <span>{hotelAddress}</span>
+                      </div>
+                    )}
                   </div>
-                );
-              })()}
+                  {hasHotelChoice && (
+                    <div className="shrink-0 sm:text-right">
+                      <div className="text-[8px] uppercase tracking-wider text-muted-foreground">
+                        Valor com esta hospedagem
+                      </div>
+                      <div className="mt-0.5 text-[13px] font-extrabold text-brand-orange">
+                        {formatBRL(pricePerPerson * baseOccupancy)}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
+                {hotelDetails.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    {hotelDetails.map(({ value, icon: DetailIcon }) => (
+                      <span
+                        key={value}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/30 bg-brand-orange/10 px-2 py-1 text-[9px] text-brand-orange"
+                      >
+                        <DetailIcon className="h-3.5 w-3.5" />
+                        {value}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {stays.length > 1 && (
+                  <div className="mt-4">
+                    <div className="text-sm font-semibold">Hotéis do roteiro</div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Esta viagem inclui {stays.length} hospedagens, na sequência abaixo.
+                    </p>
+                    <div className="mt-3">
+                      <HotelStaysList stays={stays} />
+                    </div>
+                  </div>
+                )}
+
+                {(() => {
+                  const photos = hotelPhotos;
+                  const taUrl = hotelTaUrl;
+                  const taId = hotelTaId;
+                  if (photos.length === 0 && !taUrl) {
+                    if (!hotelInfoLoading) return null;
+                    return (
+                      <div className="mt-4 grid grid-cols-[1.45fr_1fr_1fr] gap-[7px] h-[190px]">
+                        <div className="row-span-2 animate-pulse rounded-[11px] border border-border bg-muted/40" />
+                        {[0, 1, 2, 3].map((i) => (
+                          <div key={i} className="h-[91.5px] animate-pulse rounded-[11px] border border-border bg-muted/40" />
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  const abrir = (i: number) => {
+                    if (taId) {
+                      setDialogPhotoIndex(i);
+                      setHotelDialogOpen(true);
+                    } else if (taUrl) {
+                      window.open(taUrl, "_blank", "noreferrer");
+                    }
+                  };
+
+                  const galeria = photos.slice(0, 5);
+
+                  return (
+                    <div className="mt-4">
+                      {galeria.length > 0 && (
+                        <div className="grid grid-cols-[1.3fr_1fr] sm:grid-cols-[1.45fr_1fr_1fr] gap-[7px] sm:h-[190px]">
+                          {galeria.map((src, i) => (
+                            <button
+                              type="button"
+                              key={`${hotelName}-${i}`}
+                              onClick={() => abrir(i)}
+                              className={cn(
+                                "relative overflow-hidden rounded-[11px] border border-border group cursor-pointer",
+                                i === 0
+                                  ? "sm:row-span-2 h-[180px] sm:h-auto"
+                                  : "h-[86px] sm:h-[91.5px]",
+                                i === 4 ? "hidden sm:block" : "",
+                              )}
+                            >
+                              <img
+                                src={src}
+                                alt={`${hotelName} — foto ${i + 1}`}
+                                loading="lazy"
+                                className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="mt-3 flex justify-end">
+                        {taId ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDialogPhotoIndex(0);
+                              setHotelDialogOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/30 bg-brand-orange/10 px-2.5 py-1.5 text-[10px] font-bold text-brand-orange hover:bg-brand-orange/20 transition"
+                          >
+                            Ver fotos e avaliações <ArrowRight className="h-3.5 w-3.5" />
+                          </button>
+                        ) : taUrl ? (
+                          <a
+                            href={taUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/30 bg-brand-orange/10 px-2.5 py-1.5 text-[10px] font-bold text-brand-orange hover:bg-brand-orange/20 transition"
+                          >
+                            Ver mais <ArrowRight className="h-3.5 w-3.5" />
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </section>
+
           )}
 
 
