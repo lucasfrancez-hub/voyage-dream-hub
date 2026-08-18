@@ -35,7 +35,7 @@ const FILTRO_INCOMPLETO = [
 ].join(",");
 
 /** Pacote pronto pro Command Center: completo ou liberado manualmente. */
-const FILTRO_COMPLETO = `liberado_manual.is.true,and(destino.not.is.null,or(voos_status.eq.ok,voos_status.eq.circuito))`;
+const FILTRO_COMPLETO = `liberado_manual.is.true,and(destino.not.is.null,or(origem_iata.not.is.null,origem_cidade.not.is.null),or(voos_status.eq.ok,voos_status.eq.circuito))`;
 
 
 export const listarPacotesCativa = createServerFn({ method: "POST" })
@@ -69,7 +69,8 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
         "id, fonte, categoria, nome, origem_iata, origem_cidade, destino, data_viagem, data_fim, aereo_por, taxas, valor_total, hoteis, link_orcamento, status, voos_status, voos_opcoes, voos_atualizado_em, voos_erro, visto_em, updated_at, importado_em, liberado_manual",
         { count: "exact" },
       )
-      .order("updated_at", { ascending: false })
+      // recém-processados vão pro fim da lista (não empurram o que já estava em cima)
+      .order("updated_at", { ascending: true })
       .range(pagina * 50, pagina * 50 + 49);
 
     // pacotes já importados ficam arquivados e só aparecem quando pedido
