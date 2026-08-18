@@ -212,7 +212,9 @@ export function completarCampos(pacote: any, opcoes: any[]): Record<string, any>
 
   // Aéreo: SOMENTE a tarifa por passageiro, sem taxas. Importações antigas não
   // têm `fare`, então o total do voo continua como fallback.
-  if (!pacote.aereo_por) {
+  // Recalcula SEMPRE que a Infotravel devolver o dado (evita divergência com
+  // valores antigos gravados errados pela planilha).
+  {
     const porOpcao = opcoes
       .map((o: any) => {
         const fs = Array.isArray(o?.flights) ? o.flights : [];
@@ -226,13 +228,11 @@ export function completarCampos(pacote: any, opcoes: any[]): Record<string, any>
     if (porOpcao.length) patch['aereo_por'] = Math.round(Math.min(...porOpcao) * 100) / 100;
   }
 
-  // Taxas: prioriza a composição aérea retornada pela Infotravel. A API marca
-  // BOARDING_RATE/TAX_ADM (e demais itens isFareRate) separadamente da tarifa.
-  if (pacote.taxas == null) {
+  // Taxas: a Infotravel mostra "Produtos + Taxas = Total" e devolve as taxas de
+  // todos os produtos da opção (aéreo, hotel, serviços). Sempre recalculado.
+  {
     const porOpcao = opcoes
       .map((o: any) => {
-        // A Infotravel devolve as taxas de todos os produtos da opção; o aéreo
-        // é só o fallback para importações antigas.
         const daOpcao = num(o?.taxes);
         if (daOpcao != null && daOpcao > 0) return daOpcao;
         const fs = Array.isArray(o?.flights) ? o.flights : [];
@@ -244,8 +244,9 @@ export function completarCampos(pacote: any, opcoes: any[]): Record<string, any>
       .map((h: any) => num(h?.taxas))
       .find((n: number | null) => n != null);
     if (porOpcao.length) patch['taxas'] = Math.round(Math.min(...porOpcao) * 100) / 100;
-    else if (hotelTaxa) patch['taxas'] = hotelTaxa;
+    else if (pacote.taxas == null && hotelTaxa) patch['taxas'] = hotelTaxa;
   }
+
 
   // Total: o valor oficial da opção da Infotravel (produtos + taxas) manda.
   const totaisOpcoes = opcoes
