@@ -220,14 +220,26 @@ export type ServicoResumidoIA = {
 
 /** Nome curto e apresentável para o serviço (corta textões da operadora). */
 function nomeCurto(v: unknown): string {
-  const t = String(v ?? "")
+  let t = limpo(v)
+    .replace(/leia\s+atentamente\s+a\s+descri[cç][aã]o\s+do\s+servi[cç]o/gi, " ")
+    .replace(/^[\s•\-–—:*]+/, "")
     .replace(/\s+/g, " ")
     .trim();
-  if (t.length <= 90) return t;
-  const corte = t.slice(0, 90);
-  const p = corte.lastIndexOf(" ");
-  return `${(p > 40 ? corte.slice(0, p) : corte).replace(/[.,;:–-]+$/, "")}…`;
+  // fica só com a primeira frase / primeiro rótulo
+  t = t.split(/[.;]\s+|\s+\|\s+/)[0] ?? t;
+  // remove parênteses longos e sobras de pontuação
+  t = t
+    .replace(/\([^)]{25,}\)/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (t.length > 60) {
+    const corte = t.slice(0, 60);
+    const p = corte.lastIndexOf(" ");
+    t = p > 25 ? corte.slice(0, p) : corte;
+  }
+  return t.replace(/[.,;:–-]+$/, "").trim();
 }
+
 
 /** Limpa HTML/entidades do texto da operadora. */
 function limpo(v: unknown): string {
