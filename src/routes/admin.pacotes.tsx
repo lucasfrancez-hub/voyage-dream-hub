@@ -89,6 +89,7 @@ import { useIgnoredHotels } from "@/lib/ignored-hotels";
 
 import { CurationTab } from "@/components/packages/CurationTab";
 import { CativaTab, CativaCountBadge } from "@/components/packages/CativaTab";
+import { HotelOptionsPanel } from "@/components/packages/HotelOptionsPanel";
 import {
   PackageSocialDialog,
   WhatsAppIcon,
