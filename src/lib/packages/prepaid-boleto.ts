@@ -166,3 +166,23 @@ export function getPrepaidBoletoConditions(input: {
     options,
   };
 }
+
+/**
+ * Cronograma do Boleto bancário (financiado): sem entrada hoje —
+ * a 1ª parcela vence sempre 30 dias após a compra, e as demais mês a mês.
+ */
+export function buildFinancedBoletoSchedule(
+  total: number,
+  installments: number,
+  currentDate?: Date,
+): PrepaidScheduleItem[] {
+  const today = startOfDay(currentDate ?? new Date());
+  const first = addDays(today, 30);
+  const amounts = splitAmount(total, installments);
+  return amounts.map((amount, i) => ({
+    installment: i + 1,
+    type: "installment" as const,
+    dueDate: toISODate(i === 0 ? first : addMonths(first, i)),
+    amount,
+  }));
+}
