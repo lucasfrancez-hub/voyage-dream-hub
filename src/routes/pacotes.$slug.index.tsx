@@ -589,8 +589,12 @@ function PackageDetails() {
                 : `Preço para ${baseOccupancy === 1 ? "1 pessoa" : `${baseOccupancy} pessoas`}`}
             </div>
             <div className="mt-1 text-3xl font-display font-bold text-brand-orange">
-              {formatBRL(Number(pkg.price_per_person) * (isPerUnit ? 1 : baseOccupancy))}
+              {formatBRL(pricePerPerson * (isPerUnit ? 1 : baseOccupancy))}
             </div>
+            {hasHotelChoice && hotelName ? (
+              <div className="text-xs text-muted-foreground mt-1">Com hospedagem no {hotelName}</div>
+            ) : null}
+
             {pkg.taxes ? (
               <div className="text-xs text-muted-foreground mt-1">
                 Já com as taxas inclusas de {formatBRL(Number(pkg.taxes))}
