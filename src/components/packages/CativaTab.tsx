@@ -190,13 +190,14 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
         ) : null}
         <button
           type="button"
-          disabled={!sel.length || importando}
+          disabled={(!sel.length && !rows.length) || importando}
           onClick={importar}
           className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-orange px-4 text-xs font-bold uppercase tracking-wider text-white transition active:scale-95 disabled:opacity-50"
         >
           {importando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PackageSearch className="h-3.5 w-3.5" />}
-          Importar {sel.length ? `(${sel.length})` : ""}
+          Importar {sel.length ? `(${sel.length})` : `(próximos ${Math.min(10, rows.length)})`}
         </button>
+
       </div>
 
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
