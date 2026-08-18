@@ -348,13 +348,17 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
                     </div>
                   </button>
                   <div className="text-right">
-                    <div className="text-[10px] text-muted-foreground">Total</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {typeof p.voo_menor === "number" && p.voo_menor > 0 ? "Total" : "Total estimado"}
+                    </div>
                     <div className="text-sm font-bold">
+                      {/* A verdade é o total da opção mais barata da Infotravel;
+                          o valor da planilha só entra quando o orçamento ainda não respondeu. */}
                       {brl(
-                        typeof p.valor_total === "number" && p.valor_total > 0
-                          ? p.valor_total
-                          : typeof p.voo_menor === "number"
-                            ? p.voo_menor
+                        typeof p.voo_menor === "number" && p.voo_menor > 0
+                          ? p.voo_menor
+                          : typeof p.valor_total === "number" && p.valor_total > 0
+                            ? p.valor_total
                             : null,
                       )}
                     </div>
@@ -363,6 +367,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
                       {brl(p.taxas)}
                     </div>
                   </div>
+
                 </li>
               );
             })}
