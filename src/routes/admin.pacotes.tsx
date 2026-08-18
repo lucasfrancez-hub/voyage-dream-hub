@@ -2804,6 +2804,8 @@ function PackageEditorModal({
                         ? {
                             hotel_name: base.hotel_name,
                             room_type: base.room_type ?? editing.room_type,
+                            room_category: (base as any).room_category ?? editing.room_category,
+                            bed_type: (base as any).bed_type ?? editing.bed_type,
                             meal_plan: base.meal_plan ?? editing.meal_plan,
                             price_per_person: Number(base.price_per_person) || editing.price_per_person,
                             ...(base.tripadvisor_location_id
