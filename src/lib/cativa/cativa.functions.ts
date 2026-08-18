@@ -115,3 +115,31 @@ export const reprocessarVoosCativa = createServerFn({ method: "POST" })
     const { processarFilaVoos } = await import("@/lib/cativa/voos.server");
     return await processarFilaVoos(1);
   });
+
+/** Carrega pacotes selecionados (dados completos + opções de voo) para importar no cadastro. */
+export const carregarPacotesCativaParaImportar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { ids: string[] }) => input)
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const ids = (data.ids ?? []).slice(0, 50);
+    if (!ids.length) return { pacotes: [] as any[] };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [{ data: pacotes }, { data: voos }] = await Promise.all([
+      supabaseAdmin.from("cativa_pacotes").select("*").in("id", ids),
+      supabaseAdmin
+        .from("cativa_pacote_voos")
+        .select("*")
+        .in("pacote_id", ids)
+        .order("opcao_numero", { ascending: true }),
+    ]);
+    const porPacote = new Map<string, any[]>();
+    for (const v of (voos ?? []) as any[]) {
+      const arr = porPacote.get(v.pacote_id);
+      if (arr) arr.push(v);
+      else porPacote.set(v.pacote_id, [v]);
+    }
+    return {
+      pacotes: (pacotes ?? []).map((p: any) => ({ pacote: p, voos: porPacote.get(p.id) ?? [] })),
+    };
+  });
