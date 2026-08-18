@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 
 import { toast } from "sonner";
+import { enqueuePublish } from "@/lib/publish-queue";
 import {
   generatePromotionLink,
   cancelAirfarePromoCollection,
