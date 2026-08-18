@@ -121,15 +121,7 @@ function Checkout() {
             room_type: escolhido.room_type ?? (data as any).room_type,
             meal_plan: escolhido.meal_plan ?? (data as any).meal_plan,
             price_per_person: Number(escolhido.price_per_person) || (data as any).price_per_person,
-            ...(idx === 0
-              ? {}
-              : {
-                  tripadvisor_location_id: null,
-                  tripadvisor_url: null,
-                  tripadvisor_address: null,
-                  tripadvisor_photos: null,
-                  hotel_stars: null,
-                }),
+            hotel_stars: idx === 0 ? (data as any).hotel_stars : null,
           } as typeof data;
         }
       }
