@@ -573,6 +573,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
           opcao: op.opcao_numero,
           hotel_name: ho.hotel_name,
           room_type: ho.room_type,
+          room_category: ho.room_category,
+          bed_type: ho.bed_type,
           meal_plan: ho.meal_plan,
           price_per_person: total != null ? Math.round((total / ocupacao) * 100) / 100 : Number(d.price_per_person) || 0,
           total,
@@ -585,6 +587,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
       const maisBarato = hoteis[0]!;
       d.hotel_name = maisBarato.hotel_name;
       d.room_type = maisBarato.room_type;
+      d.room_category = maisBarato.room_category;
+      d.bed_type = maisBarato.bed_type;
       d.meal_plan = maisBarato.meal_plan;
       if (maisBarato.price_per_person) d.price_per_person = maisBarato.price_per_person;
     }
