@@ -437,11 +437,59 @@ function PackageDetails() {
                 </div>
               </div>
 
+              {hasHotelChoice && (
+                <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
+                  <div className="text-sm font-semibold">Escolha a hospedagem</div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Mesmos voos e datas — muda apenas o hotel. Já deixamos selecionada a opção mais econômica.
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {hotelOptions.map((h, i) => {
+                      const ativo = i === Math.min(hotelIdx, hotelOptions.length - 1);
+                      const base = Number(hotelOptions[0]?.price_per_person) || 0;
+                      const preco = Number(h.price_per_person) || 0;
+                      const dif = preco - base;
+                      return (
+                        <button
+                          type="button"
+                          key={`${h.hotel_name}-${i}`}
+                          onClick={() => setHotelIdx(i)}
+                          className={`w-full rounded-xl border p-3 text-left transition ${
+                            ativo
+                              ? "border-brand-orange bg-brand-orange/10"
+                              : "border-border bg-card hover:border-brand-orange/50"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium">{h.hotel_name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {[h.room_type, h.meal_plan].filter(Boolean).join(" · ")}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="text-sm font-semibold text-brand-orange">
+                                {formatBRL(preco * baseOccupancy)}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground">
+                                {i === 0 ? "Mais econômico" : dif > 0 ? `+ ${formatBRL(dif * baseOccupancy)}` : "—"}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {(() => {
+                if (!isBaseHotel) return null;
                 const photos = ((pkg as unknown as { tripadvisor_photos?: string[] | null }).tripadvisor_photos) ?? [];
                 const taUrl = (pkg as unknown as { tripadvisor_url?: string | null }).tripadvisor_url ?? null;
                 const taId = (pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null;
                 if (photos.length === 0 && !taUrl) return null;
+
                 return (
                   <div className="mt-4">
                     {photos.length > 0 && (
