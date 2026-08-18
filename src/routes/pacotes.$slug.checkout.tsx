@@ -13,7 +13,7 @@ import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/components/BoletoForm";
 import { DateBRInput } from "@/components/DateBRInput";
 import { PixQrOverlay } from "@/components/PixQrOverlay";
-import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
+import { getPrepaidBoletoConditions, buildFinancedBoletoSchedule } from "@/lib/packages/prepaid-boleto";
 import { cardInstallmentOptions } from "@/lib/packages/card-installments";
 import { installmentRulesQuery, maxInstallmentsForCard, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
 
@@ -355,6 +355,10 @@ function Checkout() {
   const prepaidEligible = prepaid.eligible;
   const prepaidMax = prepaid.maxInstallments;
 
+  // Boleto bancário (financiado): 1ª parcela sempre 30 dias após a compra.
+  const boletoSchedule = buildFinancedBoletoSchedule(totalPrice, boletoInstallments);
+
+
   // Bandeiras com limite reduzido em pacotes Cativa (Hipercard, Diners, Elo, Amex): até 6x.
   // Pacotes FRT: até 15x sem juros (cartão e boleto financiado).
   const { data: installmentRules } = useQuery(installmentRulesQuery);
@@ -605,6 +609,24 @@ function Checkout() {
       const orderNumber = `#${String(parseInt(newId.replace(/-/g, "").slice(0, 12), 16) % 100000000).padStart(8, "0")}`;
 
       setSuccess(true);
+
+      // Boleto pré-pago: gera na hora o Pix da ENTRADA (1ª parcela).
+      if (payment === "prepaid_boleto" && prepaidOption) {
+        try {
+          const cob = await criarPix({
+            data: { orderId: newId, valorEsperado: prepaidOption.entryAmount },
+          });
+          setPixInfo(cob);
+        } catch (err) {
+          console.error("[checkout] pix entrada pré-pago falhou", err);
+          setPixError(true);
+          toast.warning(
+            "Não foi possível gerar o QR Code da entrada agora. Nossa equipe vai enviar o Pix em instantes.",
+          );
+        }
+      }
+
+
 
       if (payment === "pix") {
         // Notifica admin (mantido) e tenta gerar QR Pix via Itaú
@@ -1134,13 +1156,39 @@ function Checkout() {
                         ))}
                       </select>
                     </label>
-                    <p className="text-[11px] text-muted-foreground">
-                      Total: <strong className="text-foreground">{formatBRL(totalPrice)}</strong>
-                      {boletoInstallments > 1 && (
-                        <> · {boletoInstallments} boletos mensais de <strong className="text-foreground">{formatBRL(totalPrice / boletoInstallments)}</strong>, sem juros.</>
-                      )}
-                    </p>
+                    <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs space-y-1.5">
+                      <div className="text-[11px] uppercase tracking-widest text-brand-orange font-semibold">
+                        Sua condição
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          {boletoInstallments} boleto{boletoInstallments > 1 ? "s" : ""} mensa{boletoInstallments > 1 ? "is" : "l"}
+                        </span>
+                        <strong className="text-foreground">
+                          de {formatBRL(boletoSchedule[boletoSchedule.length - 1]?.amount ?? 0)}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between border-t border-border pt-1.5">
+                        <span className="text-muted-foreground">Total</span>
+                        <strong className="text-foreground">{formatBRL(totalPrice)}</strong>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">Sem juros · 1º vencimento em 30 dias</div>
+                      <ul className="pt-1.5 space-y-1 text-[11px] text-muted-foreground">
+                        {boletoSchedule.map((it) => (
+                          <li key={it.installment} className="flex justify-between gap-2">
+                            <span>
+                              {it.installment}. Parcela · {formatDateBR(it.dueDate)}
+                            </span>
+                            <span className="text-foreground">{formatBRL(it.amount)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="pt-1 text-[11px] text-muted-foreground">
+                        Financiamento sujeito à análise e aprovação de crédito.
+                      </p>
+                    </div>
                   </div>
+
 
                   <BoletoForm data={boleto} onChange={patchBoleto} isThirdParty={isThirdPartyFinancier} />
                 </div>
@@ -1339,13 +1387,41 @@ function Checkout() {
           onClose={() => navigate({ to: "/pacotes" })}
         />
       )}
-      {success && (payment === "credit_card" || payment === "boleto" || payment === "prepaid_boleto") && (
+      {/* Boleto pré-pago: QR Code da entrada gerado na hora do pedido */}
+      {success && payment === "prepaid_boleto" && pixInfo && !pixPaid && (
+        <PixQrOverlay
+          qrCode={pixInfo.qrCode}
+          valor={pixInfo.valor}
+          expiraEm={pixInfo.expiraEm}
+          onClose={() => navigate({ to: "/pacotes" })}
+        />
+      )}
+      {success && payment === "prepaid_boleto" && !pixInfo && !pixError && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-2xl">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-brand-orange" />
+            <h2 className="mt-5 font-display text-xl font-bold text-foreground">
+              Gerando o Pix da entrada
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">Só mais alguns segundos…</p>
+          </div>
+        </div>
+      )}
+      {success && payment === "prepaid_boleto" && pixPaid && (
+        <SuccessOverlay
+          title="Entrada aprovada!"
+          message="Recebemos o Pix da entrada e seu pedido está confirmado. As próximas parcelas seguem o cronograma apresentado."
+          onClose={() => navigate({ to: "/pacotes" })}
+        />
+      )}
+      {success && (payment === "credit_card" || payment === "boleto" || (payment === "prepaid_boleto" && pixError)) && (
         <SuccessOverlay
           title="Muito obrigado pela compra!"
           message="Seu pedido foi enviado com sucesso. Nossa equipe entrará em contato em breve para confirmar sua reserva."
           onClose={() => navigate({ to: "/pacotes" })}
         />
       )}
+
       {success && payment === "pix" && !pixInfo && !pixError && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-2xl">
