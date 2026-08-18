@@ -179,6 +179,22 @@ function destinoDoNome(nome: unknown): string {
   return t;
 }
 
+/** Procura um destino conhecido dentro de um texto ("Enotel Porto de Galinhas" → Porto de Galinhas). */
+function destinoConhecidoNoTexto(v: unknown): string {
+  const t = String(v ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (!t) return "";
+  let achado = "";
+  for (const [chave, nome] of Object.entries(DESTINO_CANONICO)) {
+    if (new RegExp(`\\b${chave.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(t)) {
+      if (chave.length > achado.length) achado = chave;
+    }
+  }
+  return achado ? DESTINO_CANONICO[achado]! : "";
+}
+
 /**
  * Destino comercial do pacote: o lugar onde o cliente realmente fica
  * (Porto de Galinhas), e não o aeroporto de chegada (Recife).
@@ -188,11 +204,18 @@ export function destinoComercial(pacote: {
   destino?: string | null;
   hoteis?: any[] | null;
 }): string {
-  const hotel = (pacote.hoteis ?? [])[0] as Record<string, unknown> | undefined;
+  const hoteis = (pacote.hoteis ?? []) as Array<Record<string, unknown>>;
+  const hotel = hoteis[0];
   const cidadeHotel = String(hotel?.["cidade"] ?? hotel?.["city"] ?? hotel?.["localidade"] ?? "").trim();
   const doNome = destinoDoNome(pacote.nome);
-  return tituloCidade(semIata(doNome || cidadeHotel || (pacote.destino ?? "").trim()));
+  // Nome do pacote/hotel costuma trazer o destino real ("Enotel Porto de Galinhas").
+  const conhecido =
+    destinoConhecidoNoTexto(pacote.nome) ||
+    hoteis.map((h) => destinoConhecidoNoTexto(h?.["nome"] ?? h?.["hotel"])).find(Boolean) ||
+    "";
+  return tituloCidade(semIata(doNome || cidadeHotel || conhecido || (pacote.destino ?? "").trim()));
 }
+
 
 
 /** ISO da operadora → valor aceito pelo input datetime-local (YYYY-MM-DDTHH:mm). */
@@ -370,6 +393,23 @@ function semGratis(s: string): string {
     .trim();
 }
 
+/**
+ * Serviço vindo em CAIXA ALTA volta para caixa normal
+ * ("PASSEIO PRAIA DO GUNGA" → "Passeio praia do Gunga").
+ */
+function caixaServico(s: string): string {
+  const t = s.trim();
+  if (!t) return "";
+  const letras = t.replace(/[^A-Za-zÀ-ÿ]/g, "");
+  if (!letras) return t;
+  const maiusculas = letras.replace(/[^A-ZÀ-Ý]/g, "").length;
+  if (maiusculas / letras.length < 0.7) return t;
+  const baixo = t.toLowerCase();
+  return baixo.charAt(0).toUpperCase() + baixo.slice(1);
+}
+
+
+
 /** Ordem de exibição: aéreo → hospedagem → transfer → passeios → ingressos → resto. */
 function ordemServico(s: string): number {
   const t = s.toLowerCase();
@@ -422,7 +462,7 @@ function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[]
   const visto = new Set<string>();
   const out: string[] = [];
   for (const raw of lista) {
-    let item = semGratis(String(raw ?? "").trim());
+    let item = caixaServico(semGratis(String(raw ?? "").trim()));
     if (!item) continue;
     // Sobras de nome de plano/marca do seguro ("HERO", "Protect", "Plus"…): não são serviço.
     if (/^(hero|protect(\s*travel)?|travel|plus|premium|basic|standard|top|max)$/i.test(item)) continue;
@@ -434,11 +474,10 @@ function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[]
     if (/seguro|protect\s*travel|assist[eê]ncia\s+(de\s+)?viagem|cobertura\s+(de\s+)?cancelamento/i.test(item)) {
       item = "Seguro viagem";
     }
-    // Transfer aeroporto/hotel/aeroporto costuma vir duplicado como "Combo: traslado…".
-    const k = /transfer|traslado|translado/i.test(item) && /aeroporto/i.test(item)
-      ? "transfer aeroporto"
-      : chaveServico(item);
+    // Qualquer menção a transfer/traslado entra uma única vez na lista.
+    const k = /transfer|traslado|translado/i.test(item) ? "transfer" : chaveServico(item);
     if (!k || visto.has(k)) continue;
+
 
     // Mesmo atrativo repetido (ex.: "Passeio a Praia do Gunga" e "Praia do Gunga",
     // "Ingresso para Pratagy Acqua Park" e "Pratagy Acqua Park"): fica o mais completo.
