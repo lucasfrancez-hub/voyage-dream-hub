@@ -1943,24 +1943,18 @@ function PackageEditorModal({
               ? "OUT"
               : "IN/OUT";
       list.push(`Transfer ${label} (Aeroporto ↔ Hotel)`);
-      const pickups = (svc.transfer.pickup_points ?? "")
-        .split(/\r?\n/)
-        .map((s) => s.trim())
-        .filter(Boolean);
-      for (const p of pickups) list.push(`Embarque do transfer: ${p}`);
+      // Só o nome do serviço na lista pública — os detalhes ficam no serviço.
     }
-    if (svc.city_tour?.enabled) {
-      const det = (svc.city_tour.detalhe ?? "").trim();
-      list.push(det ? `City Tour — ${det}` : "City Tour");
-    }
+    if (svc.city_tour?.enabled) list.push("City Tour");
     if (svc.tickets?.enabled) {
       const parks = (svc.tickets.parks ?? []).map((p) => String(p ?? "").trim()).filter(Boolean);
-      for (const park of parks) list.push(`Ingresso para ${park}`);
+      for (const park of parks) list.push(`Ingresso para ${nomeItem(park)}`);
     }
     for (const o of svc.outros ?? []) {
-      const t = String(o ?? "").trim();
+      const t = nomeItem(o);
       if (t) list.push(t);
     }
+
 
     return list;
   }, [
