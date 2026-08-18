@@ -521,6 +521,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     const h = hotelDaOpcao(principal, pacote);
     d.hotel_name = h.hotel_name;
     d.room_type = h.room_type;
+    d.room_category = h.room_category;
+    d.bed_type = h.bed_type;
     d.meal_plan = h.meal_plan;
     if (!d.going_date && h.checkin) d.going_date = h.checkin;
     if (!d.return_date && h.checkout) d.return_date = h.checkout;
