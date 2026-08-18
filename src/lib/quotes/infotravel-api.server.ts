@@ -534,3 +534,63 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
     partialErrors,
   };
 }
+
+// ------------------------------------------------- importação resiliente
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Baixa o HTML da página do orçamento, aguardando a hidratação do Next (__NEXT_DATA__). */
+export async function fetchInfotravelHtml(url: string, tentativas = 4, esperaMs = 2500): Promise<string | undefined> {
+  for (let i = 0; i < tentativas; i++) {
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": UA, "Accept-Language": "pt-BR,pt;q=0.9" },
+      });
+      if (res.ok) {
+        const html = await res.text();
+        const next = readNextData(html);
+        const pageProps = ((next?.props as any)?.pageProps ?? {}) as Record<string, unknown>;
+        // só aceita quando a hidratação já traz a referência da reserva
+        if (typeof pageProps["bookingId"] === "number") return html;
+      }
+    } catch {
+      /* tenta de novo */
+    }
+    if (i < tentativas - 1) await sleep(esperaMs);
+  }
+  return undefined;
+}
+
+const opcaoVazia = (o: NormalizedOption) =>
+  (!o.flights.length && !o.hotels.length) || !(typeof o.total === "number" && o.total > 0);
+
+/**
+ * Importa o orçamento esperando a página carregar (até ~10s) e repetindo
+ * quando a Infotravel devolve opções sem voos/valores (payload ainda frio).
+ */
+export async function importInfotravelQuoteResilient(
+  url: string,
+  { tentativas = 3, esperaMs = 3500 }: { tentativas?: number; esperaMs?: number } = {},
+): Promise<InfotravelImport> {
+  const html = await fetchInfotravelHtml(url);
+  let melhor: InfotravelImport | null = null;
+  let ultimoErro: unknown = null;
+
+  for (let i = 0; i < tentativas; i++) {
+    try {
+      const r = await importInfotravelQuote(url, html);
+      const opcoes = r.normalized.options ?? [];
+      const vazias = opcoes.filter(opcaoVazia).length;
+      const melhorVazias = melhor ? (melhor.normalized.options ?? []).filter(opcaoVazia).length : Infinity;
+      const melhorOpcoes = melhor ? (melhor.normalized.options ?? []).length : -1;
+      if (opcoes.length > melhorOpcoes || (opcoes.length === melhorOpcoes && vazias < melhorVazias)) melhor = r;
+      if (opcoes.length && !vazias) return r;
+    } catch (e) {
+      ultimoErro = e;
+    }
+    if (i < tentativas - 1) await sleep(esperaMs);
+  }
+
+  if (melhor) return melhor;
+  throw ultimoErro instanceof Error ? ultimoErro : new QuoteParseError("NO_OPTIONS_FOUND");
+}
