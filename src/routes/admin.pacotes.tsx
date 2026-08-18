@@ -638,6 +638,11 @@ function AdminPackages() {
       summary: pkg.summary || null,
       itinerary: pkg.itinerary || null,
       hotel_name: pkg.hotel_name || null,
+      hotel_options:
+        Array.isArray((pkg as any).hotel_options) && (pkg as any).hotel_options.length > 1
+          ? (pkg as any).hotel_options
+          : null,
+
       meal_plan: pkg.meal_plan || null,
       room_type: cleanRoomLabel(pkg.room_type),
       room_category: cleanRoomLabel(pkg.room_category),
