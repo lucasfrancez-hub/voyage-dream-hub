@@ -390,24 +390,17 @@ function servicosDaOpcao(detalhes: any) {
     .filter(Boolean)
     .join("\n");
 
-  // Roteiro montado a partir dos serviços realmente contratados.
-  const roteiro = [
-    detTransfer.length ? `Chegada\n${detTransfer.map((t) => `• ${t}`).join("\n")}` : "",
-    detPasseios.length ? `Durante a viagem\n${detPasseios.map((t) => `• ${t}`).join("\n")}` : "",
-    detTickets.length ? `Ingressos e passeios inclusos\n${detTickets.map((t) => `• ${t}`).join("\n")}` : "",
-    outrosDetalhe.length ? `Outros serviços\n${outrosDetalhe.map((t) => `• ${t}`).join("\n")}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-
   return {
     services,
     todos: nomesCurtos,
     destaques,
     observacoes,
     resumoTexto,
-    roteiro,
+    temTransfer: detTransfer.length > 0,
+    passeios: detPasseios.map((t) => nomeCurto(t)),
+    ingressos: detTickets.map((t) => nomeCurto(t)),
   };
+
 }
 
 
