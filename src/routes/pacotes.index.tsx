@@ -20,7 +20,7 @@ import {
   type BudgetRange,
 } from "@/components/packages/BudgetFilter";
 import { BudgetRuler } from "@/components/packages/BudgetRuler";
-import { boletoRulesForPackage, installmentRulesQuery, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
+import { boletoRulesForPackage, installmentRulesQuery, isRuleActiveToday, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
 import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
 
 
@@ -81,7 +81,24 @@ function PacotesList() {
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("sort_order");
   const { data: installmentRules } = useQuery(installmentRulesQuery);
+
+  // Opções de 15x só aparecem enquanto existir uma regra vigente que ofereça 15x.
+  const has15Cartao = (installmentRules ?? []).some(
+    (r) => isRuleActiveToday(r) && r.max_installments >= 15,
+  );
+  const has15Boleto = (installmentRules ?? []).some(
+    (r) =>
+      isRuleActiveToday(r) &&
+      r.boleto_financiado_enabled !== false &&
+      (r.boleto_financiado_max ?? r.max_installments) >= 15,
+  );
   const [installmentFilter, setInstallmentFilter] = useState<string>("all");
+
+  // Campanha de 15x expirou: o filtro volta para "Qualquer" sozinho.
+  useEffect(() => {
+    if (installmentFilter === "cartao_15" && !has15Cartao) setInstallmentFilter("all");
+    if (installmentFilter === "boleto_15" && !has15Boleto) setInstallmentFilter("all");
+  }, [installmentFilter, has15Cartao, has15Boleto]);
   const [budgetMode, setBudgetMode] = useState<BudgetMode>("total");
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(null);
 
@@ -180,17 +197,22 @@ function PacotesList() {
       let installmentMatch = true;
       if (installmentFilter !== "all") {
         const supplierName = (p as { supplier_name?: string | null }).supplier_name;
+        const boletoRules = boletoRulesForPackage(installmentRules, { supplierName });
         if (installmentFilter === "prepago") {
           installmentMatch =
-            boletoRulesForPackage(installmentRules, { supplierName }).prepaidEnabled &&
+            boletoRules.prepaidEnabled &&
             getPrepaidBoletoConditions({
               supplierName,
               departureDate: p.going_date,
               totalAmount: Number(p.price_per_person || 0) * (p.base_occupancy ?? 2),
             }).eligible;
-        } else {
-          const maxParc = maxInstallmentsForPackage(installmentRules, { supplierName });
-          installmentMatch = maxParc >= Number(installmentFilter);
+        } else if (installmentFilter.startsWith("boleto_")) {
+          const n = Number(installmentFilter.split("_")[1]);
+          installmentMatch = boletoRules.financedEnabled && boletoRules.financedMax >= n;
+        } else if (installmentFilter.startsWith("cartao_")) {
+          const n = Number(installmentFilter.split("_")[1]);
+          installmentMatch =
+            maxInstallmentsForPackage(installmentRules, { supplierName }) >= n;
         }
       }
 
@@ -505,7 +527,7 @@ function PacotesList() {
             </Popover>
           </div>
 
-          <div className="min-w-0 flex-[1.6] basis-[260px] sm:pb-0.5">
+          <div className="min-w-0 flex-[1.6] basis-[260px] overflow-hidden sm:pb-0.5">
             <BudgetRuler
               mode={budgetMode}
               onModeChange={setBudgetMode}
@@ -532,8 +554,10 @@ function PacotesList() {
               <SelectContent>
                 <SelectItem value="all">Qualquer</SelectItem>
                 <SelectItem value="prepago">Boleto pré-pago</SelectItem>
-                <SelectItem value="10">Boleto financiado até 10x</SelectItem>
-                <SelectItem value="15">Boleto financiado até 15x</SelectItem>
+                <SelectItem value="boleto_10">Boleto em até 10x</SelectItem>
+                {has15Boleto && <SelectItem value="boleto_15">Boleto em até 15x</SelectItem>}
+                <SelectItem value="cartao_10">Cartão em até 10x</SelectItem>
+                {has15Cartao && <SelectItem value="cartao_15">Cartão em até 15x</SelectItem>}
               </SelectContent>
             </Select>
           </div>
