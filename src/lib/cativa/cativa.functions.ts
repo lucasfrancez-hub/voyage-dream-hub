@@ -42,7 +42,7 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
     q = data.arquivados ? q.not("importado_em", "is", null) : q.is("importado_em", null);
     const modo = data.modo ?? "pacotes";
     if (modo === "circuitos") q = q.eq("categoria", CATEGORIA_CIRCUITO);
-    else if (modo === "pacotes") q = q.neq("categoria", CATEGORIA_CIRCUITO);
+    else if (modo === "pacotes") q = q.or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
     if (data.fonte) q = q.eq("fonte", data.fonte);
     if (data.status) q = q.eq("status", data.status);
     if (data.busca) {
