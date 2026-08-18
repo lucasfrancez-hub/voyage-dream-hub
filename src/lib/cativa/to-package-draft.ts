@@ -339,6 +339,19 @@ function servicosDaOpcao(detalhes: any) {
   }
   if (outros.length) services.outros = outros;
 
+  // Detalhe por serviço: o cliente vê só o título na lista e abre para ler tudo.
+  const detalhesPorServico = [
+    ...detTransfer.map((t) => ({ grupo: "Transfer", texto: t })),
+    ...detTickets.map((t) => ({ grupo: "Ingressos", texto: t })),
+    ...detPasseios.map((t) => ({ grupo: "Passeios", texto: t })),
+    ...detSeguro.map((t) => ({ grupo: "Seguro", texto: t })),
+    ...outrosDetalhe.map((t) => ({ grupo: "Outros serviços", texto: t })),
+  ]
+    .map(({ grupo, texto }) => ({ grupo, titulo: nomeCurto(texto), detalhe: texto.trim() }))
+    .filter((i) => i.titulo && i.detalhe && i.detalhe.length > i.titulo.length - 2);
+  if (detalhesPorServico.length) services.service_details = detalhesPorServico;
+
+
   const nomesCurtos = [
     ...detTransfer,
     ...detTickets,
