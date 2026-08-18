@@ -102,7 +102,7 @@ import {
 import { confirm } from "@/lib/confirm";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import { buildPackagesCsv, downloadCsv, type ExportDatePrice } from "@/lib/packages/export-csv";
-import { cleanRoomLabel } from "@/lib/packages/room";
+import { cleanRoomLabel, soVista } from "@/lib/packages/room";
 import type { PackageServices, SeguroMoeda } from "@/lib/packages/feed-art-data";
 import { formatSeguroCobertura } from "@/lib/packages/feed-art-data";
 import {
@@ -3075,11 +3075,11 @@ function PackageEditorModal({
                 <FormField label="Categoria / vista">
                   <select
                     className={inp}
-                    value={hv.room_category ?? ""}
+                    value={soVista(hv.room_category)}
                     onChange={(e) => setHotel({ room_category: e.target.value })}
                   >
                     <option value="">— Não informado —</option>
-                    {hv.room_category &&
+                    {soVista(hv.room_category) &&
                       ![
                         "Vista interna",
                         "Vista cidade",
@@ -3089,8 +3089,8 @@ function PackageEditorModal({
                         "Vista mar",
                         "Frente mar",
                         "Vista montanha",
-                      ].includes(hv.room_category) && (
-                        <option value={hv.room_category}>{hv.room_category}</option>
+                      ].includes(soVista(hv.room_category)) && (
+                        <option value={soVista(hv.room_category)}>{soVista(hv.room_category)}</option>
                       )}
                     <option value="Vista interna">Vista interna</option>
                     <option value="Vista cidade">Vista cidade</option>

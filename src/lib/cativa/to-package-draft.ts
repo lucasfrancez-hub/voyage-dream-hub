@@ -271,9 +271,46 @@ function nomePublicoServico(v: unknown): string {
     .replace(/\s*\([^)]{1,8}\)\s*$/i, "")
     .replace(/\s+\d+\s*$/, "")
     .trim();
-  // “Grátis” é informação comercial relevante e deve ser preservada.
-  if (/gr[aá]tis/i.test(original) && !/gr[aá]tis/i.test(nome)) nome = `${nome} grátis`;
   return nome;
+}
+
+/** Remove marcações de cortesia ("grátis", "*GRÁTIS*", "free"). */
+function semGratis(s: string): string {
+  return s
+    .replace(/[*_]*\b(gr[áa]tis|free|cortesia)\b[*_]*/gi, " ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[\s,;:\-–—]+|[\s,;:\-–—]+$/g, "")
+    .trim();
+}
+
+/** Ordem de exibição: aéreo → hospedagem → transfer → passeios → ingressos → resto. */
+function ordemServico(s: string): number {
+  const t = s.toLowerCase();
+  if (/passagem a[eé]rea|a[eé]reo/.test(t)) return 0;
+  if (/hospedagem|di[aá]ria/.test(t)) return 1;
+  if (/transfer|traslado|translado/.test(t)) return 2;
+  if (/passeio|city\s*tour|tour|excurs[aã]o/.test(t)) return 3;
+  if (/ingresso|ticket|entrada para/.test(t)) return 4;
+  return 5;
+}
+
+/** Tokens significativos do serviço (para detectar repetição do mesmo atrativo). */
+function tokensServico(s: string): Set<string> {
+  const stop = new Set([
+    "de","da","do","das","dos","a","o","e","com","sem","para","por","em","no","na","the",
+    "passeio","ingresso","ticket","entrada","combo","tour","city","visita","incluso","inclusa",
+    "transfer","traslado","translado","ida","volta","aeroporto","hotel","praia","parque",
+  ]);
+  return new Set(
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .split(" ")
+      .filter((w) => w.length > 2 && !stop.has(w)),
+  );
 }
 
 /** Chave para deduplicar serviços parecidos (ex.: dois "Transfer In + Out"). */
@@ -289,23 +326,57 @@ function chaveServico(s: string): string {
     .join(" ");
 }
 
-/** Deduplica e aplica o regime de alimentação na linha de hospedagem. */
+/**
+ * Deduplica (inclusive quando o mesmo atrativo aparece como passeio e solto),
+ * remove marcações de "grátis", aplica o regime de alimentação na hospedagem
+ * e ordena: aéreo → hospedagem → transfer → passeios → ingressos → resto.
+ */
 function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[] {
   const visto = new Set<string>();
   const out: string[] = [];
   for (const raw of lista) {
-    let item = String(raw ?? "").trim();
+    let item = semGratis(String(raw ?? "").trim());
     if (!item) continue;
-    if (/^hospedagem/i.test(item)) {
+    if (/hospedagem|di[aá]rias?\b|consulte\s+o?\s*regime/i.test(item)) {
       const r = (regimeAtual ?? "").trim();
       item = r && !/sem refei/i.test(r) ? `Hospedagem com ${r.toLowerCase()}` : "Hospedagem";
     }
-    const k = chaveServico(item);
+    // Transfer aeroporto/hotel/aeroporto costuma vir duplicado como "Combo: traslado…".
+    const k = /transfer|traslado|translado/i.test(item) && /aeroporto/i.test(item)
+      ? "transfer aeroporto"
+      : chaveServico(item);
     if (!k || visto.has(k)) continue;
+
+    // Mesmo atrativo repetido (ex.: "Passeio a Praia do Gunga" e "Praia do Gunga",
+    // "Ingresso para Pratagy Acqua Park" e "Pratagy Acqua Park"): fica o mais completo.
+    const toks = tokensServico(item);
+    if (toks.size) {
+      let repetido = false;
+      for (let i = 0; i < out.length; i++) {
+        const anteriores = tokensServico(out[i]!);
+        if (!anteriores.size) continue;
+        const contidoNoAnterior = [...toks].every((t) => anteriores.has(t));
+        const contemAnterior = [...anteriores].every((t) => toks.has(t));
+        if (contidoNoAnterior) {
+          repetido = true;
+          break;
+        }
+        if (contemAnterior) {
+          out[i] = item; // o novo é mais descritivo
+          repetido = true;
+          break;
+        }
+      }
+      if (repetido) continue;
+    }
+
     visto.add(k);
     out.push(item);
   }
-  return out;
+  return out
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => ordemServico(a.s) - ordemServico(b.s) || a.i - b.i)
+    .map((x) => x.s);
 }
 
 
