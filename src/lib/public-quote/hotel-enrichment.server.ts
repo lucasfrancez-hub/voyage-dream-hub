@@ -13,6 +13,8 @@ export type HotelNearby = { name: string; distance: string };
 
 export type HotelEnrichment = {
   name: string | null;
+  /** ID da propriedade no TripAdvisor (quando encontrada). */
+  location_id: number | null;
   rating: number | null;
   num_reviews: number | null;
   ranking: string | null;
@@ -41,7 +43,7 @@ function norm(s: string) {
 function cacheKey(name: string, city: string | null, locationId?: number | null): string {
   // v4 — inclui endereço/descrição em português e pontos próximos.
   const pin = locationId ? `|ta${locationId}` : "";
-  return `hotel-enrich:v4:${norm(name)}|${norm(city ?? "")}${pin}`;
+  return `hotel-enrich:v5:${norm(name)}|${norm(city ?? "")}${pin}`;
 }
 
 /** Chave estável do hotel usada no vínculo manual com o TripAdvisor. */
@@ -263,7 +265,7 @@ export async function enrichHotel(params: {
   const api = (path: string) => jsonOf(`${BASE}${path}`, ctrl.signal, apiKey);
 
   const vazio: HotelEnrichment = {
-    name: nome, rating: null, num_reviews: null, ranking: null, address: null,
+    name: nome, location_id: fixado ?? null, rating: null, num_reviews: null, ranking: null, address: null,
     description: null, photos: [], amenities: [], web_url: null,
     latitude: null, longitude: null, stars: null, nearby: [], status: "MATCH_FAILED",
   };
@@ -384,6 +386,7 @@ export async function enrichHotel(params: {
 
     const out: HotelEnrichment = {
       name: pickName(d.names) || escolhido.name || nome,
+      location_id: escolhido.id ?? null,
       rating: nota,
       num_reviews: avaliacoes,
       ranking: null,
