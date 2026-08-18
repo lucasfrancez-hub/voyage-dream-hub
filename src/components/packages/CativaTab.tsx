@@ -326,8 +326,20 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
                     </div>
                   </button>
                   <div className="text-right">
-                    <div className="text-sm font-bold">{brl(p.aereo_por)}</div>
-                    <div className="text-[10px] text-muted-foreground">taxas {brl(p.taxas)}</div>
+                    <div className="text-[10px] text-muted-foreground">Total</div>
+                    <div className="text-sm font-bold">
+                      {brl(
+                        typeof p.valor_total === "number" && p.valor_total > 0
+                          ? p.valor_total
+                          : typeof p.voo_menor === "number"
+                            ? p.voo_menor
+                            : null,
+                      )}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      aéreo {brl(typeof p.aereo_por === "number" && p.aereo_por > 0 ? p.aereo_por : p.voo_menor)} · taxas{" "}
+                      {brl(p.taxas)}
+                    </div>
                   </div>
                 </li>
               );
