@@ -263,10 +263,8 @@ const RE_RUIDO_SERVICO =
 function nomePublicoServico(v: unknown): string {
   const original = limpo(v);
   if (!original || RE_RUIDO_SERVICO.test(original)) return "";
-  if (/passage[mn].*a[eé]rea/i.test(original)) return "Passagem aérea";
-  if (/noites?.*hospedagem|hospedagem.*regime/i.test(original)) {
-    return "Hospedagem (consulte o regime de alimentação)";
-  }
+  if (/passage[mn].*a[eé]rea|a[eé]re[oa]\b|consulte\s+voos/i.test(original)) return "Passagem aérea";
+  if (/hospedagem|di[aá]rias?|noites?\s/i.test(original)) return "Hospedagem";
 
   let nome = nomeCurto(original)
     .replace(/\s*[-–—]\s*frequ[eê]ncia\s*:.*$/i, "")
@@ -277,6 +275,39 @@ function nomePublicoServico(v: unknown): string {
   if (/gr[aá]tis/i.test(original) && !/gr[aá]tis/i.test(nome)) nome = `${nome} grátis`;
   return nome;
 }
+
+/** Chave para deduplicar serviços parecidos (ex.: dois "Transfer In + Out"). */
+function chaveServico(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .slice(0, 6)
+    .join(" ");
+}
+
+/** Deduplica e aplica o regime de alimentação na linha de hospedagem. */
+function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[] {
+  const visto = new Set<string>();
+  const out: string[] = [];
+  for (const raw of lista) {
+    let item = String(raw ?? "").trim();
+    if (!item) continue;
+    if (/^hospedagem/i.test(item)) {
+      const r = (regimeAtual ?? "").trim();
+      item = r && !/sem refei/i.test(r) ? `Hospedagem com ${r.toLowerCase()}` : "Hospedagem";
+    }
+    const k = chaveServico(item);
+    if (!k || visto.has(k)) continue;
+    visto.add(k);
+    out.push(item);
+  }
+  return out;
+}
+
 
 
 /** Limpa HTML/entidades do texto da operadora. */
@@ -461,14 +492,36 @@ function regime(v: unknown): string {
   return limpo(v);
 }
 
-/** Tipo de cama deduzido da descrição do quarto. */
+/** Tipo de cama normalizado para as opções do cadastro. */
 function tipoCama(v: string): string {
   const t = v.toLowerCase();
-  if (/quadrupl|qu[aá]drupl/.test(t)) return "Quádruplo";
-  if (/tripl/.test(t)) return "Triplo";
-  if (/casal|double|matrimonial|king|queen/.test(t)) return "Casal";
-  if (/twin|duas camas|2 camas|solteiro/.test(t)) return "Solteiro (twin)";
-  if (/individual|single/.test(t)) return "Individual";
+  if (/2\s*camas?\s*queen|duas\s*camas?\s*queen/.test(t)) return "2 camas queen";
+  if (/2\s*camas?\s*de\s*casal|duas\s*camas?\s*de\s*casal/.test(t)) return "2 camas de casal";
+  if (/3\s*camas?\s*de\s*solteiro|tr[eê]s\s*camas?\s*de\s*solteiro|tripl/.test(t)) return "3 camas de solteiro";
+  if (/casal\s*\+\s*2\s*solteir|casal\s*e\s*2\s*solteir/.test(t)) return "1 casal + 2 solteiros";
+  if (/casal\s*\+\s*(1\s*)?solteir|casal\s*e\s*(1\s*)?solteir/.test(t)) return "1 casal + 1 solteiro";
+  if (/sof[aá]\s*-?\s*cama/.test(t)) return "Cama de casal + sofá-cama";
+  if (/twin|2\s*camas?\s*de\s*solteiro|duas\s*camas?\s*de\s*solteiro|2\s*camas?\s*solteiro/.test(t))
+    return "2 camas de solteiro";
+  if (/king/.test(t)) return "1 cama king";
+  if (/queen/.test(t)) return "1 cama queen";
+  if (/casal|double|matrimonial/.test(t)) return "1 cama de casal";
+  if (/solteiro|individual|single/.test(t)) return "2 camas de solteiro";
+  return "";
+}
+
+/** Tipo de quarto normalizado para as opções do cadastro. */
+function tipoQuarto(desc: string): string {
+  const t = (desc || "").toLowerCase();
+  if (!t) return "";
+  if (/presidencial/.test(t)) return "Suíte Presidencial";
+  if (/master/.test(t)) return "Suíte Master";
+  if (/su[ií]te|suite/.test(t)) return "Suíte";
+  if (/bangal[oô]|bungalow/.test(t)) return "Bangalô";
+  if (/chal[eé]/.test(t)) return "Chalé";
+  if (/luxo|deluxe|de luxe|luxury/.test(t)) return "Luxo";
+  if (/superior/.test(t)) return "Superior";
+  if (/standard|standart|cl[aá]ssico|classic/.test(t)) return "Standard";
   return "";
 }
 
@@ -482,16 +535,21 @@ function descricaoQuarto(v: unknown): string {
     .trim();
 }
 
-/** Categoria do quarto (parte antes do tipo de cama/vista). */
+/** Categoria / vista do quarto — só preenche quando a vista está explícita. */
 function categoriaQuarto(desc: string): string {
-  if (!desc) return "";
-  const semCama = desc
-    .replace(/\b(casal|double|matrimonial|king|queen|twin|solteiro|tripl\w*|quadrupl\w*|individual|single)\b/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .replace(/[-–,]\s*$/, "")
-    .trim();
-  return semCama || desc;
+  const t = (desc || "").toLowerCase();
+  if (!t) return "";
+  if (/frente\s*(ao\s*)?mar|beach\s*front|ocean\s*front/.test(t)) return "Frente mar";
+  if (/vista\s*parcial\s*(ao\s*)?mar|parcial\s*mar/.test(t)) return "Vista parcial mar";
+  if (/vista\s*(para\s*o\s*)?mar|ocean\s*view|sea\s*view/.test(t)) return "Vista mar";
+  if (/vista\s*piscina|pool\s*view/.test(t)) return "Vista piscina";
+  if (/vista\s*jardim|garden\s*view/.test(t)) return "Vista jardim";
+  if (/vista\s*cidade|city\s*view/.test(t)) return "Vista cidade";
+  if (/vista\s*montanha|mountain\s*view/.test(t)) return "Vista montanha";
+  if (/vista\s*interna|interior/.test(t)) return "Vista interna";
+  return "";
 }
+
 
 /** Ocupação real do orçamento (o total da Infotravel é do grupo todo). */
 function paxDaOpcao(op: CativaVooRow | null): number {
@@ -515,7 +573,7 @@ function estadiasDaOpcao(op: CativaVooRow | null) {
       const checkout = dia(h?.checkout);
       return {
         hotel_name: nome,
-        room_type: desc,
+        room_type: tipoQuarto(desc),
         room_category: categoriaQuarto(desc),
         bed_type: tipoCama(desc),
         meal_plan: regime(h?.board),
@@ -536,7 +594,7 @@ function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
     const desc = descricaoQuarto(h.roomDescription);
     return {
       hotel_name: String(h.name ?? "").trim(),
-      room_type: desc,
+      room_type: tipoQuarto(desc),
       room_category: categoriaQuarto(desc),
       bed_type: tipoCama(desc),
       meal_plan: regime(h.board),
@@ -548,7 +606,7 @@ function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
   const descP = descricaoQuarto(p?.quarto ?? p?.categoria ?? "");
   return {
     hotel_name: p ? String(p.nome ?? "").trim() : "",
-    room_type: descP,
+    room_type: tipoQuarto(descP),
     room_category: categoriaQuarto(descP),
     bed_type: tipoCama(descP),
     meal_plan: regime(p?.regime),
@@ -654,15 +712,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     d.services = services;
     // "O que inclui" = só o NOME do serviço. Detalhes ficam no diálogo de cada item.
     const bullets = todos.filter((b) => b && !RE_RUIDO_SERVICO.test(b));
-    if (bullets.length) {
-      const vistosInc = new Set<string>();
-      d.includes = [...(d.includes as string[]), ...bullets].filter((b) => {
-        const k = b.toLowerCase().replace(/\s+/g, " ").trim();
-        if (!k || vistosInc.has(k)) return false;
-        vistosInc.add(k);
-        return true;
-      });
-    }
+    d.includes = ajustarInclusos([...(d.includes as string[]), ...bullets], d.meal_plan as string);
+
 
 
     // O resumo da operadora não vai para o campo público; a IA gera o texto no editor.
@@ -732,6 +783,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
       d.meal_plan = maisBarato.meal_plan;
       d.hotel_stays = Array.isArray(maisBarato.stays) && maisBarato.stays.length > 1 ? maisBarato.stays : d.hotel_stays;
       if (maisBarato.price_per_person) d.price_per_person = maisBarato.price_per_person;
+      d.includes = ajustarInclusos(d.includes as string[], d.meal_plan as string);
+
     }
 
     d.cativa_alternativas = opcoes.length;
