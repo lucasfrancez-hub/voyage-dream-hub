@@ -32,6 +32,7 @@ export function HotelOptionsPanel({
   occupancy?: number;
   onChange: (next: HotelOption[] | null, base: HotelOption | null) => void;
 }) {
+  const [vinculando, setVinculando] = useState<number | null>(null);
   if (!options?.length) return null;
 
   const preco = (o: HotelOption) => Number(o.price_per_person) || 0;
@@ -44,6 +45,11 @@ export function HotelOptionsPanel({
     onChange(next, next[0]!);
   };
 
+  const patch = (i: number, p: Partial<HotelOption>) => {
+    const next = options.map((o, idx) => (idx === i ? { ...o, ...p } : o));
+    onChange(next, next[0]!);
+  };
+
   const remover = (i: number) => {
     const next = options.filter((_, idx) => idx !== i);
     if (next.length < 2) {
@@ -52,6 +58,7 @@ export function HotelOptionsPanel({
     }
     onChange(next, next[0]!);
   };
+
 
   return (
     <div className="sm:col-span-2 rounded-2xl border border-border bg-muted/30 p-3">
