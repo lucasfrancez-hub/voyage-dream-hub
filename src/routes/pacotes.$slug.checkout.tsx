@@ -13,7 +13,7 @@ import { CardForm, useCardData, detectBrand } from "@/components/CardForm";
 import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/components/BoletoForm";
 import { DateBRInput } from "@/components/DateBRInput";
 import { PixQrOverlay } from "@/components/PixQrOverlay";
-import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
+import { getPrepaidBoletoConditions, buildFinancedBoletoSchedule } from "@/lib/packages/prepaid-boleto";
 import { cardInstallmentOptions } from "@/lib/packages/card-installments";
 import { installmentRulesQuery, maxInstallmentsForCard, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
 
