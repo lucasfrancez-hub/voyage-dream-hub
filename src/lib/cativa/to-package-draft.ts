@@ -224,9 +224,13 @@ function servicosDaOpcao(detalhes: any) {
     services.transfer = { enabled: true, sentido: "in_out", pickup_points: transfers.join(" · ") };
   }
   if (tickets.length) services.tickets = { enabled: true, parks: tickets };
-  if (activities.length) services.passeios = activities;
+  if (activities.length) {
+    // passeios/city tour: liga o bloco e já preenche os detalhes com os itens da operadora
+    services.passeios = activities;
+    services.city_tour = { enabled: true, detalhe: activities.join(" · ") };
+  }
   if (insurance.length) {
-    services.seguro = { enabled: true, cobertura: insurance.join(" · ") };
+    services.seguro = { enabled: true, cobertura: insurance.join(" · "), moeda: "USD" };
   }
   if (outrosServicos.length) services.outros = outrosServicos;
 
