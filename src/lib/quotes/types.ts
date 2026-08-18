@@ -61,6 +61,10 @@ export type NormalizedFlight = {
   duration?: string | null;
   stops?: number | null;
   segments: NormalizedFlightSegment[];
+  /** Tarifa aérea por passageiro, sem taxas. */
+  fare?: number | null;
+  /** Taxas aéreas por passageiro (embarque, administrativa etc.). */
+  taxes?: number | null;
   total?: number | null;
 };
 

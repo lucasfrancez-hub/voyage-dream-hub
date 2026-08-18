@@ -234,6 +234,36 @@ function sumFares(fares: { type?: string; discount?: boolean; price?: Price }[] 
   return found ? Math.round(total * 100) / 100 : null;
 }
 
+function splitFlightFares(
+  fares: { type?: string; discount?: boolean; isFareRate?: boolean; price?: Price }[] | null | undefined,
+): { fare: number | null; taxes: number | null; total: number | null } {
+  if (!fares?.length) return { fare: null, taxes: null, total: null };
+  let fare = 0;
+  let taxes = 0;
+  let foundFare = false;
+  let foundTaxes = false;
+  for (const item of fares) {
+    const amount = amountOf(item.price);
+    if (amount == null) continue;
+    const value = item.discount ? -Math.abs(amount) : amount;
+    const type = String(item.type ?? "").toUpperCase();
+    if (item.isFareRate === true || type !== "FARE") {
+      taxes += value;
+      foundTaxes = true;
+    } else {
+      fare += value;
+      foundFare = true;
+    }
+  }
+  const roundedFare = foundFare ? Math.round(fare * 100) / 100 : null;
+  const roundedTaxes = foundTaxes ? Math.round(taxes * 100) / 100 : null;
+  return {
+    fare: roundedFare,
+    taxes: roundedTaxes,
+    total: foundFare || foundTaxes ? Math.round((fare + taxes) * 100) / 100 : null,
+  };
+}
+
 const isoDate = (v: unknown): string | null => {
   if (typeof v !== "string" || !v) return null;
   const d = new Date(v);
@@ -366,7 +396,13 @@ function mapFlight(bf: any): { flights: NormalizedFlight[]; pax: { adults: numbe
     if (String(t?.type ?? "").toUpperCase() === "CHD") children += 1;
     else adults += 1;
   }
-  return { flights: out, pax: { adults, children }, total: sumFares(bf?.fares) };
+  const breakdown = splitFlightFares(bf?.fares);
+  const passengerCount = Math.max(1, adults + children);
+  if (out[0]) {
+    out[0].fare = breakdown.fare == null ? null : Math.round((breakdown.fare / passengerCount) * 100) / 100;
+    out[0].taxes = breakdown.taxes == null ? null : Math.round((breakdown.taxes / passengerCount) * 100) / 100;
+  }
+  return { flights: out, pax: { adults, children }, total: breakdown.total };
 }
 
 /**
@@ -603,7 +639,11 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
   }
   if (first.total == null) throw new QuoteParseError("TOTAL_NOT_FOUND", "nenhum valor encontrado na opção 1");
   quote.total = first.total;
-  quote.values = { subtotal: first.total, taxes: null };
+  const firstTaxes = first.flights.reduce(
+    (sum, flight) => sum + (typeof flight.taxes === "number" ? flight.taxes : 0),
+    0,
+  );
+  quote.values = { subtotal: first.total, taxes: firstTaxes > 0 ? Math.round(firstTaxes * 100) / 100 : null };
 
   // Circuitos e grupos fechados podem omitir passageiros mesmo quando seus
   // produtos, voos e valores estão completos; não descarte esses pacotes.
