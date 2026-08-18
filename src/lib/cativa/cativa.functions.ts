@@ -8,7 +8,13 @@ async function exigirAdmin(context: any) {
 
 export const listarPacotesCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { busca?: string; fonte?: string; status?: string; pagina?: number } | undefined) => input ?? {})
+  .inputValidator(
+    (
+      input:
+        | { busca?: string; fonte?: string; status?: string; pagina?: number; arquivados?: boolean }
+        | undefined,
+    ) => input ?? {},
+  )
   .handler(async ({ data, context }) => {
     await exigirAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -16,12 +22,14 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
     let q = supabaseAdmin
       .from("cativa_pacotes")
       .select(
-        "id, fonte, categoria, nome, origem_iata, origem_cidade, destino, data_viagem, data_fim, aereo_por, taxas, valor_total, hoteis, link_orcamento, status, voos_status, voos_opcoes, voos_atualizado_em, voos_erro, visto_em, updated_at",
+        "id, fonte, categoria, nome, origem_iata, origem_cidade, destino, data_viagem, data_fim, aereo_por, taxas, valor_total, hoteis, link_orcamento, status, voos_status, voos_opcoes, voos_atualizado_em, voos_erro, visto_em, updated_at, importado_em",
         { count: "exact" },
       )
       .order("updated_at", { ascending: false })
       .range(pagina * 50, pagina * 50 + 49);
 
+    // pacotes já importados ficam arquivados e só aparecem quando pedido
+    q = data.arquivados ? q.not("importado_em", "is", null) : q.is("importado_em", null);
     if (data.fonte) q = q.eq("fonte", data.fonte);
     if (data.status) q = q.eq("status", data.status);
     if (data.busca) {
@@ -46,7 +54,7 @@ export const resumoCativa = createServerFn({ method: "POST" })
     };
 
     const [ativos, esgotados, pendentes, comVoos, erros] = await Promise.all([
-      conta((q: any) => q.eq("status", "ativo")),
+      conta((q: any) => q.eq("status", "ativo").is("importado_em", null)),
       conta((q: any) => q.eq("status", "esgotado")),
       conta((q: any) => q.eq("status", "ativo").eq("voos_status", "pendente")),
       conta((q: any) => q.eq("status", "ativo").eq("voos_status", "ok")),
@@ -178,7 +186,30 @@ export const carregarPacotesCativaParaImportar = createServerFn({ method: "POST"
       if (arr) arr.push(v);
       else porPacote.set(v.pacote_id, [v]);
     }
+    // já selecionados = arquivados: somem da lista da Cativa
+    await supabaseAdmin
+      .from("cativa_pacotes")
+      .update({ importado_em: new Date().toISOString() } as any)
+      .in("id", ids);
+
     return {
       pacotes: (pacotes ?? []).map((p: any) => ({ pacote: p, voos: porPacote.get(p.id) ?? [] })),
     };
+  });
+
+/** Arquiva (ou desarquiva) pacotes Cativa manualmente. */
+export const arquivarPacotesCativa = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { ids: string[]; arquivar: boolean }) => input)
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const ids = (data.ids ?? []).slice(0, 200);
+    if (!ids.length) return { ok: true };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("cativa_pacotes")
+      .update({ importado_em: data.arquivar ? new Date().toISOString() : null } as any)
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
