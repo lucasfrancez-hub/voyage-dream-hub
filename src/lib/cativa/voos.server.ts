@@ -69,22 +69,48 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
 async function processarPacote(
   p: any,
   supabaseAdmin: any,
-  importInfotravelQuoteResilient: (url: string) => Promise<any>,
+  importar: (url: string, opts?: { tentativas?: number; esperaMs?: number }) => Promise<any>,
+  opts?: { tentativas?: number; esperaMs?: number },
 ): Promise<"ok" | "erro"> {
-  if (!p.link_orcamento) {
+  const { linkOrcamentoUtilizavel } = await import("@/lib/quotes/infotravel-api.server");
+  const link = p.link_orcamento ? linkOrcamentoUtilizavel(p.link_orcamento) : null;
+
+  if (!link) {
     await supabaseAdmin
       .from("cativa_pacotes")
-      .update({ voos_status: "sem_link", voos_erro: "Pacote sem link de orçamento" } as any)
+      .update({
+        voos_status: "sem_link",
+        voos_erro: p.link_orcamento
+          ? "Link da planilha abre a área logada da Cativa (sem token do orçamento). Cole o link do Orçamento Web (premium.infotravel.com.br/orcamento-web/pt/link?token=...)."
+          : "Pacote sem link de orçamento",
+        voos_tentativas: 0,
+        voos_proxima_em: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      } as any)
       .eq("id", p.id);
     return "erro";
   }
 
   try {
-    const { normalized } = await importInfotravelQuoteResilient(p.link_orcamento);
+    const { normalized } = await importar(link, opts);
     const opcoes = normalized.options ?? [];
 
-    await supabaseAdmin.from("cativa_pacote_voos").delete().eq("pacote_id", p.id);
+    // Não descarta o que já estava salvo quando a consulta volta pior/vazia:
+    // antes, um reprocesso frio apagava os voos e o pacote ficava zerado.
+    const { count: existentes } = await supabaseAdmin
+      .from("cativa_pacote_voos")
+      .select("id", { count: "exact", head: true })
+      .eq("pacote_id", p.id);
+
+    const completas = opcoes.filter(
+      (o: any) => (o?.flights?.length || o?.hotels?.length) && typeof o?.total === "number" && o.total > 0,
+    ).length;
+
+    if (!opcoes.length && (existentes ?? 0) > 0) {
+      throw new Error("Consulta voltou sem opções; dados anteriores mantidos");
+    }
+
     if (opcoes.length) {
+      await supabaseAdmin.from("cativa_pacote_voos").delete().eq("pacote_id", p.id);
       await supabaseAdmin.from("cativa_pacote_voos").insert(
         opcoes.map((o: any, i: number) => ({
           pacote_id: p.id,
@@ -109,6 +135,8 @@ async function processarPacote(
       );
     }
 
+    const incompleto = opcoes.length > 0 && completas < opcoes.length;
+
     await supabaseAdmin
       .from("cativa_pacotes")
       .update({
@@ -116,10 +144,13 @@ async function processarPacote(
         voos_status: opcoes.length ? "ok" : "sem_opcoes",
         voos_opcoes: opcoes.length,
         voos_atualizado_em: new Date().toISOString(),
-        voos_erro: null,
+        voos_erro: incompleto ? `${completas}/${opcoes.length} opções com voos e valores completos` : null,
         voos_tentativas: 0,
-        voos_prioridade: 100,
-        voos_proxima_em: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        voos_prioridade: incompleto ? 5 : 100,
+        // Opção sem valor/voo volta à fila em minutos; completa só na revisão semanal.
+        voos_proxima_em: new Date(
+          Date.now() + (incompleto ? 20 * 60_000 : 7 * 24 * 60 * 60 * 1000),
+        ).toISOString(),
       } as any)
       .eq("id", p.id);
     return "ok";
@@ -138,6 +169,7 @@ async function processarPacote(
     return "erro";
   }
 }
+
 
 
 /**
@@ -239,7 +271,13 @@ export async function reprocessarPacotes(ids: string[]): Promise<ResultadoVoos> 
 
   const res: ResultadoVoos = { processados: 0, ok: 0, erros: 0 };
   for (const p of (pacotes ?? []) as any[]) {
-    const r = await processarPacote(p, supabaseAdmin, importInfotravelQuoteResilient);
+    // Reprocesso manual: insiste mais que a fila automática para trazer
+    // todos os voos, datas e valores de uma vez.
+    const r = await processarPacote(p, supabaseAdmin, importInfotravelQuoteResilient, {
+      tentativas: 5,
+      esperaMs: 4000,
+    });
+
     res.processados += 1;
     if (r === "ok") res.ok++;
     else res.erros++;

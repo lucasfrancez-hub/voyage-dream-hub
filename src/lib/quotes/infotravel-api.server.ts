@@ -85,6 +85,22 @@ export function normalizarUrlOrcamento(raw: string): string {
   return s;
 }
 
+/**
+ * Devolve o link do Orçamento Web utilizável (com companyCode/bookingId) ou
+ * null quando o link só abre a área logada da Cativa/Infotravel.
+ */
+export function linkOrcamentoUtilizavel(raw: string): string | null {
+  const url = normalizarUrlOrcamento(raw);
+  try {
+    resolveRef(url);
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+
+
 /** Descobre a referência do orçamento a partir da URL (e do HTML, quando disponível). */
 export function resolveRef(rawUrl: string, html?: string): InfotravelRef {
   const url = normalizarUrlOrcamento(rawUrl);
