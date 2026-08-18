@@ -14,6 +14,7 @@ import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/comp
 import { DateBRInput } from "@/components/DateBRInput";
 import { PixQrOverlay } from "@/components/PixQrOverlay";
 import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
+import { maxCardInstallments, cardInstallmentOptions } from "@/lib/packages/card-installments";
 
 
 import { ContactFooter } from "@/components/ContactFooter";
