@@ -52,7 +52,7 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
     let q = supabaseAdmin
       .from("cativa_pacotes")
       .select(
-        "id, fonte, categoria, nome, origem_iata, origem_cidade, destino, data_viagem, data_fim, aereo_por, taxas, valor_total, hoteis, link_orcamento, status, voos_status, voos_opcoes, voos_atualizado_em, voos_erro, visto_em, updated_at, importado_em",
+        "id, fonte, categoria, nome, origem_iata, origem_cidade, destino, data_viagem, data_fim, aereo_por, taxas, valor_total, hoteis, link_orcamento, status, voos_status, voos_opcoes, voos_atualizado_em, voos_erro, visto_em, updated_at, importado_em, liberado_manual",
         { count: "exact" },
       )
       .order("updated_at", { ascending: false })
@@ -119,7 +119,9 @@ export const resumoCativa = createServerFn({ method: "POST" })
       conta((q: any) => semCircuito(q.eq("status", "ativo").eq("voos_status", "ok"))),
       conta((q: any) => semCircuito(q.eq("voos_status", "erro"))),
       conta((q: any) => q.eq("status", "ativo").is("importado_em", null).eq("categoria", CATEGORIA_CIRCUITO)),
-      conta((q: any) => semCircuito(q.eq("status", "ativo").is("importado_em", null)).or(FILTRO_INCOMPLETO)),
+      conta((q: any) =>
+        semCircuito(q.eq("status", "ativo").is("importado_em", null)).eq("liberado_manual", false).or(FILTRO_INCOMPLETO),
+      ),
     ]);
 
     const { data: runs } = await supabaseAdmin
@@ -303,7 +305,7 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
       .not("link_orcamento", "is", null)
       .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`)
       .limit(limite);
-    if (data.incompletos) q = q.or(FILTRO_INCOMPLETO);
+    if (data.incompletos) q = q.eq("liberado_manual", false).or(FILTRO_INCOMPLETO);
     else if (!data.tudo) q = q.or("voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_opcoes.is.null,voos_opcoes.eq.0");
 
     const { data: rows, error } = await q;
@@ -321,7 +323,7 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
       .not("link_orcamento", "is", null)
       .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
     if (data.incompletos) {
-      restantesQ = restantesQ.or(FILTRO_INCOMPLETO);
+      restantesQ = restantesQ.eq("liberado_manual", false).or(FILTRO_INCOMPLETO);
     } else if (!data.tudo) {
       restantesQ = restantesQ.or(
         "voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_status.eq.pendente,voos_opcoes.is.null,voos_opcoes.eq.0",
@@ -329,4 +331,19 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
     }
     const { count: restantes } = await restantesQ;
     return { ...res, restantes: restantes ?? 0 };
+  });
+
+/** Marca/desmarca "ir do mesmo jeito": pacote aparece no Command Center mesmo incompleto. */
+export const liberarPacoteCativa = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { pacoteId: string; liberar: boolean }) => input)
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("cativa_pacotes")
+      .update({ liberado_manual: data.liberar } as any)
+      .eq("id", data.pacoteId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
