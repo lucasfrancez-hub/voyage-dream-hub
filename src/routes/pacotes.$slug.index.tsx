@@ -231,8 +231,10 @@ function PackageDetails() {
   const { slug } = Route.useParams();
   const { preview } = Route.useSearch();
 
-  const { data: pkg, isLoading } = useQuery({
+  const { data: pkg, isLoading, isFetching } = useQuery({
     queryKey: ["package", slug, preview ? "preview" : "public"],
+    // mantém o pacote anterior visível enquanto o novo carrega (troca de data sem piscar)
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const slugs = slug.includes("#") ? [slug, slug.replace(/#/g, "-")] : [slug];
       let query = supabase.from("packages").select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_options,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at,tripadvisor_location_id,tripadvisor_url,tripadvisor_address,tripadvisor_photos,kind,pricing_mode,date_mode,services,cruise_details,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates").in("slug", slugs);
@@ -243,6 +245,8 @@ function PackageDetails() {
       return data;
     },
   });
+  const switching = isFetching && pkg?.slug !== slug;
+
 
   const { data: datePrices = [] } = useQuery({
     queryKey: ["package-date-prices", pkg?.id],
