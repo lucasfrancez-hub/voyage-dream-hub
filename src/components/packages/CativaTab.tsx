@@ -28,7 +28,7 @@ function faltando(p: any): string[] {
   return out;
 }
 
-/** Badge com a quantidade de pacotes Cativa disponíveis (atualiza sozinho). */
+/** Badge com a quantidade de pacotes disponíveis no catálogo (atualiza sozinho). */
 export function CativaCountBadge({ active }: { active?: boolean }) {
   const resumo = useServerFn(resumoCativa);
   const q = useQuery({
@@ -118,7 +118,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
       setSel([]);
       await q.refetch();
     } catch (e: any) {
-      toast.error(e?.message || "Falha ao importar pacotes Cativa");
+      toast.error(e?.message || "Falha ao importar pacotes do catálogo");
     } finally {
       setImportando(false);
     }
@@ -270,7 +270,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
           ? `${total} ${modo === "circuitos" ? "circuito(s)" : "pacote(s)"} arquivados (já importados)`
           : modo === "circuitos"
           ? `${total} circuito(s) disponíveis · circuitos não têm aéreo, então não entram na fila de voos`
-          : `${total} pacote(s) disponíveis no catálogo Cativa · esgotados e já importados saem da lista automaticamente`}
+          : `${total} pacote(s) disponíveis no catálogo de pacotes · esgotados e já importados saem da lista automaticamente`}
       </p>
 
       <div className="rounded-xl border border-border bg-card">
