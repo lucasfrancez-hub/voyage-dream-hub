@@ -133,7 +133,36 @@ export const carregarPacotesCativaParaImportar = createServerFn({ method: "POST"
         .in("pacote_id", ids)
         .order("opcao_numero", { ascending: true }),
     ]);
-    const linhas = (voos ?? []) as any[];
+    let linhas = (voos ?? []) as any[];
+
+    // se os serviços vieram sem descrição (importação antiga), reconsulta a Infotravel
+    const semDescricao = [
+      ...new Set(
+        linhas
+          .filter((v) => {
+            const d = v.detalhes ?? {};
+            const itens = [
+              ...(d.transfers ?? []),
+              ...(d.tickets ?? []),
+              ...(d.activities ?? []),
+              ...(d.insurance ?? []),
+              ...(d.services ?? []),
+            ];
+            return itens.length > 0 && !itens.some((i: any) => i?.description);
+          })
+          .map((v) => v.pacote_id as string),
+      ),
+    ];
+    if (semDescricao.length) {
+      const { reprocessarPacotes } = await import("@/lib/cativa/voos.server");
+      await reprocessarPacotes(semDescricao);
+      const { data: novos } = await supabaseAdmin
+        .from("cativa_pacote_voos")
+        .select("*")
+        .in("pacote_id", ids)
+        .order("opcao_numero", { ascending: true });
+      linhas = (novos ?? []) as any[];
+    }
 
     // resume com IA as descrições longas dos serviços adicionais (com cache)
     const { resumirServicosEmLote } = await import("@/lib/cativa/servicos-ia.server");

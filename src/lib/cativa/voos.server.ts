@@ -102,3 +102,19 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
 
   return res;
 }
+
+/** Força a reconsulta imediata da Infotravel para pacotes específicos. */
+export async function reprocessarPacotes(ids: string[]): Promise<ResultadoVoos> {
+  if (!ids.length) return { processados: 0, ok: 0, erros: 0 };
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("cativa_pacotes")
+    .update({
+      voos_status: "pendente",
+      voos_prioridade: 1,
+      voos_tentativas: 0,
+      voos_proxima_em: new Date().toISOString(),
+    } as any)
+    .in("id", ids);
+  return await processarFilaVoos(ids.length);
+}
