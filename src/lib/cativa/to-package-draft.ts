@@ -643,7 +643,7 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
   const nucleo = (() => {
     let t = nomePacote
       .replace(/^[^:]{2,20}:\s*/, "") // prefixo de região ("Europa: ")
-      .split(/\s+[—–|]\s+/)[0]!
+      .split(/\s+[—–|-]\s+/)[0]! // "Show Ed Sheeran - Loop Tour" -> "Show Ed Sheeran"
       .split(/\s+com\s+/i)[0]!
       .split(/\s+[-]\s+saindo\s+de\s+/i)[0]!
       .trim();
