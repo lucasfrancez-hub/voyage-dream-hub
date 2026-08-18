@@ -328,6 +328,27 @@ function PacotesCativaPage() {
                           </ul>
                         ) : null}
                         {(() => {
+                          const r = ((o.detalhes ?? {}) as any).resumo_ia as any[] | undefined;
+                          if (!Array.isArray(r) || !r.length) return null;
+                          return (
+                            <div className="mt-2 space-y-2 rounded bg-muted/40 p-2">
+                              {r.map((s: any, i: number) => (
+                                <div key={i}>
+                                  <div className="text-xs font-medium">{s.nome}</div>
+                                  {s.resumo ? <p className="text-xs text-muted-foreground">{s.resumo}</p> : null}
+                                  {(s.destaques ?? []).length ? (
+                                    <ul className="mt-1 list-disc pl-4 text-xs text-muted-foreground">
+                                      {(s.destaques as string[]).map((x, j) => (
+                                        <li key={j}>{x}</li>
+                                      ))}
+                                    </ul>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                        {(() => {
                           const d = (o.detalhes ?? {}) as any;
                           const extras = [
                             ...(d.transfers ?? []).map((x: any) => ["Transfer", x] as const),
