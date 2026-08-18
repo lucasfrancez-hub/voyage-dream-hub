@@ -149,15 +149,17 @@ export const reprocessarVoosCativa = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await exigirAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const agora = new Date().toISOString();
     await supabaseAdmin
       .from("cativa_pacotes")
       .update({
         voos_status: "pendente",
         voos_prioridade: 1,
         voos_tentativas: 0,
-        voos_proxima_em: new Date().toISOString(),
+        voos_proxima_em: agora,
       } as any)
-      .eq("id", data.pacoteId);
+      .eq("id", data.pacoteId)
+      .or(`voos_status.neq.processando,voos_proxima_em.lte.${agora}`);
     const { processarFilaVoos } = await import("@/lib/cativa/voos.server");
     return await processarFilaVoos(1);
   });

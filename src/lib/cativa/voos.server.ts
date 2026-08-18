@@ -131,15 +131,19 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
 export async function reprocessarPacotes(ids: string[]): Promise<ResultadoVoos> {
   if (!ids.length) return { processados: 0, ok: 0, erros: 0 };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const agora = new Date().toISOString();
   await supabaseAdmin
     .from("cativa_pacotes")
     .update({
       voos_status: "pendente",
       voos_prioridade: 1,
       voos_tentativas: 0,
-      voos_proxima_em: new Date().toISOString(),
+      voos_proxima_em: agora,
     } as any)
-    .in("id", ids);
+    .in("id", ids)
+    // Não devolve à fila um item que outro worker ainda está processando.
+    // Só recupera "processando" quando a lease já venceu.
+    .or(`voos_status.neq.processando,voos_proxima_em.lte.${agora}`);
   // Mantém cada chamada abaixo do limite do servidor. A continuação é feita
   // pelo painel/cron em novos lotes, sem perder o progresso já salvo.
   return await processarFilaVoos(Math.min(ids.length, 5));
