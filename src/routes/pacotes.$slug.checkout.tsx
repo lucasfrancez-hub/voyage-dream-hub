@@ -354,6 +354,17 @@ function Checkout() {
   const prepaidEligible = prepaid.eligible;
   const prepaidMax = prepaid.maxInstallments;
 
+  // Bandeiras com limite reduzido em pacotes Cativa (Hipercard, Diners, Elo, Amex): até 6x.
+  const maxCardParcelas = maxCardInstallments({
+    brand: card.brand || detectBrand(card.cardNumber),
+    supplierName: (pkg as { supplier_name?: string | null } | undefined)?.supplier_name ?? null,
+    defaultMax: MAX_INSTALLMENTS,
+  });
+  useEffect(() => {
+    setInstallments((n) => Math.min(n, maxCardParcelas));
+  }, [maxCardParcelas]);
+
+
   // Abre já no Boleto Pré-pago quando veio do card do pacote.
   useEffect(() => {
     if (payFromSearch === "prepaid" && prepaidEligible) setPayment("prepaid_boleto");
