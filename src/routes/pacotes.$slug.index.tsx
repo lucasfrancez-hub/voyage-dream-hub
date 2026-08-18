@@ -765,9 +765,6 @@ function PackageDetails() {
             <div className="mt-1 text-3xl font-display font-bold text-brand-orange">
               {formatBRL(pricePerPerson * (isPerUnit ? 1 : baseOccupancy))}
             </div>
-            {hasHotelChoice && hotelName ? (
-              <div className="text-xs text-muted-foreground mt-1">Com hospedagem no {hotelName}</div>
-            ) : null}
 
             {pkg.taxes ? (
               <div className="text-xs text-muted-foreground mt-1">
@@ -813,6 +810,16 @@ function PackageDetails() {
                 .
               </div>
             )}
+
+            {hasHotelChoice && hotelName ? (
+              <div className="mt-5 flex items-center gap-2 rounded-2xl border border-brand-orange/30 bg-brand-orange/10 px-3 py-2.5 text-xs">
+                <Hotel className="h-4 w-4 text-brand-orange shrink-0" />
+                <span className="text-muted-foreground">
+                  Com hospedagem no <span className="font-semibold text-foreground">{hotelName}</span>
+                </span>
+              </div>
+            ) : null}
+
 
             {flexibleDates ? (
               <button
