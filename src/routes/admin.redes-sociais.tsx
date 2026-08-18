@@ -16,8 +16,19 @@ import {
   Clock,
   ExternalLink,
   Instagram,
+  Rocket,
 } from "lucide-react";
 import { getSocialOverview } from "@/lib/instagram/queries.functions";
+import { listarImpulsionamentos } from "@/lib/ads/boosts.functions";
+import {
+  TurbinarDialog,
+  DesempenhoDialog,
+  STATUS_INFO,
+  ROTULO_RESULTADO,
+  brl,
+  type Boost,
+} from "@/components/admin/TurbinarPublicacao";
+
 
 export const Route = createFileRoute("/admin/redes-sociais")({
   head: () => ({
@@ -37,8 +48,11 @@ type Filtro = "todos" | "feed" | "reels" | "stories";
 
 function RedesSociaisPage() {
   const fetchOverview = useServerFn(getSocialOverview);
+  const fetchBoosts = useServerFn(listarImpulsionamentos);
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [conta, setConta] = useState<string>("todas");
+  const [turbinar, setTurbinar] = useState<Item | null>(null);
+  const [detalhe, setDetalhe] = useState<Boost | null>(null);
 
   const { data, isFetching, refetch, error } = useQuery({
     queryKey: ["social-overview"],
@@ -46,6 +60,24 @@ function RedesSociaisPage() {
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
   });
+
+  const { data: boosts } = useQuery({
+    queryKey: ["meta-boosts"],
+    queryFn: () => fetchBoosts() as Promise<Boost[]>,
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+
+  const boostsPorMidia = useMemo(() => {
+    const mapa = new Map<string, Boost[]>();
+    for (const b of boosts ?? []) {
+      const lista = mapa.get(b.ig_media_id) ?? [];
+      lista.push(b);
+      mapa.set(b.ig_media_id, lista);
+    }
+    return mapa;
+  }, [boosts]);
+
 
   const contas = data?.contas ?? [];
   const visiveis = useMemo(
@@ -162,8 +194,16 @@ function RedesSociaisPage() {
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {itens.map((i) => (
-                <CardPost key={i.id} item={i} />
+                <CardPost
+                  key={i.id}
+                  item={i}
+                  boosts={boostsPorMidia.get(i.id) ?? []}
+                  onTurbinar={() => setTurbinar(i)}
+                  onVerDesempenho={(b: Boost) => setDetalhe(b)}
+                />
+
               ))}
+
               {itens.length === 0 && !c.erro && (
                 <p className="text-sm text-muted-foreground">Nada por aqui nesse filtro.</p>
               )}
@@ -171,9 +211,29 @@ function RedesSociaisPage() {
           </section>
         );
       })}
+
+      {turbinar && (
+        <TurbinarDialog
+          aberto={!!turbinar}
+          onOpenChange={(v) => !v && setTurbinar(null)}
+          publicacao={{
+            ig_media_id: turbinar.id,
+            caption: turbinar.caption,
+            permalink: turbinar.permalink,
+            thumbnail: turbinar.thumbnail,
+          }}
+        />
+      )}
+
+      <DesempenhoDialog
+        boost={detalhe}
+        historico={detalhe ? (boostsPorMidia.get(detalhe.ig_media_id) ?? []) : []}
+        onOpenChange={(v) => !v && setDetalhe(null)}
+      />
     </div>
   );
 }
+
 
 function Resumo({
   label,
@@ -208,7 +268,17 @@ type Item = {
   insights: Record<string, number>;
 };
 
-function CardPost({ item }: { item: Item }) {
+function CardPost({
+  item,
+  boosts,
+  onTurbinar,
+  onVerDesempenho,
+}: {
+  item: Item;
+  boosts: Boost[];
+  onTurbinar: () => void;
+  onVerDesempenho: (b: Boost) => void;
+}) {
   const tipo = item.is_story
     ? "Story"
     : String(item.media_product_type ?? "").toUpperCase() === "REELS"
@@ -290,6 +360,64 @@ function CardPost({ item }: { item: Item }) {
             </span>
           ))}
       </div>
+      {!item.is_story && (
+        <div className="border-t border-border p-2">
+          {boosts.length > 0 ? (
+            <BlocoBoost boost={boosts[0]!} onVer={() => onVerDesempenho(boosts[0]!)} onTurbinar={onTurbinar} />
+          ) : (
+            <button
+              onClick={onTurbinar}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#F26B1F] px-3 py-1.5 text-xs font-semibold text-white hover:brightness-95"
+            >
+              <Rocket className="h-3.5 w-3.5" /> Turbinar publicação
+            </button>
+          )}
+        </div>
+      )}
     </article>
   );
 }
+
+function BlocoBoost({
+  boost,
+  onVer,
+  onTurbinar,
+}: {
+  boost: Boost;
+  onVer: () => void;
+  onTurbinar: () => void;
+}) {
+  const info = STATUS_INFO[boost.status] ?? STATUS_INFO.criando!;
+  const i = boost.insights ?? {};
+  const encerrado = boost.status === "finalizado" || boost.status === "erro";
+  return (
+    <div className="space-y-1.5">
+      <div className={`text-[11px] font-semibold ${info.cor}`}>
+        {info.bolinha} {info.nome}
+      </div>
+      {(i.spend || i.results) && (
+        <div className="text-[11px] text-muted-foreground">
+          {brl(i.spend ?? 0)} gastos · {(i.results ?? 0).toLocaleString("pt-BR")}{" "}
+          {ROTULO_RESULTADO[boost.objetivo] ?? "resultados"}
+        </div>
+      )}
+      <div className="flex gap-1.5">
+        <button
+          onClick={onVer}
+          className="flex-1 rounded-md border border-border px-2 py-1.5 text-[11px] font-medium hover:bg-muted"
+        >
+          Ver desempenho
+        </button>
+        {encerrado && (
+          <button
+            onClick={onTurbinar}
+            className="inline-flex items-center gap-1 rounded-md bg-[#F26B1F] px-2 py-1.5 text-[11px] font-semibold text-white hover:brightness-95"
+          >
+            <Rocket className="h-3 w-3" /> Turbinar de novo
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
