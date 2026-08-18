@@ -138,6 +138,7 @@ function PacotesCativaPage() {
             setReprocessandoTudo(false);
             return;
           }
+          await new Promise((resolve) => setTimeout(resolve, 1_500));
         }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "O reprocessamento foi interrompido");
