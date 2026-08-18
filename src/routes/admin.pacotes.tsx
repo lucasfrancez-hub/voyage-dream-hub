@@ -258,6 +258,7 @@ function AdminPackages() {
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [kindFilter, setKindFilter] = useState<"all" | PackageKind>("all");
+  const [expiredView, setExpiredView] = useState(false);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [sortMode, setSortMode] = useState<
     "manual" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
