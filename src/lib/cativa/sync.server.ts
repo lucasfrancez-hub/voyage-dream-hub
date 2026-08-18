@@ -7,6 +7,32 @@ export const FONTES: CativaFonte[] = ["tradicionais", "eventos", "internacionais
 /** Dias até revalidar os voos de um pacote ativo sem alterações. */
 const REVALIDAR_VOOS_DIAS = 7;
 
+/** Intervalo mínimo entre reconsultas automáticas do mesmo pacote. */
+const RECONSULTA_MINIMA_HORAS = 20;
+
+/** Tira do portal os pacotes publicados vindos de itens esgotados no catálogo. */
+async function despublicarPacotesPublicados(ids: string[]) {
+  if (!ids.length) return;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("packages")
+    .update({ is_active: false } as any)
+    .in("cativa_pacote_id", ids)
+    .eq("is_active", true);
+}
+
+/** Volta ao ar o pacote publicado quando o item reaparece na planilha. */
+async function reativarPacotesPublicados(ids: string[]) {
+  if (!ids.length) return;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("packages")
+    .update({ is_active: true } as any)
+    .in("cativa_pacote_id", ids)
+    .eq("is_active", false);
+}
+
+
 type Resultado = {
   linhas: number;
   novos: number;
@@ -114,12 +140,29 @@ export async function sincronizarPlanilhas(fontes: CativaFonte[] = FONTES): Prom
 
       const mudancas = diffComercial(atual, n);
       const tokenMudou = (atual.token_infotravel ?? "") !== (n.token_infotravel ?? "");
-      const precisaVoos = tokenMudou || mudancas.some((m) => (CAMPOS_QUE_EXIGEM_INFOTRAVEL as string[]).includes(m.campo));
+      // A Infotravel só é reconsultada uma vez por dia por pacote: sem isso a
+      // planilha (que traz valores diferentes dos do orçamento) jogava tudo de
+      // volta para a fila a cada rodada e o catálogo "voltava do zero".
+      const atualizadoEm = atual.voos_atualizado_em ? new Date(atual.voos_atualizado_em).getTime() : 0;
+      const podeReconsultar = Date.now() - atualizadoEm > RECONSULTA_MINIMA_HORAS * 60 * 60 * 1000;
+      const precisaVoos =
+        (tokenMudou || mudancas.some((m) => (CAMPOS_QUE_EXIGEM_INFOTRAVEL as string[]).includes(m.campo))) &&
+        (tokenMudou || podeReconsultar);
+
+      // Campos que o orçamento da Infotravel já completou não são sobrescritos
+      // pela planilha (evita o vaivém de valor_total/taxas/aéreo).
+      const enriquecido = atual.voos_status === "ok";
+      const payloadFinal: Record<string, unknown> = { ...payload };
+      if (enriquecido && !tokenMudou) {
+        for (const campo of ["aereo_por", "taxas", "valor_total", "origem_iata", "origem_cidade", "destino"]) {
+          if (atual[campo] != null) delete payloadFinal[campo];
+        }
+      }
 
       await supabaseAdmin
         .from("cativa_pacotes")
         .update({
-          ...payload,
+          ...payloadFinal,
           ...(precisaVoos
             ? {
                 voos_status: "pendente",
@@ -134,6 +177,8 @@ export async function sincronizarPlanilhas(fontes: CativaFonte[] = FONTES): Prom
       res.alterados++;
       if (precisaVoos) res.agendados_infotravel++;
       else res.evitados_infotravel++;
+
+      if (atual.status !== "ativo") await reativarPacotesPublicados([atual.id]);
 
       if (mudancas.length) {
         await supabaseAdmin.from("cativa_pacote_historico").insert(
@@ -157,15 +202,19 @@ export async function sincronizarPlanilhas(fontes: CativaFonte[] = FONTES): Prom
     const sumidos = (ativos ?? []).filter((p: any) => !vistos.has(p.fingerprint));
     for (let i = 0; i < sumidos.length; i += 200) {
       const lote = sumidos.slice(i, i + 200);
+      const ids = lote.map((p: any) => p.id);
       await supabaseAdmin
         .from("cativa_pacotes")
         .update({ status: "esgotado" } as any)
-        .in("id", lote.map((p: any) => p.id));
+        .in("id", ids);
       await supabaseAdmin.from("cativa_pacote_historico").insert(
         lote.map((p: any) => ({ pacote_id: p.id, tipo: "esgotado" })) as any,
       );
+      // Esgotou na fonte => sai do portal na hora.
+      await despublicarPacotesPublicados(ids);
       res.removidos += lote.length;
     }
+
   }
 
   // revalidação por idade (só pacotes ativos e antigos)

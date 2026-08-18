@@ -723,7 +723,11 @@ function AdminPackages() {
       // cruise_details só existe em cruzeiro; pacote/ingresso nunca grava esse campo
       cruise_details:
         (pkg.kind ?? "package") === "cruise" ? ((pkg.cruise_details ?? {}) as any) : null,
+      // Vínculo com o catálogo: quando o item esgota na fonte, o pacote sai do portal.
+      ...((pkg as any).cativa_pacote_id ? { cativa_pacote_id: (pkg as any).cativa_pacote_id } : {}),
+
     } as any;
+
     // Isolamento por tipo: pacote, ingresso/serviço e cruzeiro não compartilham campos.
     const payloadKind: PackageKind = payload.kind;
     if (payloadKind === "service" || payloadKind === "tour") {
