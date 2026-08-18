@@ -157,6 +157,7 @@ import { Route as ApiPublicHooksInstagramCollabCommentsRouteImport } from './rou
 import { Route as ApiPublicHooksInstagramDmQueueRouteImport } from './routes/api/public/hooks/instagram-dm-queue'
 import { Route as ApiPublicHooksInstagramHealthRouteImport } from './routes/api/public/hooks/instagram-health'
 import { Route as ApiPublicHooksKeepWindowAliveRouteImport } from './routes/api/public/hooks/keep-window-alive'
+import { Route as ApiPublicHooksMetaAdsSyncRouteImport } from './routes/api/public/hooks/meta-ads-sync'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
 import { Route as ApiPublicHooksSocialScheduleDispatchRouteImport } from './routes/api/public/hooks/social-schedule-dispatch'
 import { Route as ApiPublicHooksSyncCalendarsRouteImport } from './routes/api/public/hooks/sync-calendars'
@@ -940,6 +941,12 @@ const ApiPublicHooksKeepWindowAliveRoute =
     path: '/api/public/hooks/keep-window-alive',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksMetaAdsSyncRoute =
+  ApiPublicHooksMetaAdsSyncRouteImport.update({
+    id: '/api/public/hooks/meta-ads-sync',
+    path: '/api/public/hooks/meta-ads-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRunCheckinsRoute =
   ApiPublicHooksRunCheckinsRouteImport.update({
     id: '/api/public/hooks/run-checkins',
@@ -1164,6 +1171,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
+  '/api/public/hooks/meta-ads-sync': typeof ApiPublicHooksMetaAdsSyncRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
@@ -1325,6 +1333,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
+  '/api/public/hooks/meta-ads-sync': typeof ApiPublicHooksMetaAdsSyncRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
@@ -1489,6 +1498,7 @@ export interface FileRoutesById {
   '/api/public/hooks/instagram-dm-queue': typeof ApiPublicHooksInstagramDmQueueRoute
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
+  '/api/public/hooks/meta-ads-sync': typeof ApiPublicHooksMetaAdsSyncRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
@@ -1654,6 +1664,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
+    | '/api/public/hooks/meta-ads-sync'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
@@ -1815,6 +1826,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
+    | '/api/public/hooks/meta-ads-sync'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
@@ -1978,6 +1990,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-dm-queue'
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
+    | '/api/public/hooks/meta-ads-sync'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
@@ -2070,6 +2083,7 @@ export interface RootRouteChildren {
   ApiPublicHooksInstagramDmQueueRoute: typeof ApiPublicHooksInstagramDmQueueRoute
   ApiPublicHooksInstagramHealthRoute: typeof ApiPublicHooksInstagramHealthRoute
   ApiPublicHooksKeepWindowAliveRoute: typeof ApiPublicHooksKeepWindowAliveRoute
+  ApiPublicHooksMetaAdsSyncRoute: typeof ApiPublicHooksMetaAdsSyncRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
   ApiPublicHooksSocialScheduleDispatchRoute: typeof ApiPublicHooksSocialScheduleDispatchRoute
   ApiPublicHooksSyncCalendarsRoute: typeof ApiPublicHooksSyncCalendarsRoute
@@ -3123,6 +3137,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksKeepWindowAliveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/meta-ads-sync': {
+      id: '/api/public/hooks/meta-ads-sync'
+      path: '/api/public/hooks/meta-ads-sync'
+      fullPath: '/api/public/hooks/meta-ads-sync'
+      preLoaderRoute: typeof ApiPublicHooksMetaAdsSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/run-checkins': {
       id: '/api/public/hooks/run-checkins'
       path: '/api/public/hooks/run-checkins'
@@ -3488,6 +3509,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksInstagramDmQueueRoute: ApiPublicHooksInstagramDmQueueRoute,
   ApiPublicHooksInstagramHealthRoute: ApiPublicHooksInstagramHealthRoute,
   ApiPublicHooksKeepWindowAliveRoute: ApiPublicHooksKeepWindowAliveRoute,
+  ApiPublicHooksMetaAdsSyncRoute: ApiPublicHooksMetaAdsSyncRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
   ApiPublicHooksSocialScheduleDispatchRoute:
     ApiPublicHooksSocialScheduleDispatchRoute,
