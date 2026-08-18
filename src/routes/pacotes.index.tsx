@@ -249,7 +249,7 @@ function PacotesList() {
     }
 
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy]);
+  }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange]);
 
 
   const hasActiveFilters =
@@ -257,6 +257,7 @@ function PacotesList() {
     destinationFilter !== "all" ||
     monthFilter !== "all" ||
     !!dateRange?.from ||
+    !!budgetRange ||
     sortBy !== "sort_order";
 
   const clearFilters = () => {
@@ -265,11 +266,13 @@ function PacotesList() {
     setMonthFilter("all");
     setDateRange(undefined);
     setSortBy("sort_order");
+    setBudgetRange(null);
   };
 
   useEffect(() => {
     setPage(1);
-  }, [originFilter, destinationFilter, monthFilter, dateRange, sortBy]);
+  }, [originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange]);
+
 
   const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
