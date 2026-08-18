@@ -38,7 +38,18 @@ self.addEventListener("push", (event) => {
 
 
   event.waitUntil(
-    Promise.all([
+    (async () => {
+      // se a mesma mensagem já está na bandeja, não notifica de novo
+      if (dados.messageId) {
+        try {
+          const abertas = await self.registration.getNotifications();
+          if (abertas.some((n) => n.data && n.data.messageId === dados.messageId)) {
+            await badge;
+            return;
+          }
+        } catch {}
+      }
+      await Promise.all([
       self.registration.showNotification(titulo, {
         body: dados.body || "Você tem um novo aviso.",
         icon: dados.icon || "/icon-chat-192.png",
@@ -56,7 +67,8 @@ self.addEventListener("push", (event) => {
         vibrate: [80, 40, 80],
       }),
       badge,
-    ]),
+      ]);
+    })(),
   );
 });
 
