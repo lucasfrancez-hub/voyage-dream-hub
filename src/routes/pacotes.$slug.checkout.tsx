@@ -1134,13 +1134,39 @@ function Checkout() {
                         ))}
                       </select>
                     </label>
-                    <p className="text-[11px] text-muted-foreground">
-                      Total: <strong className="text-foreground">{formatBRL(totalPrice)}</strong>
-                      {boletoInstallments > 1 && (
-                        <> · {boletoInstallments} boletos mensais de <strong className="text-foreground">{formatBRL(totalPrice / boletoInstallments)}</strong>, sem juros.</>
-                      )}
-                    </p>
+                    <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs space-y-1.5">
+                      <div className="text-[11px] uppercase tracking-widest text-brand-orange font-semibold">
+                        Sua condição
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          {boletoInstallments} boleto{boletoInstallments > 1 ? "s" : ""} mensa{boletoInstallments > 1 ? "is" : "l"}
+                        </span>
+                        <strong className="text-foreground">
+                          de {formatBRL(boletoSchedule[boletoSchedule.length - 1]?.amount ?? 0)}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between border-t border-border pt-1.5">
+                        <span className="text-muted-foreground">Total</span>
+                        <strong className="text-foreground">{formatBRL(totalPrice)}</strong>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">Sem juros · 1º vencimento em 30 dias</div>
+                      <ul className="pt-1.5 space-y-1 text-[11px] text-muted-foreground">
+                        {boletoSchedule.map((it) => (
+                          <li key={it.installment} className="flex justify-between gap-2">
+                            <span>
+                              {it.installment}. Parcela · {formatDateBR(it.dueDate)}
+                            </span>
+                            <span className="text-foreground">{formatBRL(it.amount)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="pt-1 text-[11px] text-muted-foreground">
+                        Financiamento sujeito à análise e aprovação de crédito.
+                      </p>
+                    </div>
                   </div>
+
 
                   <BoletoForm data={boleto} onChange={patchBoleto} isThirdParty={isThirdPartyFinancier} />
                 </div>
