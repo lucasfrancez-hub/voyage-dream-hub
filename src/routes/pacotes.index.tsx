@@ -21,6 +21,7 @@ import {
 } from "@/components/packages/BudgetFilter";
 import { BudgetRuler } from "@/components/packages/BudgetRuler";
 import { installmentRulesQuery, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
+import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
 
 
 
