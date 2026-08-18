@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -69,6 +69,8 @@ function PacotesCativaPage() {
   const [status, setStatus] = useState<string>("ativo");
   const [pagina, setPagina] = useState(0);
   const [detalhe, setDetalhe] = useState<{ id: string; nome: string } | null>(null);
+  const [reprocessandoTudo, setReprocessandoTudo] = useState(false);
+  const cancelarReprocessamento = useRef(false);
 
   const resumoQ = useQuery({ queryKey: ["cativa-resumo"], queryFn: () => resumo({ data: undefined }) });
   const listaQ = useQuery({
@@ -106,7 +108,7 @@ function PacotesCativaPage() {
   });
 
   const refazLote = useMutation({
-    mutationFn: (tudo: boolean) => reprocessarLote({ data: { tudo, limite: 25 } }),
+    mutationFn: (tudo: boolean) => reprocessarLote({ data: { tudo, limite: 5 } }),
     onSuccess: (r: any) => {
       toast.success(`Reprocessados ${r?.processados ?? 0} pacotes (${r?.ok ?? 0} ok, ${r?.erros ?? 0} com erro)`);
       qc.invalidateQueries({ queryKey: ["cativa-resumo"] });
@@ -114,6 +116,36 @@ function PacotesCativaPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  useEffect(() => {
+    if (!reprocessandoTudo) return;
+    cancelarReprocessamento.current = false;
+    let ativo = true;
+
+    const continuar = async () => {
+      try {
+        while (ativo && !cancelarReprocessamento.current) {
+          const resultado = await reprocessarLote({ data: { tudo: false, limite: 5 } });
+          await Promise.all([
+            qc.invalidateQueries({ queryKey: ["cativa-resumo"] }),
+            qc.invalidateQueries({ queryKey: ["cativa-pacotes"] }),
+          ]);
+          if (!resultado.restantes) {
+            toast.success("Reprocessamento de voos concluído");
+            setReprocessandoTudo(false);
+            return;
+          }
+        }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "O reprocessamento foi interrompido");
+        setReprocessandoTudo(false);
+      }
+    };
+    void continuar();
+    return () => {
+      ativo = false;
+    };
+  }, [qc, reprocessarLote, reprocessandoTudo]);
 
   const total = listaQ.data?.total ?? 0;
   const r = resumoQ.data;
@@ -132,13 +164,24 @@ function PacotesCativaPage() {
             {sync.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Sincronizar planilhas
           </Button>
-          <Button variant="outline" onClick={() => refazLote.mutate(false)} disabled={refazLote.isPending}>
-            {refazLote.isPending ? (
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (reprocessandoTudo) {
+                cancelarReprocessamento.current = true;
+                setReprocessandoTudo(false);
+                toast.info("Reprocessamento pausado");
+              } else {
+                setReprocessandoTudo(true);
+              }
+            }}
+          >
+            {reprocessandoTudo ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <RefreshCw className="mr-2 h-4 w-4" />
             )}
-            Reprocessar zerados
+            {reprocessandoTudo ? "Pausar reprocessamento" : "Reprocessar zerados"}
           </Button>
           <Button onClick={() => sync.mutate(20)} disabled={sync.isPending}>
             <Plane className="mr-2 h-4 w-4" />

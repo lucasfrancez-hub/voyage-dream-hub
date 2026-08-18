@@ -245,7 +245,7 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await exigirAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const limite = Math.min(data.limite ?? 25, 60);
+    const limite = Math.min(data.limite ?? 5, 5);
 
     let q = supabaseAdmin
       .from("cativa_pacotes")
@@ -263,5 +263,17 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
 
     const { reprocessarPacotes } = await import("@/lib/cativa/voos.server");
     const res = await reprocessarPacotes(ids);
-    return { ...res, restantes: ids.length === limite ? limite : 0 };
+    let restantesQ = supabaseAdmin
+      .from("cativa_pacotes")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "ativo")
+      .is("importado_em", null)
+      .not("link_orcamento", "is", null);
+    if (!data.tudo) {
+      restantesQ = restantesQ.or(
+        "voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_status.eq.pendente,voos_opcoes.is.null,voos_opcoes.eq.0",
+      );
+    }
+    const { count: restantes } = await restantesQ;
+    return { ...res, restantes: restantes ?? 0 };
   });
