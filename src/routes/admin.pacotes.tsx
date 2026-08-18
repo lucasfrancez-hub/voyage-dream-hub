@@ -662,6 +662,10 @@ function AdminPackages() {
         Array.isArray((pkg as any).hotel_options) && (pkg as any).hotel_options.length > 1
           ? (pkg as any).hotel_options
           : null,
+      hotel_stays:
+        Array.isArray((pkg as any).hotel_stays) && (pkg as any).hotel_stays.length > 1
+          ? (pkg as any).hotel_stays
+          : null,
 
       meal_plan: pkg.meal_plan || null,
       room_type: cleanRoomLabel(pkg.room_type),
@@ -723,6 +727,7 @@ function AdminPackages() {
       // Ingresso/serviço: sem hospedagem, sem aéreo, sem cruzeiro
       payload.hotel_name = null;
       payload.hotel_options = null;
+      payload.hotel_stays = null;
 
       payload.hotel_stars = null;
       payload.meal_plan = null;
@@ -2852,6 +2857,10 @@ function PackageEditorModal({
                             room_category: (base as any).room_category ?? editing.room_category,
                             bed_type: (base as any).bed_type ?? editing.bed_type,
                             meal_plan: base.meal_plan ?? editing.meal_plan,
+                            hotel_stays:
+                              Array.isArray((base as any).stays) && (base as any).stays.length > 1
+                                ? ((base as any).stays as any[])
+                                : null,
                             price_per_person: Number(base.price_per_person) || editing.price_per_person,
                             ...(base.tripadvisor_location_id
                               ? {
