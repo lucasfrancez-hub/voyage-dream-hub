@@ -1,0 +1,1 @@
+ALTER TABLE public.cativa_pacotes ADD COLUMN IF NOT EXISTS liberado_manual boolean NOT NULL DEFAULT false;
