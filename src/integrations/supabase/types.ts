@@ -4495,6 +4495,9 @@ export type Database = {
       }
       installment_rules: {
         Row: {
+          boleto_financiado_enabled: boolean
+          boleto_financiado_max: number | null
+          boleto_prepago_enabled: boolean
           created_at: string
           id: string
           is_active: boolean
@@ -4510,6 +4513,9 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          boleto_financiado_enabled?: boolean
+          boleto_financiado_max?: number | null
+          boleto_prepago_enabled?: boolean
           created_at?: string
           id?: string
           is_active?: boolean
@@ -4525,6 +4531,9 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          boleto_financiado_enabled?: boolean
+          boleto_financiado_max?: number | null
+          boleto_prepago_enabled?: boolean
           created_at?: string
           id?: string
           is_active?: boolean
