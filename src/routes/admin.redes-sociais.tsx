@@ -211,9 +211,29 @@ function RedesSociaisPage() {
           </section>
         );
       })}
+
+      {turbinar && (
+        <TurbinarDialog
+          aberto={!!turbinar}
+          onOpenChange={(v) => !v && setTurbinar(null)}
+          publicacao={{
+            ig_media_id: turbinar.id,
+            caption: turbinar.caption,
+            permalink: turbinar.permalink,
+            thumbnail: turbinar.thumbnail,
+          }}
+        />
+      )}
+
+      <DesempenhoDialog
+        boost={detalhe}
+        historico={detalhe ? (boostsPorMidia.get(detalhe.ig_media_id) ?? []) : []}
+        onOpenChange={(v) => !v && setDetalhe(null)}
+      />
     </div>
   );
 }
+
 
 function Resumo({
   label,
