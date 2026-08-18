@@ -1,5 +1,4 @@
-import { FileText, Check, ArrowRight } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { FileText, Check } from "lucide-react";
 
 /**
  * Card informativo do Boleto Pré-pago na página pública do pacote.
