@@ -317,17 +317,24 @@ function PackageDetails() {
   const hotelCity = ((pkg as any)?.destination ?? null) as string | null;
 
   const fetchHotelInfo = useServerFn(getPackageHotelOptionInfo);
+  // Quando não há múltiplas hospedagens, ainda buscamos o hotel base para
+  // trazer fotos/endereço do TripAdvisor.
+  const hotelQueryTargets = useMemo(
+    () => (hotelOptions.length > 0 ? hotelOptions.map((h) => h.hotel_name) : baseHotelName ? [baseHotelName] : []),
+    [hotelOptions, baseHotelName],
+  );
   // Uma query por hospedagem: cache do React Query mantém a troca instantânea
   // (item 19 do briefing) e o servidor já cacheia o TripAdvisor por 30 dias.
   const hotelInfoQueries = useQueries({
-    queries: hotelOptions.map((h) => ({
-      queryKey: ["package-hotel-option", h.hotel_name, hotelCity],
-      queryFn: () => fetchHotelInfo({ data: { hotelName: h.hotel_name, city: hotelCity } }),
+    queries: hotelQueryTargets.map((nome) => ({
+      queryKey: ["package-hotel-option", nome, hotelCity],
+      queryFn: () => fetchHotelInfo({ data: { hotelName: nome, city: hotelCity } }),
       staleTime: 30 * 60_000,
       gcTime: 60 * 60_000,
-      enabled: hasHotelChoice,
+      enabled: !!nome,
     })),
   });
+
 
 
   if (isLoading || !pkg) {
@@ -361,7 +368,7 @@ function PackageDetails() {
   const hotelName = selHotel?.hotel_name || pkg.hotel_name;
   const isBaseHotel =
     !selHotel || norm(selHotel.hotel_name) === norm(baseHotelName);
-  const selQuery = hasHotelChoice ? hotelInfoQueries[hotelIdxSafe] : undefined;
+  const selQuery = hotelInfoQueries[hotelIdxSafe];
   const selInfo = (selQuery?.data ?? null) as PublicHotelOptionInfo | null;
   const hotelInfoLoading = !!selQuery?.isLoading;
   const pricePerPerson = Number(selHotel?.price_per_person || pkg.price_per_person) || 0;
