@@ -981,14 +981,14 @@ function Checkout() {
                   onClick={() => setPayment("credit_card")}
                   icon={CreditCard}
                   title="Cartão de crédito"
-                  desc="Parcele em até 10x sem juros em ambiente seguro e criptografado."
+                  desc="Parcelar em até 10 vezes sem juros."
                 />
                 <PaymentOption
                   active={payment === "pix"}
                   onClick={() => setPayment("pix")}
                   icon={QrCode}
                   title="Pix"
-                  desc="QR Code gerado na hora, com baixa automática assim que o pagamento cair."
+                  desc="Com baixa automática."
                   badge="-5% de desconto"
                 />
                 {!isService && (
@@ -997,7 +997,7 @@ function Checkout() {
                     onClick={() => setPayment("boleto")}
                     icon={FileText}
                     title="Boleto bancário"
-                    desc="Financiamento da viagem com pagamento parcelado. Sujeito à análise e aprovação."
+                    desc="Financiamento parcelado sem juros, sujeito à análise e aprovação."
                     badge="Financiamento"
                   />
                 )}
@@ -1007,7 +1007,7 @@ function Checkout() {
                     onClick={() => setPayment("prepaid_boleto")}
                     icon={FileText}
                     title="Boleto Pré-pago"
-                    desc={`Até ${prepaid.maxInstallments}x sem juros para esta viagem. Pagamento antecipado no boleto, sem comprometer o limite do cartão.`}
+                    desc={`Até ${prepaid.maxInstallments}x sem juros.`}
                     badge={`Até ${prepaid.maxInstallments}x sem juros`}
                   />
                 )}
