@@ -289,20 +289,29 @@ function servicosDaOpcao(detalhes: any) {
     let classificado = false;
     for (const p of alvo) {
       const ref = `${g.nome} ${p}`;
-      if (/transfer|traslado|transporte/i.test(p)) {
-        detTransfer.push(p);
-        classificado = true;
-      } else if (/ticket|ingresso|bustour|bus tour|park|entrada/i.test(p)) {
+      // o rótulo do bloco (início do texto) manda na classificação
+      const rotulo = p.slice(0, 60);
+      if (/ticket|ingresso|bustour|bus tour|park|entrada/i.test(rotulo)) {
         detTickets.push(p);
         classificado = true;
-      } else if (/city ?tour|passeio|excurs[aã]o|visita/i.test(ref)) {
+      } else if (/transfer|traslado|transporte/i.test(rotulo)) {
+        detTransfer.push(p);
+        classificado = true;
+      } else if (/city ?tour|passeio|excurs[aã]o|visita/i.test(rotulo)) {
         detPasseios.push(p);
+        classificado = true;
+      } else if (/seguro|cobertura|assist[eê]ncia/i.test(rotulo)) {
+        detSeguro.push(p);
+        classificado = true;
+      } else if (/transfer|traslado|transporte/i.test(ref)) {
+        detTransfer.push(p);
         classificado = true;
       } else if (/seguro|cobertura|assist[eê]ncia/i.test(ref)) {
         detSeguro.push(p);
         classificado = true;
       }
     }
+
     if (!classificado) {
       outros.push(nomeCurto(g.nome || g.descricao));
       if (g.descricao) outrosDetalhe.push(`${g.nome || "Serviço"} — ${g.descricao}`);
