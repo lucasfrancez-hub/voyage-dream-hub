@@ -291,18 +291,35 @@ function PackageDetails() {
       ? formatDateBR(pkg.going_date)
       : null;
 
+  // Hospedagens alternativas: mesmos voos e datas, hotéis diferentes.
+  type HotelOpcao = {
+    hotel_name: string;
+    room_type?: string | null;
+    meal_plan?: string | null;
+    price_per_person?: number | null;
+  };
+  const hotelOptions = (
+    Array.isArray((pkg as any).hotel_options) ? ((pkg as any).hotel_options as HotelOpcao[]) : []
+  ).filter((h) => h?.hotel_name);
+  const hasHotelChoice = hotelOptions.length > 1;
+  const selHotel = hasHotelChoice ? (hotelOptions[Math.min(hotelIdx, hotelOptions.length - 1)] ?? null) : null;
+  const hotelName = selHotel?.hotel_name || pkg.hotel_name;
+  const isBaseHotel = !hasHotelChoice || hotelIdx === 0;
+  const pricePerPerson = Number(selHotel?.price_per_person || pkg.price_per_person) || 0;
+
   const hotelDetails = Array.from(
     new Map(
       [
-        { value: cleanHotelDetail(pkg.meal_plan), icon: null as LucideIcon | null, resolve: mealIcon },
+        { value: cleanHotelDetail(selHotel?.meal_plan || pkg.meal_plan), icon: null as LucideIcon | null, resolve: mealIcon },
         { value: cleanHotelDetail(pkg.bed_type), icon: null as LucideIcon | null, resolve: bedIcon },
-        { value: cleanHotelDetail(pkg.room_type), icon: null as LucideIcon | null, resolve: roomTypeIcon },
-        { value: cleanHotelDetail(pkg.room_category), icon: null as LucideIcon | null, resolve: roomCategoryIcon },
+        { value: cleanHotelDetail(selHotel?.room_type || pkg.room_type), icon: null as LucideIcon | null, resolve: roomTypeIcon },
+        { value: cleanHotelDetail(selHotel ? null : pkg.room_category), icon: null as LucideIcon | null, resolve: roomCategoryIcon },
       ]
         .filter((detail): detail is { value: string; icon: LucideIcon | null; resolve: (v: string) => LucideIcon } => Boolean(detail.value))
         .map((detail) => [detail.value.toLocaleLowerCase("pt-BR"), { value: detail.value, icon: detail.icon ?? detail.resolve(detail.value) }]),
     ).values(),
   );
+
 
   if (isCruise) {
     return <CruiseDetailsView pkg={pkg as any} />;
