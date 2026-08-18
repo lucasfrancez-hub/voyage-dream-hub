@@ -194,8 +194,17 @@ function RedesSociaisPage() {
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {itens.map((i) => (
-                <CardPost key={i.id} item={i} />
+                <CardPost
+                  key={i.id}
+                  item={i}
+                  username={c.username}
+                  igUserId={c.account_id}
+                  boosts={boostsPorMidia.get(i.id) ?? []}
+                  onTurbinar={() => setTurbinar(i)}
+                  onVerDesempenho={(b) => setDetalhe(b)}
+                />
               ))}
+
               {itens.length === 0 && !c.erro && (
                 <p className="text-sm text-muted-foreground">Nada por aqui nesse filtro.</p>
               )}
