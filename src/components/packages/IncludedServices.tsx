@@ -77,7 +77,8 @@ export default function IncludedServices({
   const linhas: Array<{ label: string; detalhe: ServiceDetail | null }> = [
     ...includes.map((i) => ({ label: i, detalhe: acharDetalhe(i) })),
     ...extras.map((d) => ({ label: d.titulo, detalhe: d })),
-  ];
+  ].filter(({ label }) => label && !ehRuido(label));
+
 
   if (!linhas.length) return null;
 
