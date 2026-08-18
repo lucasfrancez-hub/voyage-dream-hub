@@ -1351,10 +1351,6 @@ function TicketDetailsView({
               Você preenche seus dados e finaliza o pagamento na próxima etapa.
             </p>
 
-            <p className="mt-4 pt-4 border-t border-border text-[11px] text-muted-foreground/80 text-center">
-              Sujeito à disponibilidade.
-            </p>
-
           </div>
         </aside>
       </div>
@@ -2055,9 +2051,6 @@ function PreCheckoutDialog({
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
-          <p className="text-center text-[10px] text-muted-foreground/80 mt-4 uppercase tracking-widest font-medium">
-            Sujeito à disponibilidade • Cancelamento conforme política
-          </p>
         </div>
       </DialogContent>
     </Dialog>
