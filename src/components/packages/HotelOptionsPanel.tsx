@@ -1,8 +1,10 @@
 import { BedDouble, Check, Trash2 } from "lucide-react";
+import { HotelStaysList, normalizeStays, type HotelStay } from "./HotelStaysList";
 
 export type HotelOption = {
   opcao?: number | null;
   hotel_name: string;
+  stays?: HotelStay[] | null;
   room_type?: string | null;
   room_category?: string | null;
   bed_type?: string | null;
