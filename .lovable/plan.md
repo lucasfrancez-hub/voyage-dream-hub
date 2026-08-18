@@ -17,25 +17,35 @@ O site da Cativa (`cativaoperadora.com.br`) bloqueia acesso por IP de datacenter
 ## O que vou construir
 
 ### 1. Banco (novas tabelas `cativa_*`)
-- `cativa_pacotes` — um registro por (pacote + origem + data), com preço aéreo, taxas, hotéis (JSON), incluso, categoria, link do orçamento, `fingerprint`, `status` (`ativo`, `esgotado`, `removido`), `primeira_vez_em`, `visto_em`.
+- `cativa_pacotes` — identidade estável do pacote. Chave = **fingerprint** de `fonte + categoria + nome_normalizado + origem + destino + data_viagem + token_infotravel`. Guarda também `source_row_key` (ID/linha da planilha, separado, só para rastreio), preço aéreo, taxas, hotéis (JSON), incluso, link do orçamento, `content_hash` (hash só dos campos comerciais), `status` (`ativo`, `esgotado`, `removido`), `primeira_vez_em`, `visto_em`, `voos_atualizado_em`.
 - `cativa_pacote_voos` — opções de voo por pacote, vindas da Infotravel (trechos, cia, horários, conexões, bagagem, valor da opção).
-- `cativa_pacote_historico` — cada mudança detectada (preço subiu/caiu, hotel saiu, pacote esgotou).
-- `cativa_import_runs` — execuções do robô (contagens, erros, duração).
+- `cativa_pacote_historico` — cada mudança detectada (preço subiu/caiu, hotel saiu, token trocou, pacote esgotou), com valor anterior e novo.
+- `cativa_import_runs` — execuções do robô (linhas lidas, novas, alteradas, chamadas Infotravel feitas/evitadas, erros, duração).
 RLS: leitura pública apenas de pacotes `ativo` (para o site), escrita só via service role.
 
-### 2. Importador (sincronização das planilhas)
-`src/lib/cativa/*.server.ts`: baixa os 3 CSVs, normaliza (moeda BR, datas `dd/mm/aaaa`, IATA → cidade/UF, "outras datas"), gera fingerprint por linha e faz **upsert com diff**:
-- linha nova → insere e registra "novo";
-- linha alterada → atualiza e grava histórico do que mudou;
-- linha que sumiu da planilha → marca `esgotado`/`removido` (nunca apaga).
+Assim, mudança de preço **não** cria pacote novo: atualiza a linha existente e gera histórico. Mesmo nome/origem/data com hotel ou orçamento diferente vira pacote distinto, porque o token da Infotravel entra na chave.
 
-### 3. Enriquecimento com voos (Infotravel)
-Fila em segundo plano que, para cada link de orçamento, chama o importador Infotravel já existente e grava as opções de voo em `cativa_pacote_voos`. Reprocessa por prioridade (pacotes novos primeiro, depois os mais desatualizados), com limite de concorrência para não derrubar a fonte. Link que falhar entra em retry com backoff e fica visível no painel.
+### 2. Importador (sincronização das planilhas)
+`src/lib/cativa/*.server.ts`: baixa os 3 CSVs, normaliza (moeda BR, datas `dd/mm/aaaa`, IATA → cidade/UF, "outras datas", acentos/caixa no nome), calcula `fingerprint` + `content_hash` e faz **upsert com diff**:
+- linha nova → insere como `ativo` e registra "novo";
+- `content_hash` igual → só atualiza `visto_em` (nada mais é gravado);
+- `content_hash` diferente → atualiza e grava no histórico exatamente o que mudou;
+- fingerprint que sumiu da planilha → marca `esgotado`/`removido` (nunca apaga).
+
+### 3. Enriquecimento com voos (Infotravel) — só quando necessário
+São ~11.000 linhas; o robô **não** consulta a Infotravel para todas a cada rodada. A consulta só é agendada quando:
+- o pacote é **novo**;
+- o **token/link da Infotravel mudou**;
+- mudou algum **dado comercial relevante** (preço aéreo, taxas, datas, hotéis) — nesse caso a reconsulta entra com prioridade baixa;
+- o pacote está `ativo` e passou do prazo de revalidação (padrão 7 dias), para pegar voo que esgotou sem a planilha mudar.
+
+Se nada disso ocorreu, zero requisições. A fila roda com concorrência limitada, prioriza novos > token trocado > dado alterado > revalidação por idade, e cada rodada tem teto de chamadas. Falha entra em retry com backoff e aparece no painel.
 
 ### 4. Robô contínuo
 Endpoint `POST /api/public/cativa/sync` (protegido por segredo) chamado por cron:
-- planilhas a cada 30 min (barato, detecta preço/esgotado rápido);
-- voos Infotravel em lotes contínuos, cada pacote revalidado a cada ~12 h.
+- planilhas a cada 30 min (barato, detecta preço/esgotado rápido e alimenta a fila);
+- fila de voos em lotes contínuos, respeitando o teto por rodada.
+
 
 ### 5. Painel admin `/admin/pacotes-cativa`
 Lista com busca por origem/destino/categoria, status de cada pacote, preço atual vs anterior, quantidade de opções de voo, últimas execuções do robô, erros e botões "sincronizar agora" e "reprocessar voos deste pacote".
