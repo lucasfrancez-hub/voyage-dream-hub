@@ -34,3 +34,24 @@ export function maxCardInstallments(input: {
 export function cardInstallmentOptions(max: number): number[] {
   return Array.from({ length: Math.max(1, max) }, (_, i) => i + 1);
 }
+
+/** Limite padrão de parcelas (cartão e boleto financiado) fora da regra FRT. */
+export const DEFAULT_MAX_INSTALLMENTS = 10;
+/** Pacotes FRT: até 15x sem juros no cartão e no boleto financiado. */
+export const FRT_MAX_INSTALLMENTS = 15;
+
+/** Identificação interna do fornecedor FRT — nunca exibida ao cliente. */
+export function isFrtSource(supplierName?: string | null, source?: string | null): boolean {
+  const s = `${supplierName ?? ""} ${source ?? ""}`.toLowerCase();
+  return /\bfrt\b/.test(s);
+}
+
+/** Máximo de parcelas sem juros do pacote (independente da bandeira). */
+export function packageMaxInstallments(input: {
+  supplierName?: string | null;
+  source?: string | null;
+}): number {
+  return isFrtSource(input.supplierName, input.source)
+    ? FRT_MAX_INSTALLMENTS
+    : DEFAULT_MAX_INSTALLMENTS;
+}

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, Calendar as CalendarIcon, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket, Compass } from "lucide-react";
+import { MapPin, Calendar as CalendarIcon, Plane, SlidersHorizontal, X, ArrowUpDown, Ticket, Compass, CreditCard } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { ptBR } from "date-fns/locale";
 
@@ -20,6 +20,7 @@ import {
   type BudgetRange,
 } from "@/components/packages/BudgetFilter";
 import { BudgetRuler } from "@/components/packages/BudgetRuler";
+import { packageMaxInstallments } from "@/lib/packages/card-installments";
 
 
 
@@ -61,7 +62,7 @@ function PacotesList() {
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,is_active,sort_order,base_occupancy,outbound_flight,return_flight,created_at,updated_at")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at")
         .eq("is_active", true)
         .or("kind.is.null,kind.eq.package")
         .or(`going_date.is.null,going_date.gte.${today}`)
@@ -628,8 +629,14 @@ function PacotesList() {
                 <div className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-primary-foreground">
                   <MapPin className="h-3 w-3" /> {p.destination}
                 </div>
-                <div className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white">
-                  5% off no Pix
+                <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white">
+                    5% off no Pix
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/70 bg-background/70 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 backdrop-blur-sm">
+                    <CreditCard className="h-3 w-3" />
+                    Parcele em até {packageMaxInstallments({ supplierName: (p as { supplier_name?: string | null }).supplier_name })}x
+                  </span>
                 </div>
               </div>
               <div className="p-5 flex flex-col gap-3 flex-1">

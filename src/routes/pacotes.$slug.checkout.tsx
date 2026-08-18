@@ -14,7 +14,7 @@ import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/comp
 import { DateBRInput } from "@/components/DateBRInput";
 import { PixQrOverlay } from "@/components/PixQrOverlay";
 import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
-import { maxCardInstallments, cardInstallmentOptions } from "@/lib/packages/card-installments";
+import { maxCardInstallments, cardInstallmentOptions, packageMaxInstallments } from "@/lib/packages/card-installments";
 
 
 import { ContactFooter } from "@/components/ContactFooter";
@@ -61,7 +61,6 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
 type PaymentMethod = "credit_card" | "pix" | "boleto" | "prepaid_boleto";
 
 
-const MAX_INSTALLMENTS = 10;
 const DEFAULT_INSTALLMENTS = 10;
 
 function Checkout() {
@@ -156,7 +155,7 @@ function Checkout() {
   const [payment, setPayment] = useState<PaymentMethod>("credit_card");
   const [installments, setInstallments] = useState<number>(DEFAULT_INSTALLMENTS);
   const [boletoInstallments, setBoletoInstallments] = useState<number>(1);
-  const MAX_BOLETO_INSTALLMENTS = 10;
+
   const { data: card, patch: patchCard } = useCardData();
   const [boleto, setBoleto] = useState<BoletoData>(emptyBoleto);
   // Boleto Pré-pago — estado independente do financiamento
@@ -356,10 +355,15 @@ function Checkout() {
   const prepaidMax = prepaid.maxInstallments;
 
   // Bandeiras com limite reduzido em pacotes Cativa (Hipercard, Diners, Elo, Amex): até 6x.
+  // Pacotes FRT: até 15x sem juros (cartão e boleto financiado).
+  const maxParcelasPacote = packageMaxInstallments({
+    supplierName: (pkg as { supplier_name?: string | null } | undefined)?.supplier_name ?? null,
+  });
+  const MAX_BOLETO_INSTALLMENTS = maxParcelasPacote;
   const maxCardParcelas = maxCardInstallments({
     brand: card.brand || detectBrand(card.cardNumber),
     supplierName: (pkg as { supplier_name?: string | null } | undefined)?.supplier_name ?? null,
-    defaultMax: MAX_INSTALLMENTS,
+    defaultMax: maxParcelasPacote,
   });
   useEffect(() => {
     setInstallments((n) => Math.min(n, maxCardParcelas));
@@ -993,7 +997,7 @@ function Checkout() {
                   onClick={() => setPayment("credit_card")}
                   icon={CreditCard}
                   title="Cartão de crédito"
-                  desc="Parcelar em até 10 vezes sem juros."
+                  desc={`Parcelar em até ${maxParcelasPacote} vezes sem juros.`}
                 />
                 <PaymentOption
                   active={payment === "pix"}
@@ -1151,7 +1155,7 @@ function Checkout() {
                     installmentsOptions={cardInstallmentOptions(maxCardParcelas)}
                     total={totalPrice}
                   />
-                  {maxCardParcelas < MAX_INSTALLMENTS && (
+                  {maxCardParcelas < maxParcelasPacote && (
                     <p className="mt-2 text-[11px] text-muted-foreground">
                       Hipercard, Diners, Elo e Amex: parcelamento em até {maxCardParcelas}x sem juros.
                     </p>
@@ -1272,7 +1276,7 @@ function Checkout() {
               {payment === "credit_card" && (
                 <div className="mt-1 text-right text-xs text-muted-foreground">
                   em {installments}x de {formatBRL(totalPrice / installments)}
-                  {installments <= 10 ? " sem juros" : ""}
+                  {installments <= maxParcelasPacote ? " sem juros" : ""}
                 </div>
               )}
 
