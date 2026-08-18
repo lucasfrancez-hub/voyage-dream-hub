@@ -29,8 +29,7 @@ export const Route = createFileRoute("/admin/pacotes-cativa")({
       { title: "Catálogo de pacotes | VIA AIR" },
       {
         name: "description",
-        content:
-          "Radar automático de pacotes através de bloqueios aéreos. Importação das planilhas do Viajando com Desconto com consulta à Infotravel apenas quando há mudanças.",
+        content: "Radar automático de pacotes através de bloqueios aéreos.",
       },
       { property: "og:title", content: "Catálogo de pacotes | VIA AIR" },
       { property: "og:description", content: "Radar automático de pacotes através de bloqueios aéreos." },
