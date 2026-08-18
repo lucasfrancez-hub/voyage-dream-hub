@@ -2918,17 +2918,23 @@ function PackageEditorModal({
 
                 />
 
-                {normalizeStays((editing as any).hotel_stays).length > 1 && (
+                {staysList.length > 1 && (
                   <div className="sm:col-span-2 rounded-2xl border border-border bg-muted/30 p-3">
                     <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Roteiro com {normalizeStays((editing as any).hotel_stays).length} hospedagens
+                      Roteiro com {staysList.length} hospedagens · clique para editar
                     </div>
-                    <HotelStaysList stays={normalizeStays((editing as any).hotel_stays)} />
+                    <HotelStaysList
+                      stays={staysList}
+                      selectedIndex={stayIdx}
+                      onSelect={setStaySelIdx}
+                    />
                     <p className="mt-2 text-[10px] text-muted-foreground">
-                      Todas as hospedagens acima aparecem para o cliente na página do pacote.
+                      Todas as hospedagens acima aparecem para o cliente. Os campos abaixo editam a
+                      hospedagem selecionada (nome, TripAdvisor, estrelas, regime, quarto e cama).
                     </p>
                   </div>
                 )}
+
 
                 <FormField
                   label={
