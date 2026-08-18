@@ -118,7 +118,6 @@ async function processarPacote(
           label: o.label ?? o.name ?? `Opção ${i + 1}`,
           companhia: o.flights?.[0]?.airline ?? null,
           total: typeof o.total === "number" ? o.total : null,
-          taxas: typeof o.taxes === "number" ? o.taxes : null,
           moeda: o.currency ?? "BRL",
           voos: o.flights ?? [],
           hoteis: o.hotels ?? [],
