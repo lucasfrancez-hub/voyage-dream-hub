@@ -179,6 +179,22 @@ function destinoDoNome(nome: unknown): string {
   return t;
 }
 
+/** Procura um destino conhecido dentro de um texto ("Enotel Porto de Galinhas" → Porto de Galinhas). */
+function destinoConhecidoNoTexto(v: unknown): string {
+  const t = String(v ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (!t) return "";
+  let achado = "";
+  for (const [chave, nome] of Object.entries(DESTINO_CANONICO)) {
+    if (new RegExp(`\\b${chave.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(t)) {
+      if (chave.length > achado.length) achado = chave;
+    }
+  }
+  return achado ? DESTINO_CANONICO[achado]! : "";
+}
+
 /**
  * Destino comercial do pacote: o lugar onde o cliente realmente fica
  * (Porto de Galinhas), e não o aeroporto de chegada (Recife).
@@ -188,11 +204,18 @@ export function destinoComercial(pacote: {
   destino?: string | null;
   hoteis?: any[] | null;
 }): string {
-  const hotel = (pacote.hoteis ?? [])[0] as Record<string, unknown> | undefined;
+  const hoteis = (pacote.hoteis ?? []) as Array<Record<string, unknown>>;
+  const hotel = hoteis[0];
   const cidadeHotel = String(hotel?.["cidade"] ?? hotel?.["city"] ?? hotel?.["localidade"] ?? "").trim();
   const doNome = destinoDoNome(pacote.nome);
-  return tituloCidade(semIata(doNome || cidadeHotel || (pacote.destino ?? "").trim()));
+  // Nome do pacote/hotel costuma trazer o destino real ("Enotel Porto de Galinhas").
+  const conhecido =
+    destinoConhecidoNoTexto(pacote.nome) ||
+    hoteis.map((h) => destinoConhecidoNoTexto(h?.["nome"] ?? h?.["hotel"])).find(Boolean) ||
+    "";
+  return tituloCidade(semIata(doNome || cidadeHotel || conhecido || (pacote.destino ?? "").trim()));
 }
+
 
 
 /** ISO da operadora → valor aceito pelo input datetime-local (YYYY-MM-DDTHH:mm). */
