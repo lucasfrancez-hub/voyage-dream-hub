@@ -263,10 +263,8 @@ const RE_RUIDO_SERVICO =
 function nomePublicoServico(v: unknown): string {
   const original = limpo(v);
   if (!original || RE_RUIDO_SERVICO.test(original)) return "";
-  if (/passage[mn].*a[eé]rea/i.test(original)) return "Passagem aérea";
-  if (/noites?.*hospedagem|hospedagem.*regime/i.test(original)) {
-    return "Hospedagem (consulte o regime de alimentação)";
-  }
+  if (/passage[mn].*a[eé]rea|a[eé]re[oa]\b|consulte\s+voos/i.test(original)) return "Passagem aérea";
+  if (/hospedagem|di[aá]rias?|noites?\s/i.test(original)) return "Hospedagem";
 
   let nome = nomeCurto(original)
     .replace(/\s*[-–—]\s*frequ[eê]ncia\s*:.*$/i, "")
@@ -277,6 +275,39 @@ function nomePublicoServico(v: unknown): string {
   if (/gr[aá]tis/i.test(original) && !/gr[aá]tis/i.test(nome)) nome = `${nome} grátis`;
   return nome;
 }
+
+/** Chave para deduplicar serviços parecidos (ex.: dois "Transfer In + Out"). */
+function chaveServico(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .slice(0, 6)
+    .join(" ");
+}
+
+/** Deduplica e aplica o regime de alimentação na linha de hospedagem. */
+function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[] {
+  const visto = new Set<string>();
+  const out: string[] = [];
+  for (const raw of lista) {
+    let item = String(raw ?? "").trim();
+    if (!item) continue;
+    if (/^hospedagem/i.test(item)) {
+      const r = (regimeAtual ?? "").trim();
+      item = r && !/sem refei/i.test(r) ? `Hospedagem com ${r.toLowerCase()}` : "Hospedagem";
+    }
+    const k = chaveServico(item);
+    if (!k || visto.has(k)) continue;
+    visto.add(k);
+    out.push(item);
+  }
+  return out;
+}
+
 
 
 /** Limpa HTML/entidades do texto da operadora. */
