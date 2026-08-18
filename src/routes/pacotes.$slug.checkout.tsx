@@ -32,6 +32,7 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     time?: string;
     nights?: number;
     birthday?: number;
+    hotel?: number;
   } => {
 
     const raw = Number(s?.qty);
@@ -45,8 +46,11 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     const nightsRaw = Number(s?.nights);
     const nights = Number.isFinite(nightsRaw) && nightsRaw > 0 ? Math.min(2, Math.floor(nightsRaw)) : undefined;
     const birthday = s?.birthday === 1 || s?.birthday === "1" ? 1 : undefined;
-    return { qty, date, addons, modality, time, nights, birthday };
+    const hotelRaw = Number(s?.hotel);
+    const hotel = Number.isFinite(hotelRaw) && hotelRaw >= 0 ? Math.floor(hotelRaw) : undefined;
+    return { qty, date, addons, modality, time, nights, birthday, hotel };
   },
+
 });
 
 
