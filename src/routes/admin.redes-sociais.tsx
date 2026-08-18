@@ -197,12 +197,11 @@ function RedesSociaisPage() {
                 <CardPost
                   key={i.id}
                   item={i}
-                  username={c.username}
-                  igUserId={c.account_id}
                   boosts={boostsPorMidia.get(i.id) ?? []}
                   onTurbinar={() => setTurbinar(i)}
-                  onVerDesempenho={(b) => setDetalhe(b)}
+                  onVerDesempenho={(b: Boost) => setDetalhe(b)}
                 />
+
               ))}
 
               {itens.length === 0 && !c.erro && (
