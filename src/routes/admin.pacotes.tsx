@@ -89,6 +89,7 @@ import { useIgnoredHotels } from "@/lib/ignored-hotels";
 
 import { CurationTab } from "@/components/packages/CurationTab";
 import { CativaTab, CativaCountBadge } from "@/components/packages/CativaTab";
+import { arquivarPacotesCativa } from "@/lib/cativa/cativa.functions";
 import { HotelOptionsPanel } from "@/components/packages/HotelOptionsPanel";
 import { HotelStaysList, normalizeStays } from "@/components/packages/HotelStaysList";
 import { gerarRoteiro, nomeCurtoServico as nomeItem } from "@/lib/packages/itinerary";
@@ -260,6 +261,7 @@ function AdminPackages() {
   const searchHotelsFn = useServerFn(searchTripAdvisorHotels);
   const hotelDetailsFn = useServerFn(getTripAdvisorHotelDetails);
   const persistHotelPhotosFn = useServerFn(persistPackageHotelPhotos);
+  const arquivarCativaFn = useServerFn(arquivarPacotesCativa);
   // Multi-import drafts: array of partial packages open in tabs
   const [drafts, setDrafts] = useState<Partial<PackageRow>[] | null>(null);
   const [draftIndex, setDraftIndex] = useState(0);
@@ -775,6 +777,15 @@ function AdminPackages() {
       );
       if (priceErr) throw priceErr;
     }
+    // Só arquiva o pacote na Cativa depois que ele foi realmente gravado.
+    const cativaId = (pkg as any).cativa_pacote_id as string | undefined;
+    if (cativaId) {
+      try {
+        await arquivarCativaFn({ data: { ids: [cativaId], arquivar: true } });
+      } catch (e) {
+        console.warn("[packages] não foi possível arquivar o pacote Cativa", e);
+      }
+    }
     const sourcePhotos: string[] = (payload as any).tripadvisor_photos ?? [];
     if (
       sourcePhotos.length > 0 &&
@@ -1177,7 +1188,6 @@ function AdminPackages() {
             } catch {
               setPendingNumbers(null);
             }
-            setView("list");
             openDrafts(drafts);
           }}
         />
