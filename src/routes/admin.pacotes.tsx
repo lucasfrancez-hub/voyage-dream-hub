@@ -2761,6 +2761,26 @@ function PackageEditorModal({
 
             {tab === "hotel" && kind !== "cruise" && (
               <div className="grid sm:grid-cols-2 gap-3">
+                <HotelOptionsPanel
+                  options={(Array.isArray((editing as any).hotel_options) ? (editing as any).hotel_options : []) as any}
+                  occupancy={Number(editing.base_occupancy) || 2}
+                  onChange={(next, base) =>
+                    setEditing({
+                      ...editing,
+                      hotel_options: next as any,
+                      ...(base
+                        ? {
+                            hotel_name: base.hotel_name,
+                            room_type: base.room_type ?? editing.room_type,
+                            meal_plan: base.meal_plan ?? editing.meal_plan,
+                            price_per_person: Number(base.price_per_person) || editing.price_per_person,
+                          }
+                        : {}),
+                    })
+                  }
+                />
+
+
 
                 <FormField label="Hotel" wide>
                   <HotelAutocomplete
