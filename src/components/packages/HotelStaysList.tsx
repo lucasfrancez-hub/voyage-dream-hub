@@ -92,7 +92,24 @@ export function HotelStaysList({
                   {s.nights} {s.nights === 1 ? "noite" : "noites"}
                 </span>
               )}
+              {onSelect && (
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider ${
+                    s.tripadvisor_location_id
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-amber-600 dark:text-amber-400"
+                  }`}
+                >
+                  {s.tripadvisor_location_id ? "TripAdvisor vinculado" : "Sem TripAdvisor"}
+                </span>
+              )}
+              {onSelect && selectedIndex === i && (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-orange">
+                  Editando abaixo
+                </span>
+              )}
             </div>
+
             <div className="mt-0.5 truncate text-sm font-semibold">{s.hotel_name}</div>
             <div className="truncate text-xs text-muted-foreground">
               {[s.room_type, s.bed_type].filter(Boolean).join(" · ") || "—"}
