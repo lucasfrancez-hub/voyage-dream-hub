@@ -2923,10 +2923,18 @@ function PackageEditorModal({
                 <FormField label="Regime de alimentação">
                   <select
                     className={inp}
-                    value={editing.meal_plan ?? ""}
-                    onChange={(e) => setEditing({ ...editing, meal_plan: e.target.value })}
+                    value={hv.meal_plan ?? ""}
+                    onChange={(e) => setHotel({ meal_plan: e.target.value })}
                   >
                     <option value="">— Não informado —</option>
+                    {hv.meal_plan &&
+                      ![
+                        "Sem refeição",
+                        "Café da manhã",
+                        "Meia pensão",
+                        "Pensão completa",
+                        "All inclusive",
+                      ].includes(hv.meal_plan) && <option value={hv.meal_plan}>{hv.meal_plan}</option>}
                     <option value="Sem refeição">Sem refeição</option>
                     <option value="Café da manhã">Café da manhã</option>
                     <option value="Meia pensão">Meia pensão (café + 1 refeição)</option>
@@ -2939,10 +2947,21 @@ function PackageEditorModal({
                 <FormField label="Tipo de quarto">
                   <select
                     className={inp}
-                    value={editing.room_type ?? ""}
-                    onChange={(e) => setEditing({ ...editing, room_type: e.target.value })}
+                    value={hv.room_type ?? ""}
+                    onChange={(e) => setHotel({ room_type: e.target.value })}
                   >
                     <option value="">— Não informado —</option>
+                    {hv.room_type &&
+                      ![
+                        "Standard",
+                        "Superior",
+                        "Luxo",
+                        "Suíte",
+                        "Suíte Master",
+                        "Suíte Presidencial",
+                        "Bangalô",
+                        "Chalé",
+                      ].includes(hv.room_type) && <option value={hv.room_type}>{hv.room_type}</option>}
                     <option value="Standard">Standard</option>
                     <option value="Superior">Superior</option>
                     <option value="Luxo">Luxo</option>
@@ -2956,10 +2975,23 @@ function PackageEditorModal({
                 <FormField label="Categoria / vista">
                   <select
                     className={inp}
-                    value={editing.room_category ?? ""}
-                    onChange={(e) => setEditing({ ...editing, room_category: e.target.value })}
+                    value={hv.room_category ?? ""}
+                    onChange={(e) => setHotel({ room_category: e.target.value })}
                   >
                     <option value="">— Não informado —</option>
+                    {hv.room_category &&
+                      ![
+                        "Vista interna",
+                        "Vista cidade",
+                        "Vista jardim",
+                        "Vista piscina",
+                        "Vista parcial mar",
+                        "Vista mar",
+                        "Frente mar",
+                        "Vista montanha",
+                      ].includes(hv.room_category) && (
+                        <option value={hv.room_category}>{hv.room_category}</option>
+                      )}
                     <option value="Vista interna">Vista interna</option>
                     <option value="Vista cidade">Vista cidade</option>
                     <option value="Vista jardim">Vista jardim</option>
@@ -2973,10 +3005,23 @@ function PackageEditorModal({
                 <FormField label="Tipo de cama">
                   <select
                     className={inp}
-                    value={editing.bed_type ?? ""}
-                    onChange={(e) => setEditing({ ...editing, bed_type: e.target.value })}
+                    value={hv.bed_type ?? ""}
+                    onChange={(e) => setHotel({ bed_type: e.target.value })}
                   >
                     <option value="">— Não informado —</option>
+                    {hv.bed_type &&
+                      ![
+                        "1 cama de casal",
+                        "1 cama king",
+                        "1 cama queen",
+                        "2 camas de solteiro",
+                        "2 camas queen",
+                        "2 camas de casal",
+                        "1 casal + 1 solteiro",
+                        "1 casal + 2 solteiros",
+                        "3 camas de solteiro",
+                        "Cama de casal + sofá-cama",
+                      ].includes(hv.bed_type) && <option value={hv.bed_type}>{hv.bed_type}</option>}
                     <option value="1 cama de casal">1 cama de casal</option>
                     <option value="1 cama king">1 cama king</option>
                     <option value="1 cama queen">1 cama queen</option>
@@ -2989,6 +3034,7 @@ function PackageEditorModal({
                     <option value="Cama de casal + sofá-cama">Cama de casal + sofá-cama</option>
                   </select>
                 </FormField>
+
               </div>
             )}
 
