@@ -1148,9 +1148,15 @@ function Checkout() {
                     onChange={patchCard}
                     installments={installments}
                     onInstallmentsChange={setInstallments}
-                    installmentsOptions={Array.from({ length: MAX_INSTALLMENTS }, (_, i) => i + 1)}
+                    installmentsOptions={cardInstallmentOptions(maxCardParcelas)}
                     total={totalPrice}
                   />
+                  {maxCardParcelas < MAX_INSTALLMENTS && (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      Hipercard, Diners, Elo e Amex: parcelamento em até {maxCardParcelas}x sem juros.
+                    </p>
+                  )}
+
                 </div>
               )}
 
