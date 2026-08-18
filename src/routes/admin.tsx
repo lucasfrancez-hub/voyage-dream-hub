@@ -569,7 +569,8 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
             { to: "/admin/metricas", label: "Métricas", icon: BarChart3 },
             { to: "/admin/instalar-extensao", label: "Instalar extensão", icon: Puzzle },
             { to: "/admin/app-celular", label: "App no celular", icon: Smartphone },
-            { to: "/admin/pacotes-cativa", label: "Catálogo Cativa", icon: Package },
+            { to: "/admin/pacotes-cativa", label: "Catálogo de pacotes", icon: Package },
+
           ],
         },
         ...(showUsuarios

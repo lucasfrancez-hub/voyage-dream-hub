@@ -1093,10 +1093,10 @@ function AdminPackages() {
         <button
           type="button"
           onClick={() => setView("cativa")}
-          title="Catálogo Cativa — pacotes disponíveis para importar"
+          title="Catálogo de pacotes — pacotes disponíveis para importar"
           className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${view === "cativa" ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
         >
-          <PackageIcon className="h-3.5 w-3.5" /> Pacotes Cativa
+          <PackageIcon className="h-3.5 w-3.5" /> Catálogo de pacotes
           <CativaCountBadge active={view === "cativa"} />
         </button>
       </div>

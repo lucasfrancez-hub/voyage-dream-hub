@@ -26,14 +26,14 @@ import {
 export const Route = createFileRoute("/admin/pacotes-cativa")({
   head: () => ({
     meta: [
-      { title: "Catálogo Cativa — pacotes importados | VIA AIR" },
+      { title: "Catálogo de pacotes | VIA AIR" },
       {
         name: "description",
         content:
-          "Painel do robô de importação do catálogo Cativa: pacotes ativos, alterações de preço, fila de voos da Infotravel e execuções do robô.",
+          "Radar automático de pacotes através de bloqueios aéreos. Importação das planilhas do Viajando com Desconto com consulta à Infotravel apenas quando há mudanças.",
       },
-      { property: "og:title", content: "Catálogo Cativa — pacotes importados | VIA AIR" },
-      { property: "og:description", content: "Monitoramento do robô de pacotes Cativa da VIA AIR." },
+      { property: "og:title", content: "Catálogo de pacotes | VIA AIR" },
+      { property: "og:description", content: "Radar automático de pacotes através de bloqueios aéreos." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -159,9 +159,9 @@ function PacotesCativaPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-8">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Catálogo Cativa</h1>
+          <h1 className="text-2xl font-semibold">Catálogo de pacotes</h1>
           <p className="text-sm text-muted-foreground">
-            Importação automática das planilhas do Viajando com Desconto, com consulta à Infotravel só quando algo muda.
+            Radar automático de pacotes através de bloqueios aéreos.
           </p>
         </div>
         <div className="flex gap-2">
