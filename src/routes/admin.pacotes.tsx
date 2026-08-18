@@ -2878,7 +2878,17 @@ function PackageEditorModal({
 
                 />
 
-
+                {normalizeStays((editing as any).hotel_stays).length > 1 && (
+                  <div className="sm:col-span-2 rounded-2xl border border-border bg-muted/30 p-3">
+                    <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Roteiro com {normalizeStays((editing as any).hotel_stays).length} hospedagens
+                    </div>
+                    <HotelStaysList stays={normalizeStays((editing as any).hotel_stays)} />
+                    <p className="mt-2 text-[10px] text-muted-foreground">
+                      Todas as hospedagens acima aparecem para o cliente na página do pacote.
+                    </p>
+                  </div>
+                )}
 
                 <FormField
                   label={
