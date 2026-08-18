@@ -72,13 +72,30 @@ export function readNextData(html: string): Record<string, unknown> | null {
   }
 }
 
+/**
+ * Corrige links quebrados vindos das planilhas: espaços, protocolo digitado
+ * errado ("hhttps://", "htps://"), link sem protocolo e aspas residuais.
+ * Sem isso o `new URL()` gera origin "null" e o endpoint vira "null/orcamento-web/...".
+ */
+export function normalizarUrlOrcamento(raw: string): string {
+  let s = String(raw ?? "").trim().replace(/^["'<]+|["'>]+$/g, "").replace(/\s+/g, "");
+  s = s.replace(/^h+ttps?:\/\//i, (m) => (/s:\/\//i.test(m) ? "https://" : "http://"));
+  s = s.replace(/^htt?ps?:\/{1,}/i, (m) => (/s:/i.test(m) ? "https://" : "http://"));
+  if (!/^https?:\/\//i.test(s)) s = `https://${s.replace(/^\/+/, "")}`;
+  return s;
+}
+
 /** Descobre a referência do orçamento a partir da URL (e do HTML, quando disponível). */
-export function resolveRef(url: string, html?: string): InfotravelRef {
+export function resolveRef(rawUrl: string, html?: string): InfotravelRef {
+  const url = normalizarUrlOrcamento(rawUrl);
   let u: URL;
   try {
     u = new URL(url);
   } catch {
     throw new QuoteParseError("SOURCE_PAGE_INVALID", "url inválida");
+  }
+  if (!u.origin || u.origin === "null") {
+    throw new QuoteParseError("SOURCE_PAGE_INVALID", "origem da url inválida");
   }
   const basePath = u.pathname.startsWith("/orcamento-web") ? "/orcamento-web" : "";
 
@@ -96,10 +113,19 @@ export function resolveRef(url: string, html?: string): InfotravelRef {
 
   // fallback: token base64 no formato "FRT | 503238 | HASH"
   if (!companyCode || !bookingId) {
-    const token = u.searchParams.get("token");
+    const token =
+      u.searchParams.get("token") ??
+      u.searchParams.get("t") ??
+      u.searchParams.get("hash") ??
+      // alguns links trazem o token no final do path
+      (u.pathname.split("/").filter(Boolean).pop() ?? null);
     if (token) {
       try {
-        const rawToken = decodeURIComponent(token).replace(/\s/g, "+");
+        const rawToken = decodeURIComponent(token)
+          .replace(/\s/g, "+")
+          // base64 url-safe
+          .replace(/-/g, "+")
+          .replace(/_/g, "/");
         let decoded = "";
         try {
           decoded = atob(rawToken);
@@ -119,10 +145,24 @@ export function resolveRef(url: string, html?: string): InfotravelRef {
         const parts = decoded.split("|").map((p) => p.trim());
         if (!companyCode && parts[0]) companyCode = parts[0];
         if (!bookingId && parts[1] && /^\d+$/.test(parts[1])) bookingId = Number(parts[1]);
+        if (!bookingId) {
+          const n = decoded.match(/(\d{4,})/)?.[1];
+          if (n) bookingId = Number(n);
+        }
       } catch {
         /* token não é base64 */
       }
     }
+  }
+
+  // último recurso: parâmetros explícitos na querystring
+  if (!bookingId) {
+    const q = u.searchParams.get("bookingId") ?? u.searchParams.get("booking");
+    if (q && /^\d+$/.test(q)) bookingId = Number(q);
+  }
+  if (!companyCode) {
+    const q = u.searchParams.get("companyCode") ?? u.searchParams.get("company");
+    if (q) companyCode = q;
   }
 
   if (!companyCode || !bookingId) {
@@ -130,6 +170,7 @@ export function resolveRef(url: string, html?: string): InfotravelRef {
   }
   return { companyCode, bookingId, bookingIndex, clientUrl: url, origin: u.origin, basePath };
 }
+
 
 async function trpc<T>(ref: InfotravelRef, procedure: string, input: Record<string, unknown>): Promise<T> {
   const qs = encodeURIComponent(JSON.stringify({ json: input }));
@@ -579,7 +620,8 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Baixa o HTML da página do orçamento, aguardando a hidratação do Next (__NEXT_DATA__). */
-export async function fetchInfotravelHtml(url: string, tentativas = 4, esperaMs = 2500): Promise<string | undefined> {
+export async function fetchInfotravelHtml(rawUrl: string, tentativas = 4, esperaMs = 2500): Promise<string | undefined> {
+  const url = normalizarUrlOrcamento(rawUrl);
   for (let i = 0; i < tentativas; i++) {
     try {
       const res = await fetch(url, {
@@ -609,9 +651,10 @@ const opcaoVazia = (o: NormalizedOption) =>
  * quando a Infotravel devolve opções sem voos/valores (payload ainda frio).
  */
 export async function importInfotravelQuoteResilient(
-  url: string,
+  rawUrl: string,
   { tentativas = 3, esperaMs = 3500 }: { tentativas?: number; esperaMs?: number } = {},
 ): Promise<InfotravelImport> {
+  const url = normalizarUrlOrcamento(rawUrl);
   const html = await fetchInfotravelHtml(url);
   let melhor: InfotravelImport | null = null;
   let ultimoErro: unknown = null;
