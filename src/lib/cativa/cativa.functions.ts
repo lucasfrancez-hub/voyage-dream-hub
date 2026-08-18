@@ -213,3 +213,34 @@ export const arquivarPacotesCativa = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Reprocessa em lote os pacotes cuja consulta à Infotravel veio zerada
+ * (sem opções, sem voos ou com erro) — ou todos os ativos quando `tudo`.
+ */
+export const reprocessarLoteCativa = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { tudo?: boolean; limite?: number } | undefined) => input ?? {})
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const limite = Math.min(data.limite ?? 25, 60);
+
+    let q = supabaseAdmin
+      .from("cativa_pacotes")
+      .select("id")
+      .eq("status", "ativo")
+      .is("importado_em", null)
+      .not("link_orcamento", "is", null)
+      .limit(limite);
+    if (!data.tudo) q = q.or("voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_opcoes.is.null,voos_opcoes.eq.0");
+
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    const ids = (rows ?? []).map((r: any) => r.id as string);
+    if (!ids.length) return { processados: 0, ok: 0, erros: 0, restantes: 0 };
+
+    const { reprocessarPacotes } = await import("@/lib/cativa/voos.server");
+    const res = await reprocessarPacotes(ids);
+    return { ...res, restantes: ids.length === limite ? limite : 0 };
+  });
