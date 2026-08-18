@@ -47,7 +47,31 @@ export const generatePackageSummary = createServerFn({ method: "POST" })
     const angle = data.angle || angles[Math.floor(Math.random() * angles.length)];
     const dest = (data.destination || "").trim();
 
-    const system = `Você é copywriter da agência de viagens VIA AIR. Escreva um RESUMO CURTO e envolvente sobre o DESTINO de um pacote turístico, em português do Brasil.
+    // Pacotes de evento (show, festival, jogo, GP, Réveillon, Carnaval...) falam do EVENTO,
+    // não apenas do destino.
+    const tituloBase = `${data.title ?? ""} ${data.brief}`;
+    const eventoMatch = tituloBase.match(
+      /\b(show|shows|turn[êe]|tour|festival|rock in rio|lollapalooza|the town|jogo|final|copa|gp\b|f[óo]rmula\s*1|r[ée]veillon|carnaval|congresso|feira|cruzeiro tem[áa]tico|concerto|�pera|[óo]pera)\b/i,
+    );
+    const evento = eventoMatch
+      ? (data.title || data.brief)
+          .replace(/\s+-\s+saindo\s+de\s+.*$/i, "")
+          .trim()
+          .slice(0, 120)
+      : "";
+
+    const system = evento
+      ? `Você é copywriter da agência de viagens VIA AIR. Escreva um RESUMO CURTO e envolvente sobre o EVENTO "${evento}"${dest ? ` em ${dest}` : ""}, em português do Brasil.
+Regras rígidas:
+- 2 a 3 frases, no máximo 350 caracteres.
+- O protagonista é o EVENTO: fale do artista/atração, do clima do público, do que torna essa edição especial e do local/arena/cidade onde acontece.
+- Cite 1 elemento concreto da cidade só como complemento (bairro, gastronomia, ponto conhecido), nunca como foco principal.
+- PROIBIDO inventar datas, setlist, escalação, preços de ingresso ou informações que você não tem certeza.
+- PROIBIDO falar do pacote, do preço, de hotel, de companhia aérea ou da agência.
+- PROIBIDO clichês como "experiência inesquecível", "imperdível", "único", "momento mágico".
+- Sem emojis, sem hashtags, sem markdown, sem aspas.
+- Responda APENAS com o texto final, sem rótulos.`
+      : `Você é copywriter da agência de viagens VIA AIR. Escreva um RESUMO CURTO e envolvente sobre o DESTINO de um pacote turístico, em português do Brasil.
 Regras rígidas:
 - 2 a 3 frases, no máximo 350 caracteres.
 - Fale ESPECIFICAMENTE sobre o lugar: cite pelo menos 2 elementos concretos e reconhecíveis do destino (praias, bairros, pratos típicos, pontos históricos, natureza, cultura local). Nada genérico.
