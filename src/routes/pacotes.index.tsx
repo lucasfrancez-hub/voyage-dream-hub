@@ -16,10 +16,11 @@ import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import { dedupeDestinations, destinationKey } from "@/lib/packages/destination";
 import { Button } from "@/components/ui/button";
 import {
-  BudgetFilter,
   type BudgetMode,
   type BudgetRange,
 } from "@/components/packages/BudgetFilter";
+import { BudgetFloating } from "@/components/packages/BudgetFloating";
+
 
 
 import { Calendar } from "@/components/ui/calendar";
