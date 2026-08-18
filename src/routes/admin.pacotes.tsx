@@ -172,7 +172,13 @@ type PackageRow = {
     meal_plan?: string | null;
     price_per_person?: number | null;
     opcao?: number | null;
+    hotel_stars?: number | null;
+    tripadvisor_location_id?: string | null;
+    tripadvisor_url?: string | null;
+    tripadvisor_address?: string | null;
+    tripadvisor_photos?: string[] | null;
   }> | null;
+
 
   hotel_stars: number | null;
   meal_plan: string | null;
