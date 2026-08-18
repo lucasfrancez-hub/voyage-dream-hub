@@ -702,6 +702,8 @@ function AdminPackages() {
     if (payloadKind === "service" || payloadKind === "tour") {
       // Ingresso/serviço: sem hospedagem, sem aéreo, sem cruzeiro
       payload.hotel_name = null;
+      payload.hotel_options = null;
+
       payload.hotel_stars = null;
       payload.meal_plan = null;
       payload.room_type = null;
