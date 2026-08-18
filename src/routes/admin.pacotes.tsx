@@ -1080,15 +1080,20 @@ function AdminPackages() {
             { k: "service", label: "Ingressos", Icon: Ticket },
             { k: "tour", label: "Passeios", Icon: MapPin },
           ] as { k: "all" | PackageKind; label: string; Icon: typeof ListIcon }[]).map(({ k, label, Icon }) => {
-            const active = kindFilter === k;
+            const active = !expiredView && kindFilter === k;
+            const vigentes = (packages || []).filter((p) => !isExpired(p));
             const count = k === "all"
-              ? (packages || []).length
-              : (packages || []).filter((p) => (p.kind ?? "package") === k).length;
+              ? vigentes.length
+              : vigentes.filter((p) => (p.kind ?? "package") === k).length;
             return (
               <button
                 key={k}
                 type="button"
-                onClick={() => setKindFilter(k)}
+                onClick={() => {
+                  setExpiredView(false);
+                  setKindFilter(k);
+                  setPage(1);
+                }}
                 className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${active ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
               >
                 <Icon className="h-3.5 w-3.5" /> {label}
