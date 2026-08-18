@@ -88,6 +88,7 @@ import {
 import { useIgnoredHotels } from "@/lib/ignored-hotels";
 
 import { CurationTab } from "@/components/packages/CurationTab";
+import { CativaTab } from "@/components/packages/CativaTab";
 import {
   PackageSocialDialog,
   WhatsAppIcon,
@@ -251,7 +252,7 @@ function AdminPackages() {
   const [sortMode, setSortMode] = useState<
     "manual" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("manual");
-  const [view, setView] = useState<"list" | "curadoria">("list");
+  const [view, setView] = useState<"list" | "curadoria" | "cativa">("list");
   const [cruiseImportOpen, setCruiseImportOpen] = useState(false);
   const [socialPkg, setSocialPkg] = useState<any | null>(null);
   const [socialChannel, setSocialChannel] = useState<"whatsapp" | "instagram" | undefined>(
