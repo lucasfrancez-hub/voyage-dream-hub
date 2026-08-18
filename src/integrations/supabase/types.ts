@@ -1798,6 +1798,316 @@ export type Database = {
           },
         ]
       }
+      cativa_import_runs: {
+        Row: {
+          alterados: number
+          detalhes: Json
+          duracao_ms: number | null
+          erro: string | null
+          finalizado_em: string | null
+          fonte: string
+          id: string
+          inalterados: number
+          infotravel_chamadas: number
+          infotravel_erros: number
+          infotravel_evitadas: number
+          iniciado_em: string
+          linhas: number
+          novos: number
+          removidos: number
+          status: string
+        }
+        Insert: {
+          alterados?: number
+          detalhes?: Json
+          duracao_ms?: number | null
+          erro?: string | null
+          finalizado_em?: string | null
+          fonte?: string
+          id?: string
+          inalterados?: number
+          infotravel_chamadas?: number
+          infotravel_erros?: number
+          infotravel_evitadas?: number
+          iniciado_em?: string
+          linhas?: number
+          novos?: number
+          removidos?: number
+          status?: string
+        }
+        Update: {
+          alterados?: number
+          detalhes?: Json
+          duracao_ms?: number | null
+          erro?: string | null
+          finalizado_em?: string | null
+          fonte?: string
+          id?: string
+          inalterados?: number
+          infotravel_chamadas?: number
+          infotravel_erros?: number
+          infotravel_evitadas?: number
+          iniciado_em?: string
+          linhas?: number
+          novos?: number
+          removidos?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      cativa_job_locks: {
+        Row: {
+          detalhe: Json
+          expira_em: string
+          nome: string
+          pausado: boolean
+          pausado_motivo: string | null
+          updated_at: string
+        }
+        Insert: {
+          detalhe?: Json
+          expira_em?: string
+          nome: string
+          pausado?: boolean
+          pausado_motivo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          detalhe?: Json
+          expira_em?: string
+          nome?: string
+          pausado?: boolean
+          pausado_motivo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cativa_pacote_historico: {
+        Row: {
+          campo: string | null
+          created_at: string
+          id: string
+          pacote_id: string
+          tipo: string
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          campo?: string | null
+          created_at?: string
+          id?: string
+          pacote_id: string
+          tipo: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          campo?: string | null
+          created_at?: string
+          id?: string
+          pacote_id?: string
+          tipo?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cativa_pacote_historico_pacote_id_fkey"
+            columns: ["pacote_id"]
+            isOneToOne: false
+            referencedRelation: "cativa_pacotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cativa_pacote_voos: {
+        Row: {
+          companhia: string | null
+          created_at: string
+          detalhes: Json
+          hoteis: Json
+          id: string
+          label: string | null
+          moeda: string
+          opcao_numero: number
+          pacote_id: string
+          total: number | null
+          updated_at: string
+          voos: Json
+        }
+        Insert: {
+          companhia?: string | null
+          created_at?: string
+          detalhes?: Json
+          hoteis?: Json
+          id?: string
+          label?: string | null
+          moeda?: string
+          opcao_numero: number
+          pacote_id: string
+          total?: number | null
+          updated_at?: string
+          voos?: Json
+        }
+        Update: {
+          companhia?: string | null
+          created_at?: string
+          detalhes?: Json
+          hoteis?: Json
+          id?: string
+          label?: string | null
+          moeda?: string
+          opcao_numero?: number
+          pacote_id?: string
+          total?: number | null
+          updated_at?: string
+          voos?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cativa_pacote_voos_pacote_id_fkey"
+            columns: ["pacote_id"]
+            isOneToOne: false
+            referencedRelation: "cativa_pacotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cativa_pacotes: {
+        Row: {
+          aereo_de: number | null
+          aereo_por: number | null
+          categoria: string | null
+          content_hash: string
+          cotado_em: string | null
+          created_at: string
+          data_fim: string | null
+          data_viagem: string | null
+          data_viagem_texto: string | null
+          destino: string | null
+          extras: Json
+          fingerprint: string
+          fonte: string
+          hoteis: Json
+          id: string
+          incluso: string[]
+          ingressos: Json
+          link_orcamento: string | null
+          moeda: string
+          noites: number | null
+          nome: string
+          nome_normalizado: string
+          observacao: string | null
+          origem_cidade: string | null
+          origem_iata: string | null
+          outras_datas: string[]
+          primeira_vez_em: string
+          source_row_key: string | null
+          status: string
+          taxas: number | null
+          token_infotravel: string | null
+          uf: string | null
+          updated_at: string
+          valor_total: number | null
+          visto_em: string
+          voos_atualizado_em: string | null
+          voos_erro: string | null
+          voos_opcoes: number
+          voos_prioridade: number
+          voos_proxima_em: string
+          voos_status: string
+          voos_tentativas: number
+        }
+        Insert: {
+          aereo_de?: number | null
+          aereo_por?: number | null
+          categoria?: string | null
+          content_hash: string
+          cotado_em?: string | null
+          created_at?: string
+          data_fim?: string | null
+          data_viagem?: string | null
+          data_viagem_texto?: string | null
+          destino?: string | null
+          extras?: Json
+          fingerprint: string
+          fonte: string
+          hoteis?: Json
+          id?: string
+          incluso?: string[]
+          ingressos?: Json
+          link_orcamento?: string | null
+          moeda?: string
+          noites?: number | null
+          nome: string
+          nome_normalizado: string
+          observacao?: string | null
+          origem_cidade?: string | null
+          origem_iata?: string | null
+          outras_datas?: string[]
+          primeira_vez_em?: string
+          source_row_key?: string | null
+          status?: string
+          taxas?: number | null
+          token_infotravel?: string | null
+          uf?: string | null
+          updated_at?: string
+          valor_total?: number | null
+          visto_em?: string
+          voos_atualizado_em?: string | null
+          voos_erro?: string | null
+          voos_opcoes?: number
+          voos_prioridade?: number
+          voos_proxima_em?: string
+          voos_status?: string
+          voos_tentativas?: number
+        }
+        Update: {
+          aereo_de?: number | null
+          aereo_por?: number | null
+          categoria?: string | null
+          content_hash?: string
+          cotado_em?: string | null
+          created_at?: string
+          data_fim?: string | null
+          data_viagem?: string | null
+          data_viagem_texto?: string | null
+          destino?: string | null
+          extras?: Json
+          fingerprint?: string
+          fonte?: string
+          hoteis?: Json
+          id?: string
+          incluso?: string[]
+          ingressos?: Json
+          link_orcamento?: string | null
+          moeda?: string
+          noites?: number | null
+          nome?: string
+          nome_normalizado?: string
+          observacao?: string | null
+          origem_cidade?: string | null
+          origem_iata?: string | null
+          outras_datas?: string[]
+          primeira_vez_em?: string
+          source_row_key?: string | null
+          status?: string
+          taxas?: number | null
+          token_infotravel?: string | null
+          uf?: string | null
+          updated_at?: string
+          valor_total?: number | null
+          visto_em?: string
+          voos_atualizado_em?: string | null
+          voos_erro?: string | null
+          voos_opcoes?: number
+          voos_prioridade?: number
+          voos_proxima_em?: string
+          voos_status?: string
+          voos_tentativas?: number
+        }
+        Relationships: []
+      }
       chat_app_links: {
         Row: {
           ativo: boolean
