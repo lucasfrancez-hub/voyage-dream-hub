@@ -2938,17 +2938,26 @@ function PackageEditorModal({
 
                 <FormField
                   label={
-                    hotelSelIdx >= 0
-                      ? `Hotel — opção ${hotelSelIdx + 1}${hotelSelIdx === 0 ? " (base)" : ""}`
-                      : "Hotel"
+                    stayIdx >= 0
+                      ? `Hotel — ${stayIdx + 1}ª hospedagem`
+                      : hotelSelIdx >= 0
+                        ? `Hotel — opção ${hotelSelIdx + 1}${hotelSelIdx === 0 ? " (base)" : ""}`
+                        : "Hotel"
                   }
                   wide
                 >
                   <HotelAutocomplete
-                    key={`hotel-${hotelSelIdx}`}
+                    key={`hotel-${hotelSelIdx}-${stayIdx}`}
                     value={hv.hotel_name ?? ""}
-                    mode={hotelSelIdx >= 0 ? (hv.tripadvisor_location_id ? "live" : hotelMode) : hotelMode}
+                    mode={
+                      stayIdx >= 0 || hotelSelIdx >= 0
+                        ? hv.tripadvisor_location_id
+                          ? "live"
+                          : hotelMode
+                        : hotelMode
+                    }
                     onModeChange={setHotelMode}
+
                     onChangeText={(v) => setHotel({ hotel_name: v })}
                     onSelect={(h) => {
                       const automaticStars =
