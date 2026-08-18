@@ -7,6 +7,18 @@ async function exigirAdmin(context: any) {
 }
 
 export const CATEGORIA_CIRCUITO = "Circuito";
+export const CATEGORIA_EVENTO = "Evento";
+
+/**
+ * Command Center: circuitos nunca aparecem na lista de pacotes e eventos só
+ * entram quando têm aéreo confirmado (fila de voos ok, com opções e data de volta).
+ */
+const FILTRO_CATEGORIA_PACOTES = [
+  "categoria.is.null",
+  `and(categoria.neq.${CATEGORIA_CIRCUITO},categoria.neq.${CATEGORIA_EVENTO})`,
+  `and(categoria.eq.${CATEGORIA_EVENTO},voos_status.eq.ok,voos_opcoes.gt.0,data_fim.not.is.null)`,
+].join(",");
+
 
 /**
  * Pacote "incompleto": falta destino, falta origem (fora circuito) ou a fila de
