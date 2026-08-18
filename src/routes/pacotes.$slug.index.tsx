@@ -267,7 +267,10 @@ function PackageDetails() {
   const [hotelDialogOpen, setHotelDialogOpen] = useState(false);
   const [dialogPhotoIndex, setDialogPhotoIndex] = useState(0);
   const [preOpen, setPreOpen] = useState(false);
-  const [hotelIdx, setHotelIdx] = useState(0);
+  const [hotelSel, setHotelSel] = useState<Record<string, number>>({});
+  const hotelIdx = hotelSel[slug] ?? 0;
+  const setHotelIdx = (i: number) => setHotelSel((s) => ({ ...s, [slug]: i }));
+
 
 
   if (isLoading || !pkg) {
