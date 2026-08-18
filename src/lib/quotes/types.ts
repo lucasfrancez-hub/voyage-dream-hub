@@ -38,11 +38,14 @@ export type NormalizedFlightSegment = {
   airlineIata?: string | null;
   flightNumber?: string | null;
   fromIata?: string | null;
+  fromCity?: string | null;
   toIata?: string | null;
+  toCity?: string | null;
   departure?: string | null;
   arrival?: string | null;
   duration?: string | null;
   cabin?: string | null;
+  fareClass?: string | null;
   aircraft?: string | null;
   terminal?: string | null;
   baggage?: string | null;

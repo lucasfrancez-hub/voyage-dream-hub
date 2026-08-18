@@ -242,11 +242,28 @@ function mapFlight(bf: any): { flights: NormalizedFlight[]; pax: { adults: numbe
       airlineIata: cleanText(s?.airline?.code ?? s?.airlineCode),
       flightNumber: cleanText(s?.flightNumber ?? s?.number),
       fromIata: cleanText(s?.departureAirport?.code ?? s?.origin?.code ?? s?.from),
+      fromCity: cleanText(
+        s?.departureAirport?.city?.name ??
+          s?.departureAirport?.city ??
+          s?.departureAirport?.cityName ??
+          s?.origin?.city?.name ??
+          s?.origin?.city ??
+          s?.departureAirport?.name,
+      ),
       toIata: cleanText(s?.arrivalAirport?.code ?? s?.destination?.code ?? s?.to),
+      toCity: cleanText(
+        s?.arrivalAirport?.city?.name ??
+          s?.arrivalAirport?.city ??
+          s?.arrivalAirport?.cityName ??
+          s?.destination?.city?.name ??
+          s?.destination?.city ??
+          s?.arrivalAirport?.name,
+      ),
       departure: isoDate(s?.departure),
       arrival: isoDate(s?.arrival),
       duration: cleanText(s?.duration),
       cabin: cleanText(s?.cabin ?? s?.class ?? g?.class),
+      fareClass: cleanText(s?.fareClass ?? s?.fareBasis ?? s?.family ?? g?.fareClass ?? g?.family),
       aircraft: cleanText(s?.equipment ?? s?.aircraft),
       baggage: collectBaggageText(s, g, bf?.baggage, bf?.baggages) ?? cleanText(s?.baggage?.description ?? g?.baggage?.description),
     }));
