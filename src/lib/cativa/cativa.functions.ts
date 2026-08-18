@@ -335,6 +335,37 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
     return { ...res, restantes: restantes ?? 0 };
   });
 
+/**
+ * Recalcula TUDO: recoloca todos os pacotes ativos com link de orçamento na
+ * fila de consulta à Infotravel, para regravar aéreo, taxas e valor total.
+ */
+export const recalcularTudoCativa = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await exigirAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { count } = await supabaseAdmin
+      .from("cativa_pacotes")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "ativo")
+      .not("link_orcamento", "is", null)
+      .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
+    const { error } = await supabaseAdmin
+      .from("cativa_pacotes")
+      .update({
+        voos_status: "pendente",
+        voos_tentativas: 0,
+        voos_prioridade: 3,
+        voos_erro: null,
+        voos_proxima_em: new Date().toISOString(),
+      } as any)
+      .eq("status", "ativo")
+      .not("link_orcamento", "is", null)
+      .or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
+    if (error) throw new Error(error.message);
+    return { enfileirados: count ?? 0 };
+  });
+
 /** Marca/desmarca "ir do mesmo jeito": pacote aparece no Command Center mesmo incompleto. */
 export const liberarPacoteCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

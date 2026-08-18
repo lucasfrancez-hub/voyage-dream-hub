@@ -210,56 +210,53 @@ export function completarCampos(pacote: any, opcoes: any[]): Record<string, any>
     if (destino) patch['destino'] = String(destino);
   }
 
-  // Aéreo: SOMENTE a tarifa por passageiro, sem taxas. Importações antigas não
-  // têm `fare`, então o total do voo continua como fallback.
-  if (!pacote.aereo_por) {
-    const porOpcao = opcoes
-      .map((o: any) => {
-        const fs = Array.isArray(o?.flights) ? o.flights : [];
-        const tarifas = fs.map((f: any) => num(f?.fare)).filter((v: number | null): v is number => v != null);
-        const soma = tarifas.length
-          ? tarifas.reduce((acc: number, valor: number) => acc + valor, 0)
-          : fs.reduce((acc: number, f: any) => acc + (num(f?.total) ?? 0), 0);
-        return soma > 0 ? soma : null;
-      })
-      .filter((n: number | null): n is number => n != null);
-    if (porOpcao.length) patch['aereo_por'] = Math.round(Math.min(...porOpcao) * 100) / 100;
-  }
+  // Valores: sempre recalculados a partir da opção MAIS BARATA da Infotravel
+  // (a página mostra "Produtos + Taxas = Total"). Nada é herdado da planilha
+  // quando o orçamento responde — assim não sobra divergência antiga.
+  const aereoDaOpcao = (o: any) => {
+    const fs = Array.isArray(o?.flights) ? o.flights : [];
+    const tarifas = fs.map((f: any) => num(f?.fare)).filter((v: number | null): v is number => v != null);
+    const soma = tarifas.length
+      ? tarifas.reduce((acc: number, valor: number) => acc + valor, 0)
+      : fs.reduce((acc: number, f: any) => acc + (num(f?.total) ?? 0), 0);
+    return soma > 0 ? Math.round(soma * 100) / 100 : null;
+  };
+  const taxasDaOpcao = (o: any) => {
+    const daOpcao = num(o?.taxes);
+    if (daOpcao != null) return Math.round(daOpcao * 100) / 100;
+    const fs = Array.isArray(o?.flights) ? o.flights : [];
+    const soma = fs.reduce((acc: number, f: any) => acc + (num(f?.taxes) ?? 0), 0);
+    return soma > 0 ? Math.round(soma * 100) / 100 : null;
+  };
 
-  // Taxas: prioriza a composição aérea retornada pela Infotravel. A API marca
-  // BOARDING_RATE/TAX_ADM (e demais itens isFareRate) separadamente da tarifa.
-  if (pacote.taxas == null) {
-    const porOpcao = opcoes
-      .map((o: any) => {
-        // A Infotravel devolve as taxas de todos os produtos da opção; o aéreo
-        // é só o fallback para importações antigas.
-        const daOpcao = num(o?.taxes);
-        if (daOpcao != null && daOpcao > 0) return daOpcao;
-        const fs = Array.isArray(o?.flights) ? o.flights : [];
-        const soma = fs.reduce((acc: number, f: any) => acc + (num(f?.taxes) ?? 0), 0);
-        return soma > 0 ? soma : null;
-      })
-      .filter((n: number | null): n is number => n != null);
+  const comTotal = opcoes
+    .map((o: any) => ({ o, total: num(o?.total) }))
+    .filter((x): x is { o: any; total: number } => x.total != null);
+  const escolhida = comTotal.length
+    ? comTotal.reduce((a, b) => (b.total < a.total ? b : a))
+    : opcoes.length
+      ? { o: opcoes[0], total: null as number | null }
+      : null;
+
+  if (escolhida) {
+    const aereo = aereoDaOpcao(escolhida.o);
+    const taxas = taxasDaOpcao(escolhida.o);
+    if (aereo != null) patch['aereo_por'] = aereo;
+    if (taxas != null) patch['taxas'] = taxas;
+    if (escolhida.total != null) {
+      patch['valor_total'] = Math.round(escolhida.total * 100) / 100;
+    } else {
+      const hotel = num(Array.isArray(pacote.hoteis) ? pacote.hoteis[0]?.valor : null) ?? 0;
+      const soma = (aereo ?? 0) + (taxas ?? 0) + hotel;
+      if (soma > 0) patch['valor_total'] = Math.round(soma * 100) / 100;
+    }
+  } else if (pacote.taxas == null) {
     const hotelTaxa = (Array.isArray(pacote.hoteis) ? pacote.hoteis : [])
       .map((h: any) => num(h?.taxas))
       .find((n: number | null) => n != null);
-    if (porOpcao.length) patch['taxas'] = Math.round(Math.min(...porOpcao) * 100) / 100;
-    else if (hotelTaxa) patch['taxas'] = hotelTaxa;
+    if (hotelTaxa) patch['taxas'] = hotelTaxa;
   }
 
-  // Total: o valor oficial da opção da Infotravel (produtos + taxas) manda.
-  const totaisOpcoes = opcoes
-    .map((o: any) => num(o?.total))
-    .filter((n: number | null): n is number => n != null && n > 0);
-  if (totaisOpcoes.length) {
-    patch['valor_total'] = Math.round(Math.min(...totaisOpcoes) * 100) / 100;
-  } else if (patch['aereo_por'] || patch['taxas']) {
-    const aereo = num(patch['aereo_por'] ?? pacote.aereo_por) ?? 0;
-    const taxas = num(patch['taxas'] ?? pacote.taxas) ?? 0;
-    const hotel = num(Array.isArray(pacote.hoteis) ? pacote.hoteis[0]?.valor : null) ?? 0;
-    const total = aereo + taxas + hotel;
-    if (total > 0) patch['valor_total'] = Math.round(total * 100) / 100;
-  }
 
   return patch;
 }
