@@ -241,11 +241,24 @@ export const arquivarPacotesCativa = createServerFn({ method: "POST" })
  */
 export const reprocessarLoteCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { tudo?: boolean; limite?: number } | undefined) => input ?? {})
+  .inputValidator((input: { tudo?: boolean; limite?: number; forcar?: boolean } | undefined) => input ?? {})
   .handler(async ({ data, context }) => {
     await exigirAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const limite = Math.min(data.limite ?? 5, 5);
+
+    if (!data.forcar) {
+      const { processarFilaVoos } = await import("@/lib/cativa/voos.server");
+      const res = await processarFilaVoos(limite);
+      const { count } = await supabaseAdmin
+        .from("cativa_pacotes")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "ativo")
+        .is("importado_em", null)
+        .eq("voos_status", "pendente")
+        .lte("voos_proxima_em", new Date().toISOString());
+      return { ...res, restantes: count ?? 0 };
+    }
 
     let q = supabaseAdmin
       .from("cativa_pacotes")

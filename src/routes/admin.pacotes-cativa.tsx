@@ -108,7 +108,7 @@ function PacotesCativaPage() {
   });
 
   const refazLote = useMutation({
-    mutationFn: (tudo: boolean) => reprocessarLote({ data: { tudo, limite: 5 } }),
+    mutationFn: (tudo: boolean) => reprocessarLote({ data: { tudo, limite: 5, forcar: true } }),
     onSuccess: (r: any) => {
       toast.success(`Reprocessados ${r?.processados ?? 0} pacotes (${r?.ok ?? 0} ok, ${r?.erros ?? 0} com erro)`);
       qc.invalidateQueries({ queryKey: ["cativa-resumo"] });
@@ -125,7 +125,7 @@ function PacotesCativaPage() {
     const continuar = async () => {
       try {
         while (ativo && !cancelarReprocessamento.current) {
-          const resultado = await reprocessarLote({ data: { tudo: false, limite: 5 } });
+          const resultado = await reprocessarLote({ data: { tudo: false, limite: 5, forcar: false } });
           await Promise.all([
             qc.invalidateQueries({ queryKey: ["cativa-resumo"] }),
             qc.invalidateQueries({ queryKey: ["cativa-pacotes"] }),

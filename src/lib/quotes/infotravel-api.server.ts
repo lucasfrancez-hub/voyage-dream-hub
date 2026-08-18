@@ -97,7 +97,23 @@ export function resolveRef(url: string, html?: string): InfotravelRef {
     const token = u.searchParams.get("token");
     if (token) {
       try {
-        const decoded = atob(decodeURIComponent(token));
+        const rawToken = decodeURIComponent(token).replace(/\s/g, "+");
+        let decoded = "";
+        try {
+          decoded = atob(rawToken);
+        } catch {
+          // Algumas planilhas trazem um caractere residual no fim do Base64.
+          // Recupera somente o prefixo válido que contém empresa e bookingId.
+          const base64 = rawToken.match(/^[A-Za-z0-9+/]+/)?.[0] ?? "";
+          for (let end = base64.length; end >= 8 && !decoded; end--) {
+            try {
+              const candidate = base64.slice(0, end);
+              decoded = atob(candidate + "=".repeat((4 - (candidate.length % 4)) % 4));
+            } catch {
+              // continua removendo apenas o sufixo inválido
+            }
+          }
+        }
         const parts = decoded.split("|").map((p) => p.trim());
         if (!companyCode && parts[0]) companyCode = parts[0];
         if (!bookingId && parts[1] && /^\d+$/.test(parts[1])) bookingId = Number(parts[1]);
@@ -527,7 +543,8 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
   quote.total = first.total;
   quote.values = { subtotal: first.total, taxes: null };
 
-  if (!adults && !children) throw new QuoteParseError("PASSENGERS_NOT_FOUND");
+  // Circuitos e grupos fechados podem omitir passageiros mesmo quando seus
+  // produtos, voos e valores estão completos; não descarte esses pacotes.
   quote.passengers = { adults, children, infants: 0 };
 
   quote.client = {
