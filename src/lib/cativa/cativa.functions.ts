@@ -133,8 +133,18 @@ export const carregarPacotesCativaParaImportar = createServerFn({ method: "POST"
         .in("pacote_id", ids)
         .order("opcao_numero", { ascending: true }),
     ]);
+    const linhas = (voos ?? []) as any[];
+
+    // resume com IA as descrições longas dos serviços adicionais (com cache)
+    const { resumirServicosEmLote } = await import("@/lib/cativa/servicos-ia.server");
+    const resumos = await resumirServicosEmLote(linhas.map((v) => v.detalhes ?? {}));
+    linhas.forEach((v, i) => {
+      const r = resumos[i];
+      if (r && r.length) v.detalhes = { ...(v.detalhes ?? {}), resumo_ia: r };
+    });
+
     const porPacote = new Map<string, any[]>();
-    for (const v of (voos ?? []) as any[]) {
+    for (const v of linhas) {
       const arr = porPacote.get(v.pacote_id);
       if (arr) arr.push(v);
       else porPacote.set(v.pacote_id, [v]);
