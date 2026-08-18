@@ -1,4 +1,6 @@
-import { BedDouble, Check, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { BedDouble, Check, Link2, Trash2 } from "lucide-react";
+import { HotelAutocomplete } from "@/components/HotelAutocomplete";
 
 export type HotelOption = {
   opcao?: number | null;
@@ -7,7 +9,13 @@ export type HotelOption = {
   meal_plan?: string | null;
   price_per_person?: number | null;
   total?: number | null;
+  hotel_stars?: number | null;
+  tripadvisor_location_id?: string | null;
+  tripadvisor_url?: string | null;
+  tripadvisor_address?: string | null;
+  tripadvisor_photos?: string[] | null;
 };
+
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
