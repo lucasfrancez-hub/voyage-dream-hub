@@ -41,8 +41,11 @@ export function BudgetRuler({
 
   return (
     <div className={cn("flex w-full min-w-0 flex-col gap-1.5 overflow-hidden", className)}>
-      <div className="flex items-center justify-between gap-3">
-        <label className="truncate text-xs font-medium text-muted-foreground">
+      <div className="flex items-center justify-between gap-2">
+        <label
+          className="min-w-0 flex-1 truncate whitespace-nowrap text-xs font-medium text-muted-foreground"
+          title="Quantos você quer pagar?"
+        >
           Quantos você quer pagar?
         </label>
         <div className="flex shrink-0 rounded-full border border-border bg-background/60 p-0.5">
