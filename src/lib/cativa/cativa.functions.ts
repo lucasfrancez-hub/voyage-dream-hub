@@ -7,6 +7,18 @@ async function exigirAdmin(context: any) {
 }
 
 export const CATEGORIA_CIRCUITO = "Circuito";
+export const CATEGORIA_EVENTO = "Evento";
+
+/**
+ * Command Center: circuitos nunca aparecem na lista de pacotes e eventos só
+ * entram quando têm aéreo confirmado (fila de voos ok, com opções e data de volta).
+ */
+const FILTRO_CATEGORIA_PACOTES = [
+  "categoria.is.null",
+  `and(categoria.neq.${CATEGORIA_CIRCUITO},categoria.neq.${CATEGORIA_EVENTO})`,
+  `and(categoria.eq.${CATEGORIA_EVENTO},voos_status.eq.ok,voos_opcoes.gt.0,data_fim.not.is.null)`,
+].join(",");
+
 
 /**
  * Pacote "incompleto": falta destino, falta origem (fora circuito) ou a fila de
@@ -64,7 +76,7 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
     q = data.arquivados ? q.not("importado_em", "is", null) : q.is("importado_em", null);
     const modo = data.modo ?? "pacotes";
     if (modo === "circuitos") q = q.eq("categoria", CATEGORIA_CIRCUITO);
-    else if (modo === "pacotes") q = q.or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
+    else if (modo === "pacotes") q = q.or(FILTRO_CATEGORIA_PACOTES);
     if (data.incompletos) q = q.eq("liberado_manual", false).or(FILTRO_INCOMPLETO);
     if (data.somenteCompletos && !data.incompletos) q = q.or(FILTRO_COMPLETO);
 
@@ -113,7 +125,7 @@ export const resumoCativa = createServerFn({ method: "POST" })
       return count ?? 0;
     };
 
-    const semCircuito = (q: any) => q.or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
+    const semCircuito = (q: any) => q.or(FILTRO_CATEGORIA_PACOTES);
     const [ativos, esgotados, pendentes, comVoos, erros, circuitos, incompletos] = await Promise.all([
       conta((q: any) => semCircuito(q.eq("status", "ativo").is("importado_em", null))),
       conta((q: any) => q.eq("status", "esgotado")),
