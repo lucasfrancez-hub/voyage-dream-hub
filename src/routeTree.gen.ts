@@ -141,6 +141,7 @@ import { Route as ApiPublicHooksAutoSuggestionsRouteImport } from './routes/api/
 import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/api/public/hooks/broadcast-dispatch'
 import { Route as ApiPublicHooksCalendarJobsRouteImport } from './routes/api/public/hooks/calendar-jobs'
 import { Route as ApiPublicHooksCalendarPushRouteImport } from './routes/api/public/hooks/calendar-push'
+import { Route as ApiPublicHooksCativaSyncRouteImport } from './routes/api/public/hooks/cativa-sync'
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
@@ -841,6 +842,12 @@ const ApiPublicHooksCalendarPushRoute =
     path: '/api/public/hooks/calendar-push',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksCativaSyncRoute =
+  ApiPublicHooksCativaSyncRouteImport.update({
+    id: '/api/public/hooks/cativa-sync',
+    path: '/api/public/hooks/cativa-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksCheckFlightChangesRoute =
   ApiPublicHooksCheckFlightChangesRouteImport.update({
     id: '/api/public/hooks/check-flight-changes',
@@ -1115,6 +1122,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
   '/api/public/hooks/calendar-push': typeof ApiPublicHooksCalendarPushRoute
+  '/api/public/hooks/cativa-sync': typeof ApiPublicHooksCativaSyncRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -1271,6 +1279,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
   '/api/public/hooks/calendar-push': typeof ApiPublicHooksCalendarPushRoute
+  '/api/public/hooks/cativa-sync': typeof ApiPublicHooksCativaSyncRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -1430,6 +1439,7 @@ export interface FileRoutesById {
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
   '/api/public/hooks/calendar-push': typeof ApiPublicHooksCalendarPushRoute
+  '/api/public/hooks/cativa-sync': typeof ApiPublicHooksCativaSyncRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -1590,6 +1600,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
     | '/api/public/hooks/calendar-push'
+    | '/api/public/hooks/cativa-sync'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -1746,6 +1757,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
     | '/api/public/hooks/calendar-push'
+    | '/api/public/hooks/cativa-sync'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -1904,6 +1916,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
     | '/api/public/hooks/calendar-push'
+    | '/api/public/hooks/cativa-sync'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
     | '/api/public/hooks/dispatch-ai-debounced'
@@ -1993,6 +2006,7 @@ export interface RootRouteChildren {
   ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
   ApiPublicHooksCalendarJobsRoute: typeof ApiPublicHooksCalendarJobsRoute
   ApiPublicHooksCalendarPushRoute: typeof ApiPublicHooksCalendarPushRoute
+  ApiPublicHooksCativaSyncRoute: typeof ApiPublicHooksCativaSyncRoute
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
@@ -2945,6 +2959,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCalendarPushRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/cativa-sync': {
+      id: '/api/public/hooks/cativa-sync'
+      path: '/api/public/hooks/cativa-sync'
+      fullPath: '/api/public/hooks/cativa-sync'
+      preLoaderRoute: typeof ApiPublicHooksCativaSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/check-flight-changes': {
       id: '/api/public/hooks/check-flight-changes'
       path: '/api/public/hooks/check-flight-changes'
@@ -3363,6 +3384,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
   ApiPublicHooksCalendarJobsRoute: ApiPublicHooksCalendarJobsRoute,
   ApiPublicHooksCalendarPushRoute: ApiPublicHooksCalendarPushRoute,
+  ApiPublicHooksCativaSyncRoute: ApiPublicHooksCativaSyncRoute,
   ApiPublicHooksCheckFlightChangesRoute: ApiPublicHooksCheckFlightChangesRoute,
   ApiPublicHooksCloseInactiveProtocolsRoute:
     ApiPublicHooksCloseInactiveProtocolsRoute,
