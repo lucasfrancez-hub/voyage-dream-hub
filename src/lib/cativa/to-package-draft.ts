@@ -561,8 +561,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     .trim();
   // O aeroporto de chegada (ex.: Recife) não substitui o destino real do pacote
   // (ex.: Porto de Galinhas). Cidade do hotel e nome comercial têm prioridade.
-  const destino = destinoHotel || destinoTitulo || destinoFonte;
-  const origem = (pacote.origem_cidade ?? pacote.origem_iata ?? "").trim();
+  const destino = semIata(destinoHotel || destinoTitulo || destinoFonte);
+  const origem = semIata((pacote.origem_cidade ?? pacote.origem_iata ?? "").trim());
   const incluso = Array.isArray(pacote.incluso)
     ? [...new Set(pacote.incluso.map(nomePublicoServico).filter(Boolean))]
     : [];
