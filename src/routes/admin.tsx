@@ -400,7 +400,6 @@ function ProdutosNav({ pathname }: { pathname: string }) {
     pathname.startsWith("/admin/promocoes-aereo") ||
     pathname.startsWith("/admin/voos-teste") ||
     pathname.startsWith("/admin/hoteis-teste") ||
-    pathname.startsWith("/admin/motor-frt") ||
     pathname.startsWith("/admin/carros");
   return (
     <NavMegaMenu
@@ -416,7 +415,6 @@ function ProdutosNav({ pathname }: { pathname: string }) {
             { to: "/admin/cruzeiros", label: "Cruzeiros" },
             { to: "/admin/promocoes-aereo", label: "Promoções de Aéreo" },
             { to: "/admin/buscar", label: "Motor de busca" },
-            { to: "/admin/motor-frt", label: "Motor FRT (pacotes)" },
           ],
         },
       ]}
@@ -552,9 +550,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     pathname.startsWith("/admin/instalar-extensao") ||
     pathname.startsWith("/admin/app-celular") ||
     pathname.startsWith("/admin/metricas") ||
-    pathname.startsWith("/admin/checkin-treino") ||
-    pathname.startsWith("/admin/expedia") ||
-    pathname.startsWith("/admin/teste-checkout-owner") ||
+    pathname.startsWith("/admin/pacotes-cativa") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
   return (
@@ -573,6 +569,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
             { to: "/admin/metricas", label: "Métricas", icon: BarChart3 },
             { to: "/admin/instalar-extensao", label: "Instalar extensão", icon: Puzzle },
             { to: "/admin/app-celular", label: "App no celular", icon: Smartphone },
+            { to: "/admin/pacotes-cativa", label: "Catálogo Cativa", icon: Package },
           ],
         },
         ...(showUsuarios
@@ -580,9 +577,6 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
               {
                 label: "Admin",
                 items: [
-                  { to: "/admin/checkin-treino", label: "Treinador de check-in" },
-                  { to: "/admin/expedia", label: "Expedia TAAP" },
-                  { to: "/admin/teste-checkout-owner", label: "Teste Checkout Owner" },
                   { to: "/admin/usuarios", label: "Usuários", icon: Users },
                 ],
               } as NavMenuGroup,
