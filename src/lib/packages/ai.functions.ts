@@ -25,6 +25,7 @@ export const generatePackageSummary = createServerFn({ method: "POST" })
         brief: z.string().min(2).max(500),
         destination: z.string().max(200).optional(),
         angle: z.string().max(80).optional(),
+        title: z.string().max(200).optional(),
       })
       .parse(data),
   )
