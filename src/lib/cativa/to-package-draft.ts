@@ -272,9 +272,45 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     if (typeof principal.total === "number" && !d.price_per_person) {
       d.price_per_person = Math.round((principal.total / 2) * 100) / 100;
     }
+
+    // Opções de hospedagem: mesmos voos/datas, hotéis diferentes.
+    // O mais barato vem selecionado por padrão (índice 0).
+    const ocupacao = Number(d.base_occupancy) || 2;
+    const vistos = new Set<string>();
+    const hoteis = opcoes
+      .slice()
+      .sort((a, b) => (a.total ?? Infinity) - (b.total ?? Infinity))
+      .map((op) => {
+        const ho = hotelDaOpcao(op, pacote);
+        if (!ho.hotel_name) return null;
+        const chaveHotel = `${ho.hotel_name}|${ho.room_type}`.toLowerCase();
+        if (vistos.has(chaveHotel)) return null;
+        vistos.add(chaveHotel);
+        const total = typeof op.total === "number" ? op.total : null;
+        return {
+          opcao: op.opcao_numero,
+          hotel_name: ho.hotel_name,
+          room_type: ho.room_type,
+          meal_plan: ho.meal_plan,
+          price_per_person: total != null ? Math.round((total / ocupacao) * 100) / 100 : Number(d.price_per_person) || 0,
+          total,
+        };
+      })
+      .filter(Boolean) as Array<Record<string, any>>;
+
+    if (hoteis.length > 1) {
+      d.hotel_options = hoteis;
+      const maisBarato = hoteis[0]!;
+      d.hotel_name = maisBarato.hotel_name;
+      d.room_type = maisBarato.room_type;
+      d.meal_plan = maisBarato.meal_plan;
+      if (maisBarato.price_per_person) d.price_per_person = maisBarato.price_per_person;
+    }
+
     d.cativa_alternativas = opcoes.length;
     drafts.push(d);
   }
+
 
   return drafts.sort((a, b) => String(a.going_date).localeCompare(String(b.going_date)));
 }

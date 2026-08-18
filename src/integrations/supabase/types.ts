@@ -5496,6 +5496,7 @@ export type Database = {
           flexible_dates: boolean
           going_date: string | null
           hotel_name: string | null
+          hotel_options: Json | null
           hotel_stars: number | null
           id: string
           image_url: string | null
@@ -5541,6 +5542,7 @@ export type Database = {
           flexible_dates?: boolean
           going_date?: string | null
           hotel_name?: string | null
+          hotel_options?: Json | null
           hotel_stars?: number | null
           id?: string
           image_url?: string | null
@@ -5586,6 +5588,7 @@ export type Database = {
           flexible_dates?: boolean
           going_date?: string | null
           hotel_name?: string | null
+          hotel_options?: Json | null
           hotel_stars?: number | null
           id?: string
           image_url?: string | null

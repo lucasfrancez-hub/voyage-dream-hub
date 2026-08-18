@@ -164,6 +164,15 @@ type PackageRow = {
   itinerary: string | null;
   includes: string[] | null;
   hotel_name: string | null;
+  /** Hospedagens alternativas (mesmos voos/datas) — a 1ª é a mais barata/padrão */
+  hotel_options: Array<{
+    hotel_name: string;
+    room_type?: string | null;
+    meal_plan?: string | null;
+    price_per_person?: number | null;
+    opcao?: number | null;
+  }> | null;
+
   hotel_stars: number | null;
   meal_plan: string | null;
   room_type: string | null;
@@ -629,6 +638,11 @@ function AdminPackages() {
       summary: pkg.summary || null,
       itinerary: pkg.itinerary || null,
       hotel_name: pkg.hotel_name || null,
+      hotel_options:
+        Array.isArray((pkg as any).hotel_options) && (pkg as any).hotel_options.length > 1
+          ? (pkg as any).hotel_options
+          : null,
+
       meal_plan: pkg.meal_plan || null,
       room_type: cleanRoomLabel(pkg.room_type),
       room_category: cleanRoomLabel(pkg.room_category),
@@ -688,6 +702,8 @@ function AdminPackages() {
     if (payloadKind === "service" || payloadKind === "tour") {
       // Ingresso/serviço: sem hospedagem, sem aéreo, sem cruzeiro
       payload.hotel_name = null;
+      payload.hotel_options = null;
+
       payload.hotel_stars = null;
       payload.meal_plan = null;
       payload.room_type = null;

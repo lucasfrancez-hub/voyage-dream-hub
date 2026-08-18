@@ -32,6 +32,7 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     time?: string;
     nights?: number;
     birthday?: number;
+    hotel?: number;
   } => {
 
     const raw = Number(s?.qty);
@@ -45,8 +46,11 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     const nightsRaw = Number(s?.nights);
     const nights = Number.isFinite(nightsRaw) && nightsRaw > 0 ? Math.min(2, Math.floor(nightsRaw)) : undefined;
     const birthday = s?.birthday === 1 || s?.birthday === "1" ? 1 : undefined;
-    return { qty, date, addons, modality, time, nights, birthday };
+    const hotelRaw = Number(s?.hotel);
+    const hotel = Number.isFinite(hotelRaw) && hotelRaw >= 0 ? Math.floor(hotelRaw) : undefined;
+    return { qty, date, addons, modality, time, nights, birthday, hotel };
   },
+
 });
 
 
@@ -66,17 +70,18 @@ function Checkout() {
     time: timeFromSearch,
     nights: nightsFromSearch,
     birthday: birthdayFromSearch,
+    hotel: hotelFromSearch,
   } = Route.useSearch();
   const navigate = useNavigate();
   const notifyPix = useServerFn(notifyPixOrder);
 
 
   const { data: pkg, isLoading } = useQuery({
-    queryKey: ["package", slug, dateFromSearch ?? "", modalityFromSearch ?? ""],
+    queryKey: ["package", slug, dateFromSearch ?? "", modalityFromSearch ?? "", hotelFromSearch ?? 0],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units,services,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates")
+        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_options,hotel_stars,meal_plan,room_type,room_category,bed_type,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at,kind,date_mode,pricing_mode,max_units,services,meeting_point,tour_times,tour_modalities,ai_summary,flexible_dates")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle();
@@ -99,9 +104,31 @@ function Checkout() {
           } as typeof data;
         }
       }
+      // Hospedagem escolhida pelo cliente (mesmos voos/datas, hotel diferente)
+      const opcoes = (Array.isArray((data as any).hotel_options) ? (data as any).hotel_options : []) as Array<{
+        hotel_name?: string;
+        room_type?: string | null;
+        meal_plan?: string | null;
+        price_per_person?: number | null;
+      }>;
+      if (opcoes.length > 1) {
+        const idx = Math.min(Math.max(0, Number(hotelFromSearch) || 0), opcoes.length - 1);
+        const escolhido = opcoes[idx];
+        if (escolhido?.hotel_name) {
+          return {
+            ...data,
+            hotel_name: escolhido.hotel_name,
+            room_type: escolhido.room_type ?? (data as any).room_type,
+            meal_plan: escolhido.meal_plan ?? (data as any).meal_plan,
+            price_per_person: Number(escolhido.price_per_person) || (data as any).price_per_person,
+            hotel_stars: idx === 0 ? (data as any).hotel_stars : null,
+          } as typeof data;
+        }
+      }
       return data;
     },
   });
+
 
   type Traveler = {
     full_name: string;
