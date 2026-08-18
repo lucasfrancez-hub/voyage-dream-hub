@@ -41,8 +41,11 @@ export function BudgetRuler({
 
   return (
     <div className={cn("flex w-full min-w-0 flex-col gap-1.5 overflow-hidden", className)}>
-      <div className="flex items-center justify-between gap-3">
-        <label className="truncate text-xs font-medium text-muted-foreground">
+      <div className="flex items-center justify-between gap-1">
+        <label
+          className="min-w-0 flex-1 truncate whitespace-nowrap text-[11px] font-medium text-muted-foreground"
+          title="Quantos você quer pagar?"
+        >
           Quantos você quer pagar?
         </label>
         <div className="flex shrink-0 rounded-full border border-border bg-background/60 p-0.5">
@@ -52,7 +55,7 @@ export function BudgetRuler({
               type="button"
               onClick={() => onModeChange(m)}
               className={cn(
-                "rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wide transition-colors",
+                "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide transition-colors",
                 mode === m
                   ? "bg-brand-orange text-white"
                   : "text-muted-foreground hover:text-foreground",

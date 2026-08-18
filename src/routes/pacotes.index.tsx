@@ -390,20 +390,19 @@ function PacotesList() {
           <FeaturedCarousel packages={(packages || []) as any} mixMode />
         </div>
 
-        <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
-
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground sm:pb-2.5">
+        <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="flex shrink-0 items-center gap-2 pb-2.5 text-sm font-medium text-foreground">
             <SlidersHorizontal className="h-4 w-4 text-brand-orange" />
             Filtrar por
           </div>
 
-          <div className="flex-1">
+          <div className="shrink-0 min-w-[120px] flex-1">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               Origem
             </label>
             <Select value={originFilter} onValueChange={setOriginFilter}>
-              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
-                <SelectValue placeholder="Todas as origens" />
+              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange overflow-hidden">
+                <SelectValue placeholder="Todas as origens" className="truncate" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as origens</SelectItem>
@@ -416,13 +415,13 @@ function PacotesList() {
             </Select>
           </div>
 
-          <div className="flex-1">
+          <div className="shrink-0 min-w-[120px] flex-1">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               Destino
             </label>
             <Select value={destinationFilter} onValueChange={setDestinationFilter}>
-              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
-                <SelectValue placeholder="Todos os destinos" />
+              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange overflow-hidden">
+                <SelectValue placeholder="Todos os destinos" className="truncate" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os destinos</SelectItem>
@@ -437,7 +436,7 @@ function PacotesList() {
             </Select>
           </div>
 
-          <div className="flex-1">
+          <div className="shrink-0 min-w-[140px] flex-1">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               Período da viagem
             </label>
@@ -446,9 +445,9 @@ function PacotesList() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full justify-start font-normal focus:ring-brand-orange focus:border-brand-orange"
+                  className="w-full justify-start overflow-hidden font-normal focus:ring-brand-orange focus:border-brand-orange"
                 >
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-brand-orange" />
+                  <CalendarIcon className="mr-2 h-3.5 w-3.5 shrink-0 text-brand-orange" />
                   {dateRange?.from ? (
                     dateRange.to && dateRange.to.getTime() !== dateRange.from.getTime() ? (
                       <span className="truncate">
@@ -527,7 +526,7 @@ function PacotesList() {
             </Popover>
           </div>
 
-          <div className="min-w-0 flex-[1.6] basis-[260px] overflow-hidden sm:pb-0.5">
+          <div className="flex-1 min-w-[280px] overflow-hidden sm:pb-0.5">
             <BudgetRuler
               mode={budgetMode}
               onModeChange={setBudgetMode}
@@ -536,19 +535,20 @@ function PacotesList() {
               min={0}
               max={maxBudget}
               step={100}
+              className="w-full min-w-[260px]"
             />
           </div>
 
 
-          <div className="flex-1 min-w-[160px]">
+          <div className="shrink-0 flex-1 min-w-[150px] max-w-[170px] overflow-hidden">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               Formas de pagamento
             </label>
             <Select value={installmentFilter} onValueChange={setInstallmentFilter}>
-              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-3.5 w-3.5 text-brand-orange" />
-                  <SelectValue placeholder="Qualquer" />
+              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange overflow-hidden">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CreditCard className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                  <SelectValue placeholder="Qualquer" className="truncate" />
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -562,16 +562,15 @@ function PacotesList() {
             </Select>
           </div>
 
-          <div className="flex-1">
-
+          <div className="shrink-0 min-w-[140px] flex-1">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               Ordenar por
             </label>
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
-                <div className="flex items-center gap-2">
-                  <ArrowUpDown className="h-3.5 w-3.5 text-brand-orange" />
-                  <SelectValue placeholder="Ordenar por" />
+              <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange overflow-hidden">
+                <div className="flex items-center gap-2 min-w-0">
+                  <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
+                  <SelectValue placeholder="Ordenar por" className="truncate" />
                 </div>
               </SelectTrigger>
               <SelectContent>
