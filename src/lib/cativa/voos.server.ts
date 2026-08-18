@@ -31,7 +31,7 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
 
   const { data: pendentes } = await supabaseAdmin
     .from("cativa_pacotes")
-    .select("id, link_orcamento, voos_tentativas")
+    .select("id, link_orcamento, voos_tentativas, origem_iata, origem_cidade, destino, aereo_por, taxas, valor_total, hoteis")
     .eq("status", "ativo")
     .eq("voos_status", "pendente")
     .or("categoria.is.null,categoria.neq.Circuito")
@@ -98,6 +98,7 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
       await supabaseAdmin
         .from("cativa_pacotes")
         .update({
+          ...completarCampos(p, opcoes),
           voos_status: opcoes.length ? "ok" : "sem_opcoes",
           voos_opcoes: opcoes.length,
           voos_atualizado_em: new Date().toISOString(),
@@ -125,6 +126,67 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
   }
 
   return res;
+}
+
+/**
+ * A planilha às vezes vem sem origem, destino, aéreo ou taxas. Quando o
+ * orçamento da Infotravel traz esses dados, o pacote é completado aqui.
+ */
+export function completarCampos(pacote: any, opcoes: any[]): Record<string, any> {
+  const patch: Record<string, any> = {};
+  const flights = opcoes.flatMap((o: any) => (Array.isArray(o?.flights) ? o.flights : []));
+  const hotels = opcoes.flatMap((o: any) => (Array.isArray(o?.hotels) ? o.hotels : []));
+
+  const ida = flights.find((f: any) => f?.direction !== "INBOUND") ?? flights[0];
+  const segIda = ida?.segments?.[0];
+  const ultimoSeg = ida?.segments?.[ida.segments.length - 1];
+
+  if (!pacote.origem_iata && (ida?.fromIata || segIda?.fromIata)) {
+    patch['origem_iata'] = ida?.fromIata ?? segIda?.fromIata;
+  }
+  if (!pacote.origem_cidade && segIda?.fromCity) patch['origem_cidade'] = segIda.fromCity;
+
+  if (!pacote.destino) {
+    const destino =
+      ultimoSeg?.toCity ??
+      opcoes.find((o: any) => o?.destination)?.destination ??
+      hotels.find((h: any) => h?.city)?.city ??
+      ida?.toIata ??
+      ultimoSeg?.toIata ??
+      null;
+    if (destino) patch['destino'] = String(destino);
+  }
+
+  // Aéreo: menor total entre as opções que realmente têm voo.
+  if (!pacote.aereo_por) {
+    const totais = opcoes
+      .filter((o: any) => Array.isArray(o?.flights) && o.flights.length > 0)
+      .map((o: any) => Number(o?.total))
+      .filter((n: number) => Number.isFinite(n) && n > 0);
+    const totalVoo = flights
+      .map((f: any) => Number(f?.total))
+      .filter((n: number) => Number.isFinite(n) && n > 0);
+    const menor = Math.min(...(totais.length ? totais : totalVoo.length ? totalVoo : [Infinity]));
+    if (Number.isFinite(menor)) patch['aereo_por'] = Math.round(menor * 100) / 100;
+  }
+
+  // Taxas: quando a planilha não trouxe, usa a do hotel importado.
+  if (pacote.taxas == null) {
+    const hotelTaxa = (Array.isArray(pacote.hoteis) ? pacote.hoteis : [])
+      .map((h: any) => Number(h?.taxas))
+      .find((n: number) => Number.isFinite(n) && n > 0);
+    if (hotelTaxa) patch['taxas'] = hotelTaxa;
+  }
+
+  if (!pacote.valor_total || patch['aereo_por'] || patch['taxas']) {
+    const aereo = Number(patch['aereo_por'] ?? pacote.aereo_por ?? 0) || 0;
+    const taxas = Number(patch['taxas'] ?? pacote.taxas ?? 0) || 0;
+    const hotel = Number((Array.isArray(pacote.hoteis) ? pacote.hoteis[0]?.valor : 0) ?? 0) || 0;
+    const total = aereo + taxas + hotel;
+    if (total > 0) patch['valor_total'] = Math.round(total * 100) / 100;
+  }
+
+  return patch;
 }
 
 /** Força a reconsulta imediata da Infotravel para pacotes específicos. */
