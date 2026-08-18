@@ -62,6 +62,7 @@ export function OtherDatesBlock({ pkg }: { pkg: CurrentPkg }) {
         .eq("origin", pkg.origin!)
         .eq("destination", pkg.destination!)
         .not("going_date", "is", null)
+        .gte("going_date", new Date().toISOString().slice(0, 10))
         .order("going_date");
       if (error) throw error;
       return (data ?? []) as Alt[];

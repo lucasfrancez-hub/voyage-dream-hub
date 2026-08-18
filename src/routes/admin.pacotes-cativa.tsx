@@ -236,10 +236,21 @@ function PacotesCativaPage() {
                     </div>
                   ) : null}
                 </div>
-                <div className="text-right">
-                  <div className="text-sm text-muted-foreground">Aéreo</div>
-                  <div className="font-semibold">{brl(p.aereo_por)}</div>
-                  <div className="text-xs text-muted-foreground">Taxas {brl(p.taxas)}</div>
+                <div className="min-w-[150px] text-right">
+                  <div className="text-sm text-muted-foreground">Total</div>
+                  <div className="font-semibold">
+                    {brl(
+                      typeof p.valor_total === "number" && p.valor_total > 0
+                        ? p.valor_total
+                        : typeof p.voo_menor === "number"
+                          ? p.voo_menor
+                          : null,
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Aéreo {brl(typeof p.aereo_por === "number" && p.aereo_por > 0 ? p.aereo_por : p.voo_menor)} · Taxas{" "}
+                    {brl(p.taxas)}
+                  </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="sm" onClick={() => setDetalhe({ id: p.id, nome: p.nome })}>

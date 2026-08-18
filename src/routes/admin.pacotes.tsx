@@ -258,6 +258,7 @@ function AdminPackages() {
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [kindFilter, setKindFilter] = useState<"all" | PackageKind>("all");
+  const [expiredView, setExpiredView] = useState(false);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [sortMode, setSortMode] = useState<
     "manual" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
@@ -440,9 +441,14 @@ function AdminPackages() {
       });
   }, [packages]);
 
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const isExpired = (p: { going_date?: string | null }) =>
+    !!p.going_date && String(p.going_date) < hojeISO;
+
   const displayPackages = useMemo(() => {
     const filtered = (packages || []).filter((p) => {
-      if (kindFilter !== "all" && (p.kind ?? "package") !== kindFilter) return false;
+      if (expiredView !== isExpired(p)) return false;
+      if (!expiredView && kindFilter !== "all" && (p.kind ?? "package") !== kindFilter) return false;
       if (originFilter !== "all" && originKey(p.origin) !== originKey(originFilter)) return false;
       if (destinationFilter !== "all" && p.destination !== destinationFilter) return false;
       if (monthFilter !== "all") {
@@ -476,7 +482,7 @@ function AdminPackages() {
       return sortDir === "asc" ? bc - ac : ac - bc;
     });
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, kindFilter, sortDir, sortMode]);
+  }, [packages, originFilter, destinationFilter, monthFilter, kindFilter, expiredView, sortDir, sortMode]);
 
   const [exporting, setExporting] = useState(false);
   const exportCsv = async () => {
@@ -1074,15 +1080,20 @@ function AdminPackages() {
             { k: "service", label: "Ingressos", Icon: Ticket },
             { k: "tour", label: "Passeios", Icon: MapPin },
           ] as { k: "all" | PackageKind; label: string; Icon: typeof ListIcon }[]).map(({ k, label, Icon }) => {
-            const active = kindFilter === k;
+            const active = !expiredView && kindFilter === k;
+            const vigentes = (packages || []).filter((p) => !isExpired(p));
             const count = k === "all"
-              ? (packages || []).length
-              : (packages || []).filter((p) => (p.kind ?? "package") === k).length;
+              ? vigentes.length
+              : vigentes.filter((p) => (p.kind ?? "package") === k).length;
             return (
               <button
                 key={k}
                 type="button"
-                onClick={() => setKindFilter(k)}
+                onClick={() => {
+                  setExpiredView(false);
+                  setKindFilter(k);
+                  setPage(1);
+                }}
                 className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${active ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
               >
                 <Icon className="h-3.5 w-3.5" /> {label}
@@ -1090,6 +1101,20 @@ function AdminPackages() {
               </button>
             );
           })}
+          <button
+            type="button"
+            title="Pacotes com data de ida já passada — não aparecem mais no portal"
+            onClick={() => {
+              setExpiredView(true);
+              setPage(1);
+            }}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${expiredView ? "bg-brand-orange text-white shadow" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <CalendarRange className="h-3.5 w-3.5" /> Expirados
+            <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${expiredView ? "bg-white/20" : "bg-muted"}`}>
+              {(packages || []).filter((p) => isExpired(p)).length}
+            </span>
+          </button>
           <Link
             to="/admin/cruzeiros"
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground"
