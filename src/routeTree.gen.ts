@@ -139,6 +139,7 @@ import { Route as ApiPublicBoletoIdRouteImport } from './routes/api/public/bolet
 import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
 import { Route as ApiPublicBroadcastMediaSplatRouteImport } from './routes/api/public/broadcast-media.$'
 import { Route as ApiPublicHooksAirfarePromosRouteImport } from './routes/api/public/hooks/airfare-promos'
+import { Route as ApiPublicHooksAirfarePromosSlotRouteImport } from './routes/api/public/hooks/airfare-promos-slot'
 import { Route as ApiPublicHooksAutoSuggestionsRouteImport } from './routes/api/public/hooks/auto-suggestions'
 import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/api/public/hooks/broadcast-dispatch'
 import { Route as ApiPublicHooksCalendarJobsRouteImport } from './routes/api/public/hooks/calendar-jobs'
@@ -831,6 +832,12 @@ const ApiPublicHooksAirfarePromosRoute =
     path: '/api/public/hooks/airfare-promos',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksAirfarePromosSlotRoute =
+  ApiPublicHooksAirfarePromosSlotRouteImport.update({
+    id: '/api/public/hooks/airfare-promos-slot',
+    path: '/api/public/hooks/airfare-promos-slot',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAutoSuggestionsRoute =
   ApiPublicHooksAutoSuggestionsRouteImport.update({
     id: '/api/public/hooks/auto-suggestions',
@@ -1139,6 +1146,7 @@ export interface FileRoutesByFullPath {
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
+  '/api/public/hooks/airfare-promos-slot': typeof ApiPublicHooksAirfarePromosSlotRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1299,6 +1307,7 @@ export interface FileRoutesByTo {
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
+  '/api/public/hooks/airfare-promos-slot': typeof ApiPublicHooksAirfarePromosSlotRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1462,6 +1471,7 @@ export interface FileRoutesById {
   '/api/public/bp/$id': typeof ApiPublicBpIdRoute
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
+  '/api/public/hooks/airfare-promos-slot': typeof ApiPublicHooksAirfarePromosSlotRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1626,6 +1636,7 @@ export interface FileRouteTypes {
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/airfare-promos'
+    | '/api/public/hooks/airfare-promos-slot'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -1786,6 +1797,7 @@ export interface FileRouteTypes {
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/airfare-promos'
+    | '/api/public/hooks/airfare-promos-slot'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -1948,6 +1960,7 @@ export interface FileRouteTypes {
     | '/api/public/bp/$id'
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/airfare-promos'
+    | '/api/public/hooks/airfare-promos-slot'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -2039,6 +2052,7 @@ export interface RootRouteChildren {
   ApiPublicBpIdRoute: typeof ApiPublicBpIdRoute
   ApiPublicBroadcastMediaSplatRoute: typeof ApiPublicBroadcastMediaSplatRoute
   ApiPublicHooksAirfarePromosRoute: typeof ApiPublicHooksAirfarePromosRoute
+  ApiPublicHooksAirfarePromosSlotRoute: typeof ApiPublicHooksAirfarePromosSlotRoute
   ApiPublicHooksAutoSuggestionsRoute: typeof ApiPublicHooksAutoSuggestionsRoute
   ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
   ApiPublicHooksCalendarJobsRoute: typeof ApiPublicHooksCalendarJobsRoute
@@ -2983,6 +2997,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksAirfarePromosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/airfare-promos-slot': {
+      id: '/api/public/hooks/airfare-promos-slot'
+      path: '/api/public/hooks/airfare-promos-slot'
+      fullPath: '/api/public/hooks/airfare-promos-slot'
+      preLoaderRoute: typeof ApiPublicHooksAirfarePromosSlotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/auto-suggestions': {
       id: '/api/public/hooks/auto-suggestions'
       path: '/api/public/hooks/auto-suggestions'
@@ -3443,6 +3464,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBpIdRoute: ApiPublicBpIdRoute,
   ApiPublicBroadcastMediaSplatRoute: ApiPublicBroadcastMediaSplatRoute,
   ApiPublicHooksAirfarePromosRoute: ApiPublicHooksAirfarePromosRoute,
+  ApiPublicHooksAirfarePromosSlotRoute: ApiPublicHooksAirfarePromosSlotRoute,
   ApiPublicHooksAutoSuggestionsRoute: ApiPublicHooksAutoSuggestionsRoute,
   ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
   ApiPublicHooksCalendarJobsRoute: ApiPublicHooksCalendarJobsRoute,
