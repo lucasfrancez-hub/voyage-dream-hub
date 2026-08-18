@@ -459,6 +459,13 @@ function categoriaQuarto(desc: string): string {
   return semCama || desc;
 }
 
+/** Ocupação real do orçamento (o total da Infotravel é do grupo todo). */
+function paxDaOpcao(op: CativaVooRow | null): number {
+  const pax = (op?.detalhes as any)?.pax;
+  const n = (Number(pax?.adults) || 0) + (Number(pax?.children) || 0);
+  return n > 0 ? n : 2;
+}
+
 /**
  * Roteiro com mais de uma hospedagem (ex.: 2 noites em Salvador + 2 em Morro de São Paulo).
  * Cada estadia é sequencial (check-in/check-out diferentes), não é alternativa de hotel.
