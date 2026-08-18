@@ -163,7 +163,16 @@ function PacotesList() {
         }
       }
 
-      return originMatch && destinationMatch && monthMatch && rangeMatch;
+      let budgetMatch = true;
+      if (budgetRange) {
+        const total = Number(p.price_per_person || 0) * (p.base_occupancy ?? 2);
+        budgetMatch =
+          total >= budgetRange.min &&
+          (budgetRange.max === null || total <= budgetRange.max);
+      }
+
+      return originMatch && destinationMatch && monthMatch && rangeMatch && budgetMatch;
+
     });
 
 
