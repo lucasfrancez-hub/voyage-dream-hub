@@ -14,13 +14,33 @@ type Args = {
   messageId?: string;
 };
 
-/** Evita disparo duplicado do mesmo evento dentro do mesmo processo. */
+/**
+ * Evita disparo duplicado do mesmo evento. A trava é no banco (e não em
+ * memória) porque cada webhook pode cair num processo diferente — era isso
+ * que fazia a mesma mensagem chegar várias vezes no celular.
+ */
 const jaEnviados = new Map<string, number>();
-function duplicado(chave: string) {
+async function duplicado(chave: string) {
   const agora = Date.now();
-  for (const [k, t] of jaEnviados) if (agora - t > 5 * 60_000) jaEnviados.delete(k);
+  for (const [k, t] of jaEnviados) if (agora - t > 10 * 60_000) jaEnviados.delete(k);
   if (jaEnviados.has(chave)) return true;
   jaEnviados.set(chave, agora);
+  try {
+    const { error } = await supabaseAdmin
+      .from("wa_chat_push_dedup")
+      .insert({ chave });
+    // 23505 = já existe → outro processo já notificou esta mensagem
+    if (error && (error as any).code === "23505") return true;
+    // limpeza oportunista das travas antigas
+    if (Math.random() < 0.02) {
+      await supabaseAdmin
+        .from("wa_chat_push_dedup")
+        .delete()
+        .lt("created_at", new Date(Date.now() - 24 * 3600_000).toISOString());
+    }
+  } catch {
+    /* trava indisponível: segue o envio */
+  }
   return false;
 }
 
@@ -63,7 +83,7 @@ export async function notificarNovaMensagemChat({
   messageId,
 }: Args) {
   try {
-    if (messageId && duplicado(messageId)) return;
+    if (messageId && (await duplicado(`msg:${messageId}`))) return;
 
     const { data: subs } = await supabaseAdmin
       .from("wa_chat_push_subs")
@@ -84,7 +104,8 @@ export async function notificarNovaMensagemChat({
       title: `${origem} · ${titulo}`,
       body: limpar(corpo || "Nova mensagem"),
       url: `/chat/inbox?c=${conversationId}`,
-      tag: `conv-${conversationId}-${messageId ?? Date.now()}`,
+      // uma notificação por conversa: mensagens novas substituem a anterior
+      tag: `conv-${conversationId}`,
       conversationId,
       messageId: messageId ?? null,
       unreadCount: naoLidas,

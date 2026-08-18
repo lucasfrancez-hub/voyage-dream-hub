@@ -8279,6 +8279,21 @@ export type Database = {
           },
         ]
       }
+      wa_chat_push_dedup: {
+        Row: {
+          chave: string
+          created_at: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       wa_chat_push_subs: {
         Row: {
           ativo: boolean
