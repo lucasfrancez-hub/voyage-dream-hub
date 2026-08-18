@@ -2069,7 +2069,11 @@ function PackageEditorModal({
     setAiLoading(true);
     try {
       const { text } = await genSummary({
-        data: { brief: finalBrief, destination: dest || undefined },
+        data: {
+          brief: finalBrief,
+          destination: dest || undefined,
+          title: (editing.title ?? "").trim() || undefined,
+        },
       });
       setEditing({ ...editing, summary: text });
     } catch (e) {
@@ -2094,6 +2098,7 @@ function PackageEditorModal({
             data: {
               brief: `Resumo autoral sobre ${dest}, focado no que torna o lugar único.`,
               destination: dest,
+              title: (editing.title ?? "").trim() || undefined,
             },
           });
 
