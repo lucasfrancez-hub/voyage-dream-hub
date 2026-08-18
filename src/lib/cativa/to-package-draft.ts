@@ -573,7 +573,7 @@ function estadiasDaOpcao(op: CativaVooRow | null) {
       const checkout = dia(h?.checkout);
       return {
         hotel_name: nome,
-        room_type: desc,
+        room_type: tipoQuarto(desc),
         room_category: categoriaQuarto(desc),
         bed_type: tipoCama(desc),
         meal_plan: regime(h?.board),
@@ -594,7 +594,7 @@ function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
     const desc = descricaoQuarto(h.roomDescription);
     return {
       hotel_name: String(h.name ?? "").trim(),
-      room_type: desc,
+      room_type: tipoQuarto(desc),
       room_category: categoriaQuarto(desc),
       bed_type: tipoCama(desc),
       meal_plan: regime(h.board),
@@ -606,7 +606,7 @@ function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
   const descP = descricaoQuarto(p?.quarto ?? p?.categoria ?? "");
   return {
     hotel_name: p ? String(p.nome ?? "").trim() : "",
-    room_type: descP,
+    room_type: tipoQuarto(descP),
     room_category: categoriaQuarto(descP),
     bed_type: tipoCama(descP),
     meal_plan: regime(p?.regime),
