@@ -765,9 +765,6 @@ function PackageDetails() {
             <div className="mt-1 text-3xl font-display font-bold text-brand-orange">
               {formatBRL(pricePerPerson * (isPerUnit ? 1 : baseOccupancy))}
             </div>
-            {hasHotelChoice && hotelName ? (
-              <div className="text-xs text-muted-foreground mt-1">Com hospedagem no {hotelName}</div>
-            ) : null}
 
             {pkg.taxes ? (
               <div className="text-xs text-muted-foreground mt-1">
