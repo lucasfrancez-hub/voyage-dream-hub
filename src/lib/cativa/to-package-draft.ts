@@ -229,60 +229,153 @@ function nomeCurto(v: unknown): string {
   return `${(p > 40 ? corte.slice(0, p) : corte).replace(/[.,;:–-]+$/, "")}…`;
 }
 
+/** Limpa HTML/entidades do texto da operadora. */
+function limpo(v: unknown): string {
+  return String(v ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Quebra o texto do serviço em blocos ("➡️ TRANSFER IN: …", "➡️ TICKET …"). */
+function blocos(desc: string): string[] {
+  return desc
+    .split(/➡️|➔|\u27A1/g)
+    .map((b) => limpo(b))
+    .filter((b) => b.length > 8);
+}
+
+const RE_COMERCIAL =
+  /(forma[s]?\s+de\s+pagamento|parcelamento|sem\s+juros|cart[aã]o\s+de\s+cr[eé]dito|dep[oó]sito|pix\b|multicr[eé]dito|negativa[cç][aã]o|pre[cç]os?\s+calculados|sujeit[ao]s?\s+a\s+.*reajuste|tarifas?\s+dispon[ií]veis|parcela\s+m[ií]nima)/i;
+
+const eComercial = (t: string) => RE_COMERCIAL.test(t);
+
+type ItemServico = { nome: string; descricao: string; total: number | null };
+
 /** Serviços adicionais (transfers, ingressos, passeios, seguro, outros) da opção. */
 function servicosDaOpcao(detalhes: any) {
-  const lista = (v: any): any[] => (Array.isArray(v) ? v : []);
-  const resumoIA: ServicoResumidoIA[] = lista(detalhes?.resumo_ia);
+  const lista = (v: any): ItemServico[] =>
+    (Array.isArray(v) ? v : [])
+      .map((i: any) => ({
+        nome: limpo(i?.name),
+        descricao: limpo(i?.description),
+        total: typeof i?.total === "number" ? i.total : null,
+      }))
+      .filter((i) => i.nome || i.descricao);
 
-  // quando a IA resumiu, usa o nome bonito dela no lugar do texto original
-  const nomeIA = (tipo: string, original: string, ordem: number) => {
-    const doTipo = resumoIA.filter((r) => r.tipo === tipo);
-    const r = doTipo[ordem];
-    return nomeCurto(r?.nome || original);
-  };
+  const resumoIA: ServicoResumidoIA[] = Array.isArray(detalhes?.resumo_ia) ? detalhes.resumo_ia : [];
 
-  const nomes = (v: any, tipo: string) =>
-    lista(v)
-      .map((i, idx) => nomeIA(tipo, String(i?.name ?? "").trim(), idx))
-      .filter(Boolean);
+  const transfers = lista(detalhes?.transfers);
+  const tickets = lista(detalhes?.tickets);
+  const activities = lista(detalhes?.activities);
+  const insurance = lista(detalhes?.insurance);
+  const genericos = lista(detalhes?.services);
 
-  const transfers = nomes(detalhes?.transfers, "Transfer");
-  const tickets = nomes(detalhes?.tickets, "Ingresso");
-  const activities = nomes(detalhes?.activities, "Passeio");
-  const insurance = nomes(detalhes?.insurance, "Seguro / proteção");
-  const outrosServicos = nomes(detalhes?.services, "Serviço");
+  // Serviços "combo" da operadora podem conter transfer + ingresso no mesmo item:
+  // separa em blocos e distribui para o bloco certo do cadastro.
+  const detTransfer: string[] = transfers.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
+  const detTickets: string[] = tickets.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
+  const detPasseios: string[] = activities.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
+  const detSeguro: string[] = insurance.map((t) => [t.nome, t.descricao].filter(Boolean).join(" — "));
+  const outros: string[] = [];
+  const outrosDetalhe: string[] = [];
+
+  for (const g of genericos) {
+    const partes = blocos(g.descricao);
+    const alvo = partes.length ? partes : [g.descricao].filter(Boolean);
+    let classificado = false;
+    for (const p of alvo) {
+      const ref = `${g.nome} ${p}`;
+      if (/transfer|traslado|transporte/i.test(p)) {
+        detTransfer.push(p);
+        classificado = true;
+      } else if (/ticket|ingresso|bustour|bus tour|park|entrada/i.test(p)) {
+        detTickets.push(p);
+        classificado = true;
+      } else if (/city ?tour|passeio|excurs[aã]o|visita/i.test(ref)) {
+        detPasseios.push(p);
+        classificado = true;
+      } else if (/seguro|cobertura|assist[eê]ncia/i.test(ref)) {
+        detSeguro.push(p);
+        classificado = true;
+      }
+    }
+    if (!classificado) {
+      outros.push(nomeCurto(g.nome || g.descricao));
+      if (g.descricao) outrosDetalhe.push(`${g.nome || "Serviço"} — ${g.descricao}`);
+    }
+  }
 
   const services: Record<string, any> = {};
-  if (transfers.length) {
-    services.transfer = { enabled: true, sentido: "in_out", pickup_points: transfers.join(" · ") };
+  if (detTransfer.length) {
+    services.transfer = {
+      enabled: true,
+      sentido: "in_out",
+      pickup_points: detTransfer.join("\n\n"),
+    };
   }
-  if (tickets.length) services.tickets = { enabled: true, parks: tickets };
-  if (activities.length) {
-    // passeios/city tour: liga o bloco e já preenche os detalhes com os itens da operadora
-    services.passeios = activities;
-    services.city_tour = { enabled: true, detalhe: activities.join(" · ") };
+  if (detTickets.length) {
+    services.tickets = { enabled: true, parks: detTickets.map((t) => nomeCurto(t)) };
   }
-  if (insurance.length) {
-    services.seguro = { enabled: true, cobertura: insurance.join(" · "), moeda: "USD" };
+  if (detPasseios.length) {
+    services.passeios = detPasseios.map((t) => nomeCurto(t));
+    services.city_tour = { enabled: true, detalhe: detPasseios.join("\n\n") };
   }
-  if (outrosServicos.length) services.outros = outrosServicos;
+  if (detSeguro.length) {
+    const moeda = /R\$|BRL/i.test(detSeguro.join(" ")) ? "BRL" : "USD";
+    services.seguro = { enabled: true, cobertura: detSeguro.join("\n\n"), moeda };
+  }
+  if (outros.length) services.outros = outros;
 
-  // bullets curtos e observações vindos do resumo da IA
+  const nomesCurtos = [
+    ...detTransfer,
+    ...detTickets,
+    ...detPasseios,
+    ...detSeguro,
+    ...outros,
+  ].map((t) => nomeCurto(t));
+
   const destaques = [...new Set(resumoIA.flatMap((r) => r.destaques ?? []).map((s) => s.trim()).filter(Boolean))];
-  const observacoes = [...new Set(resumoIA.flatMap((r) => r.observacoes ?? []).map((s) => s.trim()).filter(Boolean))];
+  // Observações: só o que interessa ao viajante — condições comerciais entram fora do roteiro.
+  const observacoes = [
+    ...new Set(
+      [
+        ...resumoIA.flatMap((r) => r.observacoes ?? []),
+        ...(Array.isArray(detalhes?.notes) ? detalhes.notes : []),
+      ]
+        .map((s: unknown) => limpo(s))
+        .filter(Boolean)
+        .filter((s) => !eComercial(s)),
+    ),
+  ];
   const resumoTexto = resumoIA
     .map((r) => [r.nome ? `${r.nome}` : "", r.resumo].filter(Boolean).join(" — "))
     .filter(Boolean)
     .join("\n");
 
+  // Roteiro montado a partir dos serviços realmente contratados.
+  const roteiro = [
+    detTransfer.length ? `Chegada\n${detTransfer.map((t) => `• ${t}`).join("\n")}` : "",
+    detPasseios.length ? `Durante a viagem\n${detPasseios.map((t) => `• ${t}`).join("\n")}` : "",
+    detTickets.length ? `Ingressos e passeios inclusos\n${detTickets.map((t) => `• ${t}`).join("\n")}` : "",
+    outrosDetalhe.length ? `Outros serviços\n${outrosDetalhe.map((t) => `• ${t}`).join("\n")}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   return {
     services,
-    todos: [...transfers, ...tickets, ...activities, ...insurance, ...outrosServicos],
+    todos: nomesCurtos,
     destaques,
     observacoes,
     resumoTexto,
+    roteiro,
   };
 }
+
 
 function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
   const h = (op?.hoteis ?? [])[0];
