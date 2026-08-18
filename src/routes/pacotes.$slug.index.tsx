@@ -467,9 +467,10 @@ function PackageDetails() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-6 py-10 grid lg:grid-cols-[1fr_360px] gap-10">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-10 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-10">
         {/* Left: content */}
-        <div className="space-y-10">
+        <div className="min-w-0 space-y-10">
+
           <section className="grid sm:grid-cols-3 gap-4">
 
             {!isTicket && pkg.origin && (
