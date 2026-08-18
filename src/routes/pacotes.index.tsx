@@ -318,17 +318,17 @@ function PacotesList() {
           </div>
         </div>
 
-        <div className="mt-8">
-          <FeaturedCarousel packages={(packages || []) as any} mixMode />
-        </div>
-
-        <div className="mt-6">
+        <div className="mt-8 rounded-3xl border border-white/10 bg-gradient-to-br from-[#0f1c29] to-[#0a1622] p-6 shadow-2xl md:p-8">
           <BudgetFilter
             mode={budgetMode}
             onModeChange={setBudgetMode}
             range={budgetRange}
             onRangeChange={setBudgetRange}
           />
+        </div>
+
+        <div className="mt-8">
+          <FeaturedCarousel packages={(packages || []) as any} mixMode />
         </div>
 
         <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
