@@ -26,6 +26,8 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
             modo?: "pacotes" | "circuitos" | "todos";
             /** só pacotes com dados faltando (origem, destino, aéreo ou taxas) */
             incompletos?: boolean;
+            /** só pacotes completos: origem, destino, taxas, aéreo e fila de voos concluída */
+            somenteCompletos?: boolean;
           }
         | undefined,
     ) => input ?? {},
