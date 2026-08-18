@@ -9,7 +9,7 @@ export type ResultadoVoos = { processados: number; ok: number; erros: number; pa
 
 export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { importInfotravelQuote } = await import("@/lib/quotes/infotravel-api.server");
+  const { importInfotravelQuoteResilient } = await import("@/lib/quotes/infotravel-api.server");
 
   const agora = new Date().toISOString();
   const { data: pendentes } = await supabaseAdmin
@@ -42,7 +42,7 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
       .eq("id", p.id);
 
     try {
-      const { normalized } = await importInfotravelQuote(p.link_orcamento);
+      const { normalized } = await importInfotravelQuoteResilient(p.link_orcamento);
       const opcoes = normalized.options ?? [];
 
       await supabaseAdmin.from("cativa_pacote_voos").delete().eq("pacote_id", p.id);
