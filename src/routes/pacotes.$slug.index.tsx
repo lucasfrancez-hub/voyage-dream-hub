@@ -53,6 +53,7 @@ import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 import { HotelDetailsDialog } from "@/components/HotelDetailsDialog";
+import { HotelStaysList, normalizeStays } from "@/components/packages/HotelStaysList";
 import { WhatsAppText } from "@/lib/wa-format";
 import { OtherDatesBlock } from "@/components/packages/OtherDatesBlock";
 import IncludedServices from "@/components/packages/IncludedServices";
@@ -301,6 +302,7 @@ function PackageDetails() {
     tripadvisor_url?: string | null;
     tripadvisor_address?: string | null;
     tripadvisor_photos?: string[] | null;
+    stays?: any[] | null;
   };
   const hotelOptions = useMemo<HotelOpcao[]>(
     () =>
@@ -363,6 +365,14 @@ function PackageDetails() {
   const selInfo = (selQuery?.data ?? null) as PublicHotelOptionInfo | null;
   const hotelInfoLoading = !!selQuery?.isLoading;
   const pricePerPerson = Number(selHotel?.price_per_person || pkg.price_per_person) || 0;
+
+  // Roteiro com mais de uma hospedagem (hotéis sequenciais na mesma viagem).
+  const stays = (() => {
+    const daOpcao = normalizeStays(selHotel?.stays);
+    if (daOpcao.length > 1) return daOpcao;
+    const doPacote = normalizeStays((pkg as any).hotel_stays);
+    return doPacote.length > 1 ? doPacote : [];
+  })();
 
   // Boleto Pré-pago — recalculado sempre pela data atual + data do embarque.
   const prepaid = getPrepaidBoletoConditions({
@@ -502,7 +512,9 @@ function PackageDetails() {
                   <Hotel className="h-5 w-5 text-brand-orange" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold">Hospedagem</h3>
+                  <h3 className="font-semibold">
+                    {stays.length > 1 ? `Hospedagens (${stays.length})` : "Hospedagem"}
+                  </h3>
                   <div className="mt-1 flex items-center gap-2">
                     <span>{hotelName}</span>
                     {hotelStars ? (
@@ -534,6 +546,18 @@ function PackageDetails() {
                   )}
                 </div>
               </div>
+
+              {stays.length > 1 && (
+                <div className="mt-5">
+                  <div className="text-sm font-semibold">Hotéis do roteiro</div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Esta viagem inclui {stays.length} hospedagens, na sequência abaixo.
+                  </p>
+                  <div className="mt-3">
+                    <HotelStaysList stays={stays} />
+                  </div>
+                </div>
+              )}
 
               {hasHotelChoice && (
                 <div className="mt-5">
