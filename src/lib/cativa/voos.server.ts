@@ -271,7 +271,13 @@ export async function reprocessarPacotes(ids: string[]): Promise<ResultadoVoos> 
 
   const res: ResultadoVoos = { processados: 0, ok: 0, erros: 0 };
   for (const p of (pacotes ?? []) as any[]) {
-    const r = await processarPacote(p, supabaseAdmin, importInfotravelQuoteResilient);
+    // Reprocesso manual: insiste mais que a fila automática para trazer
+    // todos os voos, datas e valores de uma vez.
+    const r = await processarPacote(p, supabaseAdmin, importInfotravelQuoteResilient, {
+      tentativas: 5,
+      esperaMs: 4000,
+    });
+
     res.processados += 1;
     if (r === "ok") res.ok++;
     else res.erros++;
