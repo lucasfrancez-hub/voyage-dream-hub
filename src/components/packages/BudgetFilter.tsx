@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Slider } from "@/components/ui/slider";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -26,12 +27,34 @@ export function BudgetFilter({
   onModeChange,
   range,
   onRangeChange,
+  variant = "default",
+  sliderMin = 0,
+  sliderMax = 15000,
+  sliderStep = 100,
 }: {
   mode: BudgetMode;
   onModeChange: (mode: BudgetMode) => void;
   range: BudgetRange;
   onRangeChange: (range: BudgetRange) => void;
+  variant?: "default" | "glass";
+  sliderMin?: number;
+  sliderMax?: number;
+  sliderStep?: number;
 }) {
+  if (variant === "glass") {
+    return (
+      <GlassBudgetFilter
+        mode={mode}
+        onModeChange={onModeChange}
+        range={range}
+        onRangeChange={onRangeChange}
+        min={sliderMin}
+        max={sliderMax}
+        step={sliderStep}
+      />
+    );
+  }
+
   const [customOpen, setCustomOpen] = useState(false);
   const [customValue, setCustomValue] = useState("");
 
@@ -176,3 +199,91 @@ export function BudgetFilter({
     </div>
   );
 }
+
+function GlassBudgetFilter({
+  mode,
+  onModeChange,
+  range,
+  onRangeChange,
+  min,
+  max,
+  step,
+}: {
+  mode: BudgetMode;
+  onModeChange: (mode: BudgetMode) => void;
+  range: BudgetRange;
+  onRangeChange: (range: BudgetRange) => void;
+  min: number;
+  max: number;
+  step: number;
+}) {
+  const divisor = mode === "parcela" ? BUDGET_INSTALLMENTS : 1;
+
+  const currentMin = range?.min ?? min;
+  const currentMax = range?.max ?? max;
+  const sliderValues = [currentMin, currentMax];
+
+  const display = (value: number) =>
+    compact(mode === "parcela" ? value / divisor : value);
+
+  return (
+    <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8 w-full">
+      <div className="flex items-center gap-6 shrink-0">
+        <div className="hidden sm:block">
+          <p className="text-white text-[11px] font-bold mb-0.5">Orçamento</p>
+          <p className="text-zinc-500 text-[9px] uppercase tracking-widest font-medium">Tipo de filtro</p>
+        </div>
+        <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+          {(["total", "parcela"] as BudgetMode[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => onModeChange(m)}
+              className={cn(
+                "px-5 py-2 text-[10px] font-bold rounded-lg transition-all active:scale-95",
+                mode === m
+                  ? "bg-brand-orange text-white shadow-lg"
+                  : "text-zinc-500 hover:text-white",
+              )}
+            >
+              {m === "total" ? "TOTAL" : "PARCELA"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="hidden md:block w-px h-10 bg-white/10 shrink-0" />
+
+      <div className="flex-1 min-w-0 w-full py-2">
+        <div className="flex justify-between mb-3">
+          <span className="text-[10px] font-bold text-white/80 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+            {display(currentMin)}
+          </span>
+          <span className="text-[10px] font-bold text-white/80 bg-white/5 px-2 py-0.5 rounded border border-white/5">
+            {display(currentMax)}
+          </span>
+        </div>
+        <Slider
+          value={sliderValues}
+          min={min}
+          max={max}
+          step={step}
+          onValueChange={(values) => {
+            const [v0, v1] = values;
+            if (v0 === min && v1 === max) {
+              onRangeChange(null);
+            } else {
+              onRangeChange({ min: v0, max: v1 });
+            }
+          }}
+          className="w-full"
+        />
+        <div className="flex justify-between mt-3 px-0.5">
+          <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-tighter">Mínimo</span>
+          <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-tighter">Limite máx</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
