@@ -247,7 +247,8 @@ export function completarCampos(pacote: any, opcoes: any[]): Record<string, any>
       patch['valor_total'] = Math.round(escolhida.total * 100) / 100;
     } else {
       const hotel = num(Array.isArray(pacote.hoteis) ? pacote.hoteis[0]?.valor : null) ?? 0;
-      const soma = (aereo ?? 0) + (taxas ?? 0) + hotel;
+      // `aereo` já vem com as taxas embutidas na fonte: não somar `taxas`.
+      const soma = (aereo ?? 0) + hotel;
       if (soma > 0) patch['valor_total'] = Math.round(soma * 100) / 100;
     }
   } else if (pacote.taxas == null) {
