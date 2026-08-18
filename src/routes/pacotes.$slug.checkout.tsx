@@ -610,6 +610,24 @@ function Checkout() {
 
       setSuccess(true);
 
+      // Boleto pré-pago: gera na hora o Pix da ENTRADA (1ª parcela).
+      if (payment === "prepaid_boleto" && prepaidOption) {
+        try {
+          const cob = await criarPix({
+            data: { orderId: newId, valorEsperado: prepaidOption.entryAmount },
+          });
+          setPixInfo(cob);
+        } catch (err) {
+          console.error("[checkout] pix entrada pré-pago falhou", err);
+          setPixError(true);
+          toast.warning(
+            "Não foi possível gerar o QR Code da entrada agora. Nossa equipe vai enviar o Pix em instantes.",
+          );
+        }
+      }
+
+
+
       if (payment === "pix") {
         // Notifica admin (mantido) e tenta gerar QR Pix via Itaú
         const kindLabel =
