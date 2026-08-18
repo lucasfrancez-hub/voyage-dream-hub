@@ -539,7 +539,7 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     return_date: fim ?? "",
     nights: noitesEntre(inicio, fim) ?? pacote.noites ?? 0,
     base_occupancy: 2,
-    price_per_person: Number(pacote.aereo_por ?? 0) || 0,
+    price_per_person: Number(pacote.valor_total ?? 0) || Number(pacote.aereo_por ?? 0) || 0,
     taxes: Number(pacote.taxas ?? 0) || 0,
     supplier_name: "Cativa / Viajando com Desconto",
     summary: pacote.observacao ?? "",
@@ -614,8 +614,9 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     });
 
 
-    if (typeof principal.total === "number" && !d.price_per_person) {
-      d.price_per_person = Math.round((principal.total / 2) * 100) / 100;
+    // O total da opção da Cativa é o valor por pessoa; a ocupação multiplica no orçamento.
+    if (typeof principal.total === "number" && principal.total > 0) {
+      d.price_per_person = Math.round(principal.total * 100) / 100;
     }
 
     // Opções de hospedagem: mesmos voos/datas, hotéis diferentes.
@@ -645,7 +646,7 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
           bed_type: ho.bed_type,
           meal_plan: ho.meal_plan,
           stays: estadias.length > 1 ? estadias : null,
-          price_per_person: total != null ? Math.round((total / ocupacao) * 100) / 100 : Number(d.price_per_person) || 0,
+          price_per_person: total != null ? Math.round(total * 100) / 100 : Number(d.price_per_person) || 0,
           total,
         };
       })
