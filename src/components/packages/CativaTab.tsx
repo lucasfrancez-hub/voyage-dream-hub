@@ -12,7 +12,7 @@ import {
   reprocessarLoteCativa,
   recalcularTudoCativa,
 } from "@/lib/cativa/cativa.functions";
-import { montarDraftsCativa, type CativaDraft } from "@/lib/cativa/to-package-draft";
+import { montarDraftsCativa, destinoComercial, type CativaDraft } from "@/lib/cativa/to-package-draft";
 
 const brl = (v: number | null | undefined) =>
   typeof v === "number" ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
@@ -327,7 +327,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
                   >
                     <div className="truncate text-sm font-semibold">{p.nome}</div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {p.origem_cidade ?? p.origem_iata ?? "—"} → {p.destino ?? "—"} · {dataBr(p.data_viagem)}
+                      {p.origem_cidade ?? p.origem_iata ?? "—"} → {destinoComercial(p) || p.destino || "—"} · {dataBr(p.data_viagem)}
                       {p.data_fim ? ` a ${dataBr(p.data_fim)}` : ""}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-wider">
