@@ -405,8 +405,8 @@ function PackageDetails() {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold">Hospedagem</h3>
                   <div className="mt-1 flex items-center gap-2">
-                    <span>{pkg.hotel_name}</span>
-                    {pkg.hotel_stars ? (
+                    <span>{hotelName}</span>
+                    {isBaseHotel && pkg.hotel_stars ? (
                       <span className="inline-flex">
                         {Array.from({ length: pkg.hotel_stars }).map((_, i) => (
                           <Star key={i} className="h-3.5 w-3.5 fill-brand-orange text-brand-orange" />
@@ -414,7 +414,8 @@ function PackageDetails() {
                       </span>
                     ) : null}
                   </div>
-                  {(pkg as unknown as { tripadvisor_address?: string | null }).tripadvisor_address && (
+                  {isBaseHotel && (pkg as unknown as { tripadvisor_address?: string | null }).tripadvisor_address && (
+
                     <div className="mt-1 text-xs text-muted-foreground flex items-start gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-brand-orange mt-0.5 shrink-0" />
                       <span>{(pkg as unknown as { tripadvisor_address: string }).tripadvisor_address}</span>
