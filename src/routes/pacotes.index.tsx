@@ -15,6 +15,13 @@ import { FeaturedCarousel } from "@/components/packages/FeaturedCarousel";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import { dedupeDestinations, destinationKey } from "@/lib/packages/destination";
 import { Button } from "@/components/ui/button";
+import {
+  BudgetFilter,
+  BUDGET_INSTALLMENTS,
+  type BudgetMode,
+  type BudgetRange,
+} from "@/components/packages/BudgetFilter";
+
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
