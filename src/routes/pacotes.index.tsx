@@ -21,6 +21,7 @@ import {
 } from "@/components/packages/BudgetFilter";
 import { BudgetRuler } from "@/components/packages/BudgetRuler";
 import { installmentRulesQuery, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
+import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
 
 
 
@@ -178,10 +179,17 @@ function PacotesList() {
 
       let installmentMatch = true;
       if (installmentFilter !== "all") {
-        const maxParc = maxInstallmentsForPackage(installmentRules, {
-          supplierName: (p as { supplier_name?: string | null }).supplier_name,
-        });
-        installmentMatch = maxParc >= Number(installmentFilter);
+        const supplierName = (p as { supplier_name?: string | null }).supplier_name;
+        if (installmentFilter === "prepago") {
+          installmentMatch = getPrepaidBoletoConditions({
+            supplierName,
+            departureDate: p.going_date,
+            totalAmount: Number(p.price_per_person || 0) * (p.base_occupancy ?? 2),
+          }).eligible;
+        } else {
+          const maxParc = maxInstallmentsForPackage(installmentRules, { supplierName });
+          installmentMatch = maxParc >= Number(installmentFilter);
+        }
       }
 
       return (
@@ -495,7 +503,7 @@ function PacotesList() {
             </Popover>
           </div>
 
-          <div className="flex-[1.6] min-w-[220px] sm:pb-0.5">
+          <div className="min-w-0 flex-[1.6] basis-[260px] sm:pb-0.5">
             <BudgetRuler
               mode={budgetMode}
               onModeChange={setBudgetMode}
@@ -510,7 +518,7 @@ function PacotesList() {
 
           <div className="flex-1 min-w-[160px]">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Parcelamento
+              Formas de pagamento
             </label>
             <Select value={installmentFilter} onValueChange={setInstallmentFilter}>
               <SelectTrigger className="w-full focus:ring-brand-orange focus:border-brand-orange">
@@ -521,8 +529,9 @@ function PacotesList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Qualquer</SelectItem>
-                <SelectItem value="10">Até 10x sem juros</SelectItem>
-                <SelectItem value="15">Até 15x sem juros</SelectItem>
+                <SelectItem value="prepago">Boleto pré-pago</SelectItem>
+                <SelectItem value="10">Boleto financiado até 10x</SelectItem>
+                <SelectItem value="15">Boleto financiado até 15x</SelectItem>
               </SelectContent>
             </Select>
           </div>
