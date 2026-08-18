@@ -526,7 +526,7 @@ function PacotesList() {
             </Popover>
           </div>
 
-          <div className="flex-1 min-w-[280px] overflow-hidden sm:pb-0.5">
+          <div className="w-full shrink-0 grow-0 overflow-hidden sm:min-w-[280px] sm:flex-1 sm:pb-0.5">
             <BudgetRuler
               mode={budgetMode}
               onModeChange={setBudgetMode}
@@ -540,7 +540,7 @@ function PacotesList() {
           </div>
 
 
-          <div className="shrink-0 flex-1 min-w-[150px] max-w-[170px] overflow-hidden">
+          <div className="w-full shrink-0 grow-0 overflow-hidden sm:min-w-[150px] sm:max-w-[170px] sm:flex-1">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
               Formas de pagamento
             </label>
