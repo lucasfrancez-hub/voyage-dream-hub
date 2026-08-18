@@ -90,6 +90,8 @@ import { useIgnoredHotels } from "@/lib/ignored-hotels";
 import { CurationTab } from "@/components/packages/CurationTab";
 import { CativaTab, CativaCountBadge } from "@/components/packages/CativaTab";
 import { HotelOptionsPanel } from "@/components/packages/HotelOptionsPanel";
+import { gerarRoteiro, nomeCurtoServico as nomeItem } from "@/lib/packages/itinerary";
+
 import {
   PackageSocialDialog,
   WhatsAppIcon,
@@ -1791,9 +1793,11 @@ function PackageEditorModal({
     Array<{ thumb: string; url: string; title: string; source: string; author: string }>
   >([]);
   const draftsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [hotelOptIdx, setHotelOptIdx] = useState(0);
   const [hotelMode, setHotelMode] = useState<"live" | "manual" | null>(
     editing.tripadvisor_location_id ? "live" : editing.hotel_name ? "manual" : null,
   );
+
   // Sincroniza o modo do hotel sempre que o pacote em edição muda (ex.: abrir
   // pacote salvo, importar por IA, etc.) — evita "voltar pro manual" após picar TA.
   useEffect(() => {
@@ -1805,8 +1809,45 @@ function PackageEditorModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing.tripadvisor_location_id, editing.id]);
 
+
+  // Hospedagem: quando há múltiplas opções, os campos abaixo editam a opção
+  // selecionada. A opção base (índice 0) também espelha no pacote.
+  const hotelOpts: any[] = Array.isArray((editing as any).hotel_options)
+    ? ((editing as any).hotel_options as any[])
+    : [];
+  const hotelSelIdx = hotelOpts.length > 1 ? Math.min(hotelOptIdx, hotelOpts.length - 1) : -1;
+  const hv: any = hotelSelIdx >= 0 ? hotelOpts[hotelSelIdx] : editing;
+  const setHotel = (p: Record<string, any>) => {
+    if (hotelSelIdx < 0) {
+      setEditing({ ...editing, ...p });
+      return;
+    }
+    const next = hotelOpts.map((o, i) => (i === hotelSelIdx ? { ...o, ...p } : o));
+    setEditing({ ...editing, hotel_options: next as any, ...(hotelSelIdx === 0 ? p : {}) });
+  };
+
+  function handleGenerateItinerary() {
+    const passeios = [
+      ...(Array.isArray((editing.services as any)?.passeios)
+        ? ((editing.services as any).passeios as string[])
+        : []),
+      ...(Array.isArray((editing.services as any)?.tickets?.parks)
+        ? ((editing.services as any).tickets.parks as string[])
+        : []),
+    ];
+    const texto = gerarRoteiro({
+      destino: editing.destination ?? "",
+      noites: Number(editing.nights) || 0,
+      temTransfer: !!(editing.services as any)?.transfer?.enabled,
+      passeios,
+    });
+    setEditing({ ...editing, itinerary: texto });
+    toast.success("Roteiro gerado em linha do tempo");
+  }
+
   const genSummary = useServerFn(generatePackageSummary);
   const searchImages = useServerFn(searchCoverImages);
+
 
   const derived = useMemo(
     () => deriveFromFlights(editing),
@@ -1860,6 +1901,8 @@ function PackageEditorModal({
   }, [editing.supplier_name]);
 
   // Montar "O que inclui" a partir dos campos efetivamente preenchidos/marcados.
+  // Só o nome do serviço — nada de textão do operador.
+
   const derivedIncludes = useMemo(() => {
     const list: string[] = [];
     const hasOutbound = !!editing.outbound_flight;
@@ -1902,24 +1945,18 @@ function PackageEditorModal({
               ? "OUT"
               : "IN/OUT";
       list.push(`Transfer ${label} (Aeroporto ↔ Hotel)`);
-      const pickups = (svc.transfer.pickup_points ?? "")
-        .split(/\r?\n/)
-        .map((s) => s.trim())
-        .filter(Boolean);
-      for (const p of pickups) list.push(`Embarque do transfer: ${p}`);
+      // Só o nome do serviço na lista pública — os detalhes ficam no serviço.
     }
-    if (svc.city_tour?.enabled) {
-      const det = (svc.city_tour.detalhe ?? "").trim();
-      list.push(det ? `City Tour — ${det}` : "City Tour");
-    }
+    if (svc.city_tour?.enabled) list.push("City Tour");
     if (svc.tickets?.enabled) {
       const parks = (svc.tickets.parks ?? []).map((p) => String(p ?? "").trim()).filter(Boolean);
-      for (const park of parks) list.push(`Ingresso para ${park}`);
+      for (const park of parks) list.push(`Ingresso para ${nomeItem(park)}`);
     }
     for (const o of svc.outros ?? []) {
-      const t = String(o ?? "").trim();
+      const t = nomeItem(o);
       if (t) list.push(t);
     }
+
 
     return list;
   }, [
@@ -2798,6 +2835,9 @@ function PackageEditorModal({
                 <HotelOptionsPanel
                   options={(Array.isArray((editing as any).hotel_options) ? (editing as any).hotel_options : []) as any}
                   occupancy={Number(editing.base_occupancy) || 2}
+                  selectedIndex={hotelSelIdx < 0 ? 0 : hotelSelIdx}
+                  onSelectIndex={setHotelOptIdx}
+
                   onChange={(next, base) =>
                     setEditing({
                       ...editing,
@@ -2828,12 +2868,20 @@ function PackageEditorModal({
 
 
 
-                <FormField label="Hotel" wide>
+                <FormField
+                  label={
+                    hotelSelIdx >= 0
+                      ? `Hotel — opção ${hotelSelIdx + 1}${hotelSelIdx === 0 ? " (base)" : ""}`
+                      : "Hotel"
+                  }
+                  wide
+                >
                   <HotelAutocomplete
-                    value={editing.hotel_name ?? ""}
-                    mode={hotelMode}
+                    key={`hotel-${hotelSelIdx}`}
+                    value={hv.hotel_name ?? ""}
+                    mode={hotelSelIdx >= 0 ? (hv.tripadvisor_location_id ? "live" : hotelMode) : hotelMode}
                     onModeChange={setHotelMode}
-                    onChangeText={(v) => setEditing({ ...editing, hotel_name: v })}
+                    onChangeText={(v) => setHotel({ hotel_name: v })}
                     onSelect={(h) => {
                       const automaticStars =
                         h.rating != null
@@ -2841,19 +2889,19 @@ function PackageEditorModal({
                           : h.hotel_class != null
                             ? Math.min(5, Math.max(1, Math.round(h.hotel_class)))
                             : 3;
-                      setEditing({
-                        ...editing,
+                      setHotel({
                         hotel_name: h.name,
                         hotel_stars: automaticStars,
-                        image_url:
-                          editing.image_url && editing.image_url.length > 0
-                            ? editing.image_url
-                            : (h.photos[0] ?? editing.image_url ?? ""),
                         tripadvisor_location_id: String(h.location_id),
                         tripadvisor_url: h.tripadvisor_url ?? null,
                         tripadvisor_address: h.address ?? null,
                         tripadvisor_photos: h.photos && h.photos.length > 0 ? h.photos : null,
                       });
+                      if (hotelSelIdx <= 0 && !(editing.image_url && editing.image_url.length > 0)) {
+                        setEditing((prev: any) =>
+                          prev ? { ...prev, image_url: h.photos[0] ?? prev.image_url ?? "" } : prev,
+                        );
+                      }
                     }}
                   />
                 </FormField>
@@ -2863,19 +2911,26 @@ function PackageEditorModal({
                     min={1}
                     max={5}
                     className={inp}
-                    value={editing.hotel_stars ?? 3}
-                    onChange={(e) =>
-                      setEditing({ ...editing, hotel_stars: Number(e.target.value) })
-                    }
+                    value={hv.hotel_stars ?? 3}
+                    onChange={(e) => setHotel({ hotel_stars: Number(e.target.value) })}
                   />
                 </FormField>
+
                 <FormField label="Regime de alimentação">
                   <select
                     className={inp}
-                    value={editing.meal_plan ?? ""}
-                    onChange={(e) => setEditing({ ...editing, meal_plan: e.target.value })}
+                    value={hv.meal_plan ?? ""}
+                    onChange={(e) => setHotel({ meal_plan: e.target.value })}
                   >
                     <option value="">— Não informado —</option>
+                    {hv.meal_plan &&
+                      ![
+                        "Sem refeição",
+                        "Café da manhã",
+                        "Meia pensão",
+                        "Pensão completa",
+                        "All inclusive",
+                      ].includes(hv.meal_plan) && <option value={hv.meal_plan}>{hv.meal_plan}</option>}
                     <option value="Sem refeição">Sem refeição</option>
                     <option value="Café da manhã">Café da manhã</option>
                     <option value="Meia pensão">Meia pensão (café + 1 refeição)</option>
@@ -2888,10 +2943,21 @@ function PackageEditorModal({
                 <FormField label="Tipo de quarto">
                   <select
                     className={inp}
-                    value={editing.room_type ?? ""}
-                    onChange={(e) => setEditing({ ...editing, room_type: e.target.value })}
+                    value={hv.room_type ?? ""}
+                    onChange={(e) => setHotel({ room_type: e.target.value })}
                   >
                     <option value="">— Não informado —</option>
+                    {hv.room_type &&
+                      ![
+                        "Standard",
+                        "Superior",
+                        "Luxo",
+                        "Suíte",
+                        "Suíte Master",
+                        "Suíte Presidencial",
+                        "Bangalô",
+                        "Chalé",
+                      ].includes(hv.room_type) && <option value={hv.room_type}>{hv.room_type}</option>}
                     <option value="Standard">Standard</option>
                     <option value="Superior">Superior</option>
                     <option value="Luxo">Luxo</option>
@@ -2905,10 +2971,23 @@ function PackageEditorModal({
                 <FormField label="Categoria / vista">
                   <select
                     className={inp}
-                    value={editing.room_category ?? ""}
-                    onChange={(e) => setEditing({ ...editing, room_category: e.target.value })}
+                    value={hv.room_category ?? ""}
+                    onChange={(e) => setHotel({ room_category: e.target.value })}
                   >
                     <option value="">— Não informado —</option>
+                    {hv.room_category &&
+                      ![
+                        "Vista interna",
+                        "Vista cidade",
+                        "Vista jardim",
+                        "Vista piscina",
+                        "Vista parcial mar",
+                        "Vista mar",
+                        "Frente mar",
+                        "Vista montanha",
+                      ].includes(hv.room_category) && (
+                        <option value={hv.room_category}>{hv.room_category}</option>
+                      )}
                     <option value="Vista interna">Vista interna</option>
                     <option value="Vista cidade">Vista cidade</option>
                     <option value="Vista jardim">Vista jardim</option>
@@ -2922,10 +3001,23 @@ function PackageEditorModal({
                 <FormField label="Tipo de cama">
                   <select
                     className={inp}
-                    value={editing.bed_type ?? ""}
-                    onChange={(e) => setEditing({ ...editing, bed_type: e.target.value })}
+                    value={hv.bed_type ?? ""}
+                    onChange={(e) => setHotel({ bed_type: e.target.value })}
                   >
                     <option value="">— Não informado —</option>
+                    {hv.bed_type &&
+                      ![
+                        "1 cama de casal",
+                        "1 cama king",
+                        "1 cama queen",
+                        "2 camas de solteiro",
+                        "2 camas queen",
+                        "2 camas de casal",
+                        "1 casal + 1 solteiro",
+                        "1 casal + 2 solteiros",
+                        "3 camas de solteiro",
+                        "Cama de casal + sofá-cama",
+                      ].includes(hv.bed_type) && <option value={hv.bed_type}>{hv.bed_type}</option>}
                     <option value="1 cama de casal">1 cama de casal</option>
                     <option value="1 cama king">1 cama king</option>
                     <option value="1 cama queen">1 cama queen</option>
@@ -2938,6 +3030,7 @@ function PackageEditorModal({
                     <option value="Cama de casal + sofá-cama">Cama de casal + sofá-cama</option>
                   </select>
                 </FormField>
+
               </div>
             )}
 
@@ -3004,13 +3097,26 @@ function PackageEditorModal({
 
             {tab === "extras" && (
               <div className="grid grid-cols-1 gap-3">
-                <FormField label="Roteiro (uma linha por dia)" wide>
+                <div className="sm:col-span-2">
+                  <div className="mb-1 flex items-center justify-between gap-3">
+                    <span className="text-xs text-muted-foreground">
+                      Roteiro (linha do tempo — um dia por linha)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleGenerateItinerary}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-3 py-1.5 text-xs font-semibold text-brand-orange transition hover:bg-brand-orange/20"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" /> Gerar roteiro
+                    </button>
+                  </div>
                   <textarea
                     className={`${inp} min-h-[140px]`}
                     value={editing.itinerary ?? ""}
                     onChange={(e) => setEditing({ ...editing, itinerary: e.target.value })}
                   />
-                </FormField>
+                </div>
+
 
                 <ServicesEditor
                   value={(editing.services ?? {}) as PackageServices}

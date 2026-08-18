@@ -2,6 +2,10 @@
 // em rascunhos no formato do cadastro de pacotes VIA AIR.
 // Browser-safe: sem imports de servidor.
 
+import { gerarRoteiro } from "@/lib/packages/itinerary";
+
+
+
 export type CativaVooRow = {
   id: string;
   opcao_numero: number;
@@ -220,14 +224,26 @@ export type ServicoResumidoIA = {
 
 /** Nome curto e apresentável para o serviço (corta textões da operadora). */
 function nomeCurto(v: unknown): string {
-  const t = String(v ?? "")
+  let t = limpo(v)
+    .replace(/leia\s+atentamente\s+a\s+descri[cç][aã]o\s+do\s+servi[cç]o/gi, " ")
+    .replace(/^[\s•\-–—:*]+/, "")
     .replace(/\s+/g, " ")
     .trim();
-  if (t.length <= 90) return t;
-  const corte = t.slice(0, 90);
-  const p = corte.lastIndexOf(" ");
-  return `${(p > 40 ? corte.slice(0, p) : corte).replace(/[.,;:–-]+$/, "")}…`;
+  // fica só com a primeira frase / primeiro rótulo
+  t = t.split(/[.;]\s+|\s+\|\s+/)[0] ?? t;
+  // remove parênteses longos e sobras de pontuação
+  t = t
+    .replace(/\([^)]{25,}\)/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (t.length > 60) {
+    const corte = t.slice(0, 60);
+    const p = corte.lastIndexOf(" ");
+    t = p > 25 ? corte.slice(0, p) : corte;
+  }
+  return t.replace(/[.,;:–-]+$/, "").trim();
 }
+
 
 /** Limpa HTML/entidades do texto da operadora. */
 function limpo(v: unknown): string {
@@ -378,24 +394,17 @@ function servicosDaOpcao(detalhes: any) {
     .filter(Boolean)
     .join("\n");
 
-  // Roteiro montado a partir dos serviços realmente contratados.
-  const roteiro = [
-    detTransfer.length ? `Chegada\n${detTransfer.map((t) => `• ${t}`).join("\n")}` : "",
-    detPasseios.length ? `Durante a viagem\n${detPasseios.map((t) => `• ${t}`).join("\n")}` : "",
-    detTickets.length ? `Ingressos e passeios inclusos\n${detTickets.map((t) => `• ${t}`).join("\n")}` : "",
-    outrosDetalhe.length ? `Outros serviços\n${outrosDetalhe.map((t) => `• ${t}`).join("\n")}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-
   return {
     services,
     todos: nomesCurtos,
     destaques,
     observacoes,
     resumoTexto,
-    roteiro,
+    temTransfer: detTransfer.length > 0,
+    passeios: detPasseios.map((t) => nomeCurto(t)),
+    ingressos: detTickets.map((t) => nomeCurto(t)),
   };
+
 }
 
 
@@ -549,20 +558,21 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     d.outbound_flight = mapFlight(ida);
     d.return_flight = volta && volta !== ida ? mapFlight(volta) : null;
 
-    const { services, todos, destaques, observacoes, resumoTexto, roteiro } = servicosDaOpcao(
-      principal.detalhes,
-    );
+    const { services, todos, destaques, resumoTexto, temTransfer, passeios, ingressos } =
+      servicosDaOpcao(principal.detalhes);
     d.services = services;
     const bullets = destaques.length ? destaques : todos;
     if (bullets.length) d.includes = [...new Set([...(d.includes as string[]), ...bullets])];
     if (resumoTexto) d.summary = [d.summary, resumoTexto].filter(Boolean).join("\n\n").trim();
-    if (roteiro) d.itinerary = [d.itinerary, roteiro].filter(Boolean).join("\n\n").trim();
-    if (observacoes.length) {
-      d.itinerary = [d.itinerary, `Importante:\n${observacoes.map((o) => `• ${o}`).join("\n")}`]
-        .filter(Boolean)
-        .join("\n\n")
-        .trim();
-    }
+    // Roteiro em linha do tempo (Dia 1, Dia 2 …) — sem os textões do operador.
+    d.itinerary = gerarRoteiro({
+      destino: destino,
+      noites: d.nights,
+      temTransfer,
+      passeios,
+      ingressos,
+    });
+
 
     if (typeof principal.total === "number" && !d.price_per_person) {
       d.price_per_person = Math.round((principal.total / 2) * 100) / 100;
