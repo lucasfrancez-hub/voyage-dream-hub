@@ -120,6 +120,38 @@ function bagagens(textos: string[]) {
   };
 }
 
+/** Cabine da operadora ("ECONOMIC") → rótulo do cadastro. */
+function cabine(v: unknown): string | undefined {
+  const t = String(v ?? "").toUpperCase().trim();
+  if (!t) return undefined;
+  if (/FIRST|PRIMEIRA/.test(t)) return "Primeira Classe";
+  if (/BUSINESS|EXECUT/.test(t)) return "Executiva";
+  if (/PREMIUM/.test(t)) return "Premium Economy";
+  if (/ECONOM|COACH|TURIST/.test(t)) return "Econômica";
+  return undefined;
+}
+
+/** Marca tarifária por cia, deduzida da bagagem quando a operadora não informa. */
+function marcaTarifaria(iata: string | undefined, temDespachada: boolean): string {
+  const cia = String(iata ?? "").toUpperCase();
+  const tabela: Record<string, [string, string]> = {
+    LA: ["Light", "Plus"],
+    G3: ["Light", "Max"],
+    AD: ["Azul Basic", "Mais Azul"],
+    AV: ["Basic", "Classic"],
+    CM: ["Economy Basic", "Economy Classic"],
+    AA: ["Basic Economy", "Main Cabin"],
+    UA: ["Basic Economy", "Economy"],
+    DL: ["Basic Economy", "Main Cabin"],
+    TP: ["Basic", "Classic"],
+    AF: ["Light", "Standard"],
+    KL: ["Light", "Standard"],
+    IB: ["Basic", "Classic"],
+  };
+  const par = tabela[cia] ?? ["Light", "Standard"];
+  return temDespachada ? par[1]! : par[0]!;
+}
+
 function mapFlight(f: any) {
   if (!f) return null;
   const segs = Array.isArray(f.segments) ? f.segments : [];
@@ -127,9 +159,9 @@ function mapFlight(f: any) {
   const last = segs[segs.length - 1] ?? first;
   const textosBagagem = segs.map((s: any) => String(s?.baggage ?? "")).filter(Boolean);
   const bags = bagagens(textosBagagem);
+  const ciaIata = String(first.airlineIata ?? f.airlineIata ?? "").toUpperCase() || undefined;
   const fareClass =
-    String(first.fareClass ?? "").trim() ||
-    (textosBagagem.length ? (bags.checked_bag ? "STANDARD" : "LIGHT") : "");
+    String(first.fareClass ?? "").trim() || marcaTarifaria(ciaIata, bags.checked_bag);
 
   return {
     airline: f.airline ?? first.airline ?? undefined,
@@ -142,7 +174,7 @@ function mapFlight(f: any) {
     arrive_at: dataHora(f.arrival ?? last.arrival),
     duration: f.duration ?? undefined,
     stops: typeof f.stops === "number" ? f.stops : segs.length ? segs.length - 1 : 0,
-    cabin_class: first.cabin ?? undefined,
+    cabin_class: cabine(first.cabin ?? f.cabin),
     fare_class: fareClass || undefined,
     ...bags,
     baggage_text: textosBagagem.length ? [...new Set(textosBagagem)].join(" · ") : undefined,
@@ -156,8 +188,8 @@ function mapFlight(f: any) {
       depart_at: dataHora(s.departure),
       arrive_at: dataHora(s.arrival),
       duration: s.duration ?? undefined,
-      cabin_class: s.cabin ?? undefined,
-      fare_class: s.fareClass ?? undefined,
+      cabin_class: cabine(s.cabin),
+      fare_class: s.fareClass ? String(s.fareClass) : fareClass || undefined,
       aircraft: s.aircraft ?? undefined,
       baggage: s.baggage ?? undefined,
       // conexão: tempo de espera até o próximo trecho
@@ -165,6 +197,7 @@ function mapFlight(f: any) {
     })),
   };
 }
+
 
 /** "2h 15min" entre a chegada de um trecho e a partida do seguinte. */
 function conexao(chegada: unknown, partida: unknown): string | undefined {
