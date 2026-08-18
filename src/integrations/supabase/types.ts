@@ -5540,6 +5540,7 @@ export type Database = {
           ai_summary: string | null
           base_occupancy: number
           bed_type: string | null
+          cativa_pacote_id: string | null
           created_at: string
           cruise_details: Json | null
           date_mode: string
@@ -5587,6 +5588,7 @@ export type Database = {
           ai_summary?: string | null
           base_occupancy?: number
           bed_type?: string | null
+          cativa_pacote_id?: string | null
           created_at?: string
           cruise_details?: Json | null
           date_mode?: string
@@ -5634,6 +5636,7 @@ export type Database = {
           ai_summary?: string | null
           base_occupancy?: number
           bed_type?: string | null
+          cativa_pacote_id?: string | null
           created_at?: string
           cruise_details?: Json | null
           date_mode?: string
