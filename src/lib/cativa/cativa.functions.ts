@@ -51,6 +51,15 @@ export const listarPacotesCativa = createServerFn({ method: "POST" })
     if (modo === "circuitos") q = q.eq("categoria", CATEGORIA_CIRCUITO);
     else if (modo === "pacotes") q = q.or(`categoria.is.null,categoria.neq.${CATEGORIA_CIRCUITO}`);
     if (data.incompletos) q = q.or(FILTRO_INCOMPLETO);
+    if (data.somenteCompletos && !data.incompletos) {
+      q = q.not("destino", "is", null).not("taxas", "is", null);
+      if (modo !== "circuitos") {
+        q = q
+          .not("origem_iata", "is", null)
+          .not("aereo_por", "is", null)
+          .in("voos_status", ["ok", "circuito"]);
+      }
+    }
     if (data.fonte) q = q.eq("fonte", data.fonte);
     if (data.status) q = q.eq("status", data.status);
     if (data.busca) {
