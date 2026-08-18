@@ -621,7 +621,7 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
 
     // Opções de hospedagem: mesmos voos/datas, hotéis diferentes.
     // O mais barato vem selecionado por padrão (índice 0).
-    const ocupacao = Number(d.base_occupancy) || 2;
+    // ocupação padrão do pacote (o preço já é por pessoa)
     const vistos = new Set<string>();
     const hoteis = opcoes
       .slice()
