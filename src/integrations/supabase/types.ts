@@ -1990,6 +1990,7 @@ export type Database = {
           fonte: string
           hoteis: Json
           id: string
+          importado_em: string | null
           incluso: string[]
           ingressos: Json
           link_orcamento: string | null
@@ -2034,6 +2035,7 @@ export type Database = {
           fonte: string
           hoteis?: Json
           id?: string
+          importado_em?: string | null
           incluso?: string[]
           ingressos?: Json
           link_orcamento?: string | null
@@ -2078,6 +2080,7 @@ export type Database = {
           fonte?: string
           hoteis?: Json
           id?: string
+          importado_em?: string | null
           incluso?: string[]
           ingressos?: Json
           link_orcamento?: string | null
