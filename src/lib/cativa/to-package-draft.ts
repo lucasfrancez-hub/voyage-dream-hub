@@ -341,7 +341,10 @@ function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[]
       const r = (regimeAtual ?? "").trim();
       item = r && !/sem refei/i.test(r) ? `Hospedagem com ${r.toLowerCase()}` : "Hospedagem";
     }
-    const k = chaveServico(item);
+    // Transfer aeroporto/hotel/aeroporto costuma vir duplicado como "Combo: traslado…".
+    const k = /transfer|traslado|translado/i.test(item) && /aeroporto/i.test(item)
+      ? "transfer aeroporto"
+      : chaveServico(item);
     if (!k || visto.has(k)) continue;
 
     // Mesmo atrativo repetido (ex.: "Passeio a Praia do Gunga" e "Praia do Gunga",
