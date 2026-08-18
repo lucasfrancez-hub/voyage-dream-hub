@@ -90,6 +90,7 @@ import { useIgnoredHotels } from "@/lib/ignored-hotels";
 import { CurationTab } from "@/components/packages/CurationTab";
 import { CativaTab, CativaCountBadge } from "@/components/packages/CativaTab";
 import { HotelOptionsPanel } from "@/components/packages/HotelOptionsPanel";
+import { HotelStaysList, normalizeStays } from "@/components/packages/HotelStaysList";
 import { gerarRoteiro, nomeCurtoServico as nomeItem } from "@/lib/packages/itinerary";
 
 import {
