@@ -1387,13 +1387,41 @@ function Checkout() {
           onClose={() => navigate({ to: "/pacotes" })}
         />
       )}
-      {success && (payment === "credit_card" || payment === "boleto" || payment === "prepaid_boleto") && (
+      {/* Boleto pré-pago: QR Code da entrada gerado na hora do pedido */}
+      {success && payment === "prepaid_boleto" && pixInfo && !pixPaid && (
+        <PixQrOverlay
+          qrCode={pixInfo.qrCode}
+          valor={pixInfo.valor}
+          expiraEm={pixInfo.expiraEm}
+          onClose={() => navigate({ to: "/pacotes" })}
+        />
+      )}
+      {success && payment === "prepaid_boleto" && !pixInfo && !pixError && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-2xl">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-brand-orange" />
+            <h2 className="mt-5 font-display text-xl font-bold text-foreground">
+              Gerando o Pix da entrada
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">Só mais alguns segundos…</p>
+          </div>
+        </div>
+      )}
+      {success && payment === "prepaid_boleto" && pixPaid && (
+        <SuccessOverlay
+          title="Entrada aprovada!"
+          message="Recebemos o Pix da entrada e seu pedido está confirmado. As próximas parcelas seguem o cronograma apresentado."
+          onClose={() => navigate({ to: "/pacotes" })}
+        />
+      )}
+      {success && (payment === "credit_card" || payment === "boleto" || (payment === "prepaid_boleto" && pixError)) && (
         <SuccessOverlay
           title="Muito obrigado pela compra!"
           message="Seu pedido foi enviado com sucesso. Nossa equipe entrará em contato em breve para confirmar sua reserva."
           onClose={() => navigate({ to: "/pacotes" })}
         />
       )}
+
       {success && payment === "pix" && !pixInfo && !pixError && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-2xl">
