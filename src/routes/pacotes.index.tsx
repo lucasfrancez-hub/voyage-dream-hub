@@ -19,7 +19,8 @@ import {
   type BudgetMode,
   type BudgetRange,
 } from "@/components/packages/BudgetFilter";
-import { BudgetFloating } from "@/components/packages/BudgetFloating";
+import { BudgetRuler } from "@/components/packages/BudgetRuler";
+
 
 
 
