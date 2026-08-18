@@ -441,9 +441,14 @@ function AdminPackages() {
       });
   }, [packages]);
 
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const isExpired = (p: { going_date?: string | null }) =>
+    !!p.going_date && String(p.going_date) < hojeISO;
+
   const displayPackages = useMemo(() => {
     const filtered = (packages || []).filter((p) => {
-      if (kindFilter !== "all" && (p.kind ?? "package") !== kindFilter) return false;
+      if (expiredView !== isExpired(p)) return false;
+      if (!expiredView && kindFilter !== "all" && (p.kind ?? "package") !== kindFilter) return false;
       if (originFilter !== "all" && originKey(p.origin) !== originKey(originFilter)) return false;
       if (destinationFilter !== "all" && p.destination !== destinationFilter) return false;
       if (monthFilter !== "all") {
