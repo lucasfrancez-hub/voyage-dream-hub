@@ -92,8 +92,13 @@ export function toISODate(d: Date): string {
 
 /** Identificação interna — nunca exibida ao cliente. */
 export function isCativaSource(supplierName?: string | null, source?: string | null): boolean {
-  const s = `${supplierName ?? ""} ${source ?? ""}`.toLowerCase();
-  return s.includes("cativa");
+  const s = `${supplierName ?? ""} ${source ?? ""}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  // Variações do mesmo fornecedor: "Cativa", "CATIVA", "Cativa Operadora",
+  // "Cativa / Viajando com Desconto", "Viajando com Desconto".
+  return /cativa|viajando\s*com\s*desconto/.test(s);
 }
 
 /** Divide o total em N parcelas em centavos, sem sobra (ajuste na entrada). */
