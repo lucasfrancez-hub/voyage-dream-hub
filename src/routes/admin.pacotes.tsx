@@ -2973,8 +2973,14 @@ function PackageEditorModal({
                         tripadvisor_url: h.tripadvisor_url ?? null,
                         tripadvisor_address: h.address ?? null,
                         tripadvisor_photos: h.photos && h.photos.length > 0 ? h.photos : null,
+                        ...(stayIdx >= 0 && h.photos?.length ? { photo: h.photos[0] } : {}),
+                        ...(stayIdx >= 0 && h.address ? { address: h.address } : {}),
                       });
-                      if (hotelSelIdx <= 0 && !(editing.image_url && editing.image_url.length > 0)) {
+                      if (
+                        hotelSelIdx <= 0 &&
+                        stayIdx <= 0 &&
+                        !(editing.image_url && editing.image_url.length > 0)
+                      ) {
                         setEditing((prev: any) =>
                           prev ? { ...prev, image_url: h.photos[0] ?? prev.image_url ?? "" } : prev,
                         );
