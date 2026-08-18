@@ -6,6 +6,8 @@ export type HotelOption = {
   opcao?: number | null;
   hotel_name: string;
   room_type?: string | null;
+  room_category?: string | null;
+  bed_type?: string | null;
   meal_plan?: string | null;
   price_per_person?: number | null;
   total?: number | null;
