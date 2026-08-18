@@ -155,7 +155,9 @@ export function normalizarLinha(fonte: CativaFonte, row: CativaLinha): CativaPac
     aereo_de: moedaBR(acheChave(row, "aereo de")),
     aereo_por: aereoPor ?? circuito,
     taxas,
-    valor_total: (aereoPor ?? circuito ?? 0) + (taxas ?? 0) + (hoteis[0]?.valor ?? 0) || null,
+    // O valor exibido pela fonte JÁ é com taxas — somar `taxas` de novo
+    // inflava o total. Total = aéreo (com taxas) + hospedagem.
+    valor_total: (aereoPor ?? circuito ?? 0) + (hoteis[0]?.valor ?? 0) || null,
     hoteis,
     ingressos,
     incluso,
