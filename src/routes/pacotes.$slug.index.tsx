@@ -55,6 +55,7 @@ import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 import { HotelDetailsDialog } from "@/components/HotelDetailsDialog";
 import { WhatsAppText } from "@/lib/wa-format";
 import { OtherDatesBlock } from "@/components/packages/OtherDatesBlock";
+import IncludedServices from "@/components/packages/IncludedServices";
 
 function norm(s: string | null | undefined) {
   return (s ?? "")
