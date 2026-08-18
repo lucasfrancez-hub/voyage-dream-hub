@@ -568,15 +568,23 @@ function PackageDetails() {
                             <div className="truncate text-[11px] text-muted-foreground">
                               {[h.room_type, h.meal_plan].filter(Boolean).join(" · ")}
                             </div>
-                            <div className="mt-1 text-[11px] font-semibold text-brand-orange">
+                            <div
+                              className={cn(
+                                "mt-1 text-[11px] font-semibold",
+                                !ativo && dif < 0
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-brand-orange",
+                              )}
+                            >
                               {ativo
                                 ? formatBRL(preco * baseOccupancy)
                                 : dif === 0
                                   ? "Mesmo valor"
                                   : dif > 0
                                     ? `+ ${formatBRL(dif)}`
-                                    : `${formatBRL(Math.abs(dif))} menos`}
+                                    : `− ${formatBRL(Math.abs(dif))} mais barato`}
                             </div>
+
                           </div>
                         </button>
                       );
