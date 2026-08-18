@@ -88,7 +88,7 @@ import {
 import { useIgnoredHotels } from "@/lib/ignored-hotels";
 
 import { CurationTab } from "@/components/packages/CurationTab";
-import { CativaTab } from "@/components/packages/CativaTab";
+import { CativaTab, CativaCountBadge } from "@/components/packages/CativaTab";
 import {
   PackageSocialDialog,
   WhatsAppIcon,
@@ -1100,7 +1100,27 @@ function AdminPackages() {
 
 
 
-      {view === "curadoria" ? (
+      {view === "cativa" ? (
+        <CativaTab
+          onImport={async (list) => {
+            if (!list.length) return;
+            const drafts = list.map((d) => ({
+              ...emptyForm,
+              ...d,
+              kind: "package" as PackageKind,
+              cruise_details: null,
+            })) as Partial<PackageRow>[];
+            try {
+              const base = await nextPackageBaseNumber();
+              setPendingNumbers(drafts.map((_, i) => base + i));
+            } catch {
+              setPendingNumbers(null);
+            }
+            setView("list");
+            openDrafts(drafts);
+          }}
+        />
+      ) : view === "curadoria" ? (
         <CurationTab
           packages={((packages || []) as any[]).filter(
             (p) => !p?.kind || p.kind === "package",
