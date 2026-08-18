@@ -128,6 +128,9 @@ async function processarPacote(
             insurance: o.insurance ?? [],
             services: o.services ?? [],
             notes: o.notes ?? null,
+            taxas: typeof o.taxes === "number" ? o.taxes : null,
+            // ocupação do orçamento: o total da Infotravel é do grupo todo
+            pax: normalized.passengers ?? null,
             startDate: o.startDate ?? null,
             endDate: o.endDate ?? null,
           },
@@ -228,6 +231,10 @@ export function completarCampos(pacote: any, opcoes: any[]): Record<string, any>
   if (pacote.taxas == null) {
     const porOpcao = opcoes
       .map((o: any) => {
+        // A Infotravel devolve as taxas de todos os produtos da opção; o aéreo
+        // é só o fallback para importações antigas.
+        const daOpcao = num(o?.taxes);
+        if (daOpcao != null && daOpcao > 0) return daOpcao;
         const fs = Array.isArray(o?.flights) ? o.flights : [];
         const soma = fs.reduce((acc: number, f: any) => acc + (num(f?.taxes) ?? 0), 0);
         return soma > 0 ? soma : null;
@@ -240,7 +247,13 @@ export function completarCampos(pacote: any, opcoes: any[]): Record<string, any>
     else if (hotelTaxa) patch['taxas'] = hotelTaxa;
   }
 
-  if (patch['aereo_por'] || patch['taxas']) {
+  // Total: o valor oficial da opção da Infotravel (produtos + taxas) manda.
+  const totaisOpcoes = opcoes
+    .map((o: any) => num(o?.total))
+    .filter((n: number | null): n is number => n != null && n > 0);
+  if (totaisOpcoes.length) {
+    patch['valor_total'] = Math.round(Math.min(...totaisOpcoes) * 100) / 100;
+  } else if (patch['aereo_por'] || patch['taxas']) {
     const aereo = num(patch['aereo_por'] ?? pacote.aereo_por) ?? 0;
     const taxas = num(patch['taxas'] ?? pacote.taxas) ?? 0;
     const hotel = num(Array.isArray(pacote.hoteis) ? pacote.hoteis[0]?.valor : null) ?? 0;

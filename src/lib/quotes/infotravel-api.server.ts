@@ -483,6 +483,40 @@ const GENERIC_MAP: { key: string; target: keyof NormalizedOption; label: string 
   { key: "bookingTrains", target: "services", label: "Trem" },
 ];
 
+/**
+ * Soma todos os itens de taxa (`fares` que não são a tarifa em si) de qualquer
+ * produto do pacote: aéreo, hotel, serviços, seguros etc.
+ */
+function somarTaxasDoPacote(pkg: any): number | null {
+  let total = 0;
+  let achou = false;
+  const visto = new Set<any>();
+  const anda = (no: any) => {
+    if (!no || typeof no !== "object" || visto.has(no)) return;
+    visto.add(no);
+    if (Array.isArray(no)) {
+      for (const item of no) anda(item);
+      return;
+    }
+    if (Array.isArray(no.fares)) {
+      for (const f of no.fares as any[]) {
+        const amount = amountOf(f?.price);
+        if (amount == null) continue;
+        const tipo = String(f?.type ?? "").toUpperCase();
+        const ehTaxa = f?.isFareRate === true || (tipo !== "FARE" && tipo !== "");
+        if (!ehTaxa) continue;
+        total += f?.discount ? -Math.abs(amount) : amount;
+        achou = true;
+      }
+    }
+    for (const v of Object.values(no)) if (v && typeof v === "object") anda(v);
+  };
+  anda(pkg);
+  if (!achou) return null;
+  const r = Math.round(total * 100) / 100;
+  return r > 0 ? r : null;
+}
+
 function mapOption(pkg: any, index: number): { option: NormalizedOption; pax: { adults: number; children: number } } {
   const option = emptyOption(index + 1);
   option.label = cleanText(pkg?.package?.name) ?? `Opção ${index + 1}`;
@@ -551,6 +585,9 @@ function mapOption(pkg: any, index: number): { option: NormalizedOption; pax: { 
     )),
   ].filter((v): v is number => typeof v === "number");
   option.total = parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) * 100) / 100 : null;
+  // Taxas da opção: a página da Infotravel mostra "Produtos + Taxas = Total".
+  // As taxas ficam espalhadas nos `fares` de cada produto (não só do aéreo).
+  option.taxes = somarTaxasDoPacote(pkg);
   option.currency = "BRL";
   option.notes = notes.size ? [...notes] : null;
 
@@ -639,11 +676,20 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
   }
   if (first.total == null) throw new QuoteParseError("TOTAL_NOT_FOUND", "nenhum valor encontrado na opção 1");
   quote.total = first.total;
-  const firstTaxes = first.flights.reduce(
+  const taxasVoos = first.flights.reduce(
     (sum, flight) => sum + (typeof flight.taxes === "number" ? flight.taxes : 0),
     0,
   );
-  quote.values = { subtotal: first.total, taxes: firstTaxes > 0 ? Math.round(firstTaxes * 100) / 100 : null };
+  const taxasOpcao =
+    typeof first.taxes === "number" && first.taxes > 0
+      ? first.taxes
+      : taxasVoos > 0
+        ? Math.round(taxasVoos * 100) / 100
+        : null;
+  quote.values = {
+    subtotal: taxasOpcao != null && first.total != null ? Math.round((first.total - taxasOpcao) * 100) / 100 : first.total,
+    taxes: taxasOpcao,
+  };
 
   // Circuitos e grupos fechados podem omitir passageiros mesmo quando seus
   // produtos, voos e valores estão completos; não descarte esses pacotes.

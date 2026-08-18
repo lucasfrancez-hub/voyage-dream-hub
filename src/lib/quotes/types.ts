@@ -94,6 +94,8 @@ export type NormalizedOption = {
   insurance: NormalizedGenericItem[];
   services: NormalizedGenericItem[];
   total?: number | null;
+  /** Taxas da opção (soma de todos os itens de taxa dos produtos). */
+  taxes?: number | null;
   currency?: string | null;
   paymentConditions?: string[] | null;
   notes?: string[] | null;
