@@ -76,6 +76,9 @@ function PacotesList() {
   const [sortBy, setSortBy] = useState<
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("sort_order");
+  const [budgetMode, setBudgetMode] = useState<BudgetMode>("total");
+  const [budgetRange, setBudgetRange] = useState<BudgetRange>(null);
+
 
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
