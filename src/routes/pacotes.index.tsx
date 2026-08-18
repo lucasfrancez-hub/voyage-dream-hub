@@ -284,6 +284,16 @@ function PacotesList() {
 
 
 
+  const maxBudget = useMemo(() => {
+    const max = Math.max(
+      ...(packages || []).map(
+        (p) => Number(p.price_per_person || 0) * (p.base_occupancy ?? 2),
+      ),
+      15000,
+    );
+    return Math.ceil(max / 5000) * 5000;
+  }, [packages]);
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <TopBar backHref="https://viaair.tur.br" backLabel="Voltar ao site" />
