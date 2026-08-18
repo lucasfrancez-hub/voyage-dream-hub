@@ -1,6 +1,7 @@
 /**
  * Roteiro em linha do tempo (Dia 1, Dia 2, ...) — texto curto e amigável,
- * sem regras técnicas do operador.
+ * sem regras técnicas do operador. Dias livres em sequência viram um
+ * intervalo só ("Do dia 2 ao dia 7 — dia livre ...").
  */
 export type RoteiroInput = {
   destino?: string | null;
@@ -38,25 +39,32 @@ export function gerarRoteiro({
   );
 
   const miolo = Math.max(0, dias - 2);
-  for (let i = 0; i < miolo; i++) {
+  const livre = `Dia livre para aproveitar${cidade ? ` ${cidade}` : " o destino"}`;
+
+  // Agrupa dias livres consecutivos em um único intervalo.
+  let i = 0;
+  while (i < miolo) {
     const atividade = atividades[i];
-    linhas.push(
-      atividade
-        ? `Dia ${i + 2} — ${atividade}.`
-        : `Dia ${i + 2} — Dia livre para aproveitar${cidade ? ` ${cidade}` : " o destino"}.`,
-    );
+    if (atividade) {
+      linhas.push(`Dia ${i + 2} — ${atividade}.`);
+      i += 1;
+      continue;
+    }
+    let fim = i;
+    while (fim + 1 < miolo && !atividades[fim + 1]) fim += 1;
+    if (fim === i) linhas.push(`Dia ${i + 2} — ${livre}.`);
+    else linhas.push(`Do dia ${i + 2} ao dia ${fim + 2} — ${livre}.`);
+    i = fim + 1;
   }
 
   const restantes = atividades.slice(miolo);
-  if (restantes.length && miolo > 0) {
+  if (restantes.length && linhas.length > 1) {
     linhas[linhas.length - 1] = `${linhas[linhas.length - 1]!.replace(/\.$/, "")} · ${restantes.join(" · ")}.`;
   }
 
   if (dias > 1) {
     linhas.push(
-      `Dia ${dias} — Check-out${temTransfer ? " e transfer do hotel até o aeroporto" : ""}${
-        cidade ? "" : ""
-      } para o voo de volta.`,
+      `Dia ${dias} — Check-out${temTransfer ? " e transfer do hotel até o aeroporto" : ""} para o voo de volta.`,
     );
   }
 
