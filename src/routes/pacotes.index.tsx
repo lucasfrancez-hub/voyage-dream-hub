@@ -671,7 +671,7 @@ function PacotesList() {
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white">
                     5% off no Pix
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-brand-orange px-2.5 py-1 text-[11px] font-bold text-primary-foreground shadow-lg">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-brand-orange px-2.5 py-1 text-[11px] font-bold text-white shadow-lg">
                     <CreditCard className="h-3 w-3" />
                     Parcele em até {maxInstallmentsForPackage(installmentRules, { supplierName: (p as { supplier_name?: string | null }).supplier_name })}x
                   </span>
