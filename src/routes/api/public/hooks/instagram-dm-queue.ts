@@ -3,10 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 /**
  * Fila do direct do Instagram.
  *
- * Quando alguém comenta numa publicação, a resposta pública sai na hora, mas o
- * direct fica agendado pra ~1min30/2min depois — assim não parece robô
- * respondendo tudo no mesmo segundo. Este cron (a cada 1 min) envia os directs
- * que já venceram.
+ * Quando alguém comenta numa publicação, a resposta pública sai em ~20-35s e o
+ * direct logo depois (~30-50s) — rápido, mas sem parecer robô respondendo no
+ * mesmo segundo. Este cron roda a cada 15s e envia o que já venceu.
  */
 
 export const Route = createFileRoute("/api/public/hooks/instagram-dm-queue")({
