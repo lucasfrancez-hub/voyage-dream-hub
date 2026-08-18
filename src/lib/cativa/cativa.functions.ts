@@ -8,8 +8,21 @@ async function exigirAdmin(context: any) {
 
 export const CATEGORIA_CIRCUITO = "Circuito";
 
-/** Pacote "incompleto": falta origem, destino, aéreo ou taxas. */
-const FILTRO_INCOMPLETO = "origem_iata.is.null,destino.is.null,aereo_por.is.null,taxas.is.null";
+/**
+ * Pacote "incompleto": falta destino, falta origem (fora circuito) ou a fila de
+ * voos ainda não concluiu. Quando os voos vieram ok, aéreo e taxas saem das
+ * opções importadas — por isso não entram mais nessa checagem (evita marcar
+ * como incompleto pacote que na verdade está completo).
+ */
+const FILTRO_INCOMPLETO = [
+  "destino.is.null",
+  `and(origem_iata.is.null,voos_status.neq.circuito)`,
+  "and(voos_status.neq.ok,voos_status.neq.circuito)",
+].join(",");
+
+/** Pacote pronto pro Command Center: completo ou liberado manualmente. */
+const FILTRO_COMPLETO = `liberado_manual.is.true,and(destino.not.is.null,or(voos_status.eq.ok,voos_status.eq.circuito))`;
+
 
 export const listarPacotesCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
