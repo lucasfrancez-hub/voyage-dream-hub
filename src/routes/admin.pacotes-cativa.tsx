@@ -71,14 +71,15 @@ function PacotesCativaPage() {
   const [pagina, setPagina] = useState(0);
   const [detalhe, setDetalhe] = useState<{ id: string; nome: string } | null>(null);
   const [modo, setModo] = useState<"pacotes" | "circuitos">("pacotes");
+  const [incompletos, setIncompletos] = useState(false);
   const [reprocessandoTudo, setReprocessandoTudo] = useState(false);
   const cancelarReprocessamento = useRef(false);
 
   const resumoQ = useQuery({ queryKey: ["cativa-resumo"], queryFn: () => resumo({ data: undefined }) });
   const listaQ = useQuery({
-    queryKey: ["cativa-pacotes", filtro, fonte, status, pagina, modo],
+    queryKey: ["cativa-pacotes", filtro, fonte, status, pagina, modo, incompletos],
     queryFn: () =>
-      listar({ data: { busca: filtro || undefined, fonte: fonte || undefined, status: status || undefined, pagina, modo } }),
+      listar({ data: { busca: filtro || undefined, fonte: fonte || undefined, status: status || undefined, pagina, modo, incompletos: incompletos || undefined } }),
   });
   const detalheQ = useQuery({
     queryKey: ["cativa-detalhe", detalhe?.id],
@@ -261,6 +262,16 @@ function PacotesCativaPage() {
           <option value="esgotado">Esgotados</option>
           <option value="">Todos</option>
         </select>
+        <Button
+          variant={incompletos ? "default" : "outline"}
+          onClick={() => {
+            setPagina(0);
+            setIncompletos((v) => !v);
+          }}
+        >
+          <AlertTriangle className="mr-2 h-4 w-4" />
+          Incompletos{(r as any)?.incompletos ? ` (${(r as any).incompletos})` : ""}
+        </Button>
       </div>
 
       <div className="rounded-lg border">
