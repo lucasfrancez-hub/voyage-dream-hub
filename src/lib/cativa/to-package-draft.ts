@@ -386,22 +386,72 @@ function servicosDaOpcao(detalhes: any) {
 }
 
 
+/** Regime da operadora → rótulo do cadastro. */
+function regime(v: unknown): string {
+  const t = limpo(v).toLowerCase();
+  if (!t) return "";
+  if (/all\s*inclusive|tudo\s*inclu/.test(t)) return "All inclusive";
+  if (/pens[aã]o\s*completa|full\s*board/.test(t)) return "Pensão completa";
+  if (/meia\s*pens[aã]o|half\s*board/.test(t)) return "Meia pensão";
+  if (/caf[eé]/.test(t)) return "Café da manhã";
+  if (/sem\s*refei|room\s*only|apenas\s*hospedagem/.test(t)) return "Sem refeições";
+  return limpo(v);
+}
+
+/** Tipo de cama deduzido da descrição do quarto. */
+function tipoCama(v: string): string {
+  const t = v.toLowerCase();
+  if (/quadrupl|qu[aá]drupl/.test(t)) return "Quádruplo";
+  if (/tripl/.test(t)) return "Triplo";
+  if (/casal|double|matrimonial|king|queen/.test(t)) return "Casal";
+  if (/twin|duas camas|2 camas|solteiro/.test(t)) return "Solteiro (twin)";
+  if (/individual|single/.test(t)) return "Individual";
+  return "";
+}
+
+/** Descrição do quarto sem as cláusulas de multa/penalização da operadora. */
+function descricaoQuarto(v: unknown): string {
+  return limpo(v)
+    .split(/—|–| - a partir de /i)
+    .map((p) => p.trim())
+    .filter((p) => p && !/penaliza|multa|a partir de \d/i.test(p))
+    .join(" - ")
+    .trim();
+}
+
+/** Categoria do quarto (parte antes do tipo de cama/vista). */
+function categoriaQuarto(desc: string): string {
+  if (!desc) return "";
+  const semCama = desc
+    .replace(/\b(casal|double|matrimonial|king|queen|twin|solteiro|tripl\w*|quadrupl\w*|individual|single)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[-–,]\s*$/, "")
+    .trim();
+  return semCama || desc;
+}
+
 function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
   const h = (op?.hoteis ?? [])[0];
   if (h) {
+    const desc = descricaoQuarto(h.roomDescription);
     return {
       hotel_name: String(h.name ?? "").trim(),
-      room_type: h.roomDescription ? String(h.roomDescription) : "",
-      meal_plan: h.board ? String(h.board) : "",
+      room_type: desc,
+      room_category: categoriaQuarto(desc),
+      bed_type: tipoCama(desc),
+      meal_plan: regime(h.board),
       checkin: dia(h.checkin),
       checkout: dia(h.checkout),
     };
   }
   const p = (pacote.hoteis ?? [])[0];
+  const descP = descricaoQuarto(p?.quarto ?? p?.categoria ?? "");
   return {
     hotel_name: p ? String(p.nome ?? "").trim() : "",
-    room_type: "",
-    meal_plan: p?.regime ? String(p.regime) : "",
+    room_type: descP,
+    room_category: categoriaQuarto(descP),
+    bed_type: tipoCama(descP),
+    meal_plan: regime(p?.regime),
     checkin: null as string | null,
     checkout: null as string | null,
   };
