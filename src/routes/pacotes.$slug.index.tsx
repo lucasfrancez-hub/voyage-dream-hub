@@ -748,7 +748,7 @@ function PackageDetails() {
         </div>
 
         {/* Right: sticky reservation card */}
-        <aside className="lg:sticky lg:top-6 h-fit">
+        <aside className="min-w-0 lg:sticky lg:top-6 h-fit">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
             <div className="text-xs text-muted-foreground">
               {isPerUnit
