@@ -294,7 +294,20 @@ function mapGeneric(entry: any, fallbackName: string): NormalizedGenericItem | n
     null;
   return {
     name,
-    description: cleanText(entry?.description ?? entry?.transfer?.description ?? entry?.tour?.description),
+    description: cleanText(
+      entry?.description ??
+        entry?.transfer?.description ??
+        entry?.tour?.description ??
+        entry?.ticket?.description ??
+        entry?.insurance?.description ??
+        entry?.service?.description ??
+        entry?.product?.description ??
+        entry?.observation ??
+        entry?.observations ??
+        entry?.remarks ??
+        entry?.notes ??
+        entry?.details,
+    ),
     date: isoDate(entry?.date ?? entry?.transfer?.date ?? entry?.startDate ?? entry?.pickUp?.date),
     quantity: typeof entry?.quantity === "number" ? entry.quantity : null,
     total,
