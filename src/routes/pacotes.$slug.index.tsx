@@ -1,6 +1,8 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getPackageHotelOptionInfo, type PublicHotelOptionInfo } from "@/lib/packages/hotel-option.functions";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -51,6 +53,15 @@ import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 import { HotelDetailsDialog } from "@/components/HotelDetailsDialog";
 import { WhatsAppText } from "@/lib/wa-format";
 import { OtherDatesBlock } from "@/components/packages/OtherDatesBlock";
+
+function norm(s: string | null | undefined) {
+  return (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
 
 function cleanHotelDetail(value: string | null | undefined) {
   const cleaned = value
@@ -274,6 +285,44 @@ function PackageDetails() {
   const hotelIdx = hotelSel[slug] ?? 0;
   const setHotelIdx = (i: number) => setHotelSel((s) => ({ ...s, [slug]: i }));
 
+  // ---- Hospedagens alternativas (mesmos voos/datas, hotéis diferentes) ----
+  type HotelOpcao = {
+    hotel_name: string;
+    room_type?: string | null;
+    room_category?: string | null;
+    bed_type?: string | null;
+    meal_plan?: string | null;
+    price_per_person?: number | null;
+    hotel_stars?: number | null;
+    tripadvisor_location_id?: number | null;
+    tripadvisor_url?: string | null;
+    tripadvisor_address?: string | null;
+    tripadvisor_photos?: string[] | null;
+  };
+  const hotelOptions = useMemo<HotelOpcao[]>(
+    () =>
+      (Array.isArray((pkg as any)?.hotel_options) ? ((pkg as any).hotel_options as HotelOpcao[]) : []).filter(
+        (h) => h?.hotel_name,
+      ),
+    [pkg],
+  );
+  const hasHotelChoice = hotelOptions.length > 1;
+  const hotelIdxSafe = hasHotelChoice ? Math.min(hotelIdx, hotelOptions.length - 1) : 0;
+  const baseHotelName = ((pkg as any)?.hotel_name ?? "") as string;
+  const hotelCity = ((pkg as any)?.destination ?? null) as string | null;
+
+  const fetchHotelInfo = useServerFn(getPackageHotelOptionInfo);
+  // Uma query por hospedagem: cache do React Query mantém a troca instantânea
+  // (item 19 do briefing) e o servidor já cacheia o TripAdvisor por 30 dias.
+  const hotelInfoQueries = useQueries({
+    queries: hotelOptions.map((h) => ({
+      queryKey: ["package-hotel-option", h.hotel_name, hotelCity],
+      queryFn: () => fetchHotelInfo({ data: { hotelName: h.hotel_name, city: hotelCity } }),
+      staleTime: 30 * 60_000,
+      gcTime: 60 * 60_000,
+      enabled: hasHotelChoice,
+    })),
+  });
 
 
   if (isLoading || !pkg) {
@@ -302,34 +351,57 @@ function PackageDetails() {
       ? formatDateBR(pkg.going_date)
       : null;
 
-  // Hospedagens alternativas: mesmos voos e datas, hotéis diferentes.
-  type HotelOpcao = {
-    hotel_name: string;
-    room_type?: string | null;
-    meal_plan?: string | null;
-    price_per_person?: number | null;
-  };
-  const hotelOptions = (
-    Array.isArray((pkg as any).hotel_options) ? ((pkg as any).hotel_options as HotelOpcao[]) : []
-  ).filter((h) => h?.hotel_name);
-  const hasHotelChoice = hotelOptions.length > 1;
-  const selHotel = hasHotelChoice ? (hotelOptions[Math.min(hotelIdx, hotelOptions.length - 1)] ?? null) : null;
+  // Hospedagem selecionada: a seção inteira é renderizada a partir dela.
+  const selHotel = hasHotelChoice ? (hotelOptions[hotelIdxSafe] ?? null) : null;
   const hotelName = selHotel?.hotel_name || pkg.hotel_name;
-  const isBaseHotel = !hasHotelChoice || hotelIdx === 0;
+  const isBaseHotel =
+    !selHotel || norm(selHotel.hotel_name) === norm(baseHotelName);
+  const selQuery = hasHotelChoice ? hotelInfoQueries[hotelIdxSafe] : undefined;
+  const selInfo = (selQuery?.data ?? null) as PublicHotelOptionInfo | null;
+  const hotelInfoLoading = !!selQuery?.isLoading;
   const pricePerPerson = Number(selHotel?.price_per_person || pkg.price_per_person) || 0;
+
+  const pkgIfBase = <T,>(value: T): T | null => (isBaseHotel ? value : null);
+  const hotelStars =
+    selHotel?.hotel_stars ?? pkgIfBase(pkg.hotel_stars ?? null) ?? selInfo?.stars ?? null;
+  const hotelAddress =
+    selHotel?.tripadvisor_address ??
+    pkgIfBase((pkg as unknown as { tripadvisor_address?: string | null }).tripadvisor_address ?? null) ??
+    selInfo?.address ??
+    null;
+  const hotelTaId =
+    selHotel?.tripadvisor_location_id ??
+    pkgIfBase((pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null) ??
+    selInfo?.location_id ??
+    null;
+  const hotelTaUrl =
+    selHotel?.tripadvisor_url ??
+    pkgIfBase((pkg as unknown as { tripadvisor_url?: string | null }).tripadvisor_url ?? null) ??
+    selInfo?.web_url ??
+    null;
+  const hotelPhotos: string[] = (() => {
+    const own = Array.isArray(selHotel?.tripadvisor_photos) ? selHotel!.tripadvisor_photos! : null;
+    if (own?.length) return own;
+    const base = pkgIfBase(
+      ((pkg as unknown as { tripadvisor_photos?: string[] | null }).tripadvisor_photos ?? null) as string[] | null,
+    );
+    if (base?.length) return base;
+    return selInfo?.photos ?? [];
+  })();
 
   const hotelDetails = Array.from(
     new Map(
       [
-        { value: cleanHotelDetail(selHotel?.meal_plan || pkg.meal_plan), icon: null as LucideIcon | null, resolve: mealIcon },
-        { value: cleanHotelDetail(pkg.bed_type), icon: null as LucideIcon | null, resolve: bedIcon },
-        { value: cleanHotelDetail(selHotel?.room_type || pkg.room_type), icon: null as LucideIcon | null, resolve: roomTypeIcon },
-        { value: cleanHotelDetail(selHotel ? null : pkg.room_category), icon: null as LucideIcon | null, resolve: roomCategoryIcon },
+        { value: cleanHotelDetail(selHotel?.meal_plan ?? pkgIfBase(pkg.meal_plan)), icon: null as LucideIcon | null, resolve: mealIcon },
+        { value: cleanHotelDetail(selHotel?.bed_type ?? pkgIfBase(pkg.bed_type)), icon: null as LucideIcon | null, resolve: bedIcon },
+        { value: cleanHotelDetail(selHotel?.room_type ?? pkgIfBase(pkg.room_type)), icon: null as LucideIcon | null, resolve: roomTypeIcon },
+        { value: cleanHotelDetail(selHotel?.room_category ?? pkgIfBase(pkg.room_category)), icon: null as LucideIcon | null, resolve: roomCategoryIcon },
       ]
         .filter((detail): detail is { value: string; icon: LucideIcon | null; resolve: (v: string) => LucideIcon } => Boolean(detail.value))
         .map((detail) => [detail.value.toLocaleLowerCase("pt-BR"), { value: detail.value, icon: detail.icon ?? detail.resolve(detail.value) }]),
     ).values(),
   );
+
 
 
   if (isCruise) {
@@ -423,19 +495,18 @@ function PackageDetails() {
                   <h3 className="font-semibold">Hospedagem</h3>
                   <div className="mt-1 flex items-center gap-2">
                     <span>{hotelName}</span>
-                    {isBaseHotel && pkg.hotel_stars ? (
+                    {hotelStars ? (
                       <span className="inline-flex">
-                        {Array.from({ length: pkg.hotel_stars }).map((_, i) => (
+                        {Array.from({ length: hotelStars }).map((_, i) => (
                           <Star key={i} className="h-3.5 w-3.5 fill-brand-orange text-brand-orange" />
                         ))}
                       </span>
                     ) : null}
                   </div>
-                  {isBaseHotel && (pkg as unknown as { tripadvisor_address?: string | null }).tripadvisor_address && (
-
+                  {hotelAddress && (
                     <div className="mt-1 text-xs text-muted-foreground flex items-start gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-brand-orange mt-0.5 shrink-0" />
-                      <span>{(pkg as unknown as { tripadvisor_address: string }).tripadvisor_address}</span>
+                      <span>{hotelAddress}</span>
                     </div>
                   )}
                   {hotelDetails.length > 0 && (
@@ -455,42 +526,56 @@ function PackageDetails() {
               </div>
 
               {hasHotelChoice && (
-                <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
+                <div className="mt-5">
                   <div className="text-sm font-semibold">Escolha a hospedagem</div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Mesmos voos e datas — muda apenas o hotel. Já deixamos selecionada a opção mais econômica.
+                    Mesmos voos e datas — muda apenas o hotel.
                   </p>
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-2 snap-x">
                     {hotelOptions.map((h, i) => {
-                      const ativo = i === Math.min(hotelIdx, hotelOptions.length - 1);
-                      const base = Number(hotelOptions[0]?.price_per_person) || 0;
+                      const ativo = i === hotelIdxSafe;
+                      const atual = Number(hotelOptions[hotelIdxSafe]?.price_per_person) || 0;
                       const preco = Number(h.price_per_person) || 0;
-                      const dif = preco - base;
+                      const dif = (preco - atual) * baseOccupancy;
+                      const thumb =
+                        (Array.isArray(h.tripadvisor_photos) && h.tripadvisor_photos[0]) ||
+                        hotelInfoQueries[i]?.data?.photos?.[0] ||
+                        null;
                       return (
                         <button
                           type="button"
                           key={`${h.hotel_name}-${i}`}
                           onClick={() => setHotelIdx(i)}
-                          className={`w-full rounded-xl border p-3 text-left transition ${
+                          className={cn(
+                            "shrink-0 snap-start w-[220px] rounded-xl border p-2.5 text-left transition flex gap-2.5",
                             ativo
                               ? "border-brand-orange bg-brand-orange/10"
-                              : "border-border bg-card hover:border-brand-orange/50"
-                          }`}
+                              : "border-border bg-card hover:border-brand-orange/50",
+                          )}
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium">{h.hotel_name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {[h.room_type, h.meal_plan].filter(Boolean).join(" · ")}
-                              </div>
+                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                            {thumb ? (
+                              <img src={thumb} alt={h.hotel_name} loading="lazy" className="h-full w-full object-cover" />
+                            ) : (
+                              <Hotel className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[10px] font-bold uppercase tracking-wide text-brand-orange h-3">
+                              {ativo ? "Selecionado" : ""}
                             </div>
-                            <div className="text-right shrink-0">
-                              <div className="text-sm font-semibold text-brand-orange">
-                                {formatBRL(preco * baseOccupancy)}
-                              </div>
-                              <div className="text-[11px] text-muted-foreground">
-                                {i === 0 ? "Mais econômico" : dif > 0 ? `+ ${formatBRL(dif * baseOccupancy)}` : "—"}
-                              </div>
+                            <div className="truncate text-sm font-medium">{h.hotel_name}</div>
+                            <div className="truncate text-[11px] text-muted-foreground">
+                              {[h.room_type, h.meal_plan].filter(Boolean).join(" · ")}
+                            </div>
+                            <div className="mt-1 text-[11px] font-semibold text-brand-orange">
+                              {ativo
+                                ? formatBRL(preco * baseOccupancy)
+                                : dif === 0
+                                  ? "Mesmo valor"
+                                  : dif > 0
+                                    ? `+ ${formatBRL(dif)}`
+                                    : `${formatBRL(Math.abs(dif))} menos`}
                             </div>
                           </div>
                         </button>
@@ -501,11 +586,19 @@ function PackageDetails() {
               )}
 
               {(() => {
-                if (!isBaseHotel) return null;
-                const photos = ((pkg as unknown as { tripadvisor_photos?: string[] | null }).tripadvisor_photos) ?? [];
-                const taUrl = (pkg as unknown as { tripadvisor_url?: string | null }).tripadvisor_url ?? null;
-                const taId = (pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null;
-                if (photos.length === 0 && !taUrl) return null;
+                const photos = hotelPhotos;
+                const taUrl = hotelTaUrl;
+                const taId = hotelTaId;
+                if (photos.length === 0 && !taUrl) {
+                  if (!hotelInfoLoading) return null;
+                  return (
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[0, 1, 2, 3].map((i) => (
+                        <div key={i} className="aspect-[4/3] animate-pulse rounded-lg border border-border bg-muted/40" />
+                      ))}
+                    </div>
+                  );
+                }
 
                 return (
                   <div className="mt-4">
@@ -514,7 +607,7 @@ function PackageDetails() {
                         {photos.slice(0, 4).map((src, i) => (
                           <button
                             type="button"
-                            key={i}
+                            key={`${hotelName}-${i}`}
                             onClick={() => {
                               if (taId) {
                                 setDialogPhotoIndex(i);
@@ -527,7 +620,7 @@ function PackageDetails() {
                           >
                             <img
                               src={src}
-                              alt={`${pkg.hotel_name} — foto ${i + 1}`}
+                              alt={`${hotelName} — foto ${i + 1}`}
                               loading="lazy"
                               className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition"
                             />
@@ -561,6 +654,7 @@ function PackageDetails() {
                   </div>
                 );
               })()}
+
             </section>
           )}
 
@@ -736,15 +830,16 @@ function PackageDetails() {
       )}
       <ContactFooter whatsappMessage={`Olá! Tenho interesse no pacote e quero mais informações.`} />
       {(() => {
-        const taId = (pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null;
-        const photos = ((pkg as unknown as { tripadvisor_photos?: string[] | null }).tripadvisor_photos) ?? [];
+        const taId = hotelTaId;
+        const photos = hotelPhotos;
         if (!taId) return null;
         return (
           <HotelDetailsDialog
+            key={taId}
             open={hotelDialogOpen}
             onOpenChange={setHotelDialogOpen}
             locationId={taId}
-            hotelName={pkg.hotel_name ?? ""}
+            hotelName={hotelName ?? ""}
             fallbackPhotos={photos}
             initialPhotoIndex={dialogPhotoIndex}
           />
