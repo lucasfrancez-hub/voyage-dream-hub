@@ -262,6 +262,8 @@ function PackageDetails() {
   const [hotelDialogOpen, setHotelDialogOpen] = useState(false);
   const [dialogPhotoIndex, setDialogPhotoIndex] = useState(0);
   const [preOpen, setPreOpen] = useState(false);
+  const [hotelIdx, setHotelIdx] = useState(0);
+
 
   if (isLoading || !pkg) {
     return (
