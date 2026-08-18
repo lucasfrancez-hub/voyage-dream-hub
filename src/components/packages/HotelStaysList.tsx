@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from "react";
 import { BedDouble, CalendarDays, MapPin, Utensils } from "lucide-react";
 
 export type HotelStay = {
@@ -53,7 +54,7 @@ export function HotelStaysList({
                 role: "button" as const,
                 tabIndex: 0,
                 onClick: () => onSelect(i),
-                onKeyDown: (e: React.KeyboardEvent) => {
+                onKeyDown: (e: KeyboardEvent) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     onSelect(i);
