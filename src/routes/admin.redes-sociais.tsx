@@ -16,8 +16,19 @@ import {
   Clock,
   ExternalLink,
   Instagram,
+  Rocket,
 } from "lucide-react";
 import { getSocialOverview } from "@/lib/instagram/queries.functions";
+import { listarImpulsionamentos } from "@/lib/ads/boosts.functions";
+import {
+  TurbinarDialog,
+  DesempenhoDialog,
+  STATUS_INFO,
+  ROTULO_RESULTADO,
+  brl,
+  type Boost,
+} from "@/components/admin/TurbinarPublicacao";
+
 
 export const Route = createFileRoute("/admin/redes-sociais")({
   head: () => ({
