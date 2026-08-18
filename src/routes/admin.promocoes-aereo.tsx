@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 
 import { toast } from "sonner";
+import { enqueuePublish } from "@/lib/publish-queue";
 import {
   generatePromotionLink,
   cancelAirfarePromoCollection,
@@ -1613,9 +1614,20 @@ function PromocoesAereoPage() {
                   setSocialCanal(canal);
                   setSocialPromo(promo);
                 }}
-                onRefresh={() =>
-                  acao(promo.id, () => refreshOne({ data: { id: promo.id } }), "Tarifa reconsultada")
-                }
+                onRefresh={() => {
+                  // Fila própria: reprocessar não espera a fila de salvar promoção.
+                  enqueuePublish({
+                    label: `Reprocessar ${promo.origin_iata} → ${promo.destination_iata}`,
+                    channel: "reprocessar",
+                    detail: "Recotando no motor VIA AIR…",
+                    run: async () => {
+                      await refreshOne({ data: { id: promo.id } });
+                      qc.invalidateQueries({ queryKey: ["airfare-promos"] });
+                      return "Tarifa reconsultada";
+                    },
+                  });
+                  toast.info("Reprocessamento enviado para a Fila.");
+                }}
                 onLink={() =>
                   acao(
                     promo.id,

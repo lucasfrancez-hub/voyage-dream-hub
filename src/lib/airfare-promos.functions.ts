@@ -493,6 +493,8 @@ export const refreshAirfarePromotion = createServerFn({ method: "POST" })
       departureDate: promo.departure_date,
       returnDate: promo.return_date,
       markups,
+      // mantém o gatilho de multi-trecho na recotação (nacional já é sempre pesquisado)
+      referencePrice: promo.reference_price ?? null,
     });
 
     if (!row) {
