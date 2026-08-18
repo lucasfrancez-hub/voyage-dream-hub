@@ -4493,6 +4493,54 @@ export type Database = {
         }
         Relationships: []
       }
+      installment_rules: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          limited_brands: string[]
+          limited_brands_max: number | null
+          match_pattern: string
+          max_installments: number
+          notes: string | null
+          operator_label: string
+          priority: number
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          limited_brands?: string[]
+          limited_brands_max?: number | null
+          match_pattern: string
+          max_installments?: number
+          notes?: string | null
+          operator_label: string
+          priority?: number
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          limited_brands?: string[]
+          limited_brands_max?: number | null
+          match_pattern?: string
+          max_installments?: number
+          notes?: string | null
+          operator_label?: string
+          priority?: number
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       login_email_codes: {
         Row: {
           attempts: number

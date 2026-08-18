@@ -20,7 +20,7 @@ import {
   type BudgetRange,
 } from "@/components/packages/BudgetFilter";
 import { BudgetRuler } from "@/components/packages/BudgetRuler";
-import { packageMaxInstallments } from "@/lib/packages/card-installments";
+import { installmentRulesQuery, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
 
 
 
@@ -79,6 +79,7 @@ function PacotesList() {
   const [sortBy, setSortBy] = useState<
     "sort_order" | "price_asc" | "price_desc" | "date_asc" | "date_desc"
   >("sort_order");
+  const { data: installmentRules } = useQuery(installmentRulesQuery);
   const [installmentFilter, setInstallmentFilter] = useState<string>("all");
   const [budgetMode, setBudgetMode] = useState<BudgetMode>("total");
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(null);
@@ -177,7 +178,7 @@ function PacotesList() {
 
       let installmentMatch = true;
       if (installmentFilter !== "all") {
-        const maxParc = packageMaxInstallments({
+        const maxParc = maxInstallmentsForPackage(installmentRules, {
           supplierName: (p as { supplier_name?: string | null }).supplier_name,
         });
         installmentMatch = maxParc >= Number(installmentFilter);
@@ -268,7 +269,7 @@ function PacotesList() {
     }
 
     return sorted;
-  }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange, installmentFilter]);
+  }, [packages, originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange, installmentFilter, installmentRules]);
 
 
   const hasActiveFilters =
@@ -292,7 +293,7 @@ function PacotesList() {
 
   useEffect(() => {
     setPage(1);
-  }, [originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange, installmentFilter]);
+  }, [originFilter, destinationFilter, monthFilter, dateRange, sortBy, budgetRange, installmentFilter, installmentRules]);
 
 
   const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
@@ -672,7 +673,7 @@ function PacotesList() {
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-brand-orange px-2.5 py-1 text-[11px] font-bold text-primary-foreground shadow-lg">
                     <CreditCard className="h-3 w-3" />
-                    Parcele em até {packageMaxInstallments({ supplierName: (p as { supplier_name?: string | null }).supplier_name })}x
+                    Parcele em até {maxInstallmentsForPackage(installmentRules, { supplierName: (p as { supplier_name?: string | null }).supplier_name })}x
                   </span>
                 </div>
               </div>

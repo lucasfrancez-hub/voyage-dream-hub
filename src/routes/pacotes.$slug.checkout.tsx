@@ -14,7 +14,8 @@ import { BoletoForm, emptyBoleto, validateBoleto, type BoletoData } from "@/comp
 import { DateBRInput } from "@/components/DateBRInput";
 import { PixQrOverlay } from "@/components/PixQrOverlay";
 import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
-import { maxCardInstallments, cardInstallmentOptions, packageMaxInstallments } from "@/lib/packages/card-installments";
+import { cardInstallmentOptions } from "@/lib/packages/card-installments";
+import { installmentRulesQuery, maxInstallmentsForCard, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
 
 
 import { ContactFooter } from "@/components/ContactFooter";
@@ -356,14 +357,15 @@ function Checkout() {
 
   // Bandeiras com limite reduzido em pacotes Cativa (Hipercard, Diners, Elo, Amex): até 6x.
   // Pacotes FRT: até 15x sem juros (cartão e boleto financiado).
-  const maxParcelasPacote = packageMaxInstallments({
-    supplierName: (pkg as { supplier_name?: string | null } | undefined)?.supplier_name ?? null,
+  const { data: installmentRules } = useQuery(installmentRulesQuery);
+  const supplierNamePkg = (pkg as { supplier_name?: string | null } | undefined)?.supplier_name ?? null;
+  const maxParcelasPacote = maxInstallmentsForPackage(installmentRules, {
+    supplierName: supplierNamePkg,
   });
   const MAX_BOLETO_INSTALLMENTS = maxParcelasPacote;
-  const maxCardParcelas = maxCardInstallments({
+  const maxCardParcelas = maxInstallmentsForCard(installmentRules, {
+    supplierName: supplierNamePkg,
     brand: card.brand || detectBrand(card.cardNumber),
-    supplierName: (pkg as { supplier_name?: string | null } | undefined)?.supplier_name ?? null,
-    defaultMax: maxParcelasPacote,
   });
   useEffect(() => {
     setInstallments((n) => Math.min(n, maxCardParcelas));

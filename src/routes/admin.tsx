@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tan
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Smartphone,
-  Puzzle, MessageCircle, Sun, Moon, BarChart3 } from "lucide-react";
+  Puzzle, MessageCircle, Sun, Moon, BarChart3, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -551,6 +551,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     pathname.startsWith("/admin/app-celular") ||
     pathname.startsWith("/admin/metricas") ||
     pathname.startsWith("/admin/pacotes-cativa") ||
+    pathname.startsWith("/admin/regras-parcelamento") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
   return (
@@ -570,6 +571,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
             { to: "/admin/instalar-extensao", label: "Instalar extensão", icon: Puzzle },
             { to: "/admin/app-celular", label: "App no celular", icon: Smartphone },
             { to: "/admin/pacotes-cativa", label: "Catálogo de pacotes", icon: Package },
+            { to: "/admin/regras-parcelamento", label: "Regras de parcelamento", icon: CreditCard },
 
           ],
         },
