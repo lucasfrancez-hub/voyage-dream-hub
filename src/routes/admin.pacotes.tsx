@@ -1835,8 +1835,17 @@ function PackageEditorModal({
     ? ((editing as any).hotel_options as any[])
     : [];
   const hotelSelIdx = hotelOpts.length > 1 ? Math.min(hotelOptIdx, hotelOpts.length - 1) : -1;
-  const hv: any = hotelSelIdx >= 0 ? hotelOpts[hotelSelIdx] : editing;
-  const setHotel = (p: Record<string, any>) => {
+  const hotelBase: any = hotelSelIdx >= 0 ? hotelOpts[hotelSelIdx] : editing;
+  // Roteiro com várias hospedagens (sequenciais): cada uma pode ser
+  // selecionada para editar nome, estrelas, TripAdvisor, regime etc.
+  const staysList = normalizeStays(
+    hotelSelIdx >= 0 ? hotelBase?.stays : (editing as any).hotel_stays,
+  );
+  const stayIdx =
+    staysList.length > 1 && staySelIdx >= 0 ? Math.min(staySelIdx, staysList.length - 1) : -1;
+  const hv: any = stayIdx >= 0 ? staysList[stayIdx] : hotelBase;
+
+  const setHotelBase = (p: Record<string, any>) => {
     if (hotelSelIdx < 0) {
       setEditing({ ...editing, ...p });
       return;
@@ -1844,6 +1853,25 @@ function PackageEditorModal({
     const next = hotelOpts.map((o, i) => (i === hotelSelIdx ? { ...o, ...p } : o));
     setEditing({ ...editing, hotel_options: next as any, ...(hotelSelIdx === 0 ? p : {}) });
   };
+
+  const setHotel = (p: Record<string, any>) => {
+    if (stayIdx < 0) {
+      setHotelBase(p);
+      return;
+    }
+    const nextStays = staysList.map((s, i) => (i === stayIdx ? { ...s, ...p } : s));
+    const patch: Record<string, any> =
+      hotelSelIdx >= 0 ? { stays: nextStays } : { hotel_stays: nextStays };
+    // a 1ª hospedagem também espelha os campos principais do pacote
+    setHotelBase(stayIdx === 0 ? { ...patch, ...p } : patch);
+  };
+
+  useEffect(() => {
+    if (staysList.length > 1 && staySelIdx < 0) setStaySelIdx(0);
+    if (staysList.length <= 1 && staySelIdx >= 0) setStaySelIdx(-1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staysList.length, hotelSelIdx, editing.id]);
+
 
   function handleGenerateItinerary() {
     const passeios = [
