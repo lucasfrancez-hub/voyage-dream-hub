@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Search, PackageSearch, Plane, RefreshCw } from "lucide-react";
 import {
+  resumoCativa,
   listarPacotesCativa,
   carregarPacotesCativaParaImportar,
   sincronizarCativa,
@@ -14,6 +15,21 @@ const brl = (v: number | null | undefined) =>
   typeof v === "number" ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
 const dataBr = (v: string | null | undefined) =>
   v ? new Date(`${String(v).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—";
+
+/** Badge com a quantidade de pacotes Cativa disponíveis (atualiza sozinho). */
+export function CativaCountBadge({ active }: { active?: boolean }) {
+  const resumo = useServerFn(resumoCativa);
+  const q = useQuery({
+    queryKey: ["cativa-ativos"],
+    queryFn: () => resumo({ data: undefined } as any),
+    refetchInterval: 120_000,
+  });
+  const n = (q.data as any)?.ativos ?? 0;
+  if (!n) return null;
+  return (
+    <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${active ? "bg-white/20" : "bg-muted"}`}>{n}</span>
+  );
+}
 
 export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => void }) {
   const listar = useServerFn(listarPacotesCativa);
