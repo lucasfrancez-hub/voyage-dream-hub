@@ -241,11 +241,24 @@ export const arquivarPacotesCativa = createServerFn({ method: "POST" })
  */
 export const reprocessarLoteCativa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { tudo?: boolean; limite?: number } | undefined) => input ?? {})
+  .inputValidator((input: { tudo?: boolean; limite?: number; forcar?: boolean } | undefined) => input ?? {})
   .handler(async ({ data, context }) => {
     await exigirAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const limite = Math.min(data.limite ?? 25, 60);
+    const limite = Math.min(data.limite ?? 5, 5);
+
+    if (!data.forcar) {
+      const { processarFilaVoos } = await import("@/lib/cativa/voos.server");
+      const res = await processarFilaVoos(limite);
+      const { count } = await supabaseAdmin
+        .from("cativa_pacotes")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "ativo")
+        .is("importado_em", null)
+        .eq("voos_status", "pendente")
+        .lte("voos_proxima_em", new Date().toISOString());
+      return { ...res, restantes: count ?? 0 };
+    }
 
     let q = supabaseAdmin
       .from("cativa_pacotes")
@@ -263,5 +276,17 @@ export const reprocessarLoteCativa = createServerFn({ method: "POST" })
 
     const { reprocessarPacotes } = await import("@/lib/cativa/voos.server");
     const res = await reprocessarPacotes(ids);
-    return { ...res, restantes: ids.length === limite ? limite : 0 };
+    let restantesQ = supabaseAdmin
+      .from("cativa_pacotes")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "ativo")
+      .is("importado_em", null)
+      .not("link_orcamento", "is", null);
+    if (!data.tudo) {
+      restantesQ = restantesQ.or(
+        "voos_status.eq.sem_opcoes,voos_status.eq.erro,voos_status.eq.pendente,voos_opcoes.is.null,voos_opcoes.eq.0",
+      );
+    }
+    const { count: restantes } = await restantesQ;
+    return { ...res, restantes: restantes ?? 0 };
   });

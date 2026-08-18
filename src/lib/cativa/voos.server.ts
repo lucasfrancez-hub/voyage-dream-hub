@@ -34,7 +34,6 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
   const res: ResultadoVoos = { processados: 0, ok: 0, erros: 0 };
 
   for (const p of (pendentes ?? []) as any[]) {
-    res.processados++;
     if (!p.link_orcamento) {
       await supabaseAdmin
         .from("cativa_pacotes")
@@ -44,11 +43,17 @@ export async function processarFilaVoos(limite = 15): Promise<ResultadoVoos> {
       continue;
     }
 
-    // marca como em processamento para não repetir em execuções paralelas
-    await supabaseAdmin
+    // Adquire o item de forma condicional. Duas rodadas podem ter lido a mesma
+    // fila, mas apenas uma delas pode mudar pendente -> processando.
+    const { data: adquirido } = await supabaseAdmin
       .from("cativa_pacotes")
       .update({ voos_status: "processando", voos_proxima_em: new Date(Date.now() + 10 * 60_000).toISOString() } as any)
-      .eq("id", p.id);
+      .eq("id", p.id)
+      .eq("voos_status", "pendente")
+      .select("id")
+      .maybeSingle();
+    if (!adquirido) continue;
+    res.processados++;
 
     try {
       const { normalized } = await importInfotravelQuoteResilient(p.link_orcamento);
@@ -125,5 +130,7 @@ export async function reprocessarPacotes(ids: string[]): Promise<ResultadoVoos> 
       voos_proxima_em: new Date().toISOString(),
     } as any)
     .in("id", ids);
-  return await processarFilaVoos(ids.length);
+  // Mantém cada chamada abaixo do limite do servidor. A continuação é feita
+  // pelo painel/cron em novos lotes, sem perder o progresso já salvo.
+  return await processarFilaVoos(Math.min(ids.length, 5));
 }
