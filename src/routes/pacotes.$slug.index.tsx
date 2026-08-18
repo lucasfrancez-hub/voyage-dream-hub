@@ -55,6 +55,7 @@ import { FlightCard, type FlightInfo } from "@/components/FlightCard";
 import { HotelDetailsDialog } from "@/components/HotelDetailsDialog";
 import { WhatsAppText } from "@/lib/wa-format";
 import { OtherDatesBlock } from "@/components/packages/OtherDatesBlock";
+import IncludedServices from "@/components/packages/IncludedServices";
 
 function norm(s: string | null | undefined) {
   return (s ?? "")
@@ -693,14 +694,7 @@ function PackageDetails() {
           {pkg.includes && pkg.includes.length > 0 && (
             <section>
               <h2 className="text-xl font-semibold">O que está incluso</h2>
-              <ul className="mt-4 grid sm:grid-cols-2 gap-3">
-                {pkg.includes.map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-sm">
-                    <Check className="h-4 w-4 text-brand-orange mt-0.5 shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+              <IncludedServices includes={pkg.includes as string[]} services={pkg.services} />
             </section>
           )}
 

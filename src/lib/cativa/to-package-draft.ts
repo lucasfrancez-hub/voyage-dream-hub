@@ -339,6 +339,19 @@ function servicosDaOpcao(detalhes: any) {
   }
   if (outros.length) services.outros = outros;
 
+  // Detalhe por serviço: o cliente vê só o título na lista e abre para ler tudo.
+  const detalhesPorServico = [
+    ...detTransfer.map((t) => ({ grupo: "Transfer", texto: t })),
+    ...detTickets.map((t) => ({ grupo: "Ingressos", texto: t })),
+    ...detPasseios.map((t) => ({ grupo: "Passeios", texto: t })),
+    ...detSeguro.map((t) => ({ grupo: "Seguro", texto: t })),
+    ...outrosDetalhe.map((t) => ({ grupo: "Outros serviços", texto: t })),
+  ]
+    .map(({ grupo, texto }) => ({ grupo, titulo: nomeCurto(texto), detalhe: texto.trim() }))
+    .filter((i) => i.titulo && i.detalhe && i.detalhe.length > i.titulo.length - 2);
+  if (detalhesPorServico.length) services.service_details = detalhesPorServico;
+
+
   const nomesCurtos = [
     ...detTransfer,
     ...detTickets,
@@ -386,22 +399,72 @@ function servicosDaOpcao(detalhes: any) {
 }
 
 
+/** Regime da operadora → rótulo do cadastro. */
+function regime(v: unknown): string {
+  const t = limpo(v).toLowerCase();
+  if (!t) return "";
+  if (/all\s*inclusive|tudo\s*inclu/.test(t)) return "All inclusive";
+  if (/pens[aã]o\s*completa|full\s*board/.test(t)) return "Pensão completa";
+  if (/meia\s*pens[aã]o|half\s*board/.test(t)) return "Meia pensão";
+  if (/caf[eé]/.test(t)) return "Café da manhã";
+  if (/sem\s*refei|room\s*only|apenas\s*hospedagem/.test(t)) return "Sem refeições";
+  return limpo(v);
+}
+
+/** Tipo de cama deduzido da descrição do quarto. */
+function tipoCama(v: string): string {
+  const t = v.toLowerCase();
+  if (/quadrupl|qu[aá]drupl/.test(t)) return "Quádruplo";
+  if (/tripl/.test(t)) return "Triplo";
+  if (/casal|double|matrimonial|king|queen/.test(t)) return "Casal";
+  if (/twin|duas camas|2 camas|solteiro/.test(t)) return "Solteiro (twin)";
+  if (/individual|single/.test(t)) return "Individual";
+  return "";
+}
+
+/** Descrição do quarto sem as cláusulas de multa/penalização da operadora. */
+function descricaoQuarto(v: unknown): string {
+  return limpo(v)
+    .split(/—|–| - a partir de /i)
+    .map((p) => p.trim())
+    .filter((p) => p && !/penaliza|multa|a partir de \d/i.test(p))
+    .join(" - ")
+    .trim();
+}
+
+/** Categoria do quarto (parte antes do tipo de cama/vista). */
+function categoriaQuarto(desc: string): string {
+  if (!desc) return "";
+  const semCama = desc
+    .replace(/\b(casal|double|matrimonial|king|queen|twin|solteiro|tripl\w*|quadrupl\w*|individual|single)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[-–,]\s*$/, "")
+    .trim();
+  return semCama || desc;
+}
+
 function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
   const h = (op?.hoteis ?? [])[0];
   if (h) {
+    const desc = descricaoQuarto(h.roomDescription);
     return {
       hotel_name: String(h.name ?? "").trim(),
-      room_type: h.roomDescription ? String(h.roomDescription) : "",
-      meal_plan: h.board ? String(h.board) : "",
+      room_type: desc,
+      room_category: categoriaQuarto(desc),
+      bed_type: tipoCama(desc),
+      meal_plan: regime(h.board),
       checkin: dia(h.checkin),
       checkout: dia(h.checkout),
     };
   }
   const p = (pacote.hoteis ?? [])[0];
+  const descP = descricaoQuarto(p?.quarto ?? p?.categoria ?? "");
   return {
     hotel_name: p ? String(p.nome ?? "").trim() : "",
-    room_type: "",
-    meal_plan: p?.regime ? String(p.regime) : "",
+    room_type: descP,
+    room_category: categoriaQuarto(descP),
+    bed_type: tipoCama(descP),
+    meal_plan: regime(p?.regime),
     checkin: null as string | null,
     checkout: null as string | null,
   };
@@ -471,6 +534,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
     const h = hotelDaOpcao(principal, pacote);
     d.hotel_name = h.hotel_name;
     d.room_type = h.room_type;
+    d.room_category = h.room_category;
+    d.bed_type = h.bed_type;
     d.meal_plan = h.meal_plan;
     if (!d.going_date && h.checkin) d.going_date = h.checkin;
     if (!d.return_date && h.checkout) d.return_date = h.checkout;
@@ -521,6 +586,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
           opcao: op.opcao_numero,
           hotel_name: ho.hotel_name,
           room_type: ho.room_type,
+          room_category: ho.room_category,
+          bed_type: ho.bed_type,
           meal_plan: ho.meal_plan,
           price_per_person: total != null ? Math.round((total / ocupacao) * 100) / 100 : Number(d.price_per_person) || 0,
           total,
@@ -533,6 +600,8 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
       const maisBarato = hoteis[0]!;
       d.hotel_name = maisBarato.hotel_name;
       d.room_type = maisBarato.room_type;
+      d.room_category = maisBarato.room_category;
+      d.bed_type = maisBarato.bed_type;
       d.meal_plan = maisBarato.meal_plan;
       if (maisBarato.price_per_person) d.price_per_person = maisBarato.price_per_person;
     }
