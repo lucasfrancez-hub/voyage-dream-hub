@@ -393,6 +393,23 @@ function semGratis(s: string): string {
     .trim();
 }
 
+/**
+ * Serviço vindo em CAIXA ALTA volta para caixa normal
+ * ("PASSEIO PRAIA DO GUNGA" → "Passeio praia do Gunga").
+ */
+function caixaServico(s: string): string {
+  const t = s.trim();
+  if (!t) return "";
+  const letras = t.replace(/[^A-Za-zÀ-ÿ]/g, "");
+  if (!letras) return t;
+  const maiusculas = letras.replace(/[^A-ZÀ-Ý]/g, "").length;
+  if (maiusculas / letras.length < 0.7) return t;
+  const baixo = t.toLowerCase();
+  return baixo.charAt(0).toUpperCase() + baixo.slice(1);
+}
+
+
+
 /** Ordem de exibição: aéreo → hospedagem → transfer → passeios → ingressos → resto. */
 function ordemServico(s: string): number {
   const t = s.toLowerCase();
