@@ -452,6 +452,36 @@ function categoriaQuarto(desc: string): string {
   return semCama || desc;
 }
 
+/**
+ * Roteiro com mais de uma hospedagem (ex.: 2 noites em Salvador + 2 em Morro de São Paulo).
+ * Cada estadia é sequencial (check-in/check-out diferentes), não é alternativa de hotel.
+ */
+function estadiasDaOpcao(op: CativaVooRow | null) {
+  const lista = Array.isArray(op?.hoteis) ? (op!.hoteis as any[]) : [];
+  return lista
+    .map((h) => {
+      const nome = String(h?.name ?? "").replace(/[,\s]+$/, "").trim();
+      if (!nome) return null;
+      const desc = descricaoQuarto(h?.roomDescription);
+      const checkin = dia(h?.checkin);
+      const checkout = dia(h?.checkout);
+      return {
+        hotel_name: nome,
+        room_type: desc,
+        room_category: categoriaQuarto(desc),
+        bed_type: tipoCama(desc),
+        meal_plan: regime(h?.board),
+        checkin,
+        checkout,
+        nights: Number(h?.nights) || noitesEntre(checkin, checkout) || null,
+        address: String(h?.address ?? "").trim() || null,
+        photo: Array.isArray(h?.photos) ? (h.photos[0] ?? null) : null,
+      };
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => String(a.checkin ?? "").localeCompare(String(b.checkin ?? ""))) as Array<Record<string, any>>;
+}
+
 function hotelDaOpcao(op: CativaVooRow | null, pacote: CativaPacoteRow) {
   const h = (op?.hoteis ?? [])[0];
   if (h) {
