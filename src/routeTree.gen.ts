@@ -60,6 +60,7 @@ import { Route as AdminMotorFrtRouteImport } from './routes/admin.motor-frt'
 import { Route as AdminMotorTremRouteImport } from './routes/admin.motor-trem'
 import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
+import { Route as AdminPacotesCativaRouteImport } from './routes/admin.pacotes-cativa'
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
 import { Route as AdminPassagensBaratasRouteImport } from './routes/admin.passagens-baratas'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
@@ -420,6 +421,11 @@ const AdminNotasFiscaisRoute = AdminNotasFiscaisRouteImport.update({
 const AdminPacotesRoute = AdminPacotesRouteImport.update({
   id: '/pacotes',
   path: '/pacotes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPacotesCativaRoute = AdminPacotesCativaRouteImport.update({
+  id: '/pacotes-cativa',
+  path: '/pacotes-cativa',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPagamentosRoute = AdminPagamentosRouteImport.update({
@@ -1041,6 +1047,7 @@ export interface FileRoutesByFullPath {
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pacotes-cativa': typeof AdminPacotesCativaRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
@@ -1198,6 +1205,7 @@ export interface FileRoutesByTo {
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pacotes-cativa': typeof AdminPacotesCativaRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
@@ -1358,6 +1366,7 @@ export interface FileRoutesById {
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
+  '/admin/pacotes-cativa': typeof AdminPacotesCativaRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
@@ -1519,6 +1528,7 @@ export interface FileRouteTypes {
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
+    | '/admin/pacotes-cativa'
     | '/admin/pagamentos'
     | '/admin/passagens-baratas'
     | '/admin/pessoas'
@@ -1676,6 +1686,7 @@ export interface FileRouteTypes {
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
+    | '/admin/pacotes-cativa'
     | '/admin/pagamentos'
     | '/admin/passagens-baratas'
     | '/admin/pessoas'
@@ -1835,6 +1846,7 @@ export interface FileRouteTypes {
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
+    | '/admin/pacotes-cativa'
     | '/admin/pagamentos'
     | '/admin/passagens-baratas'
     | '/admin/pessoas'
@@ -2390,6 +2402,13 @@ declare module '@tanstack/react-router' {
       path: '/pacotes'
       fullPath: '/admin/pacotes'
       preLoaderRoute: typeof AdminPacotesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pacotes-cativa': {
+      id: '/admin/pacotes-cativa'
+      path: '/pacotes-cativa'
+      fullPath: '/admin/pacotes-cativa'
+      preLoaderRoute: typeof AdminPacotesCativaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pagamentos': {
@@ -3179,6 +3198,7 @@ interface AdminRouteChildren {
   AdminMotorTremRoute: typeof AdminMotorTremRoute
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
+  AdminPacotesCativaRoute: typeof AdminPacotesCativaRoute
   AdminPagamentosRoute: typeof AdminPagamentosRoute
   AdminPassagensBaratasRoute: typeof AdminPassagensBaratasRoute
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
@@ -3230,6 +3250,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMotorTremRoute: AdminMotorTremRoute,
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminPacotesRoute: AdminPacotesRoute,
+  AdminPacotesCativaRoute: AdminPacotesCativaRoute,
   AdminPagamentosRoute: AdminPagamentosRoute,
   AdminPassagensBaratasRoute: AdminPassagensBaratasRoute,
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
