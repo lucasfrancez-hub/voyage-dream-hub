@@ -1993,6 +1993,7 @@ export type Database = {
           importado_em: string | null
           incluso: string[]
           ingressos: Json
+          liberado_manual: boolean
           link_orcamento: string | null
           moeda: string
           noites: number | null
@@ -2038,6 +2039,7 @@ export type Database = {
           importado_em?: string | null
           incluso?: string[]
           ingressos?: Json
+          liberado_manual?: boolean
           link_orcamento?: string | null
           moeda?: string
           noites?: number | null
@@ -2083,6 +2085,7 @@ export type Database = {
           importado_em?: string | null
           incluso?: string[]
           ingressos?: Json
+          liberado_manual?: boolean
           link_orcamento?: string | null
           moeda?: string
           noites?: number | null
