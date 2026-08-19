@@ -280,7 +280,9 @@ const SEALS = `
         <path d="M119 41l-5 5"/><path d="M46 114l-5 5"/>
       </g>
       <path d="M87 39L64 74h16l-8 30 28-42H82z" fill="#fff"/>
-      <text x="80" y="118" text-anchor="middle" fill="#fff" font-size="12" font-weight="950" letter-spacing="1.05">OFERTA AÉREA</text>
+      <text x="80" y="114" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="950" letter-spacing="1.05">TARIFA</text>
+      <text x="80" y="131" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="950" letter-spacing="1.05">RELÂMPAGO</text>
+
     </svg>
   </div>
 </div>`;
