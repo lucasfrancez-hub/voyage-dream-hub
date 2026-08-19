@@ -444,6 +444,8 @@ function CartaoNav({ pathname }: { pathname: string }) {
             { to: "/admin/link-pagamento", label: "Link seguro" },
             { to: "/admin/link-cartao-simples", label: "Link convencional" },
             { to: "/admin/link-boleto", label: "Link boleto bancário" },
+            { to: "/admin/link-asaas", label: "ASAAS" },
+
           ],
         },
         {
