@@ -69,11 +69,11 @@ html,body{margin:0;background:#000;color:#fff;font-family:'Montserrat',Arial,Hel
 body{display:grid;place-items:center;min-height:100vh}
 .frame{position:relative;overflow:hidden;background:#000;display:flex;flex-direction:column;justify-content:space-between}
 .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:block}
-.veil{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 38%,rgba(0,0,0,.96) 100%)}
+.veil{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,.06) 34%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.88) 100%)}
 .frame > *:not(.photo):not(.veil){position:relative;z-index:2}
 
-.glass{background:rgba(0,0,0,.42);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.30);border-radius:40px}
-.glass-dark{background:rgba(15,15,15,.68);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.14);border-radius:40px}
+.glass{background:rgba(0,0,0,.34);backdrop-filter:blur(30px) saturate(150%);border:1px solid rgba(255,255,255,.30);border-radius:40px}
+.glass-dark{background:rgba(10,10,10,.56);backdrop-filter:blur(30px) saturate(150%);border:1px solid rgba(255,255,255,.16);border-radius:40px}
 
 .top{display:flex;flex-direction:column}
 .brand{display:flex;align-items:center;justify-content:space-between;gap:24px}
@@ -84,8 +84,8 @@ body{display:grid;place-items:center;min-height:100vh}
 svg{display:block;width:100%;height:100%}
 
 .category-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.category-badge{display:inline-flex;align-items:center;border:2px solid var(--orange);border-radius:9999px;color:var(--orange);font-weight:700;letter-spacing:.18em;text-transform:uppercase;line-height:1}
-.found-badge{display:inline-flex;align-items:center;gap:12px;border:2px solid rgba(53,208,127,.85);border-radius:9999px;color:#7ff0b0;font-weight:700;letter-spacing:.08em;line-height:1}
+.category-badge{display:inline-flex;align-items:center;border:2px solid var(--orange);border-radius:9999px;color:var(--orange);font-weight:700;letter-spacing:.18em;text-transform:uppercase;line-height:1;background:rgba(0,0,0,.28)}
+.found-badge{display:inline-flex;align-items:center;gap:12px;border:2px solid rgba(53,208,127,.85);border-radius:9999px;color:#7ff0b0;font-weight:700;letter-spacing:.08em;line-height:1;background:rgba(0,0,0,.28)}
 .found-dot{width:14px;height:14px;border-radius:50%;background:#35d07f;box-shadow:0 0 14px rgba(53,208,127,.8)}
 
 .destination{font-weight:900;line-height:.9;letter-spacing:-.03em;margin:0;text-transform:uppercase;color:#fff;text-shadow:0 4px 12px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.45)}
@@ -96,36 +96,46 @@ svg{display:block;width:100%;height:100%}
 .route-city{display:flex;align-items:center;gap:16px;font-weight:800;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.55)}
 .route-city span{white-space:nowrap}
 .route-city .arrow{color:var(--orange);flex:none}
-.route-iata{color:rgba(255,255,255,.85);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.route-iata{color:rgba(255,255,255,.9);letter-spacing:.14em;text-transform:uppercase;font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,.6)}
 
-.info{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%}
-.info-col{display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;min-width:0}
-.info-icon{color:rgba(255,255,255,.9);margin-bottom:10px;display:inline-flex}
-.info-small{margin:0;color:rgba(255,255,255,.85);line-height:1.25}
-.info-strong{margin:0;font-weight:700;line-height:1.2}
-.info-div{width:1px;background:rgba(255,255,255,.2);flex-shrink:0}
-.airline-logo{border-radius:14px;background:#fff;display:grid;place-items:center;overflow:hidden;margin-bottom:8px}
-.airline-logo img{object-fit:contain}
+/* Bloco de informações em LINHAS (período / companhia / bagagem) */
+.info{display:flex;flex-direction:column;width:100%}
+.info-row{display:flex;align-items:center;gap:18px}
+.info-row + .info-row{border-top:1px solid rgba(255,255,255,.16)}
+.info-icon{color:var(--orange);display:inline-flex;flex-shrink:0}
+.info-label{margin:0;color:rgba(255,255,255,.72);font-weight:600;letter-spacing:.14em;text-transform:uppercase;flex-shrink:0}
+.info-value{margin:0 0 0 auto;font-weight:700;color:#fff;text-align:right;display:flex;align-items:center;gap:14px;justify-content:flex-end;min-width:0}
+.info-value .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info-value .txt.wrap{white-space:normal;line-height:1.2}
+.airline-logo{border-radius:12px;background:#fff;display:grid;place-items:center;overflow:hidden;flex:none;padding:6px}
+.airline-logo img{width:100%;height:100%;object-fit:contain}
+.airline-iata{color:var(--orange);font-weight:800;letter-spacing:.06em}
 
-.price{display:flex;flex-direction:column;text-align:center;width:100%}
-.price-kicker{margin:0 0 6px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.7);text-transform:uppercase}
-.price-line{display:flex;align-items:baseline;justify-content:center}
-.price-x{font-weight:700;margin-right:10px}
-.price-cur{font-weight:700;color:var(--orange);margin-right:8px}
-.price-num{font-weight:900;color:var(--orange);letter-spacing:-.03em;line-height:1;margin-right:6px}
+/* Melhor condição + mais prazo em duas colunas */
+.price{display:flex;align-items:stretch;width:100%}
+.price-col{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;text-align:center}
+.price-div{width:1px;background:rgba(255,255,255,.2);flex:none}
+.price-kicker{margin:0 0 8px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.72);text-transform:uppercase}
+.price-line{display:flex;align-items:baseline;justify-content:center;flex-wrap:nowrap}
+.price-x{font-weight:700;margin-right:8px}
+.price-cur{font-weight:700;color:var(--orange);margin-right:6px}
+.price-num{font-weight:900;color:var(--orange);letter-spacing:-.03em;line-height:1;margin-right:4px}
 .price-cents{font-weight:700;color:var(--orange)}
-.price-free{font-weight:600;color:rgba(255,255,255,.9);margin-left:12px}
-.price-bar{width:100%;height:1px;background:var(--orange);opacity:.5;margin:14px 0}
-.price-total{margin:0;font-weight:500}
-.price-total span{color:var(--orange);font-weight:700}
+.price-free{font-weight:600;color:rgba(255,255,255,.92);margin-left:10px}
+.price-total{margin:10px 0 0;font-weight:500;color:rgba(255,255,255,.92)}
+.price-total span{color:#fff;font-weight:800}
+.price-fine{margin:10px 0 0;color:rgba(255,255,255,.7);line-height:1.3}
+.price-alt-num{font-weight:900;color:#fff;line-height:1}
+.price-alt-num span{color:var(--orange)}
 
-.side{display:flex;flex-direction:column;gap:14px}
-.side-card{display:flex;align-items:center;gap:18px;width:100%}
-.side-icon{color:rgba(255,255,255,.9);display:inline-flex;flex-shrink:0}
+.side{display:flex;gap:14px}
+.side-card{display:flex;align-items:center;gap:16px;width:100%}
+.side-icon{color:var(--orange);display:inline-flex;flex-shrink:0}
 .side-card p{margin:0;font-weight:500;line-height:1.35;color:#fff}
 .side-card p b{color:var(--orange);font-weight:800}
-.side-fine{opacity:.7}
+.side-fine{opacity:.72}
 .note{margin:0;text-align:center;color:rgba(255,255,255,.95);line-height:1.35;font-weight:500;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+
 `;
 
 const STORY_CSS = `
