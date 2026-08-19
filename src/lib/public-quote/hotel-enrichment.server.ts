@@ -45,9 +45,9 @@ function norm(s: string) {
 }
 
 function cacheKey(name: string, city: string | null, locationId?: number | null): string {
-  // v7 — fallback confirmado pela ficha exata do Google Places.
+  // v8 — fotos reais da propriedade confirmadas pela busca web (Firecrawl).
   const pin = locationId ? `|ta${locationId}` : "";
-  return `hotel-enrich:v7:${norm(name)}|${norm(city ?? "")}${pin}`;
+  return `hotel-enrich:v8:${norm(name)}|${norm(city ?? "")}${pin}`;
 }
 
 /** Chave estável do hotel usada no vínculo manual com o TripAdvisor. */
@@ -233,8 +233,8 @@ async function jsonOf(
  */
 /**
  * Algumas propriedades novas ainda não têm fotos na API do TripAdvisor
- * (photos.total_count = 0). Nesses casos procuramos uma listagem irmã com o
- * mesmo nome no Google Places. Nunca usamos fotos genéricas do destino.
+ * (photos.total_count = 0). Nesses casos buscamos fotos reais da propriedade na
+ * web, confirmando pelo nome do hotel. Nunca usamos fotos genéricas do destino.
  */
 async function fotosAlternativas(
   nome: string,
@@ -244,7 +244,7 @@ async function fotosAlternativas(
 ): Promise<{ photos: string[]; fallback: boolean }> {
   void idAtual;
   void api;
-  // Busca pelo nome exato no Google Places e guarda cópias estáveis.
+  // Busca web pelo nome exato do hotel e guarda cópias estáveis das fotos.
   try {
     const { recoverHotelPhotos } = await import("./hotel-photo-fallback.server");
     const fotos = await recoverHotelPhotos(nome, cidade);
@@ -353,10 +353,15 @@ export async function enrichHotel(params: {
       .map((p) => String(p.photo?.original_size_url ?? p.photo?.url ?? ""))
       .filter(Boolean);
     let photosFallback = false;
-    if (!photos.length) {
+    // Muitas propriedades novas têm pouquíssimas fotos publicadas no TripAdvisor:
+    // completamos a galeria com fotos reais da própria propriedade.
+    if (photos.length < 5) {
       const alt = await fotosAlternativas(nome, local, escolhido.id ?? null, api);
-      photos = alt.photos;
-      photosFallback = alt.fallback;
+      const juntas = [...photos, ...alt.photos].filter(
+        (url, i, todas) => todas.indexOf(url) === i,
+      );
+      photos = juntas.slice(0, 5);
+      photosFallback = photos.length ? alt.fallback && !photos.length : false;
     }
 
     const endereco = pickAddress(d.addresses as Array<Record<string, unknown>> | undefined);
