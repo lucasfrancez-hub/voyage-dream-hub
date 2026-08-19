@@ -289,20 +289,20 @@ export async function buildManualCheckoutLink(promo: {
         ? vivos.some((l) => l.direction === "INBOUND")
         : true;
       // guarda para os próximos links (sem apagar nada do raw existente)
-      if (completo)
-
-
-      try {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        await supabaseAdmin
-          .from("airfare_promotions")
-          .update({ raw: { ...rawObj, flights: vivos } as never })
-          .eq("id", promo.id);
-      } catch {
-        /* detalhe é opcional: segue com o link mesmo sem gravar */
+      if (completo) {
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          await supabaseAdmin
+            .from("airfare_promotions")
+            .update({ raw: { ...rawObj, flights: vivos } as never })
+            .eq("id", promo.id);
+        } catch {
+          /* detalhe é opcional: segue com o link mesmo sem gravar */
+        }
       }
     }
   }
+
 
   const resumoIda: ManualLegInput = {
     direction: "OUTBOUND",
