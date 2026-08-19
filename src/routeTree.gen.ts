@@ -104,6 +104,8 @@ import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$pr
 import { Route as ReservaTokenRouteImport } from './routes/reserva.$token'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
 import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
+import { Route as AdminCobrancaCartaoIndexRouteImport } from './routes/admin.cobranca-cartao.index'
+import { Route as AdminCobrancaCartaoIdRouteImport } from './routes/admin.cobranca-cartao.$id'
 import { Route as AdminCruzeirosIndexRouteImport } from './routes/admin.cruzeiros.index'
 import { Route as AdminOrcamentosIndexRouteImport } from './routes/admin.orcamentos.index'
 import { Route as AdminOrcamentosIdRouteImport } from './routes/admin.orcamentos.$id'
@@ -141,6 +143,7 @@ import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
 import { Route as ApiPublicBroadcastMediaSplatRouteImport } from './routes/api/public/broadcast-media.$'
 import { Route as ApiPublicHooksAirfarePromosRouteImport } from './routes/api/public/hooks/airfare-promos'
 import { Route as ApiPublicHooksAirfarePromosSlotRouteImport } from './routes/api/public/hooks/airfare-promos-slot'
+import { Route as ApiPublicHooksAsaasConciliacaoRouteImport } from './routes/api/public/hooks/asaas-conciliacao'
 import { Route as ApiPublicHooksAutoSuggestionsRouteImport } from './routes/api/public/hooks/auto-suggestions'
 import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/api/public/hooks/broadcast-dispatch'
 import { Route as ApiPublicHooksCalendarJobsRouteImport } from './routes/api/public/hooks/calendar-jobs'
@@ -648,6 +651,17 @@ const AdminAppTokenRoute = AdminAppTokenRouteImport.update({
   path: '/app/$token',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCobrancaCartaoIndexRoute =
+  AdminCobrancaCartaoIndexRouteImport.update({
+    id: '/cobranca-cartao/',
+    path: '/cobranca-cartao/',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminCobrancaCartaoIdRoute = AdminCobrancaCartaoIdRouteImport.update({
+  id: '/cobranca-cartao/$id',
+  path: '/cobranca-cartao/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCruzeirosIndexRoute = AdminCruzeirosIndexRouteImport.update({
   id: '/cruzeiros/',
   path: '/cruzeiros/',
@@ -843,6 +857,12 @@ const ApiPublicHooksAirfarePromosSlotRoute =
   ApiPublicHooksAirfarePromosSlotRouteImport.update({
     id: '/api/public/hooks/airfare-promos-slot',
     path: '/api/public/hooks/airfare-promos-slot',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksAsaasConciliacaoRoute =
+  ApiPublicHooksAsaasConciliacaoRouteImport.update({
+    id: '/api/public/hooks/asaas-conciliacao',
+    path: '/api/public/hooks/asaas-conciliacao',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksAutoSuggestionsRoute =
@@ -1124,6 +1144,7 @@ export interface FileRoutesByFullPath {
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
+  '/admin/cobranca-cartao/$id': typeof AdminCobrancaCartaoIdRoute
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -1148,6 +1169,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -1161,6 +1183,7 @@ export interface FileRoutesByFullPath {
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
   '/api/public/hooks/airfare-promos-slot': typeof ApiPublicHooksAirfarePromosSlotRoute
+  '/api/public/hooks/asaas-conciliacao': typeof ApiPublicHooksAsaasConciliacaoRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1287,6 +1310,7 @@ export interface FileRoutesByTo {
   '/editair': typeof EditairIndexRoute
   '/pacotes': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
+  '/admin/cobranca-cartao/$id': typeof AdminCobrancaCartaoIdRoute
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -1311,6 +1335,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/admin/cobranca-cartao': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros': typeof AdminCruzeirosIndexRoute
   '/admin/orcamentos': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
@@ -1324,6 +1349,7 @@ export interface FileRoutesByTo {
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
   '/api/public/hooks/airfare-promos-slot': typeof ApiPublicHooksAirfarePromosSlotRoute
+  '/api/public/hooks/asaas-conciliacao': typeof ApiPublicHooksAsaasConciliacaoRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1453,6 +1479,7 @@ export interface FileRoutesById {
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
+  '/admin/cobranca-cartao/$id': typeof AdminCobrancaCartaoIdRoute
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -1477,6 +1504,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -1490,6 +1518,7 @@ export interface FileRoutesById {
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
   '/api/public/hooks/airfare-promos-slot': typeof ApiPublicHooksAirfarePromosSlotRoute
+  '/api/public/hooks/asaas-conciliacao': typeof ApiPublicHooksAsaasConciliacaoRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1620,6 +1649,7 @@ export interface FileRouteTypes {
     | '/editair/'
     | '/pacotes/'
     | '/admin/app/$token'
+    | '/admin/cobranca-cartao/$id'
     | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -1644,6 +1674,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
+    | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
     | '/admin/orcamentos/'
     | '/admin/pedidos/'
@@ -1657,6 +1688,7 @@ export interface FileRouteTypes {
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/airfare-promos'
     | '/api/public/hooks/airfare-promos-slot'
+    | '/api/public/hooks/asaas-conciliacao'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -1783,6 +1815,7 @@ export interface FileRouteTypes {
     | '/editair'
     | '/pacotes'
     | '/admin/app/$token'
+    | '/admin/cobranca-cartao/$id'
     | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -1807,6 +1840,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
+    | '/admin/cobranca-cartao'
     | '/admin/cruzeiros'
     | '/admin/orcamentos'
     | '/admin/pedidos'
@@ -1820,6 +1854,7 @@ export interface FileRouteTypes {
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/airfare-promos'
     | '/api/public/hooks/airfare-promos-slot'
+    | '/api/public/hooks/asaas-conciliacao'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -1948,6 +1983,7 @@ export interface FileRouteTypes {
     | '/editair/'
     | '/pacotes/'
     | '/admin/app/$token'
+    | '/admin/cobranca-cartao/$id'
     | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -1972,6 +2008,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
+    | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
     | '/admin/orcamentos/'
     | '/admin/pedidos/'
@@ -1985,6 +2022,7 @@ export interface FileRouteTypes {
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/airfare-promos'
     | '/api/public/hooks/airfare-promos-slot'
+    | '/api/public/hooks/asaas-conciliacao'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -2078,6 +2116,7 @@ export interface RootRouteChildren {
   ApiPublicBroadcastMediaSplatRoute: typeof ApiPublicBroadcastMediaSplatRoute
   ApiPublicHooksAirfarePromosRoute: typeof ApiPublicHooksAirfarePromosRoute
   ApiPublicHooksAirfarePromosSlotRoute: typeof ApiPublicHooksAirfarePromosSlotRoute
+  ApiPublicHooksAsaasConciliacaoRoute: typeof ApiPublicHooksAsaasConciliacaoRoute
   ApiPublicHooksAutoSuggestionsRoute: typeof ApiPublicHooksAutoSuggestionsRoute
   ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
   ApiPublicHooksCalendarJobsRoute: typeof ApiPublicHooksCalendarJobsRoute
@@ -2778,6 +2817,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAppTokenRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cobranca-cartao/': {
+      id: '/admin/cobranca-cartao/'
+      path: '/cobranca-cartao'
+      fullPath: '/admin/cobranca-cartao/'
+      preLoaderRoute: typeof AdminCobrancaCartaoIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cobranca-cartao/$id': {
+      id: '/admin/cobranca-cartao/$id'
+      path: '/cobranca-cartao/$id'
+      fullPath: '/admin/cobranca-cartao/$id'
+      preLoaderRoute: typeof AdminCobrancaCartaoIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cruzeiros/': {
       id: '/admin/cruzeiros/'
       path: '/cruzeiros'
@@ -3035,6 +3088,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/airfare-promos-slot'
       fullPath: '/api/public/hooks/airfare-promos-slot'
       preLoaderRoute: typeof ApiPublicHooksAirfarePromosSlotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/asaas-conciliacao': {
+      id: '/api/public/hooks/asaas-conciliacao'
+      path: '/api/public/hooks/asaas-conciliacao'
+      fullPath: '/api/public/hooks/asaas-conciliacao'
+      preLoaderRoute: typeof ApiPublicHooksAsaasConciliacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/auto-suggestions': {
@@ -3314,9 +3374,11 @@ interface AdminRouteChildren {
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminVoosTesteRoute: typeof AdminVoosTesteRoute
   AdminAppTokenRoute: typeof AdminAppTokenRoute
+  AdminCobrancaCartaoIdRoute: typeof AdminCobrancaCartaoIdRoute
   AdminOrcamentosIdRoute: typeof AdminOrcamentosIdRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
   AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
+  AdminCobrancaCartaoIndexRoute: typeof AdminCobrancaCartaoIndexRoute
   AdminCruzeirosIndexRoute: typeof AdminCruzeirosIndexRoute
   AdminOrcamentosIndexRoute: typeof AdminOrcamentosIndexRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
@@ -3368,9 +3430,11 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminVoosTesteRoute: AdminVoosTesteRoute,
   AdminAppTokenRoute: AdminAppTokenRoute,
+  AdminCobrancaCartaoIdRoute: AdminCobrancaCartaoIdRoute,
   AdminOrcamentosIdRoute: AdminOrcamentosIdRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
   AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
+  AdminCobrancaCartaoIndexRoute: AdminCobrancaCartaoIndexRoute,
   AdminCruzeirosIndexRoute: AdminCruzeirosIndexRoute,
   AdminOrcamentosIndexRoute: AdminOrcamentosIndexRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
@@ -3507,6 +3571,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBroadcastMediaSplatRoute: ApiPublicBroadcastMediaSplatRoute,
   ApiPublicHooksAirfarePromosRoute: ApiPublicHooksAirfarePromosRoute,
   ApiPublicHooksAirfarePromosSlotRoute: ApiPublicHooksAirfarePromosSlotRoute,
+  ApiPublicHooksAsaasConciliacaoRoute: ApiPublicHooksAsaasConciliacaoRoute,
   ApiPublicHooksAutoSuggestionsRoute: ApiPublicHooksAutoSuggestionsRoute,
   ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
   ApiPublicHooksCalendarJobsRoute: ApiPublicHooksCalendarJobsRoute,

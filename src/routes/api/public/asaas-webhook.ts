@@ -70,6 +70,30 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
           }
         }
 
+        // ----- Antecipação de recebíveis (ciclo próprio, separado do pagamento) -----
+        {
+          const { isEventoAntecipacao, isEventoCartao, processarWebhookAntecipacao, processarWebhookCartao } =
+            await import('@/lib/asaas-card.store.server')
+          if (isEventoAntecipacao(event)) {
+            try {
+              const res = await processarWebhookAntecipacao(body)
+              return Response.json({ ok: true, event, antecipacao: res })
+            } catch (e) {
+              console.error('[asaas-webhook] antecipacao error', (e as Error).message)
+              return Response.json({ ok: true, error: 'anticipation handling failed' })
+            }
+          }
+          // ----- Cobranças de cartão registradas por nós -----
+          if (isEventoCartao(event) && body?.payment?.id) {
+            try {
+              const res = await processarWebhookCartao(body)
+              if (res.handled) return Response.json({ ok: true, event, cartao: res })
+            } catch (e) {
+              console.error('[asaas-webhook] cartao error', (e as Error).message)
+            }
+          }
+        }
+
         const payment = body?.payment
         const paymentId: string | undefined = payment?.id
         if (!paymentId) return Response.json({ ok: true, skipped: 'no payment id' })
