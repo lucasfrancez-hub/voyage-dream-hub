@@ -46,7 +46,11 @@ async function googlePlacePhotos(hotelName: string, city: string | null, apiKey:
         maxResultCount: 5,
       }),
     });
-    if (!response.ok) return [];
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      console.warn(`[hotel-photos] Google Places ${response.status}: ${detail.slice(0, 500)}`);
+      return [];
+    }
     const json = (await response.json()) as {
       places?: Array<{
         displayName?: { text?: string };
@@ -57,6 +61,9 @@ async function googlePlacePhotos(hotelName: string, city: string | null, apiKey:
     const place = (json.places ?? []).find((item) =>
       isMatchingHotel(hotelName, item.displayName?.text ?? ""),
     );
+    if (!place) {
+      console.warn(`[hotel-photos] Google Places sem correspondência exata para: ${hotelName}`);
+    }
     return (place?.photos ?? []).map((photo) => photo.name).filter((name): name is string => Boolean(name));
   } catch {
     return [];
