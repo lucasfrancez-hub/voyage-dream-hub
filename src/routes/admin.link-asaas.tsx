@@ -5,7 +5,6 @@ import { CreditCard, Copy, ExternalLink, MessageCircle, Trash2, Loader2, QrCode,
 import { toast } from "sonner";
 import { confirmThen } from "@/lib/confirm";
 import { formatBRL } from "@/lib/format";
-import { whatsappUrl } from "@/lib/checkout-config";
 import { criarLinkAsaas, listarLinksAsaas, excluirLinkAsaas, type AsaasLink } from "@/lib/asaas-links.functions";
 
 export const Route = createFileRoute("/admin/link-asaas")({
