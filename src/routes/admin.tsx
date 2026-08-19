@@ -215,6 +215,7 @@ function AdminLayout() {
     p.startsWith("/admin/link-cartao-simples") ||
     p.startsWith("/admin/link-boleto") ||
     p.startsWith("/admin/link-asaas") ||
+    p.startsWith("/admin/cobranca-cartao") ||
     p.startsWith("/admin/cofre");
   if (isPartner && !partnerAllowed(pathname)) {
     return (
@@ -447,6 +448,7 @@ function CartaoNav({ pathname }: { pathname: string }) {
             { to: "/admin/link-cartao-simples", label: "Link convencional" },
             { to: "/admin/link-boleto", label: "Link boleto bancário" },
             { to: "/admin/link-asaas", label: "ASAAS" },
+            { to: "/admin/cobranca-cartao", label: "Cobrança no cartão" },
 
           ],
         },
