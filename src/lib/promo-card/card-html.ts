@@ -112,7 +112,7 @@ svg{display:block;width:100%;height:100%}
 .price-line{display:flex;align-items:baseline;justify-content:center}
 .price-x{font-weight:700;margin-right:10px}
 .price-cur{font-weight:700;color:var(--orange);margin-right:8px}
-.price-num{font-weight:900;color:var(--orange);letter-spacing:-.04em;line-height:1}
+.price-num{font-weight:900;color:var(--orange);letter-spacing:-.03em;line-height:1;margin-right:6px}
 .price-cents{font-weight:700;color:var(--orange)}
 .price-free{font-weight:600;color:rgba(255,255,255,.9);margin-left:12px}
 .price-bar{width:100%;height:1px;background:var(--orange);opacity:.5;margin:14px 0}
