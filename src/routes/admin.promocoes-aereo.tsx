@@ -625,7 +625,16 @@ function PromoCard({
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
+          <button
+            type="button"
+            onClick={onLegs}
+            title="Editar trechos (horários, nº do voo, conexões)"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-lg border border-border/70 text-muted-foreground transition hover:border-brand-orange/60 hover:text-brand-orange"
+          >
+            <Plane className="h-3.5 w-3.5" />
+          </button>
         </div>
+
         <div className="mt-1.5 text-xs text-muted-foreground">
           Total <span className="font-semibold text-foreground/80">{brl(promo.total_price)}</span>
         </div>
