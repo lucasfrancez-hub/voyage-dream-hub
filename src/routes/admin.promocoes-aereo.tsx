@@ -394,6 +394,22 @@ function PrecoManualDialog({
                 className="mt-1 w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-brand-orange"
               />
             </label>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Companhia aérea (define o parcelamento sem juros)
+              <select
+                value={cia}
+                onChange={(e) => setCia(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-brand-orange"
+              >
+                <option value="">Manter a atual{promo.airline_iata ? ` (${promo.airline_iata})` : ""}</option>
+                {AIRLINES.map((a) => (
+                  <option key={a.iata} value={a.iata}>
+                    {a.iata} — {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <p className="text-xs text-muted-foreground">
               Total: <strong className="text-foreground">{brl(numero(valor) * Math.max(1, promo.passengers))}</strong>
             </p>
