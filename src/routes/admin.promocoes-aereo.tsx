@@ -1286,19 +1286,48 @@ function PromocoesAereoPage() {
             {proximaColeta()}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => coletar.mutate()}
-          disabled={coletar.isPending || rodando}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-orange px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
-        >
-          {coletar.isPending || rodando ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          {rodando ? "Atualizando promoções…" : "Atualizar agora"}
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            disabled={restaurando}
+            onClick={async () => {
+              setRestaurando(true);
+              try {
+                const r = (await restaurarVoos({})) as {
+                  total: number;
+                  ok: number;
+                  falhas: string[];
+                };
+                qc.invalidateQueries({ queryKey: ["airfare-promos"] });
+                toast.success(
+                  `Voos restaurados em ${r.ok} de ${r.total} promoções ajustadas`,
+                  r.falhas.length ? { description: r.falhas.join(" · ") } : undefined,
+                );
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Não foi possível restaurar");
+              } finally {
+                setRestaurando(false);
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-orange px-4 py-2 text-sm font-black text-white shadow-md transition hover:brightness-110 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${restaurando ? "animate-spin" : ""}`} />
+            {restaurando ? "Restaurando…" : "Restaurar voos (preço ajustado)"}
+          </button>
+          <button
+            type="button"
+            onClick={() => coletar.mutate()}
+            disabled={coletar.isPending || rodando}
+            className="inline-flex items-center gap-2 rounded-xl border border-brand-orange/50 px-4 py-2 text-sm font-bold text-brand-orange disabled:opacity-60"
+          >
+            {coletar.isPending || rodando ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {rodando ? "Atualizando promoções…" : "Atualizar agora"}
+          </button>
+        </div>
       </header>
 
       {/* Atualização cancelada */}
@@ -1670,33 +1699,6 @@ function PromocoesAereoPage() {
           <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-foreground">
             {arquivados?.total ?? 0}
           </span>
-        </button>
-        <button
-          type="button"
-          disabled={restaurando}
-          onClick={async () => {
-            setRestaurando(true);
-            try {
-              const r = (await restaurarVoos({})) as {
-                total: number;
-                ok: number;
-                falhas: string[];
-              };
-              qc.invalidateQueries({ queryKey: ["airfare-promos"] });
-              toast.success(
-                `Voos restaurados em ${r.ok} de ${r.total} promoções ajustadas`,
-                r.falhas.length ? { description: r.falhas.join(" · ") } : undefined,
-              );
-            } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Não foi possível restaurar");
-            } finally {
-              setRestaurando(false);
-            }
-          }}
-          className="inline-flex items-center gap-2 rounded-xl border border-brand-orange/40 bg-brand-orange/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-brand-orange transition hover:bg-brand-orange/20 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${restaurando ? "animate-spin" : ""}`} />
-          {restaurando ? "Restaurando…" : "Restaurar voos (preço ajustado)"}
         </button>
       </div>
 
