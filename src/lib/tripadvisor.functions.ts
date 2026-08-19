@@ -183,6 +183,7 @@ export const searchTripAdvisorHotels = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<TAHotelSuggestion[]> => {
     const q = (data.query || "").trim();
     if (q.length < 3) return [];
+    if (taLimitado() && !data.force) throw new Error("TRIPADVISOR_RATE_LIMIT");
 
     // 1) Colou uma URL/ID do TripAdvisor? Resolve direto pelo location id.
     const idMatch = q.match(/(?:-d|location_id=|\/locations?\/)(\d{3,})/i) ?? (/^\d{4,}$/.test(q) ? [q, q] : null);
