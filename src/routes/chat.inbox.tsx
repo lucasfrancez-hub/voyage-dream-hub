@@ -2692,7 +2692,7 @@ function InstagramConversationView({
         )}
       </div>
 
-      {mirror?.mode === "ai" && (
+      {((mirror?.mode === "ai") || (profile?.account_is_personal && mirror)) && (
         <div className="shrink-0 border-t border-slate-200 bg-white px-3 pt-2">
           <AiInstructionBar
             conversationId={mirror.id}
