@@ -100,7 +100,16 @@ export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
     previous_price_per_passenger: n2(Number(promo.price_per_passenger) || 0),
     new_total: total,
     new_price_per_passenger: n2(perPax),
+    ...(novaCia ? { previous_airline_iata: promo.airline_iata ?? null, new_airline_iata: novaCia.iata } : {}),
   };
+  // promoção 100% manual: mantém os trechos digitados coerentes com a nova cia
+  if (novaCia) {
+    const manual = raw.manual as { legs?: Array<Record<string, unknown>> } | undefined;
+    if (manual?.legs?.length) {
+      manual.legs = manual.legs.map((l) => ({ ...l, airlineIata: novaCia.iata }));
+      raw.manual = manual;
+    }
+  }
 
   const { error: upErr } = await client
     .from("airfare_promotions")
@@ -109,9 +118,14 @@ export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
       taxes,
       total_price: total,
       price_per_passenger: n2(perPax),
+      airline_iata: airlineIata,
+      airline_name: airlineName,
+      inbound_airline_iata: inboundIata,
+      inbound_airline_name: inboundName,
       interest_free_installments: cond.interestFree.installments,
       interest_free_installment_value: n2(cond.interestFree.installmentValue),
       airline_rule: JSON.parse(JSON.stringify(cond.airlineRule)) as unknown,
+
       extended_max_installments: q12?.installments ?? null,
       extended_installment_value_12x: q12 ? n2(q12.installmentValue) : null,
       extended_markup_12x: q12 ? Number(q12.markupPercent.toFixed(4)) : null,
