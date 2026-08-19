@@ -252,6 +252,8 @@ export async function buildManualCheckoutLink(promo: {
   total_price: number;
   airline_iata: string | null;
   airline_name: string | null;
+  inbound_airline_iata?: string | null;
+  stops?: number | null;
   cabin_class: string | null;
   has_checked_baggage: boolean | null;
   raw: unknown;
@@ -263,18 +265,36 @@ export async function buildManualCheckoutLink(promo: {
   const manual = ((promo.raw as { manual?: { legs?: ManualLegInput[] } } | null)?.manual ?? {}) as {
     legs?: ManualLegInput[];
   };
+  // Promoção vinda do motor (preço ajustado à mão): monta ida (e volta) com o
+  // que já está salvo na promoção.
+  const paradas = Math.max(0, Number(promo.stops) || 0);
   const legsInput: ManualLegInput[] = manual.legs?.length
     ? manual.legs
     : [
         {
-          direction: "OUTBOUND",
+          direction: "OUTBOUND" as const,
           date: promo.departure_date,
           fromIata: promo.origin_iata,
           toIata: promo.destination_iata,
           airlineIata: promo.airline_iata ?? "",
+          stops: paradas,
           checkedBaggage: !!promo.has_checked_baggage,
         },
+        ...(promo.return_date
+          ? [
+              {
+                direction: "INBOUND" as const,
+                date: promo.return_date,
+                fromIata: promo.destination_iata,
+                toIata: promo.origin_iata,
+                airlineIata: promo.inbound_airline_iata ?? promo.airline_iata ?? "",
+                stops: paradas,
+                checkedBaggage: !!promo.has_checked_baggage,
+              },
+            ]
+          : []),
       ];
+
 
   const legs = legsInput.map((l) => {
     const air = findAirline(l.airlineIata);
@@ -317,12 +337,20 @@ export async function buildManualCheckoutLink(promo: {
 
   const total = Number(promo.total_price) || 0;
   const adults = Math.max(1, Number(promo.passengers) || 1);
-  const payment = buildPayment({
+  // Promoção aérea: só Pix e cartão (X sem juros da companhia + demais com
+  // juros de mercado). Boleto não vale para tarifa promocional.
+  const base = buildPayment({
     type: "AIR_ONLY",
     total,
     airline: promo.airline_iata,
     startDate: promo.departure_date,
   });
+  const payment = {
+    ...base,
+    methods: ["CARD", "PIX"] as typeof base.methods,
+    boleto: { enabled: false, installments: [], note: null, untilTravel: null },
+  };
+
 
   const origem = promo.origin_city || cityLabel(promo.origin_iata) || promo.origin_iata;
   const destino = promo.destination_city || cityLabel(promo.destination_iata) || promo.destination_iata;

@@ -712,18 +712,23 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
     if (!data.force && promo.cart_url && promo.short_url) {
       return { cart_url: promo.cart_url, short_url: promo.short_url, reused: true };
     }
-    // MANUAL: voos digitados pelo administrador — o link é o NOSSO checkout
-    // (orçamento público AIR_ONLY), com parcelamento da cia + markup.
-    if (promo.reference_source === "manual") {
-      const { data: bruto } = await context.supabase
-        .from("airfare_promotions")
-        .select("raw")
-        .eq("id", data.id)
-        .maybeSingle();
+    // NOSSO CHECKOUT (orçamento público AIR_ONLY, Pix + cartão):
+    // - promoções digitadas à mão, e
+    // - promoções do motor cujo PREÇO foi ajustado manualmente (o carrinho da
+    //   operadora levaria o cliente para o valor antigo/errado).
+    const { data: bruto } = await context.supabase
+      .from("airfare_promotions")
+      .select("raw")
+      .eq("id", data.id)
+      .maybeSingle();
+    const raw = ((bruto as { raw?: unknown } | null)?.raw ?? null) as Record<string, unknown> | null;
+    const precoManual = !!(raw && raw.price_override);
+
+    if (promo.reference_source === "manual" || precoManual) {
       const { buildManualCheckoutLink } = await import("@/lib/airfare-promos.manual-entry.server");
       const link = await buildManualCheckoutLink({
         ...(promo as never as Record<string, unknown>),
-        raw: (bruto as { raw?: unknown } | null)?.raw ?? null,
+        raw,
       } as never);
       const short = link.shortUrl ?? (await criarShortLink(context, link.url, promo));
       const { error: mErr } = await context.supabase
@@ -733,6 +738,7 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
       if (mErr) throw new Error(mErr.message);
       return { cart_url: link.url, short_url: short, reused: false };
     }
+
 
     // MULTI-TRECHO (nacional, ida e volta em companhias diferentes):
     // não existe carrinho único na operadora — o link abre o motor VIA AIR
