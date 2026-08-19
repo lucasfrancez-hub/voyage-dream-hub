@@ -700,7 +700,54 @@ export function parseTripAdvisorUrl(input: string): { locationId: number | null;
   return { locationId: Number(m[1]), url: raw };
 }
 
+/**
+ * Lê o HTML da página do hotel. O TripAdvisor bloqueia requisições diretas
+ * (403), então caímos para o Firecrawl quando disponível.
+ */
+async function lerPaginaTripAdvisor(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+      },
+    });
+    if (res.ok) {
+      const html = await res.text();
+      if (html.length > 5000) return html;
+    }
+  } catch {
+    // segue para o Firecrawl
+  }
+
+  const lovableApiKey = process.env["LOVABLE_API_KEY"];
+  const firecrawlKey = process.env["FIRECRAWL_API_KEY"];
+  if (!lovableApiKey || !firecrawlKey) return null;
+
+  try {
+    const r = await fetch("https://api.firecrawl.dev/v2/scrape", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${firecrawlKey}`,
+      },
+      body: JSON.stringify({ url, formats: ["rawHtml", "markdown"], onlyMainContent: false }),
+    });
+    if (!r.ok) {
+      console.warn(`[tripadvisor] Firecrawl ${r.status}: ${(await r.text().catch(() => "")).slice(0, 300)}`);
+      return null;
+    }
+    const j = (await r.json()) as { data?: { rawHtml?: string; html?: string; markdown?: string } };
+    return j.data?.rawHtml || j.data?.html || j.data?.markdown || null;
+  } catch (e) {
+    console.warn("[tripadvisor] Firecrawl falhou", e);
+    return null;
+  }
+}
+
 function scrapePhotos(html: string, limit: number): string[] {
+
   const out: string[] = [];
   const seen = new Set<string>();
   const re = /https:\/\/(?:dynamic-)?media[^"'\s\\]*tripadvisor\.com\/media\/photo-[a-z]\/[^"'\s\\]+?\.(?:jpg|jpeg|webp)/gi;
