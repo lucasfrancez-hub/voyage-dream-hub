@@ -41,10 +41,44 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
   const lastQueryRef = useRef<string>("");
   const suppressRef = useRef(false);
 
+  // Link do TripAdvisor colado: busca direto pelo link (não gasta a busca da API).
+  const byUrl = useServerFn(getTripAdvisorHotelByUrl);
+  const [loadingUrl, setLoadingUrl] = useState(false);
+  const urlInfo = parseTripAdvisorUrl(value || "");
+  const lastUrlRef = useRef<string>("");
+
+  async function pickByUrl(link: string) {
+    if (!link || loadingUrl) return;
+    lastUrlRef.current = link;
+    setLoadingUrl(true);
+    setErro(null);
+    try {
+      const full = await byUrl({ data: { url: link, photoLimit } });
+      suppressRef.current = true;
+      onSelect(full);
+      setOpen(false);
+      setItems([]);
+    } catch (e) {
+      console.error(e);
+      setErro("Não foi possível ler esse link do TripAdvisor.");
+    } finally {
+      setLoadingUrl(false);
+    }
+  }
+
+  useEffect(() => {
+    const link = urlInfo.url;
+    if (!link || link === lastUrlRef.current) return;
+    const t = setTimeout(() => { void pickByUrl(link); }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlInfo.url]);
+
   useEffect(() => {
     if (mode !== "live") { setItems([]); setOpen(false); return; }
     if (suppressRef.current) { suppressRef.current = false; return; }
     const q = (value || "").trim();
+    if (parseTripAdvisorUrl(q).locationId) { setItems([]); setOpen(false); return; }
     if (q.length < 3) { setItems([]); setOpen(false); return; }
     if (q === lastQueryRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
