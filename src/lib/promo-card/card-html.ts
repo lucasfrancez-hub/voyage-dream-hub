@@ -254,12 +254,11 @@ const FEED_CSS = `
 
 const SEALS = `
 <div class="seal-wrap">
-  <div class="stamp stamp-cards" aria-label="Divida em até 3 cartões">
+  <div class="stamp stamp-cards" aria-label="Parcele em até 3 cartões">
     <div class="stamp-inner">
-      <span class="stamp-tag">Parcele sem susto</span>
+      <span class="stamp-tag">Parcele</span>
       <span class="stamp-rule"></span>
-      <span class="stamp-l1">ATÉ 3</span>
-      <span class="stamp-l2">CARTÕES</span>
+      <span class="stamp-l1">3 CARTÕES</span>
       <span class="stamp-rule"></span>
       <span class="stamp-foot">VIA AIR</span>
     </div>
