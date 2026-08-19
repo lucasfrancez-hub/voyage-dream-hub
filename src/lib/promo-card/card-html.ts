@@ -148,26 +148,29 @@ const STORY_CSS = `
 .destination{font-size:170px;margin:34px 0 0}
 .route-city{font-size:56px}.route-city .arrow{font-size:40px}
 .route-iata{font-size:28px}
-.bottom{display:flex;flex-direction:column;gap:24px}
-.info{padding:34px 26px}
-.info-icon,.info-icon svg{width:50px;height:50px}
-.info-strong{font-size:30px}
-.info-small{font-size:24px}
-.info-div{height:110px}
-.airline-logo{width:64px;height:64px}.airline-logo img{width:52px;height:52px}
-.price{padding:38px 34px}
-.price-kicker{font-size:24px}
-.price-x{font-size:34px}
-.price-cur{font-size:52px}
-.price-num{font-size:150px}
-.price-cents{font-size:58px}
-.price-free{font-size:28px}
-.price-total{font-size:30px}
-.side-card{padding:26px 30px}
-.side-icon,.side-icon svg{width:46px;height:46px}
-.side-card p{font-size:26px}
-.side-fine{font-size:22px}
-.note{font-size:22px;margin-top:6px}
+.bottom{display:flex;flex-direction:column;gap:22px}
+.info{padding:12px 34px}
+.info-row{padding:22px 0}
+.info-icon,.info-icon svg{width:44px;height:44px}
+.info-label{font-size:23px}
+.info-value{font-size:30px;max-width:640px}
+.airline-logo{width:62px;height:62px}
+.airline-iata{font-size:24px}
+.price{padding:34px 26px}
+.price-kicker{font-size:23px}
+.price-x{font-size:36px}
+.price-cur{font-size:46px}
+.price-num{font-size:110px}
+.price-cents{font-size:46px}
+.price-free{font-size:26px}
+.price-total{font-size:26px}
+.price-fine{font-size:20px}
+.price-alt-num{font-size:64px}
+.side-card{padding:24px 30px}
+.side-icon,.side-icon svg{width:44px;height:44px}
+.side-card p{font-size:25px}
+.side-fine{font-size:21px}
+.note{font-size:21px;margin-top:4px}
 `;
 
 const FEED_CSS = `
@@ -176,32 +179,35 @@ const FEED_CSS = `
 .cards-seal,.offer-seal{width:124px;height:124px}
 .category-badge{font-size:22px;padding:10px 24px}
 .found-badge{font-size:20px;padding:10px 22px}
-.hero{margin-top:30px}
-.destination{font-size:132px;margin:24px 0 0}
+.hero{margin-top:28px}
+.destination{font-size:132px;margin:22px 0 0}
 .route-city{font-size:44px}.route-city .arrow{font-size:32px}
 .route-iata{font-size:23px}
-.bottom{display:flex;flex-direction:column;gap:18px}
-.info{padding:24px 22px}
-.info-icon,.info-icon svg{width:40px;height:40px}
-.info-strong{font-size:25px}
-.info-small{font-size:20px}
-.info-div{height:92px}
-.airline-logo{width:52px;height:52px}.airline-logo img{width:42px;height:42px}
-.price{padding:28px 30px}
-.price-kicker{font-size:20px}
-.price-x{font-size:28px}
-.price-cur{font-size:42px}
-.price-num{font-size:112px}
-.price-cents{font-size:46px}
-.price-free{font-size:24px}
-.price-total{font-size:25px}
-.side{flex-direction:row}
-.side-card{padding:20px 22px;align-items:flex-start}
-.side-icon,.side-icon svg{width:38px;height:38px}
+.bottom{display:flex;flex-direction:column;gap:16px}
+.info{padding:6px 28px}
+.info-row{padding:16px 0}
+.info-icon,.info-icon svg{width:36px;height:36px}
+.info-label{font-size:19px}
+.info-value{font-size:25px;max-width:600px}
+.airline-logo{width:52px;height:52px}
+.airline-iata{font-size:20px}
+.price{padding:26px 22px}
+.price-kicker{font-size:19px}
+.price-x{font-size:30px}
+.price-cur{font-size:38px}
+.price-num{font-size:88px}
+.price-cents{font-size:38px}
+.price-free{font-size:22px}
+.price-total{font-size:22px}
+.price-fine{font-size:17px}
+.price-alt-num{font-size:52px}
+.side-card{padding:18px 24px}
+.side-icon,.side-icon svg{width:36px;height:36px}
 .side-card p{font-size:21px}
 .side-fine{font-size:18px}
-.note{font-size:19px;margin-top:4px}
+.note{font-size:18px;margin-top:2px}
 `;
+
 
 
 
