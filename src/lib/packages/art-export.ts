@@ -111,7 +111,10 @@ function collectPanelRects(
   const stageRect = stage.getBoundingClientRect();
   const sx = targetWidth / stageRect.width;
   const sy = targetHeight / stageRect.height;
-  const nodes = stage.querySelectorAll<HTMLElement>(".glass-panel, .glass-panel-dark");
+  // .glass / .glass-dark são usados nas artes de passeio e ingresso (StoryArtVariants)
+  const nodes = stage.querySelectorAll<HTMLElement>(
+    ".glass-panel, .glass-panel-dark, .glass, .glass-dark",
+  );
   const rects: PanelRect[] = [];
   nodes.forEach((el) => {
     const r = el.getBoundingClientRect();
@@ -124,7 +127,7 @@ function collectPanelRects(
       w: r.width * sx,
       h: r.height * sy,
       radius: cssRadius * sx,
-      dark: el.classList.contains("glass-panel-dark"),
+      dark: el.classList.contains("glass-panel-dark") || el.classList.contains("glass-dark"),
     });
   });
   return rects;
