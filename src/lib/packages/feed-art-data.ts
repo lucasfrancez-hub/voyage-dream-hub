@@ -353,6 +353,8 @@ export type FeedInputPkg = {
   services?: PackageServices | null;
   meal_plan?: string | null;
   supplier_name?: string | null;
+  source?: string | null;
+  hotel_options?: Array<{ hotel_name?: string | null } | null> | null;
   kind?: "package" | "service" | "cruise" | "tour" | null;
   date_mode?: "fixed" | "flexible" | null;
   pricing_mode?: "per_occupancy" | "per_unit" | null;
@@ -376,10 +378,14 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
   // Ingressos e passeios: preço por unidade/pessoa, base 1 (não há mínimo).
   // Pacotes: preço x ocupação.
   const pessoas = isService || isTour ? 1 : Math.max(1, Number(pkg.base_occupancy) || 2);
-  const isCativa = /cativa/i.test(pkg.supplier_name ?? "");
-  const parks = (pkg.services?.tickets?.parks ?? [])
-    .map((p) => String(p ?? "").trim())
-    .filter(Boolean);
+  // Parcelamento vem da regra da operadora (FRT 15x; demais, inclusive Cativa, 10x).
+  const parcelas = packageMaxInstallments({
+    supplierName: pkg.supplier_name,
+    source: pkg.source,
+  });
+  const parks = deriveTicketParks(pkg.includes, pkg.services ?? null);
+  const outrasHospedagens =
+    (pkg.hotel_options ?? []).filter((h) => h && String(h.hotel_name ?? "").trim()).length > 1;
 
   return {
     kind: (pkg.kind ?? "package") as "package" | "service" | "cruise" | "tour",
@@ -398,10 +404,10 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     origem: pkg.origin || "",
     hotel: pkg.hotel_name || "",
     estrelas: pkg.hotel_stars,
+    outrasHospedagens,
     quantidadePessoas: pessoas,
     apartamento: isService || isTour ? "" : (APT_LABEL[pessoas] || `de ${pessoas} pessoas`),
-    parcelas: isCativa ? 15 : 10,
-    isCativa,
+    parcelas,
     valorTotal: (Number(pkg.price_per_person) || 0) * pessoas,
 
     inclusos: detectIncludes(pkg.includes, pkg.services ?? null, pkg.kind ?? null),
@@ -410,5 +416,6 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     ticketsParks: parks,
     passeiosList: normalizePasseios(pkg.services ?? null),
   };
+
 }
 
