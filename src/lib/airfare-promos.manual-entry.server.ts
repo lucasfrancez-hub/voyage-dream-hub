@@ -261,6 +261,7 @@ export async function buildManualCheckoutLink(promo: {
   const { buildPayment } = await import("@/lib/public-quote/payments");
   const { savePublicQuote } = await import("@/lib/public-quote/store.server");
   const { cityLabel } = await import("@/lib/iata-lookup");
+  const { rotatingAgent } = await import("@/lib/public-quote/agents");
 
   const manual = ((promo.raw as { manual?: { legs?: ManualLegInput[] } } | null)?.manual ?? {}) as {
     legs?: ManualLegInput[];
