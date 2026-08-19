@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, MapPin, Star, Radio, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { searchTripAdvisorHotels, getTripAdvisorHotelDetails, type TAHotelSuggestion, type TAHotelDetails } from "@/lib/tripadvisor.functions";
+import { searchTripAdvisorHotels, getTripAdvisorHotelDetails, getTripAdvisorHotelByUrl, parseTripAdvisorUrl, type TAHotelSuggestion, type TAHotelDetails } from "@/lib/tripadvisor.functions";
 
 export type HotelSelection = TAHotelDetails;
 
