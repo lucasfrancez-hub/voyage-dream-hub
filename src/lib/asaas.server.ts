@@ -15,6 +15,10 @@ function baseUrl(): string {
     : 'https://api.asaas.com/v3'
 }
 
+export async function asaasRequest(path: string, init?: RequestInit): Promise<any> {
+  return await asaasFetch(path, init)
+}
+
 async function asaasFetch(path: string, init?: RequestInit): Promise<any> {
   const key = process.env['ASAAS_API_KEY']
   if (!key) throw new Error('ASAAS_API_KEY não configurada.')

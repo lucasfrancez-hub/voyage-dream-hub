@@ -178,7 +178,7 @@ export async function buscarCobrancaPorReferencia(externalReference: string) {
 
 /** Valor líquido / taxas da cobrança. */
 export async function consultarValorLiquido(paymentId: string) {
-  return await asaasRequest(`/payments/${encodeURIComponent(paymentId)}`).then((p) => ({
+  return await asaasRequest(`/payments/${encodeURIComponent(paymentId)}`).then((p: any) => ({
     netValue: p?.netValue ?? null,
     value: p?.value ?? null,
     status: p?.status ?? null,
