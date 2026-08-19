@@ -344,7 +344,9 @@ function PackageDetails() {
   // (item 19 do briefing) e o servidor já cacheia o TripAdvisor por 30 dias.
   const hotelInfoQueries = useQueries({
     queries: hotelQueryTargets.map(({ name: nome, locationId }) => ({
-      queryKey: ["package-hotel-option", nome, hotelCity, locationId],
+      // A versão faz o navegador descartar respostas antigas sem fotos quando
+      // a estratégia de enriquecimento/cache do servidor é atualizada.
+      queryKey: ["package-hotel-option", "gallery-v8", nome, hotelCity, locationId],
       queryFn: () => fetchHotelInfo({ data: { hotelName: nome, city: hotelCity, locationId } }),
       staleTime: 30 * 60_000,
       gcTime: 60 * 60_000,
@@ -426,7 +428,7 @@ function PackageDetails() {
     selInfo?.web_url ??
     null;
   const hotelPhotos: string[] = (() => {
-    const own = Array.isArray(selHotel?.tripadvisor_photos) ? selHotel!.tripadvisor_photos! : null;
+    const own = Array.isArray(selHotel?.tripadvisor_photos) ? selHotel.tripadvisor_photos : null;
     if (own?.length) return own;
     const base = pkgIfBase(
       ((pkg as unknown as { tripadvisor_photos?: string[] | null }).tripadvisor_photos ?? null) as string[] | null,
