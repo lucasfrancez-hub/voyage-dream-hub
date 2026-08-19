@@ -30,12 +30,15 @@ function extensionFor(contentType: string) {
 }
 
 async function googlePlacePhotos(hotelName: string, city: string | null, apiKey: string) {
+  const lovableApiKey = process.env["LOVABLE_API_KEY"];
+  if (!lovableApiKey) return [];
   try {
-    const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    const response = await fetch("https://connector-gateway.lovable.dev/google_maps/v1/places:searchText", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Goog-Api-Key": apiKey,
+        Authorization: `Bearer ${lovableApiKey}`,
+        "X-Connection-Api-Key": apiKey,
         "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.photos",
       },
       body: JSON.stringify({
@@ -76,7 +79,8 @@ export async function recoverHotelPhotos(
   city: string | null,
 ): Promise<string[]> {
   const apiKey = process.env["GOOGLE_MAPS_API_KEY"];
-  if (!apiKey) return [];
+  const lovableApiKey = process.env["LOVABLE_API_KEY"];
+  if (!apiKey || !lovableApiKey) return [];
   const photoNames = await googlePlacePhotos(hotelName, city, apiKey);
   if (!photoNames.length) return [];
 
@@ -87,13 +91,16 @@ export async function recoverHotelPhotos(
   for (const photoName of photoNames) {
     if (persisted.length >= MAX_PHOTOS) break;
     try {
-      const url = new URL(`https://places.googleapis.com/v1/${photoName}/media`);
+      const url = new URL(`https://connector-gateway.lovable.dev/google_maps/v1/${photoName}/media`);
       url.searchParams.set("maxWidthPx", "1600");
       url.searchParams.set("maxHeightPx", "1200");
       url.searchParams.set("skipHttpRedirect", "false");
-      url.searchParams.set("key", apiKey);
       const response = await fetch(url, {
-        headers: { Accept: "image/*" },
+        headers: {
+          Accept: "image/*",
+          Authorization: `Bearer ${lovableApiKey}`,
+          "X-Connection-Api-Key": apiKey,
+        },
         redirect: "follow",
       });
       if (!response.ok) continue;
