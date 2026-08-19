@@ -144,23 +144,36 @@ export function PromoArtDialog({
   const salvarOverrides = useServerFn(savePromoCardOverrides);
   const [salvando, setSalvando] = useState(false);
 
-  async function confirmarEdicao() {
-    if (card) {
-      setSalvando(true);
-      try {
-        await salvarOverrides({ data: { id: promo.id, card } });
-        qc.setQueryData(["promo-card", promo.id], (old: any) =>
-          old ? { ...old, card, editado: true } : old,
-        );
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Não foi possível salvar a arte");
-        setSalvando(false);
-        return;
-      }
+  async function persistirArte() {
+    if (!card) return false;
+    setSalvando(true);
+    try {
+      await salvarOverrides({ data: { id: promo.id, card } });
+      qc.setQueryData(["promo-card", promo.id], (old: any) =>
+        old ? { ...old, card, editado: true } : { card, fotos, editado: true },
+      );
+      await qc.invalidateQueries({ queryKey: ["promo-card", promo.id] });
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar a arte");
+      return false;
+    } finally {
       setSalvando(false);
     }
+  }
+
+  async function confirmarEdicao() {
+    if (!(await persistirArte())) return;
+    toast.success("Arte salva");
     if (onDone) onDone();
     else setEditando(false);
+  }
+
+  async function divulgar(canal: "whatsapp" | "instagram") {
+    if (!(await persistirArte())) return;
+    if (onDivulgar) onDivulgar(canal);
+    else if (canal === "whatsapp") whatsapp.mutate();
+    else publicar.mutate();
   }
 
   const previewUrl = card ? `/api/public/promo-card?f=${format}&d=${encode(card)}` : "";
@@ -340,11 +353,16 @@ export function PromoArtDialog({
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setEditando((v) => !v)}
+                      onClick={() => (editando ? void confirmarEdicao() : setEditando(true))}
+                      disabled={salvando}
                       className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/70 px-5 py-2.5 text-[10px] font-bold text-white shadow-xl backdrop-blur-xl transition hover:bg-black"
                     >
-                      <Pencil className="h-3.5 w-3.5 text-brand-orange" />
-                      {editando ? "FECHAR EDIÇÃO" : "ALTERAR ARTE"}
+                      {salvando ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-orange" />
+                      ) : (
+                        <Pencil className="h-3.5 w-3.5 text-brand-orange" />
+                      )}
+                      {editando ? (salvando ? "SALVANDO…" : "SALVAR ARTE") : "ALTERAR ARTE"}
                     </button>
                   )}
                 </div>
@@ -356,8 +374,8 @@ export function PromoArtDialog({
                   <button
                     type="button"
                     title="Divulgar no WhatsApp"
-                    onClick={() => (onDivulgar ? onDivulgar("whatsapp") : whatsapp.mutate())}
-                    disabled={whatsapp.isPending}
+                    onClick={() => void divulgar("whatsapp")}
+                    disabled={whatsapp.isPending || salvando}
                     className="flex h-14 w-14 items-center justify-center rounded-full border border-[#25D366]/20 bg-[#25D366]/10 text-[#25D366] shadow-lg transition hover:scale-110 hover:bg-[#25D366] hover:text-white active:scale-95 disabled:opacity-60"
                   >
                     {whatsapp.isPending && !onDivulgar ? (
@@ -369,8 +387,8 @@ export function PromoArtDialog({
                   <button
                     type="button"
                     title="Divulgar no Instagram"
-                    onClick={() => (onDivulgar ? onDivulgar("instagram") : publicar.mutate())}
-                    disabled={publicar.isPending}
+                    onClick={() => void divulgar("instagram")}
+                    disabled={publicar.isPending || salvando}
                     className="flex h-14 w-14 items-center justify-center rounded-full border border-[#E1306C]/20 bg-[#E1306C]/10 text-[#E1306C] shadow-lg transition hover:scale-110 hover:bg-[#E1306C] hover:text-white active:scale-95 disabled:opacity-60"
                   >
                     {publicar.isPending && !onDivulgar ? (
