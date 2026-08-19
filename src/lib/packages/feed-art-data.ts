@@ -413,8 +413,10 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     source: pkg.source,
   });
   const parks = deriveTicketParks(pkg.includes, pkg.services ?? null);
-  const outrasHospedagens =
-    (pkg.hotel_options ?? []).filter((h) => h && String(h.hotel_name ?? "").trim()).length > 1;
+  const extraHotelOptions = Math.max(
+    0,
+    (pkg.hotel_options ?? []).filter((h) => h && String(h.hotel_name ?? "").trim()).length - 1,
+  );
 
   return {
     kind: (pkg.kind ?? "package") as "package" | "service" | "cruise" | "tour",
@@ -433,7 +435,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     origem: pkg.origin || "",
     hotel: pkg.hotel_name || "",
     estrelas: pkg.hotel_stars,
-    outrasHospedagens,
+    extraHotelOptions,
     quantidadePessoas: pessoas,
     apartamento: isService || isTour ? "" : (APT_LABEL[pessoas] || `de ${pessoas} pessoas`),
     parcelas,

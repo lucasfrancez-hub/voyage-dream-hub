@@ -26,8 +26,8 @@ export type FeedArtData = {
   origem: string;
   hotel: string;
   estrelas: number | null;
-  /** Existe mais de uma opção de hospedagem cadastrada no pacote. */
-  outrasHospedagens?: boolean;
+  /** Quantidade de opções de hospedagem EXTRAS além do hotel principal. */
+  extraHotelOptions?: number;
   quantidadePessoas: number;
   apartamento: string;
   parcelas: number;
