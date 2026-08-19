@@ -853,3 +853,97 @@ export async function listAsaasPaymentLinks(limit = 20) {
 export async function deleteAsaasPaymentLink(id: string) {
   return await asaasFetch(`/paymentLinks/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
+
+/* ── Cobrança direta (checkout transparente): nosso formulário → API do ASAAS ── */
+
+export interface AsaasDirectChargeInput {
+  customerId: string
+  billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD'
+  value: number
+  dueDate: string
+  description?: string | null
+  externalReference?: string | null
+  installmentCount?: number | null
+  card?: {
+    holderName: string
+    number: string
+    expiryMonth: string
+    expiryYear: string
+    ccv: string
+  } | null
+  holder?: {
+    name: string
+    email: string
+    cpfCnpj: string
+    postalCode: string
+    addressNumber: string
+    addressComplement?: string | null
+    phone?: string | null
+  } | null
+  remoteIp?: string | null
+}
+
+/** Cria a cobrança direto no ASAAS a partir dos dados digitados no nosso formulário. */
+export async function createAsaasDirectCharge(input: AsaasDirectChargeInput) {
+  const parcelas = input.installmentCount && input.installmentCount > 1 ? input.installmentCount : null
+  const valor = Number(input.value.toFixed(2))
+  const body: Record<string, unknown> = {
+    customer: input.customerId,
+    billingType: input.billingType,
+    dueDate: input.dueDate,
+    description: input.description ?? undefined,
+    externalReference: input.externalReference ?? undefined,
+    postalService: false,
+    ...(parcelas
+      ? { installmentCount: parcelas, totalValue: valor }
+      : { value: valor }),
+  }
+
+  if (input.billingType === 'CREDIT_CARD') {
+    if (!input.card || !input.holder) throw new Error('Dados do cartão incompletos.')
+    body.creditCard = {
+      holderName: input.card.holderName,
+      number: input.card.number.replace(/\D/g, ''),
+      expiryMonth: input.card.expiryMonth.padStart(2, '0'),
+      expiryYear: input.card.expiryYear.length === 2 ? `20${input.card.expiryYear}` : input.card.expiryYear,
+      ccv: input.card.ccv,
+    }
+    body.creditCardHolderInfo = {
+      name: input.holder.name,
+      email: input.holder.email,
+      cpfCnpj: input.holder.cpfCnpj.replace(/\D/g, ''),
+      postalCode: input.holder.postalCode.replace(/\D/g, ''),
+      addressNumber: input.holder.addressNumber,
+      addressComplement: input.holder.addressComplement || null,
+      phone: input.holder.phone ? String(input.holder.phone).replace(/\D/g, '') : undefined,
+    }
+    if (input.remoteIp) body.remoteIp = input.remoteIp
+  }
+
+  const payment = await asaasFetch('/payments', { method: 'POST', body: JSON.stringify(body) })
+
+  let pixPayload: string | null = null
+  let pixEncodedImage: string | null = null
+  let identificationField: string | null = null
+  if (input.billingType === 'PIX' || input.billingType === 'BOLETO') {
+    const pix = await asaasFetch(`/payments/${payment.id}/pixQrCode`).catch(() => null)
+    pixPayload = pix?.payload ?? null
+    pixEncodedImage = pix?.encodedImage ?? null
+  }
+  if (input.billingType === 'BOLETO') {
+    const idf = await asaasFetch(`/payments/${payment.id}/identificationField`).catch(() => null)
+    identificationField = idf?.identificationField ?? null
+  }
+
+  return {
+    paymentId: String(payment.id),
+    status: String(payment.status ?? ''),
+    value: Number(payment.value ?? valor),
+    installmentCount: parcelas,
+    invoiceUrl: payment.invoiceUrl ?? null,
+    bankSlipUrl: payment.bankSlipUrl ?? null,
+    identificationField,
+    pixPayload,
+    pixEncodedImage,
+  }
+}
