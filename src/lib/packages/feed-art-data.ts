@@ -7,6 +7,8 @@ import type { FeedArtData } from "@/components/packages/PackageFeedArt";
 import { fetchProxiedImage } from "@/lib/image-proxy.functions";
 import { generatePackageTagline } from "@/lib/packages/ai.functions";
 import { classifyMealPlan, mealPlanLabel, type MealPlanKind } from "@/lib/packages/meal-plan";
+import { packageMaxInstallments } from "@/lib/packages/card-installments";
+
 
 
 const FONTS_HREF =
