@@ -92,14 +92,55 @@ export type HotelCandidate = {
   web_url: string | null;
 };
 
+/**
+ * Quando a chave do TripAdvisor estoura o limite (HTTP 429), paramos de
+ * chamar a API por alguns minutos — insistir só queima mais cota e deixa
+ * todo hotel sem foto.
+ */
+let bloqueadoAte = 0;
+export function tripAdvisorLimitado(): boolean {
+  return Date.now() < bloqueadoAte;
+}
+
+/** Extrai o location_id de uma URL do TripAdvisor (…-d736663-…). */
+export function locationIdDaUrl(texto: string): number | null {
+  const m = String(texto ?? "").match(/tripadvisor\.[^\s]*?[-/]d(\d{3,12})/i);
+  const id = m ? Number(m[1]) : NaN;
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+/** Dados básicos de uma propriedade pelo ID (usado quando colam a URL). */
+async function locationPorId(id: number, signal: AbortSignal, apiKey: string): Promise<HotelCandidate | null> {
+  const det = await jsonOf(`${BASE}/locations/${id}`, signal, apiKey);
+  const d = ((det?.data as Record<string, unknown> | undefined) ?? det ?? {}) as Record<string, unknown>;
+  const nome = pickName(d.names);
+  if (!nome) return null;
+  const estrelasRaw = (d.hotel_class ?? (d as { class?: unknown }).class) as unknown;
+  const estrelas = Number(typeof estrelasRaw === "string" ? estrelasRaw.replace(",", ".") : estrelasRaw);
+  return {
+    id,
+    name: nome,
+    address: pickAddress(d.addresses as Array<Record<string, unknown>> | undefined),
+    stars: Number.isFinite(estrelas) && estrelas >= 1 && estrelas <= 5 ? Math.round(estrelas) : null,
+    web_url: (d.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null,
+  };
+}
+
 /** Busca propriedades no TripAdvisor para o vínculo manual. */
 export async function searchHotelLocations(query: string): Promise<HotelCandidate[]> {
   const apiKey = process.env["TRIPADVISOR_API_KEY"];
   const termo = String(query ?? "").trim();
-  if (!apiKey || termo.length < 3) return [];
+  if (!apiKey || termo.length < 3 || tripAdvisorLimitado()) return [];
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12_000);
   try {
+    // Colou o link da ficha? Resolve direto pelo ID, sem gastar busca.
+    const idUrl = locationIdDaUrl(termo);
+    if (idUrl) {
+      const unico = await locationPorId(idUrl, ctrl.signal, apiKey);
+      return unico ? [unico] : [];
+    }
+
     const search = await jsonOf(
       `${BASE}/catalog/locations/search?query=${encodeURIComponent(termo)}&search_type=NAME&category=HOTEL`,
       ctrl.signal,
@@ -110,22 +151,20 @@ export async function searchHotelLocations(query: string): Promise<HotelCandidat
       .filter((loc) => loc?.id != null)
       .slice(0, 8);
 
-    return await Promise.all(
-      brutos.map(async (loc) => {
-        const id = Number(loc.id);
-        const det = await jsonOf(`${BASE}/locations/${id}`, ctrl.signal, apiKey);
-        const d = ((det?.data as Record<string, unknown> | undefined) ?? det ?? {}) as Record<string, unknown>;
-        const estrelasRaw = (d.hotel_class ?? (d as { class?: unknown }).class) as unknown;
-        const estrelas = Number(typeof estrelasRaw === "string" ? estrelasRaw.replace(",", ".") : estrelasRaw);
-        return {
-          id,
-          name: pickName(d.names) || pickName(loc.names) || `Propriedade ${id}`,
-          address: pickAddress(d.addresses as Array<Record<string, unknown>> | undefined),
-          stars: Number.isFinite(estrelas) && estrelas >= 1 && estrelas <= 5 ? Math.round(estrelas) : null,
-          web_url: (d.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null,
-        };
-      }),
-    );
+    // Sem chamada de detalhe por candidato (antes eram 8 requisições extras
+    // por busca, o que estourava o limite da chave). O detalhe completo é
+    // carregado só quando o hotel é realmente vinculado.
+    return brutos.map((loc) => {
+      const estrelasRaw = (loc.hotel_class ?? (loc as { class?: unknown }).class) as unknown;
+      const estrelas = Number(typeof estrelasRaw === "string" ? estrelasRaw.replace(",", ".") : estrelasRaw);
+      return {
+        id: Number(loc.id),
+        name: pickName(loc.names) || `Propriedade ${Number(loc.id)}`,
+        address: pickAddress(loc.addresses as Array<Record<string, unknown>> | undefined),
+        stars: Number.isFinite(estrelas) && estrelas >= 1 && estrelas <= 5 ? Math.round(estrelas) : null,
+        web_url: (loc.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? null,
+      };
+    });
   } catch {
     return [];
   } finally {
@@ -217,6 +256,10 @@ async function jsonOf(
       headers: { accept: "application/json", "X-API-KEY": apiKey },
     });
     if (!r.ok) {
+      if (r.status === 429) {
+        // Limite da chave estourado: pausa curta para não queimar mais cota.
+        bloqueadoAte = Date.now() + 10 * 60_000;
+      }
       console.warn("[hotel-enrichment] TripAdvisor", r.status, url.split("?")[0]);
       return null;
     }
@@ -267,7 +310,9 @@ export async function enrichHotel(params: {
 
   const apiKey = process.env["TRIPADVISOR_API_KEY"];
   const local = params.city ?? params.destination ?? null;
-  const fixado = params.locationId ?? (await readPinnedLocation(nome, local));
+  // O cadastro às vezes traz a URL da ficha do TripAdvisor no lugar do nome.
+  const idColado = locationIdDaUrl(nome);
+  const fixado = params.locationId ?? idColado ?? (await readPinnedLocation(nome, local));
   const key = cacheKey(nome, local, fixado);
 
   if (!params.force) {
@@ -306,13 +351,15 @@ export async function enrichHotel(params: {
       push(semCidade);
     }
 
-    const consultas = local
+    // No máximo 3 buscas por hotel — mais que isso queima a cota da chave.
+    const consultas = (local
       ? [...variantes.map((v) => `${v} ${local}`), ...variantes]
-      : variantes;
+      : variantes
+    ).slice(0, 3);
 
     let search: Record<string, unknown> | null = null;
     let candidatos: Array<{ id: number; name: string }> = [];
-    if (!fixado) {
+    if (!fixado && !tripAdvisorLimitado()) {
       for (const q of consultas) {
         search = await api(
           `/catalog/locations/search?query=${encodeURIComponent(q)}&search_type=NAME&category=HOTEL`,
