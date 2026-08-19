@@ -412,7 +412,7 @@ export function buildCamilaTools(conversation: WaConversation) {
       execute: async ({ slug, quantidade_adultos, origem_cliente, mes_desejado }) => {
         const { data: pkg } = await supabaseAdmin
           .from("packages")
-          .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active, services, supplier_name")
+          .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_options, hotel_stars, is_active, services, supplier_name")
           .eq("slug", slug)
           .maybeSingle();
         const storedCopyRes = pkg
@@ -618,6 +618,11 @@ export function buildCamilaTools(conversation: WaConversation) {
           lines.push(`🗓️ ${dateRange}${nights ? ` (${nights} noites)` : ""}`);
           if (pkg.hotel_name) {
             lines.push(`🏨 ${pkg.hotel_name}${stars ? ` ${stars}` : ""}${regime ? ` — ${regime}` : ""}`);
+            const outrasHosp = (Array.isArray((pkg as any).hotel_options)
+              ? ((pkg as any).hotel_options as Array<{ hotel_name?: string | null }>)
+              : []
+            ).filter((h) => h && String(h?.hotel_name ?? "").trim()).length;
+            if (outrasHosp > 1) lines.push(`   _ou outras opções de hospedagem_`);
           }
           if (services_lines.length) {
             lines.push("");
