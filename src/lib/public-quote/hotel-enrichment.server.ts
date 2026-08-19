@@ -33,6 +33,8 @@ export type HotelEnrichment = {
   status: "OK" | "PARTIAL" | "MATCH_FAILED";
 };
 
+import { traduzirEndereco } from "@/lib/utils/endereco-pt";
+
 const CACHE_DAYS = 30;
 // A Content API pública (api.content.tripadvisor.com) responde 403 para a
 // nossa chave; o restante do projeto usa a API Terra com X-API-KEY.
