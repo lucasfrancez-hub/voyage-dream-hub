@@ -127,7 +127,7 @@ function collectPanelRects(
       w: r.width * sx,
       h: r.height * sy,
       radius: cssRadius * sx,
-      dark: el.classList.contains("glass-panel-dark"),
+      dark: el.classList.contains("glass-panel-dark") || el.classList.contains("glass-dark"),
     });
   });
   return rects;
