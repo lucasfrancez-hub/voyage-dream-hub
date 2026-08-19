@@ -64,6 +64,7 @@ import {
 import { scopeOfRoute } from "@/lib/br-airports";
 import { isOriginAllowedForScope } from "@/lib/airfare-promos.config";
 import { AIRLINES } from "@/lib/airlines";
+import { TrechosPromocaoDialog } from "@/components/promocoes/TrechosPromocaoDialog";
 
 
 
@@ -450,6 +451,7 @@ function PromoCard({
   onSocial,
   onDelete,
   onPrice,
+  onLegs,
   busy,
 }: {
   promo: Promo;
@@ -461,6 +463,7 @@ function PromoCard({
   onSocial: (canal: "whatsapp" | "instagram") => void;
   onDelete: () => void;
   onPrice: () => void;
+  onLegs: () => void;
   busy: boolean;
 }) {
   const semJuros =
@@ -623,7 +626,16 @@ function PromoCard({
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
+          <button
+            type="button"
+            onClick={onLegs}
+            title="Editar trechos (horários, nº do voo, conexões)"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-lg border border-border/70 text-muted-foreground transition hover:border-brand-orange/60 hover:text-brand-orange"
+          >
+            <Plane className="h-3.5 w-3.5" />
+          </button>
         </div>
+
         <div className="mt-1.5 text-xs text-muted-foreground">
           Total <span className="font-semibold text-foreground/80">{brl(promo.total_price)}</span>
         </div>
@@ -1011,6 +1023,7 @@ function PromocoesAereoPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [artPromo, setArtPromo] = useState<(PromoRow & { id: string }) | null>(null);
   const [precoPromo, setPrecoPromo] = useState<Promo | null>(null);
+  const [trechosPromo, setTrechosPromo] = useState<Promo | null>(null);
   const [artEditando, setArtEditando] = useState(false);
   const [socialPromo, setSocialPromo] = useState<(PromoRow & { id: string }) | null>(null);
   const [socialCanal, setSocialCanal] = useState<"whatsapp" | "instagram">("whatsapp");
@@ -1774,6 +1787,7 @@ function PromocoesAereoPage() {
                 agendamentos={agendaPorPromo.get(promo.id) ?? []}
                 onArt={() => setArtPromo(promo)}
                 onPrice={() => setPrecoPromo(promo)}
+                onLegs={() => setTrechosPromo(promo)}
                 onSocial={(canal) => {
                   setSocialCanal(canal);
                   setSocialPromo(promo);
@@ -1860,6 +1874,15 @@ function PromocoesAereoPage() {
           }}
         />
       ) : null}
+
+      <TrechosPromocaoDialog
+        promo={trechosPromo}
+        onClose={() => setTrechosPromo(null)}
+        onSaved={() => {
+          setTrechosPromo(null);
+          qc.invalidateQueries({ queryKey: ["airfare-promos"] });
+        }}
+      />
 
       <PrecoManualDialog
         promo={precoPromo}
