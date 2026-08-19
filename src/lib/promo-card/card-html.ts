@@ -314,19 +314,18 @@ const SEALS = `
       <circle cx="100" cy="100" r="76" fill="none" stroke="rgba(255,255,255,.24)" stroke-width="4" stroke-dasharray="1 8" stroke-linecap="round"/>
       <circle cx="100" cy="100" r="61" fill="rgba(4,60,25,.22)"/>
       <circle cx="100" cy="100" r="61" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
-      <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.2" opacity=".95">
-        <textPath href="#offerArcTop" startOffset="50%" text-anchor="middle">OFERTA DO DIA</textPath>
+      <text fill="#fff" font-size="18" font-weight="900" letter-spacing="1.2">
+        <textPath href="#offerArcTop" startOffset="50%" text-anchor="middle">TARIFA RELÂMPAGO</textPath>
       </text>
-      <text fill="#fff" font-size="9.5" font-weight="800" letter-spacing="4.2" opacity=".85">
-        <textPath href="#offerArcBottom" startOffset="50%" text-anchor="middle">VIA AIR</textPath>
+      <text fill="#fff" font-size="10" font-weight="800" letter-spacing="3.6" opacity=".88">
+        <textPath href="#offerArcBottom" startOffset="50%" text-anchor="middle">OFERTA DO DIA</textPath>
       </text>
       <g fill="rgba(255,255,255,.65)"><circle cx="24.5" cy="100" r="2.4"/><circle cx="175.5" cy="100" r="2.4"/></g>
-      <g transform="translate(0 -10) scale(.72) translate(30 22)">
+      <g transform="translate(0 6) scale(.78) translate(30 22)">
         <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#0d5726" opacity=".25" transform="translate(3 4)"/>
         <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#fff"/>
       </g>
-      <text x="100" y="131" text-anchor="middle" fill="#fff" font-size="13.5" font-weight="900" letter-spacing="1.8">TARIFA</text>
-      <text x="100" y="149" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="900" letter-spacing=".6">RELÂMPAGO</text>
+
     </svg>
   </div>
 </div>`;
