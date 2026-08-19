@@ -472,6 +472,8 @@ export const ajustarPrecoPromocao = createServerFn({ method: "POST" })
         id: z.string().uuid(),
         pricePerPassenger: z.number().min(1).max(200000),
         taxesPerPassenger: z.number().min(0).max(200000).optional().nullable(),
+        airlineIata: z.string().trim().max(8).optional().nullable(),
+
       })
       .parse(input),
   )

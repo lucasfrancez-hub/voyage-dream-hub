@@ -28,7 +28,10 @@ export type PriceOverrideInput = {
   pricePerPassenger: number;
   /** taxas por passageiro (opcional — mantém as atuais quando ausente) */
   taxesPerPassenger?: number | null;
+  /** companhia aérea (IATA) — quando informada, troca a cia e o parcelamento */
+  airlineIata?: string | null;
 };
+
 
 export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -56,6 +59,14 @@ export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
       : n2(Math.max(0, Number(input.taxesPerPassenger) || 0) * passengers);
   const fare = n2(Math.max(0, total - taxes));
 
+  // troca opcional da companhia aérea (aplica na ida e na volta)
+  const { findAirline } = await import("@/lib/airlines");
+  const novaCia = input.airlineIata?.trim() ? findAirline(input.airlineIata) : undefined;
+  const airlineIata = novaCia?.iata ?? promo.airline_iata ?? null;
+  const airlineName = novaCia?.name ?? promo.airline_name ?? null;
+  const inboundIata = novaCia ? novaCia.iata : (promo.inbound_airline_iata ?? null);
+  const inboundName = novaCia ? novaCia.name : (promo.inbound_airline_name ?? null);
+
   const markups = await loadMarkups(supabaseAdmin as never);
   const quotes = buildExtendedQuotes(total, markups as never);
   const extendedOptions = quotesToExtendedOptions(quotes);
@@ -63,19 +74,20 @@ export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
   const condOut = getAirfarePaymentConditions({
     total,
     passengers,
-    airline: { iata: promo.airline_iata ?? null, name: promo.airline_name ?? null },
+    airline: { iata: airlineIata, name: airlineName },
     extendedOptions,
   });
-  const condIn = promo.inbound_airline_iata
+  const condIn = inboundIata
     ? getAirfarePaymentConditions({
         total,
         passengers,
-        airline: { iata: promo.inbound_airline_iata, name: promo.inbound_airline_name ?? null },
+        airline: { iata: inboundIata, name: inboundName },
         extendedOptions,
       })
     : null;
   const cond =
     condIn && condIn.interestFree.installments < condOut.interestFree.installments ? condIn : condOut;
+
   const q12 = quotes.find((q) => q.installments === 12) ?? quotes[quotes.length - 1] ?? null;
 
   const raw = (promo.raw && typeof promo.raw === "object" ? { ...(promo.raw as object) } : {}) as Record<
@@ -88,7 +100,16 @@ export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
     previous_price_per_passenger: n2(Number(promo.price_per_passenger) || 0),
     new_total: total,
     new_price_per_passenger: n2(perPax),
+    ...(novaCia ? { previous_airline_iata: promo.airline_iata ?? null, new_airline_iata: novaCia.iata } : {}),
   };
+  // promoção 100% manual: mantém os trechos digitados coerentes com a nova cia
+  if (novaCia) {
+    const manual = raw.manual as { legs?: Array<Record<string, unknown>> } | undefined;
+    if (manual?.legs?.length) {
+      manual.legs = manual.legs.map((l) => ({ ...l, airlineIata: novaCia.iata }));
+      raw.manual = manual;
+    }
+  }
 
   const { error: upErr } = await client
     .from("airfare_promotions")
@@ -97,9 +118,14 @@ export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
       taxes,
       total_price: total,
       price_per_passenger: n2(perPax),
+      airline_iata: airlineIata,
+      airline_name: airlineName,
+      inbound_airline_iata: inboundIata,
+      inbound_airline_name: inboundName,
       interest_free_installments: cond.interestFree.installments,
       interest_free_installment_value: n2(cond.interestFree.installmentValue),
       airline_rule: JSON.parse(JSON.stringify(cond.airlineRule)) as unknown,
+
       extended_max_installments: q12?.installments ?? null,
       extended_installment_value_12x: q12 ? n2(q12.installmentValue) : null,
       extended_markup_12x: q12 ? Number(q12.markupPercent.toFixed(4)) : null,

@@ -63,6 +63,8 @@ import {
 } from "@/lib/social-schedule-format";
 import { scopeOfRoute } from "@/lib/br-airports";
 import { isOriginAllowedForScope } from "@/lib/airfare-promos.config";
+import { AIRLINES } from "@/lib/airlines";
+
 
 
 
@@ -321,12 +323,14 @@ function PrecoManualDialog({
   const ajustar = useServerFn(ajustarPrecoPromocao);
   const [valor, setValor] = useState("");
   const [taxa, setTaxa] = useState("");
+  const [cia, setCia] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
 
   // reinicia os campos quando muda a promoção selecionada
   if (promo && aberto !== promo.id) {
     setAberto(promo.id);
     setValor(String(Number(promo.price_per_passenger ?? 0).toFixed(2)).replace(".", ","));
+    setCia(promo.airline_iata ?? "");
     setTaxa(
       promo.passengers
         ? String((Number((promo as { taxes?: number }).taxes ?? 0) / Math.max(1, promo.passengers)).toFixed(2)).replace(".", ",")
@@ -343,8 +347,10 @@ function PrecoManualDialog({
           id: promo!.id,
           pricePerPassenger: numero(valor),
           taxesPerPassenger: taxa.trim() ? numero(taxa) : null,
+          airlineIata: cia.trim() ? cia.trim().toUpperCase() : null,
         },
       }),
+
     onSuccess: (r) => {
       const res = r as { interestFreeInstallments: number; interestFreeInstallmentValue: number };
       toast.success("Preço ajustado", {
@@ -390,6 +396,22 @@ function PrecoManualDialog({
                 className="mt-1 w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-brand-orange"
               />
             </label>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Companhia aérea (define o parcelamento sem juros)
+              <select
+                value={cia}
+                onChange={(e) => setCia(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-brand-orange"
+              >
+                <option value="">Manter a atual{promo.airline_iata ? ` (${promo.airline_iata})` : ""}</option>
+                {AIRLINES.map((a) => (
+                  <option key={a.iata} value={a.iata}>
+                    {a.iata} — {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <p className="text-xs text-muted-foreground">
               Total: <strong className="text-foreground">{brl(numero(valor) * Math.max(1, promo.passengers))}</strong>
             </p>
