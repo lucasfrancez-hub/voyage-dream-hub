@@ -35,6 +35,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<TAHotelSuggestion[]>([]);
   const [fetchingId, setFetchingId] = useState<number | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastQueryRef = useRef<string>("");
@@ -50,12 +51,19 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     debounceRef.current = setTimeout(async () => {
       lastQueryRef.current = q;
       setLoading(true);
+      setErro(null);
       try {
         const r = await search({ data: { query: q } });
         setItems(r);
         setOpen(true);
       } catch (e) {
         console.error(e);
+        setErro(
+          String((e as Error)?.message || "").includes("TRIPADVISOR_RATE_LIMIT")
+            ? "Limite de consultas do TripAdvisor atingido. Aguarde alguns minutos, cole o link do hotel ou use o modo Manual."
+            : "Não foi possível consultar o TripAdvisor agora.",
+        );
+        setItems([]);
       } finally {
         setLoading(false);
       }
@@ -104,6 +112,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     const q = (value || "").trim();
     if (q.length < 3) return;
     setLoading(true);
+    setErro(null);
     try {
       lastQueryRef.current = q;
       const r = await search({ data: { query: q, force: true } });
@@ -111,6 +120,11 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
       setOpen(true);
     } catch (e) {
       console.error(e);
+      setErro(
+        String((e as Error)?.message || "").includes("TRIPADVISOR_RATE_LIMIT")
+          ? "Limite de consultas do TripAdvisor atingido. Aguarde alguns minutos, cole o link do hotel ou use o modo Manual."
+          : "Não foi possível consultar o TripAdvisor agora.",
+      );
     } finally {
       setLoading(false);
     }
@@ -177,8 +191,8 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
         </div>
       )}
       {mode === "live" && !loading && (value || "").trim().length >= 3 && items.length === 0 && (
-        <div className="mt-1 flex items-center justify-between gap-2 rounded-md border bg-popover px-3 py-2 text-[11px] text-muted-foreground">
-          <span>Nenhum hotel encontrado. Tente o nome sem palavras extras ou cole o link do TripAdvisor.</span>
+        <div className={`mt-1 flex items-center justify-between gap-2 rounded-md border bg-popover px-3 py-2 text-[11px] ${erro ? "border-destructive/50 text-destructive" : "text-muted-foreground"}`}>
+          <span>{erro ?? "Nenhum hotel encontrado. Tente o nome sem palavras extras ou cole o link do TripAdvisor."}</span>
           <button
             type="button"
             onClick={forceSearch}
