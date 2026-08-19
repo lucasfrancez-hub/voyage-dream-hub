@@ -1000,6 +1000,10 @@ function PromocoesAereoPage() {
   const genLink = useServerFn(generatePromotionLink);
   const status = useServerFn(setPromotionStatus);
   const excluir = useServerFn(deletePromotion);
+  const restaurarVoos = useServerFn(restaurarVoosPromocoesAjustadas);
+  const [restaurando, setRestaurando] = useState(false);
+
+
 
   const [aba, setAba] = useState<"nacional" | "internacional">("nacional");
   const [atalho, setAtalho] = useState(0);
