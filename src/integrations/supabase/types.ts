@@ -146,6 +146,80 @@ export type Database = {
         }
         Relationships: []
       }
+      airfare_manual_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          created_by: string
+          departure_date: string
+          destination_city: string | null
+          destination_iata: string
+          detail: string | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          origin_city: string | null
+          origin_iata: string
+          promotion_id: string | null
+          reference_price: number | null
+          result: Json | null
+          return_date: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          created_by: string
+          departure_date: string
+          destination_city?: string | null
+          destination_iata: string
+          detail?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          origin_city?: string | null
+          origin_iata: string
+          promotion_id?: string | null
+          reference_price?: number | null
+          result?: Json | null
+          return_date?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          created_by?: string
+          departure_date?: string
+          destination_city?: string | null
+          destination_iata?: string
+          detail?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          origin_city?: string | null
+          origin_iata?: string
+          promotion_id?: string | null
+          reference_price?: number | null
+          result?: Json | null
+          return_date?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airfare_manual_queue_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "airfare_promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       airfare_promo_candidates: {
         Row: {
           attempts: number
