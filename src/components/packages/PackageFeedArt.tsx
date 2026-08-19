@@ -26,11 +26,15 @@ export type FeedArtData = {
   origem: string;
   hotel: string;
   estrelas: number | null;
+  /** Existe mais de uma opção de hospedagem cadastrada no pacote. */
+  outrasHospedagens?: boolean;
   quantidadePessoas: number;
   apartamento: string;
   parcelas: number;
+  /** @deprecated mantido só para compatibilidade — o parcelamento vem de `parcelas`. */
   isCativa?: boolean;
   valorTotal: number;
+
   inclusos: {
     aereo: boolean;
     hotel: boolean;
