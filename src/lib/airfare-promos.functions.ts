@@ -882,3 +882,43 @@ export const salvarTrechosPromocao = createServerFn({ method: "POST" })
     const { updatePromotionLegs } = await import("@/lib/airfare-promos.manual-entry.server");
     return await updatePromotionLegs(data.id, data.legs as never);
   });
+
+/**
+ * Restaura os voos (número, horários, duração, bagagem) das promoções que já
+ * tiveram o preço ajustado à mão e regrava o orçamento público de cada uma.
+ */
+export const restaurarVoosPromocoesAjustadas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { data: linhas, error } = await context.supabase
+      .from("airfare_promotions")
+      .select(`${PROMO_COLUMNS}, raw`)
+      .not("raw->price_override", "is", null);
+    if (error) throw new Error(error.message);
+
+    const { buildManualCheckoutLink } = await import("@/lib/airfare-promos.manual-entry.server");
+    let ok = 0;
+    const falhas: string[] = [];
+
+    for (const promo of (linhas ?? []) as never as Array<Record<string, unknown>>) {
+      try {
+        const link = await buildManualCheckoutLink(promo as never);
+        const short =
+          link.shortUrl ?? (await criarShortLink(context, link.url, promo as never));
+        await context.supabase
+          .from("airfare_promotions")
+          .update({ cart_url: link.url, short_url: short })
+          .eq("id", promo.id as string);
+        ok += 1;
+      } catch (e) {
+        falhas.push(
+          `${String(promo.origin_iata)}→${String(promo.destination_iata)}: ${
+            e instanceof Error ? e.message : "erro"
+          }`,
+        );
+      }
+    }
+
+    return { total: (linhas ?? []).length, ok, falhas };
+  });
