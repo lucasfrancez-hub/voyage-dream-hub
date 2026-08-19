@@ -45,7 +45,8 @@ function norm(s: string) {
 }
 
 function cacheKey(name: string, city: string | null, locationId?: number | null): string {
-  // v7 — fallback confirmado pela ficha exata do Google Places.
+  // v8 — fotos reais da propriedade confirmadas pela busca web (Firecrawl).
+  return `hotel-enrich:v8:${norm(name)}|${norm(city ?? "")}${pin}`;
   const pin = locationId ? `|ta${locationId}` : "";
   return `hotel-enrich:v7:${norm(name)}|${norm(city ?? "")}${pin}`;
 }
