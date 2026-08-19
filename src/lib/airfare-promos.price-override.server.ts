@@ -28,7 +28,10 @@ export type PriceOverrideInput = {
   pricePerPassenger: number;
   /** taxas por passageiro (opcional — mantém as atuais quando ausente) */
   taxesPerPassenger?: number | null;
+  /** companhia aérea (IATA) — quando informada, troca a cia e o parcelamento */
+  airlineIata?: string | null;
 };
+
 
 export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
