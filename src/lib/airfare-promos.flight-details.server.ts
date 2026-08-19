@@ -106,10 +106,9 @@ export async function fetchPromoFlightDetails(
   promo: PromoLike,
 ): Promise<PromoFlightDetail[] | null> {
   try {
-    const { searchFlights } = await import("@/lib/onertravel.server");
+    const { searchFlights, searchInboundFlights } = await import("@/lib/onertravel.server");
     const { isMetroCode } = await import("@/lib/iata-lookup");
-    const res = (await searchFlights(
-      {
+    const base = {
         departureIata: promo.origin_iata,
         arrivalIata: promo.destination_iata,
         departureDate: promo.departure_date,
@@ -130,9 +129,12 @@ export async function fetchPromoFlightDetails(
           airlineIatas: [],
           cabinClass: null,
         },
-      } as never,
-      "normal",
-    )) as { outbound?: { flights?: OnerFlight[] }; inbound?: { flights?: OnerFlight[] } | null };
+    };
+    const res = (await searchFlights({ ...base, returnDate: promo.return_date } as never, "normal")) as {
+      searchKey?: string;
+      outbound?: { flights?: OnerFlight[] };
+      inbound?: { flights?: OnerFlight[] } | null;
+    };
 
     const out = escolher(
       res.outbound?.flights ?? [],
@@ -144,8 +146,22 @@ export async function fetchPromoFlightDetails(
     const detalhes: PromoFlightDetail[] = [flightToDetail(out, "OUTBOUND", promo.departure_date)];
 
     if (promo.return_date) {
+      let voltas = res.inbound?.flights ?? [];
+      if (!voltas.length && res.searchKey) {
+        // a volta só aparece depois de escolher a ida
+        const r = (await searchInboundFlights(
+          {
+            ...base,
+            returnDate: promo.return_date,
+            searchKey: res.searchKey,
+            flightKey: out.key,
+          } as never,
+          "normal",
+        ).catch(() => null)) as { flights?: OnerFlight[] } | null;
+        voltas = r?.flights ?? [];
+      }
       const inb = escolher(
-        res.inbound?.flights ?? [],
+        voltas,
         promo.inbound_fare_id,
         promo.inbound_itinerary_id,
         promo.inbound_airline_iata ?? promo.airline_iata,
