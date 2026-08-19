@@ -108,7 +108,7 @@ function SalvarPromocaoButton({
       detail: "Cotando no motor VIA AIR…",
       run: async () => {
         const r = await processar({ data: { id: registered.id } });
-        if ("queued" in r && r.queued) return "Aguardando processamento persistente";
+        if ("queued" in r) return "Aguardando processamento persistente";
         if (!r.ok) {
           toast.error(`Tarifa não encontrada no motor VIA AIR: ${origem} → ${destino}`);
           throw new Error("Tarifa não encontrada no motor VIA AIR");
