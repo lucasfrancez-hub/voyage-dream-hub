@@ -455,8 +455,8 @@ export const salvarOportunidadePassagensBaratas = createServerFn({ method: "POST
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    const { saveManualOpportunity } = await import("@/lib/airfare-promos.manual.server");
-    return await saveManualOpportunity(data);
+    const { enqueueManualOpportunity } = await import("@/lib/airfare-manual-queue.server");
+    return await enqueueManualOpportunity(data, context.userId);
   });
 
 
