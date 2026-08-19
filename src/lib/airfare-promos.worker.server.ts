@@ -1944,7 +1944,13 @@ export function curationDayBRT(d: Date = new Date()): string {
   }).format(d);
 }
 
-/** Arquiva promoções ativas (todas, ou só as anteriores a `beforeDay`). */
+/**
+ * Arquiva promoções ativas (todas, ou só as anteriores a `beforeDay`).
+ *
+ * IMPORTANTE: a fila de trabalho NÃO é descartada. Promoções que ainda não
+ * foram publicadas e cuja data de embarque continua no futuro são levadas
+ * para o ciclo novo (carry-over) em vez de ir para os Arquivados.
+ */
 async function archivePromotions(
   client: AnyClient,
   now: string,
@@ -1953,7 +1959,7 @@ async function archivePromotions(
 ): Promise<number> {
   let sel = client
     .from("airfare_promotions")
-    .select("id,cycle_day,quoted_at,created_at")
+    .select("id,cycle_day,quoted_at,created_at,status,departure_date")
     .is("archived_at", null);
   if (beforeDay) sel = sel.or(`cycle_day.is.null,cycle_day.lt.${beforeDay}`);
   const { data } = await sel;
@@ -1962,17 +1968,38 @@ async function archivePromotions(
     cycle_day: string | null;
     quoted_at: string | null;
     created_at: string | null;
+    status: string | null;
+    departure_date: string | null;
   }>;
   if (!rows.length) return 0;
+
+  const hoje = curationDayBRT();
+  const manter = rows.filter(
+    (r) => r.status !== "publicado" && !!r.departure_date && r.departure_date >= hoje,
+  );
+  const arquivar = rows.filter((r) => !manter.includes(r));
+
+  // carry-over: continuam na tela ativa, agora no ciclo de hoje
+  for (let i = 0; i < manter.length; i += 100) {
+    const lote = manter.slice(i, i + 100).map((r) => r.id);
+    const { error } = await client
+      .from("airfare_promotions")
+      .update({ cycle_day: hoje, cycle_state: "unchanged", cycle_changed_fields: [] })
+      .in("id", lote);
+    if (error) console.error("[promos] falha no carry-over do lote", error.message);
+  }
+
+  if (!arquivar.length) return 0;
 
   // agrupa por dia de curadoria para preservar a data original no histórico
   // (sem cycle_day, usa a data da cotação como referência do ciclo)
   const porDia = new Map<string | null, string[]>();
-  for (const r of rows) {
+  for (const r of arquivar) {
     const base = r.quoted_at ?? r.created_at;
     const k = r.cycle_day ?? (base ? curationDayBRT(new Date(base)) : null);
     porDia.set(k, [...(porDia.get(k) ?? []), r.id]);
   }
+
   let ok = 0;
   for (const [dia, ids] of porDia) {
     const { error } = await client
