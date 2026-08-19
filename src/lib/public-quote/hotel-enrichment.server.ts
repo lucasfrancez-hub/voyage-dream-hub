@@ -45,9 +45,9 @@ function norm(s: string) {
 }
 
 function cacheKey(name: string, city: string | null, locationId?: number | null): string {
-  // v6 — inclui recuperação de até cinco fotos na web quando a fonte oficial falha.
+  // v7 — fallback confirmado pela ficha exata do Google Places.
   const pin = locationId ? `|ta${locationId}` : "";
-  return `hotel-enrich:v6:${norm(name)}|${norm(city ?? "")}${pin}`;
+  return `hotel-enrich:v7:${norm(name)}|${norm(city ?? "")}${pin}`;
 }
 
 /** Chave estável do hotel usada no vínculo manual com o TripAdvisor. */
@@ -234,7 +234,7 @@ async function jsonOf(
 /**
  * Algumas propriedades novas ainda não têm fotos na API do TripAdvisor
  * (photos.total_count = 0). Nesses casos procuramos uma listagem irmã com o
- * mesmo nome e, em último caso, usamos fotos reais do destino (ilustrativas).
+ * mesmo nome no Google Places. Nunca usamos fotos genéricas do destino.
  */
 async function fotosAlternativas(
   nome: string,
@@ -242,43 +242,14 @@ async function fotosAlternativas(
   idAtual: number | null,
   api: (path: string) => Promise<any>,
 ): Promise<{ photos: string[]; fallback: boolean }> {
-  // 1) listagem irmã no próprio TripAdvisor
-  try {
-    const q = cidade ? `${nome} ${cidade}` : nome;
-    const busca = await api(
-      `/catalog/locations/search?query=${encodeURIComponent(q)}&search_type=NAME&category=HOTEL`,
-    );
-    const ids = ((busca?.data ?? []) as Array<{ location?: Record<string, unknown> }>)
-      .map((item) => Number(((item.location ?? item) as Record<string, unknown>)?.id))
-      .filter((id) => Number.isFinite(id) && id > 0 && id !== idAtual)
-      .slice(0, 3);
-    for (const id of ids) {
-      const j = await api(`/locations/${id}/photos?limit=12`);
-      const fotos = ((j?.data ?? []) as Array<{ photo?: Record<string, unknown> }>)
-        .map((ph) => String(ph.photo?.original_size_url ?? ph.photo?.url ?? ""))
-        .filter(Boolean);
-      if (fotos.length) return { photos: fotos, fallback: false };
-    }
-  } catch { /* segue para o fallback do destino */ }
-
-  // 2) busca pelo nome exato do hotel na web e guarda cópias estáveis.
+  void idAtual;
+  void api;
+  // Busca pelo nome exato no Google Places e guarda cópias estáveis.
   try {
     const { recoverHotelPhotos } = await import("./hotel-photo-fallback.server");
     const fotos = await recoverHotelPhotos(nome, cidade);
     if (fotos.length) return { photos: fotos.slice(0, 5), fallback: false };
-  } catch { /* segue para fotos ilustrativas do destino */ }
-
-  // 3) fotos reais do destino (marcadas como ilustrativas)
-  if (cidade) {
-    try {
-      const { searchDestinationPhotos } = await import("@/lib/promo-card/photos.server");
-      const fotos = (await searchDestinationPhotos(cidade, false))
-        .map((f) => f.url)
-        .filter(Boolean)
-        .slice(0, 6);
-      if (fotos.length) return { photos: fotos, fallback: true };
-    } catch { /* sem fotos mesmo */ }
-  }
+  } catch { /* sem foto confirmada */ }
   return { photos: [], fallback: false };
 }
 
