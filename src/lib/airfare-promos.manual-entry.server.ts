@@ -380,7 +380,7 @@ export async function buildManualCheckoutLink(promo: {
         value: brl(total),
       },
     ],
-    agent: null,
+    agent: rotatingAgent(promo.id),
     source: { type: "SYSTEM" },
     validUntil: null,
     publicNotes: null,
