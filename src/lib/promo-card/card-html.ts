@@ -80,7 +80,16 @@ body{display:grid;place-items:center;min-height:100vh}
 .logo-slot{display:flex;align-items:center}
 .logo-slot img{display:block;max-width:100%;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45))}
 .logo-placeholder{font-size:24px;letter-spacing:4px;font-weight:900;color:rgba(255,255,255,.55)}
-.seal-wrap{display:flex;align-items:center;gap:18px}
+.seal-wrap{display:flex;align-items:center;gap:26px}
+/* Carimbo de passaporte */
+.stamp{border:3px solid currentColor;border-radius:16px;padding:7px;box-shadow:0 14px 30px rgba(0,0,0,.42);background:rgba(255,255,255,.06)}
+.stamp-cards{color:#c2410c;transform:rotate(-9deg)}
+.stamp-offer{color:#15803d;transform:rotate(6deg)}
+.stamp-inner{border:1.5px dashed currentColor;border-radius:10px;background:rgba(255,255,255,.94);display:flex;flex-direction:column;align-items:center;text-align:center;line-height:1}
+.stamp-tag,.stamp-foot{font-weight:800;text-transform:uppercase;opacity:.85}
+.stamp-l1,.stamp-l2{font-weight:900;letter-spacing:-.01em;white-space:nowrap}
+.stamp-rule{display:block;width:100%;height:1px;background:currentColor;opacity:.32}
+
 svg{display:block;width:100%;height:100%}
 
 .category-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
