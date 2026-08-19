@@ -268,9 +268,7 @@ const SEALS = `
       <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.4" opacity=".95">
         <textPath href="#cardArcTop" startOffset="50%" text-anchor="middle">PARCELE SEM SUSTO</textPath>
       </text>
-      <text fill="#fff" font-size="10" font-weight="800" letter-spacing="3" opacity=".8">
-        <textPath href="#cardArcBottom" startOffset="50%" text-anchor="middle">• VIA AIR • VIAGENS •</textPath>
-      </text>
+      <g fill="rgba(255,255,255,.7)"><circle cx="70" cy="168" r="2.6"/><circle cx="100" cy="173" r="2.6"/><circle cx="130" cy="168" r="2.6"/></g>
       <g transform="translate(74 52)">
         <rect x="0" y="4" width="52" height="34" rx="7" fill="#fff" opacity=".18"/>
         <rect x="4" y="0" width="52" height="34" rx="7" fill="#fff"/>
@@ -317,13 +315,13 @@ const SEALS = `
       <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.4" opacity=".95">
         <textPath href="#offerArcTop" startOffset="50%" text-anchor="middle">OFERTA DO DIA</textPath>
       </text>
-      <text fill="#fff" font-size="10" font-weight="800" letter-spacing="3" opacity=".8">
-        <textPath href="#offerArcBottom" startOffset="50%" text-anchor="middle">• SUJEITA A DISPONIBILIDADE •</textPath>
-      </text>
-      <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#fff" opacity=".22" transform="translate(3 3)"/>
-      <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#fff"/>
-      <text x="100" y="152" text-anchor="middle" fill="#fff" font-size="14" font-weight="900" letter-spacing="1.6">TARIFA</text>
-      <text x="100" y="169" text-anchor="middle" fill="#fff" font-size="14" font-weight="900" letter-spacing="1.4">RELÂMPAGO</text>
+      <g fill="rgba(255,255,255,.7)"><circle cx="70" cy="171" r="2.6"/><circle cx="100" cy="176" r="2.6"/><circle cx="130" cy="171" r="2.6"/></g>
+      <g transform="translate(0 -6) scale(.78) translate(28 18)">
+        <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#0d5726" opacity=".25" transform="translate(3 4)"/>
+        <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#fff"/>
+      </g>
+      <text x="100" y="135" text-anchor="middle" fill="#fff" font-size="14.5" font-weight="900" letter-spacing="1.8">TARIFA</text>
+      <text x="100" y="155" text-anchor="middle" fill="#fff" font-size="14.5" font-weight="900" letter-spacing="1.4">RELÂMPAGO</text>
     </svg>
   </div>
 </div>`;
