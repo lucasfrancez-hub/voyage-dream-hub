@@ -626,13 +626,16 @@ export function buildCamilaTools(conversation: WaConversation) {
           lines.push("");
           lines.push(`*FORMAS DE PAGAMENTO:*`);
           lines.push(`🤑 *PIX:* ${brl2(pixTotal)} PARA ${qtd} ADULTO${qtd === 1 ? "" : "S"} _(5% de desconto já aplicado)_`);
-          if (isCaptive) {
-            lines.push(`💳 *Cartão Visa/Master:* 15x de ${brl2(parcelaVisaMaster)}`);
-            lines.push(`💳 *Demais bandeiras:* 10x de ${brl2(parcelaOutrasBandeiras)}`);
+          if (temBandeiraLimitada) {
+            lines.push(`💳 *Cartão Visa/Master:* ${maxParcelas}x de ${brl2(parcelaCartao)}`);
+            lines.push(
+              `💳 *Demais bandeiras:* ${maxBandeiraLimitada}x de ${brl2(parcelaBandeiraLimitada)}`,
+            );
           } else {
-            lines.push(`💳 *Cartão de crédito:* 10x de ${brl2(parcelaCartao10)}`);
+            lines.push(`💳 *Cartão de crédito:* ${maxParcelas}x de ${brl2(parcelaCartao)}`);
           }
-          lines.push(`📄 *Boleto bancário:* até 10x mediante aprovação`);
+          lines.push(`📄 *Boleto bancário:* até ${maxParcelas}x mediante aprovação`);
+
           if (boletoAteViagem) lines.push(`📄 *Boleto parcelado:* até a data da viagem (sem análise de crédito)`);
           lines.push(`*sem juros em qualquer forma de pagamento*`);
           lines.push("");
