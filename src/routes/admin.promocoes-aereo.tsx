@@ -18,6 +18,7 @@ import {
   CalendarClock,
   MessageCircle,
   Plane,
+  Pencil,
   RefreshCw,
   Trash2,
   Search,
@@ -36,6 +37,7 @@ import {
   resumeAirfarePromoCollection,
   listAirfarePromotions,
   listInstallmentMarkups,
+  ajustarPrecoPromocao,
   refreshAirfarePromotion,
   runAirfarePromoCollection,
   savePromoOpportunity,
@@ -310,6 +312,7 @@ function PromoCard({
   onArt,
   onSocial,
   onDelete,
+  onPrice,
   busy,
 }: {
   promo: Promo;
@@ -320,6 +323,7 @@ function PromoCard({
   onArt: () => void;
   onSocial: (canal: "whatsapp" | "instagram") => void;
   onDelete: () => void;
+  onPrice: () => void;
   busy: boolean;
 }) {
   const semJuros =
@@ -338,6 +342,10 @@ function PromoCard({
   const camposCiclo = (promo.cycle_changed_fields ?? [])
     .map((c) => CAMPO_LABEL[c] ?? c)
     .join(" + ");
+
+  const precoAjustado = Boolean(
+    (promo as { raw?: { price_override?: unknown } | null }).raw?.price_override,
+  );
 
   const estilo = STATUS_STYLE[promo.status] ?? STATUS_STYLE.novo;
   const contorno = `${estilo.card} ${ciclo === "changed" ? "ring-1 ring-brand-orange/25" : ""}`;
@@ -455,12 +463,29 @@ function PromoCard({
 
       {/* Preço */}
       <div className="mx-5 rounded-xl border border-border/70 bg-background/60 p-5">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Preço VIA AIR</div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Preço VIA AIR
+          </div>
+          {precoAjustado ? (
+            <span className="rounded bg-brand-orange/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-brand-orange">
+              Ajustado
+            </span>
+          ) : null}
+        </div>
         <div className="mt-1 flex items-baseline gap-1.5">
           <span className="text-4xl font-black leading-none tracking-tight text-foreground">
             {brl(promo.price_per_passenger)}
           </span>
           <span className="text-xs text-muted-foreground">/pax</span>
+          <button
+            type="button"
+            onClick={onPrice}
+            title="Editar preço manualmente"
+            className="ml-1 inline-flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-lg border border-border/70 text-muted-foreground transition hover:border-brand-orange/60 hover:text-brand-orange"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
         </div>
         <div className="mt-1.5 text-xs text-muted-foreground">
           Total <span className="font-semibold text-foreground/80">{brl(promo.total_price)}</span>
