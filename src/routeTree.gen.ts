@@ -51,6 +51,7 @@ import { Route as AdminFrtTesteRouteImport } from './routes/admin.frt-teste'
 import { Route as AdminHoteisTesteRouteImport } from './routes/admin.hoteis-teste'
 import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
 import { Route as AdminInstalarExtensaoRouteImport } from './routes/admin.instalar-extensao'
+import { Route as AdminLinkAsaasRouteImport } from './routes/admin.link-asaas'
 import { Route as AdminLinkBoletoRouteImport } from './routes/admin.link-boleto'
 import { Route as AdminLinkCartaoSimplesRouteImport } from './routes/admin.link-cartao-simples'
 import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-pagamento'
@@ -380,6 +381,11 @@ const AdminInstagramRoute = AdminInstagramRouteImport.update({
 const AdminInstalarExtensaoRoute = AdminInstalarExtensaoRouteImport.update({
   id: '/instalar-extensao',
   path: '/instalar-extensao',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLinkAsaasRoute = AdminLinkAsaasRouteImport.update({
+  id: '/link-asaas',
+  path: '/link-asaas',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminLinkBoletoRoute = AdminLinkBoletoRouteImport.update({
@@ -1065,6 +1071,7 @@ export interface FileRoutesByFullPath {
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
+  '/admin/link-asaas': typeof AdminLinkAsaasRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -1227,6 +1234,7 @@ export interface FileRoutesByTo {
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
+  '/admin/link-asaas': typeof AdminLinkAsaasRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -1392,6 +1400,7 @@ export interface FileRoutesById {
   '/admin/hoteis-teste': typeof AdminHoteisTesteRoute
   '/admin/instagram': typeof AdminInstagramRoute
   '/admin/instalar-extensao': typeof AdminInstalarExtensaoRoute
+  '/admin/link-asaas': typeof AdminLinkAsaasRoute
   '/admin/link-boleto': typeof AdminLinkBoletoRoute
   '/admin/link-cartao-simples': typeof AdminLinkCartaoSimplesRoute
   '/admin/link-pagamento': typeof AdminLinkPagamentoRoute
@@ -1558,6 +1567,7 @@ export interface FileRouteTypes {
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
+    | '/admin/link-asaas'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -1720,6 +1730,7 @@ export interface FileRouteTypes {
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
+    | '/admin/link-asaas'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -1884,6 +1895,7 @@ export interface FileRouteTypes {
     | '/admin/hoteis-teste'
     | '/admin/instagram'
     | '/admin/instalar-extensao'
+    | '/admin/link-asaas'
     | '/admin/link-boleto'
     | '/admin/link-cartao-simples'
     | '/admin/link-pagamento'
@@ -2393,6 +2405,13 @@ declare module '@tanstack/react-router' {
       path: '/instalar-extensao'
       fullPath: '/admin/instalar-extensao'
       preLoaderRoute: typeof AdminInstalarExtensaoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/link-asaas': {
+      id: '/admin/link-asaas'
+      path: '/link-asaas'
+      fullPath: '/admin/link-asaas'
+      preLoaderRoute: typeof AdminLinkAsaasRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/link-boleto': {
@@ -3271,6 +3290,7 @@ interface AdminRouteChildren {
   AdminHoteisTesteRoute: typeof AdminHoteisTesteRoute
   AdminInstagramRoute: typeof AdminInstagramRoute
   AdminInstalarExtensaoRoute: typeof AdminInstalarExtensaoRoute
+  AdminLinkAsaasRoute: typeof AdminLinkAsaasRoute
   AdminLinkBoletoRoute: typeof AdminLinkBoletoRoute
   AdminLinkCartaoSimplesRoute: typeof AdminLinkCartaoSimplesRoute
   AdminLinkPagamentoRoute: typeof AdminLinkPagamentoRoute
@@ -3324,6 +3344,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminHoteisTesteRoute: AdminHoteisTesteRoute,
   AdminInstagramRoute: AdminInstagramRoute,
   AdminInstalarExtensaoRoute: AdminInstalarExtensaoRoute,
+  AdminLinkAsaasRoute: AdminLinkAsaasRoute,
   AdminLinkBoletoRoute: AdminLinkBoletoRoute,
   AdminLinkCartaoSimplesRoute: AdminLinkCartaoSimplesRoute,
   AdminLinkPagamentoRoute: AdminLinkPagamentoRoute,
