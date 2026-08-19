@@ -219,12 +219,29 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
         placeholder={placeholder ?? (mode === "live" ? "Digite o nome do hotel (busca no TripAdvisor)" : "Digite o nome do hotel")}
         autoComplete="off"
       />
+      {urlInfo.locationId != null && (
+        <div className="mt-1 flex items-center justify-between gap-2 rounded-md border bg-popover px-3 py-2 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            {loadingUrl && <Loader2 className="h-3 w-3 animate-spin" />}
+            {loadingUrl ? "Lendo o hotel pelo link do TripAdvisor…" : (erro ?? "Link do TripAdvisor detectado.")}
+          </span>
+          {!loadingUrl && (
+            <button
+              type="button"
+              onClick={() => { lastUrlRef.current = ""; void pickByUrl(urlInfo.url!); }}
+              className="shrink-0 text-brand-orange underline underline-offset-2 hover:opacity-80"
+            >
+              Buscar pelo link
+            </button>
+          )}
+        </div>
+      )}
       {mode === "live" && loading && (
         <div className="absolute right-2 top-9 -translate-y-1/2 text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         </div>
       )}
-      {mode === "live" && !loading && (value || "").trim().length >= 3 && items.length === 0 && (
+      {mode === "live" && !loading && urlInfo.locationId == null && (value || "").trim().length >= 3 && items.length === 0 && (
         <div className={`mt-1 flex items-center justify-between gap-2 rounded-md border bg-popover px-3 py-2 text-[11px] ${erro ? "border-destructive/50 text-destructive" : "text-muted-foreground"}`}>
           <span>{erro ?? "Nenhum hotel encontrado. Tente o nome sem palavras extras ou cole o link do TripAdvisor."}</span>
           <button
