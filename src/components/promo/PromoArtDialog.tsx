@@ -115,7 +115,10 @@ export function PromoArtDialog({
   const inicial = useQuery({
     queryKey: ["promo-card", promo.id],
     queryFn: () => build({ data: { id: promo.id } }),
+    retry: 1,
+    staleTime: 60_000,
   });
+
 
   useEffect(() => {
     if (inicial.data && !card) {
