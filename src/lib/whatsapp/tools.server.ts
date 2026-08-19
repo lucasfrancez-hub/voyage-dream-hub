@@ -605,6 +605,30 @@ export function buildCamilaTools(conversation: WaConversation) {
             const t = (extra || "").trim();
             if (t) services_lines.push(`✨ ${t}`);
           }
+          // "O que inclui" do pacote: itens que só existem no texto (ex.: City
+          // Tour, passeios, ingressos) também precisam aparecer no folder.
+          {
+            const jaTem = (t: string) =>
+              services_lines.some((l) => l.toLowerCase().includes(t.toLowerCase().slice(0, 18)));
+            const IGNORAR =
+              /passag|a[eé]reo|voo|hosped|hotel|pousada|resort|caf[eé]|breakfast|all\s*inclusive|tudo\s*incluso|meia\s*pens|pens[aã]o|bagagem|taxa|assessoria|multa|cr[eé]dito para nova viagem|voucher|cancelamento eleg|flexibilidade tarif|protec travel/i;
+            const iconeDe = (t: string) =>
+              /city\s*tour|passeio|excurs|tour\b/i.test(t)
+                ? "🗺️"
+                : /ingresso|ticket|parque/i.test(t)
+                  ? "🎟️"
+                  : /transfer|traslado/i.test(t)
+                    ? "🚐"
+                    : /seguro/i.test(t)
+                      ? "🛡️"
+                      : "✨";
+            for (const raw of includesArr) {
+              const t = String(raw ?? "").trim().replace(/\s+/g, " ");
+              if (!t || IGNORAR.test(t) || jaTem(t)) continue;
+              services_lines.push(`${iconeDe(t)} ${t}`);
+            }
+          }
+
           // termo proibido: nunca sai "assessoria" no folder
           for (let i = services_lines.length - 1; i >= 0; i--) {
             if (/assessoria/i.test(services_lines[i])) services_lines.splice(i, 1);
