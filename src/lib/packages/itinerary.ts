@@ -66,8 +66,22 @@ export function nomeBonitoPasseio(v: unknown): string {
   return t.replace(/[.,;:–\-+]+$/, "").trim();
 }
 
+export function gerarRoteiro({
+  destino,
+  noites,
+  temTransfer = false,
+  passeios = [],
+  ingressos = [],
+}: RoteiroInput): string {
+  const dias = Math.max(1, (Number(noites) || 0) + 1);
+  const cidade = (destino ?? "").trim();
+  const atividades = [...passeios, ...ingressos]
+    .map((p) => nomeBonitoPasseio(curto(String(p ?? ""))))
+    .filter((p) => p.length > 3)
+    .filter((p, i, arr) => arr.findIndex((x) => x.toLowerCase() === p.toLowerCase()) === i);
 
   const linhas: string[] = [];
+
   linhas.push(
     `Dia 1 — Chegada${cidade ? ` em ${cidade}` : ""}${
       temTransfer ? ", transfer do aeroporto até o hotel e check-in" : " e check-in no hotel"
