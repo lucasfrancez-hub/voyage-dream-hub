@@ -214,6 +214,7 @@ function AdminLayout() {
     p.startsWith("/admin/link-pagamento") ||
     p.startsWith("/admin/link-cartao-simples") ||
     p.startsWith("/admin/link-boleto") ||
+    p.startsWith("/admin/link-asaas") ||
     p.startsWith("/admin/cofre");
   if (isPartner && !partnerAllowed(pathname)) {
     return (
@@ -428,6 +429,7 @@ function CartaoNav({ pathname }: { pathname: string }) {
     pathname.startsWith("/admin/link-pagamento/") ||
     pathname.startsWith("/admin/link-cartao-simples") ||
     pathname.startsWith("/admin/link-boleto") ||
+    pathname.startsWith("/admin/link-asaas") ||
     pathname.startsWith("/admin/cofre");
   return (
     <NavMegaMenu
