@@ -6,7 +6,7 @@
  */
 import { forwardRef, Fragment, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
-import { fitDestSize } from "./fit-title";
+import { fitOneLineSize } from "./fit-title";
 import { AnniversarySeal, SELO_ANIVERSARIO_CSS, seloAniversarioAtivo } from "@/components/packages/AnniversarySeal";
 
 export type FeedArtData = {
