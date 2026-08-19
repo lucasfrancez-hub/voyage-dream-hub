@@ -24,14 +24,25 @@ export type TAHotelDetails = TAHotelSuggestion & {
   hotel_class: number | null;
 };
 
+/**
+ * Controle de limite (HTTP 429) da chave do TripAdvisor. Ao estourar,
+ * pausamos as chamadas por alguns minutos — insistir só queima mais cota.
+ */
+let taBloqueadoAte = 0;
+function taLimitado() {
+  return Date.now() < taBloqueadoAte;
+}
+
 async function taFetch(path: string, params?: Record<string, string>): Promise<Response> {
   const key = process.env.TRIPADVISOR_API_KEY;
   if (!key) throw new Error("TRIPADVISOR_API_KEY não configurada");
   const url = new URL(`${BASE}${path}`);
   Object.entries(params ?? {}).forEach(([name, value]) => url.searchParams.set(name, value));
-  return fetch(url.toString(), {
+  const res = await fetch(url.toString(), {
     headers: { accept: "application/json", "X-API-KEY": key },
   });
+  if (res.status === 429) taBloqueadoAte = Date.now() + 10 * 60_000;
+  return res;
 }
 
 // Traduz um lote de textos para português usando Lovable AI. Se falhar, retorna os originais.
