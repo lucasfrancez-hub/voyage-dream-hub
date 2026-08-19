@@ -252,8 +252,8 @@ const SEALS = `
         <filter id="sealShadowA" x="-40%" y="-40%" width="180%" height="180%">
           <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity=".42"/>
         </filter>
-        <path id="cardArcTop" d="M100,100 m-72,0 a72,72 0 0,1 144,0" fill="none"/>
-        <path id="cardArcBottom" d="M100,100 m-70,0 a70,70 0 0,0 140,0" fill="none"/>
+        <path id="cardArcTop" d="M100,100 m-71,0 a71,71 0 0,1 142,0" fill="none"/>
+        <path id="cardArcBottom" d="M100,100 m-68,0 a68,68 0 0,0 136,0" fill="none"/>
       </defs>
       <g filter="url(#sealShadowA)">
         <circle cx="100" cy="100" r="94" fill="rgba(255,150,40,.16)"/>
@@ -261,24 +261,27 @@ const SEALS = `
         <circle cx="100" cy="100" r="82" fill="url(#cardBg)"/>
       </g>
       <circle cx="100" cy="100" r="82" fill="url(#cardGloss)"/>
-      <circle cx="100" cy="100" r="74" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6"/>
-      <circle cx="100" cy="100" r="69" fill="none" stroke="rgba(255,255,255,.30)" stroke-width="6" stroke-dasharray="1 9" stroke-linecap="round"/>
-      <circle cx="100" cy="100" r="60" fill="rgba(120,42,0,.20)"/>
-      <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(255,255,255,.42)" stroke-width="1.2"/>
-      <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.4" opacity=".95">
+      <circle cx="100" cy="100" r="79" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6"/>
+      <circle cx="100" cy="100" r="76" fill="none" stroke="rgba(255,255,255,.26)" stroke-width="4" stroke-dasharray="1 8" stroke-linecap="round"/>
+      <circle cx="100" cy="100" r="61" fill="rgba(120,42,0,.20)"/>
+      <circle cx="100" cy="100" r="61" fill="none" stroke="rgba(255,255,255,.42)" stroke-width="1.2"/>
+      <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.2" opacity=".95">
         <textPath href="#cardArcTop" startOffset="50%" text-anchor="middle">PARCELE SEM SUSTO</textPath>
       </text>
-      <g fill="rgba(255,255,255,.7)"><circle cx="70" cy="168" r="2.6"/><circle cx="100" cy="173" r="2.6"/><circle cx="130" cy="168" r="2.6"/></g>
-      <g transform="translate(74 52)">
+      <text fill="#fff" font-size="9.5" font-weight="800" letter-spacing="4.2" opacity=".85">
+        <textPath href="#cardArcBottom" startOffset="50%" text-anchor="middle">VIA AIR</textPath>
+      </text>
+      <g fill="rgba(255,255,255,.65)"><circle cx="24.5" cy="100" r="2.4"/><circle cx="175.5" cy="100" r="2.4"/></g>
+      <g transform="translate(76 50) scale(.92)">
         <rect x="0" y="4" width="52" height="34" rx="7" fill="#fff" opacity=".18"/>
         <rect x="4" y="0" width="52" height="34" rx="7" fill="#fff"/>
         <rect x="4" y="7" width="52" height="7" fill="#c9600a"/>
         <rect x="10" y="21" width="13" height="6" rx="1.6" fill="#0d3140"/>
         <rect x="27" y="22" width="20" height="3.4" rx="1.7" fill="#9aa8af"/>
       </g>
-      <text x="100" y="114" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800" letter-spacing="2.4" opacity=".92">DIVIDA EM</text>
-      <text x="100" y="142" text-anchor="middle" fill="#fff" font-size="30" font-weight="900" letter-spacing="-.5">ATÉ 3</text>
-      <text x="100" y="157" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800" letter-spacing="2.6" opacity=".92">CARTÕES</text>
+      <text x="100" y="110" text-anchor="middle" fill="#fff" font-size="10" font-weight="800" letter-spacing="2.4" opacity=".92">DIVIDA EM</text>
+      <text x="100" y="137" text-anchor="middle" fill="#fff" font-size="28" font-weight="900" letter-spacing="-.5">ATÉ 3</text>
+      <text x="100" y="151" text-anchor="middle" fill="#fff" font-size="10" font-weight="800" letter-spacing="2.6" opacity=".92">CARTÕES</text>
     </svg>
   </div>
 
@@ -299,8 +302,8 @@ const SEALS = `
         <filter id="sealShadowB" x="-40%" y="-40%" width="180%" height="180%">
           <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity=".42"/>
         </filter>
-        <path id="offerArcTop" d="M100,100 m-72,0 a72,72 0 0,1 144,0" fill="none"/>
-        <path id="offerArcBottom" d="M100,100 m-70,0 a70,70 0 0,0 140,0" fill="none"/>
+        <path id="offerArcTop" d="M100,100 m-71,0 a71,71 0 0,1 142,0" fill="none"/>
+        <path id="offerArcBottom" d="M100,100 m-68,0 a68,68 0 0,0 136,0" fill="none"/>
       </defs>
       <g filter="url(#sealShadowB)">
         <circle cx="100" cy="100" r="94" fill="rgba(53,208,127,.18)"/>
@@ -308,20 +311,23 @@ const SEALS = `
         <circle cx="100" cy="100" r="82" fill="url(#offerBg3)"/>
       </g>
       <circle cx="100" cy="100" r="82" fill="url(#offerGloss)"/>
-      <circle cx="100" cy="100" r="74" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.6"/>
-      <circle cx="100" cy="100" r="69" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="6" stroke-dasharray="1 9" stroke-linecap="round"/>
-      <circle cx="100" cy="100" r="60" fill="rgba(4,60,25,.22)"/>
-      <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
-      <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.4" opacity=".95">
+      <circle cx="100" cy="100" r="79" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.6"/>
+      <circle cx="100" cy="100" r="76" fill="none" stroke="rgba(255,255,255,.24)" stroke-width="4" stroke-dasharray="1 8" stroke-linecap="round"/>
+      <circle cx="100" cy="100" r="61" fill="rgba(4,60,25,.22)"/>
+      <circle cx="100" cy="100" r="61" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+      <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.2" opacity=".95">
         <textPath href="#offerArcTop" startOffset="50%" text-anchor="middle">OFERTA DO DIA</textPath>
       </text>
-      <g fill="rgba(255,255,255,.7)"><circle cx="70" cy="171" r="2.6"/><circle cx="100" cy="176" r="2.6"/><circle cx="130" cy="171" r="2.6"/></g>
-      <g transform="translate(0 -6) scale(.78) translate(28 18)">
+      <text fill="#fff" font-size="9.5" font-weight="800" letter-spacing="4.2" opacity=".85">
+        <textPath href="#offerArcBottom" startOffset="50%" text-anchor="middle">VIA AIR</textPath>
+      </text>
+      <g fill="rgba(255,255,255,.65)"><circle cx="24.5" cy="100" r="2.4"/><circle cx="175.5" cy="100" r="2.4"/></g>
+      <g transform="translate(0 -10) scale(.72) translate(30 22)">
         <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#0d5726" opacity=".25" transform="translate(3 4)"/>
         <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#fff"/>
       </g>
-      <text x="100" y="135" text-anchor="middle" fill="#fff" font-size="14.5" font-weight="900" letter-spacing="1.8">TARIFA</text>
-      <text x="100" y="155" text-anchor="middle" fill="#fff" font-size="13.5" font-weight="900" letter-spacing=".8">RELÂMPAGO</text>
+      <text x="100" y="131" text-anchor="middle" fill="#fff" font-size="13.5" font-weight="900" letter-spacing="1.8">TARIFA</text>
+      <text x="100" y="149" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="900" letter-spacing=".6">RELÂMPAGO</text>
     </svg>
   </div>
 </div>`;
