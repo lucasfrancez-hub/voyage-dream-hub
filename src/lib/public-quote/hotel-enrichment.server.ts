@@ -27,6 +27,8 @@ export type HotelEnrichment = {
   longitude: number | null;
   stars: number | null;
   nearby: HotelNearby[];
+  /** true quando as fotos não são da propriedade (ilustrativas do destino). */
+  photos_fallback?: boolean;
   /** Diagnóstico interno — nunca exibido ao cliente. */
   status: "OK" | "PARTIAL" | "MATCH_FAILED";
 };
@@ -237,6 +239,50 @@ async function jsonOf(
  * Busca e monta o enriquecimento do hotel. Retorna `MATCH_FAILED` quando
  * o TripAdvisor não encontra a propriedade — nunca inventa dados.
  */
+/**
+ * Algumas propriedades novas ainda não têm fotos na API do TripAdvisor
+ * (photos.total_count = 0). Nesses casos procuramos uma listagem irmã com o
+ * mesmo nome e, em último caso, usamos fotos reais do destino (ilustrativas).
+ */
+async function fotosAlternativas(
+  nome: string,
+  cidade: string | null,
+  idAtual: number | null,
+  api: (path: string) => Promise<any>,
+): Promise<{ photos: string[]; fallback: boolean }> {
+  // 1) listagem irmã no próprio TripAdvisor
+  try {
+    const q = cidade ? `${nome} ${cidade}` : nome;
+    const busca = await api(
+      `/catalog/locations/search?query=${encodeURIComponent(q)}&search_type=NAME&category=HOTEL`,
+    );
+    const ids = ((busca?.data ?? []) as Array<{ location?: Record<string, unknown> }>)
+      .map((item) => Number(((item.location ?? item) as Record<string, unknown>)?.id))
+      .filter((id) => Number.isFinite(id) && id > 0 && id !== idAtual)
+      .slice(0, 3);
+    for (const id of ids) {
+      const j = await api(`/locations/${id}/photos?limit=12`);
+      const fotos = ((j?.data ?? []) as Array<{ photo?: Record<string, unknown> }>)
+        .map((ph) => String(ph.photo?.original_size_url ?? ph.photo?.url ?? ""))
+        .filter(Boolean);
+      if (fotos.length) return { photos: fotos, fallback: false };
+    }
+  } catch { /* segue para o fallback do destino */ }
+
+  // 2) fotos reais do destino (marcadas como ilustrativas)
+  if (cidade) {
+    try {
+      const { searchDestinationPhotos } = await import("@/lib/promo-card/photos.server");
+      const fotos = (await searchDestinationPhotos(cidade, false))
+        .map((f) => f.url)
+        .filter(Boolean)
+        .slice(0, 6);
+      if (fotos.length) return { photos: fotos, fallback: true };
+    } catch { /* sem fotos mesmo */ }
+  }
+  return { photos: [], fallback: false };
+}
+
 export async function enrichHotel(params: {
   name: string;
   city?: string | null;
@@ -331,9 +377,15 @@ export async function enrichHotel(params: {
       ?? detailsRaw
       ?? {}) as Record<string, unknown>;
 
-    const photos = ((photosJson?.data ?? []) as Array<{ photo?: Record<string, unknown> }>)
+    let photos = ((photosJson?.data ?? []) as Array<{ photo?: Record<string, unknown> }>)
       .map((p) => String(p.photo?.original_size_url ?? p.photo?.url ?? ""))
       .filter(Boolean);
+    let photosFallback = false;
+    if (!photos.length) {
+      const alt = await fotosAlternativas(nome, local, escolhido.id ?? null, api);
+      photos = alt.photos;
+      photosFallback = alt.fallback;
+    }
 
     const endereco = pickAddress(d.addresses as Array<Record<string, unknown>> | undefined);
     const amenities = Array.isArray(d.amenities)
@@ -399,6 +451,7 @@ export async function enrichHotel(params: {
       longitude: Number.isFinite(lng) ? lng : null,
       stars: estrelas,
       nearby: proximos,
+      photos_fallback: photosFallback,
       status: photos.length && (lat != null || endereco) ? "OK" : "PARTIAL",
     };
 
