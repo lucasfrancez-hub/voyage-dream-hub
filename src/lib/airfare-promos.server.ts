@@ -18,7 +18,9 @@ import { INVOCATION_BUDGET_MS, type OriginMetrics } from "@/lib/airfare-promos.c
 import { isMetroCode, resolveCity } from "@/lib/iata-lookup";
 import { encodePicks } from "@/lib/multicity";
 
+import { flightToDetail } from "@/lib/airfare-promos.flight-details.server";
 import { searchFlights, searchInboundFlights } from "@/lib/onertravel.server";
+
 import { flightHasBaggage, type OnerFlight } from "@/lib/onertravel.types";
 
 type AnyClient = { from: (t: string) => any };
@@ -247,9 +249,17 @@ export function buildPromotionRow(args: {
         : null,
 
     fare_status: "valida" as const,
+    // detalhes reais dos voos (número, horários, duração) para o orçamento público
+    raw: {
+      flights: [
+        flightToDetail(out, "OUTBOUND", args.departureDate),
+        ...(inb && args.returnDate ? [flightToDetail(inb, "INBOUND", args.returnDate)] : []),
+      ],
+    } as unknown,
     quoted_at: new Date().toISOString(),
     last_checked_at: new Date().toISOString(),
   };
+
   return row;
 }
 

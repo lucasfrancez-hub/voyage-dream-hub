@@ -1096,7 +1096,7 @@ export async function processPendingCandidates(args: {
     const { data: anterior } = await client
       .from("airfare_promotions")
       .select(
-        "id,total_price,airline_iata,outbound_fare_id,inbound_fare_id,outbound_itinerary_id,inbound_itinerary_id,stops,has_checked_baggage,interest_free_installments,interest_free_installment_value,cart_url,short_url,status,cycle_day,cycle_state,cycle_changed_fields,cycle_state_at",
+        "id,raw,total_price,airline_iata,outbound_fare_id,inbound_fare_id,outbound_itinerary_id,inbound_itinerary_id,stops,has_checked_baggage,interest_free_installments,interest_free_installment_value,cart_url,short_url,status,cycle_day,cycle_state,cycle_changed_fields,cycle_state_at",
       )
       .eq("signature", row.signature)
       .maybeSingle();
@@ -1138,6 +1138,12 @@ export async function processPendingCandidates(args: {
     };
     if (anterior) {
       payload.status = anterior.status;
+      // preserva o que é nosso no raw (preço ajustado à mão, trechos editados)
+      const rawAntes = ((anterior as { raw?: Record<string, unknown> | null }).raw ?? {}) as Record<
+        string,
+        unknown
+      >;
+      payload.raw = { ...rawAntes, ...((payload.raw ?? {}) as Record<string, unknown>) };
       if (mudou) {
         payload.cart_url = null;
         payload.short_url = null;
