@@ -272,16 +272,16 @@ const SEALS = `
         <textPath href="#cardArcBottom" startOffset="50%" text-anchor="middle">VIA AIR</textPath>
       </text>
       <g fill="rgba(255,255,255,.65)"><circle cx="24.5" cy="100" r="2.4"/><circle cx="175.5" cy="100" r="2.4"/></g>
-      <g transform="translate(74 52)">
+      <g transform="translate(76 50) scale(.92)">
         <rect x="0" y="4" width="52" height="34" rx="7" fill="#fff" opacity=".18"/>
         <rect x="4" y="0" width="52" height="34" rx="7" fill="#fff"/>
         <rect x="4" y="7" width="52" height="7" fill="#c9600a"/>
         <rect x="10" y="21" width="13" height="6" rx="1.6" fill="#0d3140"/>
         <rect x="27" y="22" width="20" height="3.4" rx="1.7" fill="#9aa8af"/>
       </g>
-      <text x="100" y="114" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800" letter-spacing="2.4" opacity=".92">DIVIDA EM</text>
-      <text x="100" y="142" text-anchor="middle" fill="#fff" font-size="30" font-weight="900" letter-spacing="-.5">ATÉ 3</text>
-      <text x="100" y="157" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800" letter-spacing="2.6" opacity=".92">CARTÕES</text>
+      <text x="100" y="110" text-anchor="middle" fill="#fff" font-size="10" font-weight="800" letter-spacing="2.4" opacity=".92">DIVIDA EM</text>
+      <text x="100" y="137" text-anchor="middle" fill="#fff" font-size="28" font-weight="900" letter-spacing="-.5">ATÉ 3</text>
+      <text x="100" y="151" text-anchor="middle" fill="#fff" font-size="10" font-weight="800" letter-spacing="2.6" opacity=".92">CARTÕES</text>
     </svg>
   </div>
 
