@@ -72,7 +72,9 @@ async function unsplash(query: string, portrait: boolean): Promise<DestinationPh
     url.searchParams.set("content_filter", "high");
     const r = await fetch(url.toString(), {
       headers: { Authorization: `Client-ID ${key}`, "Accept-Version": "v1" },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
     });
+
     if (!r.ok) return [];
     const j = (await r.json()) as any;
     return (Array.isArray(j?.results) ? j.results : [])
