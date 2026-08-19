@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { ManualOpportunityResult } from "@/lib/airfare-promos.manual.server";
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
   const { data, error } = await ctx.supabase.rpc("has_role", {
@@ -456,7 +457,29 @@ export const salvarOportunidadePassagensBaratas = createServerFn({ method: "POST
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { enqueueManualOpportunity } = await import("@/lib/airfare-manual-queue.server");
-    return await enqueueManualOpportunity(data, context.userId);
+    return await enqueueManualOpportunity(data, context.userId, false);
+  });
+
+export const processarOportunidadePassagensBaratas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { processManualOpportunity } = await import("@/lib/airfare-manual-queue.server");
+    const result = await processManualOpportunity(data.id);
+    if (result) return result;
+
+    const { data: current, error } = await context.supabase
+      .from("airfare_manual_queue")
+      .select("status,result,error")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (current?.status === "done" && current.result) {
+      return current.result as unknown as ManualOpportunityResult;
+    }
+    if (current?.status === "error") throw new Error(current.error ?? "Tarifa não encontrada no motor VIA AIR");
+    return { ok: true as const, queued: true as const, id: data.id };
   });
 
 
