@@ -876,6 +876,25 @@ export const setAiInstruction = createServerFn({ method: "POST" })
       .update(patch)
       .eq("id", data.conversation_id);
     if (error) throw new Error(error.message);
+
+    // Para DMs do Instagram (espelhadas em wa_phone ig:), uma instrução nova
+    // ativa a IA automaticamente, já que nesse canal o usuário instruir = quer
+    // que a IA responda (perfis pessoais não ficam em modo IA por padrão).
+    if (text) {
+      const { data: conv } = await context.supabase
+        .from("wa_conversations")
+        .select("wa_phone, mode")
+        .eq("id", data.conversation_id)
+        .maybeSingle();
+      if (conv?.wa_phone?.startsWith("ig:") && conv?.mode !== "ai") {
+        const { error: modeErr } = await context.supabase
+          .from("wa_conversations")
+          .update({ mode: "ai" })
+          .eq("id", data.conversation_id);
+        if (modeErr) throw new Error(modeErr.message);
+      }
+    }
+
     return { ok: true };
   });
 
