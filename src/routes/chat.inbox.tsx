@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
-import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused } from "@/lib/instagram/queries.functions";
+import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused, setInstagramCommentAiInstruction } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 
@@ -2692,9 +2692,19 @@ function InstagramConversationView({
         )}
       </div>
 
+      {mirror?.mode === "ai" && (
+        <div className="shrink-0 border-t border-slate-200 bg-white px-3 pt-2">
+          <AiInstructionBar
+            conversationId={mirror.id}
+            pending={(mirror as { ai_instruction?: string | null }).ai_instruction ?? null}
+            onChange={() => onRefetch?.()}
+          />
+        </div>
+      )}
+
       <form
         onSubmit={(e) => { e.preventDefault(); if (text.trim()) send.mutate(text.trim()); }}
-        className="shrink-0 flex items-center gap-2 border-t border-slate-200 bg-white p-3"
+        className={cn("shrink-0 flex items-center gap-2 bg-white p-3", mirror?.mode === "ai" ? "" : "border-t border-slate-200")}
       >
         <input
           ref={fileRef}
@@ -3025,6 +3035,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const syncLikesFn = useServerFn(syncInstagramCommentLikes);
   const likeFn = useServerFn(toggleInstagramCommentLike);
   const pausarIaFn = useServerFn(setInstagramCommentAiPaused);
+  const instrucaoComentarioFn = useServerFn(setInstagramCommentAiInstruction);
 
   // Pausa/retoma a IA nesta publicação (vale pra resposta pública e pro direct).
   const comentarioPausaMut = useMutation({
@@ -3364,6 +3375,17 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
         <WallpaperMenu wallpaper={wallpaper} className="mt-1" />
       </header>
 
+
+      {thread && (
+        <div className="border-b border-slate-200 bg-white px-4 pt-2">
+          <AiInstructionBar
+            pending={(thread as { ai_instruction?: string | null }).ai_instruction ?? null}
+            submit={(instruction) => instrucaoComentarioFn({ data: { media_id: thread.media_id, instruction } })}
+            onChange={() => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] })}
+            description="Escreva o que a IA deve responder nos comentários desta publicação. Ela segue a orientação com o tom dela, e o cliente nunca vê que veio de um atendente."
+          />
+        </div>
+      )}
 
       {thread?.collab && (
         <div className="border-b border-[#F26B1F]/20 bg-[#F26B1F]/5 px-4 py-2 text-[11px] text-[#8a3d0d]">

@@ -59,3 +59,20 @@ export async function isDmAiPaused(waPhone: string): Promise<boolean> {
     return false;
   }
 }
+
+/** Orientação deixada pelo atendente para a IA nos comentários da publicação. */
+export async function getCommentAiInstruction(mediaId: string | null | undefined): Promise<string | null> {
+  if (!mediaId) return null;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("instagram_comment_ai_pauses")
+      .select("ai_instruction")
+      .eq("media_id", mediaId)
+      .maybeSingle();
+    const t = (data as { ai_instruction?: string | null } | null)?.ai_instruction?.trim();
+    return t || null;
+  } catch {
+    return null;
+  }
+}

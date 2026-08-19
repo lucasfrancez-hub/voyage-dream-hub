@@ -15,10 +15,17 @@ export function AiInstructionBar({
   conversationId,
   pending,
   onChange,
+  submit,
+  label = "Instruir a IA",
+  description,
 }: {
-  conversationId: string;
+  conversationId?: string;
   pending: string | null;
   onChange: () => void;
+  /** Envio customizado (ex.: comentários do Instagram). Padrão: conversa do chat. */
+  submit?: (instruction: string | null) => Promise<unknown>;
+  label?: string;
+  description?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -26,7 +33,7 @@ export function AiInstructionBar({
 
   const mut = useMutation({
     mutationFn: async (v: { instruction: string | null; respond_now?: boolean }) =>
-      setFn({ data: { conversation_id: conversationId, ...v } }),
+      submit ? submit(v.instruction) : setFn({ data: { conversation_id: conversationId!, ...v } }),
     onSuccess: (_d, v) => {
       setOpen(false);
       setText("");
@@ -61,17 +68,17 @@ export function AiInstructionBar({
           className="mb-2 inline-flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[11px] font-medium text-violet-700 hover:bg-violet-100"
         >
           <Wand2 className="h-3.5 w-3.5" />
-          Instruir a IA
+          {label}
         </button>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Instruir a IA</DialogTitle>
+            <DialogTitle>{label}</DialogTitle>
             <DialogDescription>
-              Escreva o que a IA deve responder. Ela segue a orientação na próxima resposta, com o tom
-              dela, e o cliente nunca vê que veio de um atendente.
+              {description ??
+                "Escreva o que a IA deve responder. Ela segue a orientação na próxima resposta, com o tom dela, e o cliente nunca vê que veio de um atendente."}
             </DialogDescription>
           </DialogHeader>
           <textarea

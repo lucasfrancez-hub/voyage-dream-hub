@@ -4340,16 +4340,25 @@ export type Database = {
       }
       instagram_comment_ai_pauses: {
         Row: {
+          ai_instruction: string | null
+          ai_instruction_at: string | null
+          ai_instruction_by: string | null
           media_id: string
           paused: boolean
           updated_at: string
         }
         Insert: {
+          ai_instruction?: string | null
+          ai_instruction_at?: string | null
+          ai_instruction_by?: string | null
           media_id: string
           paused?: boolean
           updated_at?: string
         }
         Update: {
+          ai_instruction?: string | null
+          ai_instruction_at?: string | null
+          ai_instruction_by?: string | null
           media_id?: string
           paused?: boolean
           updated_at?: string
