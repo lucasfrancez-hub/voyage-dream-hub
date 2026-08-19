@@ -247,9 +247,17 @@ export function buildPromotionRow(args: {
         : null,
 
     fare_status: "valida" as const,
+    // detalhes reais dos voos (número, horários, duração) para o orçamento público
+    raw: {
+      flights: [
+        flightToDetail(out, "OUTBOUND", args.departureDate),
+        ...(inb && args.returnDate ? [flightToDetail(inb, "INBOUND", args.returnDate)] : []),
+      ],
+    } as unknown,
     quoted_at: new Date().toISOString(),
     last_checked_at: new Date().toISOString(),
   };
+
   return row;
 }
 
