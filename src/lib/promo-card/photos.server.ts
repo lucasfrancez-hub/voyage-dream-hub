@@ -28,6 +28,9 @@ function norm(s: string) {
     .trim();
 }
 
+/** Toda chamada externa tem prazo — sem isso o card fica "montando" pra sempre. */
+const FETCH_TIMEOUT = 6_000;
+
 async function pexels(query: string, portrait: boolean): Promise<DestinationPhoto[]> {
   const key = process.env.PEXELS_API_KEY;
   if (!key) return [];
@@ -37,8 +40,12 @@ async function pexels(query: string, portrait: boolean): Promise<DestinationPhot
     url.searchParams.set("per_page", "24");
     url.searchParams.set("orientation", portrait ? "portrait" : "square");
     url.searchParams.set("size", "large");
-    const r = await fetch(url.toString(), { headers: { Authorization: key } });
+    const r = await fetch(url.toString(), {
+      headers: { Authorization: key },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    });
     if (!r.ok) return [];
+
     const j = (await r.json()) as any;
     return (Array.isArray(j?.photos) ? j.photos : [])
       .map((p: any) => ({
