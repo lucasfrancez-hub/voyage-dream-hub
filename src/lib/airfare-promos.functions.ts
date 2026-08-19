@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { ManualOpportunityResult } from "@/lib/airfare-promos.manual.server";
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
   const { data, error } = await ctx.supabase.rpc("has_role", {
@@ -474,7 +475,9 @@ export const processarOportunidadePassagensBaratas = createServerFn({ method: "P
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (current?.status === "done" && current.result) return current.result;
+    if (current?.status === "done" && current.result) {
+      return current.result as unknown as ManualOpportunityResult;
+    }
     if (current?.status === "error") throw new Error(current.error ?? "Tarifa não encontrada no motor VIA AIR");
     return { ok: true as const, queued: true as const, id: data.id };
   });
