@@ -143,6 +143,7 @@ import { Route as ApiPublicBpIdRouteImport } from './routes/api/public/bp.$id'
 import { Route as ApiPublicBroadcastMediaSplatRouteImport } from './routes/api/public/broadcast-media.$'
 import { Route as ApiPublicHooksAirfarePromosRouteImport } from './routes/api/public/hooks/airfare-promos'
 import { Route as ApiPublicHooksAirfarePromosSlotRouteImport } from './routes/api/public/hooks/airfare-promos-slot'
+import { Route as ApiPublicHooksAsaasConciliacaoRouteImport } from './routes/api/public/hooks/asaas-conciliacao'
 import { Route as ApiPublicHooksAutoSuggestionsRouteImport } from './routes/api/public/hooks/auto-suggestions'
 import { Route as ApiPublicHooksBroadcastDispatchRouteImport } from './routes/api/public/hooks/broadcast-dispatch'
 import { Route as ApiPublicHooksCalendarJobsRouteImport } from './routes/api/public/hooks/calendar-jobs'
@@ -858,6 +859,12 @@ const ApiPublicHooksAirfarePromosSlotRoute =
     path: '/api/public/hooks/airfare-promos-slot',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksAsaasConciliacaoRoute =
+  ApiPublicHooksAsaasConciliacaoRouteImport.update({
+    id: '/api/public/hooks/asaas-conciliacao',
+    path: '/api/public/hooks/asaas-conciliacao',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAutoSuggestionsRoute =
   ApiPublicHooksAutoSuggestionsRouteImport.update({
     id: '/api/public/hooks/auto-suggestions',
@@ -1176,6 +1183,7 @@ export interface FileRoutesByFullPath {
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
   '/api/public/hooks/airfare-promos-slot': typeof ApiPublicHooksAirfarePromosSlotRoute
+  '/api/public/hooks/asaas-conciliacao': typeof ApiPublicHooksAsaasConciliacaoRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1341,6 +1349,7 @@ export interface FileRoutesByTo {
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
   '/api/public/hooks/airfare-promos-slot': typeof ApiPublicHooksAirfarePromosSlotRoute
+  '/api/public/hooks/asaas-conciliacao': typeof ApiPublicHooksAsaasConciliacaoRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1509,6 +1518,7 @@ export interface FileRoutesById {
   '/api/public/broadcast-media/$': typeof ApiPublicBroadcastMediaSplatRoute
   '/api/public/hooks/airfare-promos': typeof ApiPublicHooksAirfarePromosRoute
   '/api/public/hooks/airfare-promos-slot': typeof ApiPublicHooksAirfarePromosSlotRoute
+  '/api/public/hooks/asaas-conciliacao': typeof ApiPublicHooksAsaasConciliacaoRoute
   '/api/public/hooks/auto-suggestions': typeof ApiPublicHooksAutoSuggestionsRoute
   '/api/public/hooks/broadcast-dispatch': typeof ApiPublicHooksBroadcastDispatchRoute
   '/api/public/hooks/calendar-jobs': typeof ApiPublicHooksCalendarJobsRoute
@@ -1678,6 +1688,7 @@ export interface FileRouteTypes {
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/airfare-promos'
     | '/api/public/hooks/airfare-promos-slot'
+    | '/api/public/hooks/asaas-conciliacao'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -1843,6 +1854,7 @@ export interface FileRouteTypes {
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/airfare-promos'
     | '/api/public/hooks/airfare-promos-slot'
+    | '/api/public/hooks/asaas-conciliacao'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -2010,6 +2022,7 @@ export interface FileRouteTypes {
     | '/api/public/broadcast-media/$'
     | '/api/public/hooks/airfare-promos'
     | '/api/public/hooks/airfare-promos-slot'
+    | '/api/public/hooks/asaas-conciliacao'
     | '/api/public/hooks/auto-suggestions'
     | '/api/public/hooks/broadcast-dispatch'
     | '/api/public/hooks/calendar-jobs'
@@ -2103,6 +2116,7 @@ export interface RootRouteChildren {
   ApiPublicBroadcastMediaSplatRoute: typeof ApiPublicBroadcastMediaSplatRoute
   ApiPublicHooksAirfarePromosRoute: typeof ApiPublicHooksAirfarePromosRoute
   ApiPublicHooksAirfarePromosSlotRoute: typeof ApiPublicHooksAirfarePromosSlotRoute
+  ApiPublicHooksAsaasConciliacaoRoute: typeof ApiPublicHooksAsaasConciliacaoRoute
   ApiPublicHooksAutoSuggestionsRoute: typeof ApiPublicHooksAutoSuggestionsRoute
   ApiPublicHooksBroadcastDispatchRoute: typeof ApiPublicHooksBroadcastDispatchRoute
   ApiPublicHooksCalendarJobsRoute: typeof ApiPublicHooksCalendarJobsRoute
@@ -3076,6 +3090,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksAirfarePromosSlotRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/asaas-conciliacao': {
+      id: '/api/public/hooks/asaas-conciliacao'
+      path: '/api/public/hooks/asaas-conciliacao'
+      fullPath: '/api/public/hooks/asaas-conciliacao'
+      preLoaderRoute: typeof ApiPublicHooksAsaasConciliacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/auto-suggestions': {
       id: '/api/public/hooks/auto-suggestions'
       path: '/api/public/hooks/auto-suggestions'
@@ -3550,6 +3571,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBroadcastMediaSplatRoute: ApiPublicBroadcastMediaSplatRoute,
   ApiPublicHooksAirfarePromosRoute: ApiPublicHooksAirfarePromosRoute,
   ApiPublicHooksAirfarePromosSlotRoute: ApiPublicHooksAirfarePromosSlotRoute,
+  ApiPublicHooksAsaasConciliacaoRoute: ApiPublicHooksAsaasConciliacaoRoute,
   ApiPublicHooksAutoSuggestionsRoute: ApiPublicHooksAutoSuggestionsRoute,
   ApiPublicHooksBroadcastDispatchRoute: ApiPublicHooksBroadcastDispatchRoute,
   ApiPublicHooksCalendarJobsRoute: ApiPublicHooksCalendarJobsRoute,
