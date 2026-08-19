@@ -61,119 +61,137 @@ export function destinationParts(name: string): { prefix: string; last: string }
   return { prefix: words.slice(0, -1).join(" "), last: words[words.length - 1]! };
 }
 
-/** CSS aprovado v24 (Feed/Story). Não redesenhar. */
+/** Linguagem visual premium (mesma dos cards de pacote/ingresso). */
 const BASE_CSS = `
 *{box-sizing:border-box}
-html,body{margin:0;background:#07141b;font-family:Arial,Helvetica,sans-serif;color:#f7fbff}
-:root{--orange:#ff861b;--orange2:#ff9f3f;--muted:#a7b7c0;--line:rgba(255,255,255,.11);--panel:rgba(5,28,38,.86);--green:#2ed47a;--blue:#2f7fb5}
-body{display:grid;place-items:center;min-height:100vh;padding:0}
-.frame{position:relative;overflow:hidden;background:linear-gradient(135deg,#0b3850,#0c2740 52%,#081820)}
-.photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
-.veil{position:absolute;inset:0;z-index:1;background:
-linear-gradient(180deg,rgba(2,17,28,.16),rgba(2,17,28,.60) 48%,rgba(4,14,18,.98)),
-radial-gradient(circle at 80% 12%,rgba(255,134,27,.18),transparent 24%)}
-.frame > *:not(.photo):not(.veil):not(.price-box){position:relative;z-index:2}
-.price-box{z-index:3}
-.brand{display:flex;align-items:flex-start;justify-content:space-between}
-.logo-slot{width:440px;height:190px;display:flex;align-items:center;justify-content:flex-start;padding:0}
-.logo-slot img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
-.logo-placeholder{font-size:12px;letter-spacing:2px;font-weight:800;color:rgba(255,255,255,.48)}
-.seal-wrap{display:flex;align-items:center;gap:16px}
-.cards-seal{width:146px;height:146px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.32))}
-.offer-seal{width:146px;height:146px;filter:drop-shadow(0 10px 22px rgba(0,0,0,.30))}
+html,body{margin:0;background:#000;color:#fff;font-family:'Montserrat',Arial,Helvetica,sans-serif}
+:root{--orange:#ff7f00;--orange2:#ff9f3f;--muted:rgba(255,255,255,.85)}
+body{display:grid;place-items:center;min-height:100vh}
+.frame{position:relative;overflow:hidden;background:#000;display:flex;flex-direction:column;justify-content:space-between}
+.photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:block}
+.veil{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 38%,rgba(0,0,0,.96) 100%)}
+.frame > *:not(.photo):not(.veil){position:relative;z-index:2}
+
+.glass{background:rgba(0,0,0,.42);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.30);border-radius:40px}
+.glass-dark{background:rgba(15,15,15,.68);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.14);border-radius:40px}
+
+.brand{display:flex;align-items:center;justify-content:space-between;gap:24px}
+.logo-slot{display:flex;align-items:center}
+.logo-slot img{display:block;max-width:100%;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45))}
+.logo-placeholder{font-size:24px;letter-spacing:4px;font-weight:900;color:rgba(255,255,255,.55)}
+.seal-wrap{display:flex;align-items:center;gap:18px}
 svg{display:block;width:100%;height:100%}
-.kicker{font-size:18px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);font-weight:800}
-.category-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.category-badge{display:inline-flex;align-items:center;padding:8px 14px;border-radius:10px;background:rgba(255,134,27,.24);border:1px solid rgba(255,163,84,.40);color:#ffd9b8;font-size:15px;font-weight:950;letter-spacing:1.5px;backdrop-filter:blur(12px) saturate(120%);-webkit-backdrop-filter:blur(12px) saturate(120%);box-shadow:0 8px 20px rgba(0,0,0,.14)}
-.found-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(41,163,91,.20);border:1px solid rgba(74,222,128,.40);color:#dffbea;font-size:14px;font-weight:850;backdrop-filter:blur(12px) saturate(125%);-webkit-backdrop-filter:blur(12px) saturate(125%);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px rgba(0,0,0,.14)}
-.found-dot{width:8px;height:8px;border-radius:50%;background:#35d07f;box-shadow:0 0 10px rgba(53,208,127,.75)}
-.route-glass{display:inline-flex;flex-direction:column;gap:8px;margin-top:18px;padding:17px 22px;border-radius:18px;background:rgba(5,28,38,.34);border:1px solid rgba(255,255,255,.26);backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.28);max-width:100%}
-.destination{font-weight:950;line-height:1.0;padding-top:.06em;text-transform:uppercase;letter-spacing:-2px;margin-bottom:24px;text-shadow:0 10px 28px rgba(0,0,0,.48),0 3px 6px rgba(0,0,0,.35)}
-.destination-one-line{display:flex;flex-direction:row;align-items:baseline;gap:.20em;white-space:nowrap;max-width:calc(100% - 48px);width:max-content;padding-right:8px;transform-origin:left center}
+
+.category-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.category-badge{display:inline-flex;align-items:center;border:2px solid var(--orange);border-radius:9999px;color:var(--orange);font-weight:700;letter-spacing:.18em;text-transform:uppercase;line-height:1}
+.found-badge{display:inline-flex;align-items:center;gap:12px;border:2px solid rgba(53,208,127,.85);border-radius:9999px;color:#7ff0b0;font-weight:700;letter-spacing:.08em;line-height:1}
+.found-dot{width:14px;height:14px;border-radius:50%;background:#35d07f;box-shadow:0 0 14px rgba(53,208,127,.8)}
+
+.destination{font-weight:900;line-height:.9;letter-spacing:-.03em;margin:0;text-transform:uppercase;color:#fff;text-shadow:0 4px 12px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.45)}
+.destination-one-line{display:flex;flex-direction:row;align-items:baseline;gap:.22em;white-space:nowrap;width:max-content;max-width:100%;transform-origin:left center}
 .destination-one-line .dest-prefix{color:#fff}
 .destination-one-line .dest-highlight{color:var(--orange)}
-.route-city{display:flex;align-items:center;gap:14px;font-size:46px;font-weight:950;color:#fff;max-width:100%}
+.route{margin-top:18px;display:flex;flex-direction:column;gap:6px}
+.route-city{display:flex;align-items:center;gap:16px;font-weight:800;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.55)}
 .route-city span{white-space:nowrap}
-.route-city .arrow{color:var(--orange);font-size:28px;flex:none}
-.route-iata{font-size:21px;color:#c9d5db;margin-top:4px;letter-spacing:1.2px}
-.details{margin-top:38px;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
-.detail-row{display:flex;align-items:center;gap:16px;background:rgba(4,26,36,.32);border:1px solid rgba(255,255,255,.24);border-radius:15px;padding:13px 18px;min-height:62px;max-width:100%;backdrop-filter:blur(26px) saturate(150%);-webkit-backdrop-filter:blur(26px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.18)}
-.detail-row .label{color:#b9c7ce;font-size:14px;text-transform:uppercase;letter-spacing:1px;flex:none}
-.detail-row .value{font-size:26px;font-weight:900;white-space:nowrap}
-.airline{display:flex;align-items:center;gap:10px}
-.airline-logo{width:46px;height:46px;border-radius:12px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,0,0,.18);overflow:hidden;flex:none}
-.airline-logo img{width:38px;height:38px;object-fit:contain}
-.airline-iata{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:1px}
-.price-box{position:absolute;background:rgba(96,44,18,.42);border:1px solid rgba(255,163,84,.28);border-radius:28px;backdrop-filter:blur(34px) saturate(140%);-webkit-backdrop-filter:blur(34px) saturate(140%);box-shadow:0 22px 55px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,214,180,.12);overflow:hidden}
-.price-top{color:#dbe3e7;text-transform:uppercase;letter-spacing:2.5px;font-size:16px;font-weight:900}
-.installments{display:flex;align-items:baseline;gap:8px;margin-top:6px;flex-wrap:wrap}
-.main-subtitle{font-size:17px;color:#e2eaee;margin-top:8px;margin-bottom:2px}
-.installments .n{font-size:34px;font-weight:950;letter-spacing:.1px}
-.installments .de{font-size:19px;font-weight:800;color:#d7e1e6;margin-left:1px}
-.installments .currency{font-size:34px;font-weight:900;color:var(--orange)}
-.interest-free{font-size:16px;font-weight:800;color:#e4ecef;margin-left:8px;margin-bottom:10px;white-space:nowrap}
-.original-total{display:inline-flex;align-items:center;gap:9px;margin-top:12px;padding:7px 10px;border-radius:999px;background:rgba(255,134,27,.16);border:1px solid rgba(255,163,84,.34);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.original-total-label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#ffd2aa;font-weight:800}
-.original-total-value{font-size:20px;color:#ff9a3d;font-weight:950}
-.installments .value{font-weight:950;color:var(--orange);letter-spacing:-2px}
-.more-installments{border-left:1px solid rgba(255,134,27,.42);padding-left:30px;position:relative;z-index:1}
-.more-installments .headline{font-size:20px;color:#fff;font-weight:900;margin-bottom:7px}
-.more-installments .twelve-label{font-size:16px;color:#d6e1e6;margin-bottom:3px}
-.more-installments .twelve-price{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
-.more-installments .twelve-price .n{font-size:28px;font-weight:900}
-.more-installments .twelve-price .currency{font-size:24px;font-weight:900;color:var(--orange)}
-.more-installments .twelve-price .value{font-size:48px;font-weight:950;color:var(--orange);letter-spacing:-1px}
-.more-installments .discount{font-size:17px;line-height:1.45;color:#ffd1a8;font-weight:800}
-.note{font-size:16px;color:#cbd5da;line-height:1.55}
+.route-city .arrow{color:var(--orange);flex:none}
+.route-iata{color:rgba(255,255,255,.85);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+
+.info{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%}
+.info-col{display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;min-width:0}
+.info-icon{color:rgba(255,255,255,.9);margin-bottom:10px;display:inline-flex}
+.info-small{margin:0;color:rgba(255,255,255,.85);line-height:1.25}
+.info-strong{margin:0;font-weight:700;line-height:1.2}
+.info-div{width:1px;background:rgba(255,255,255,.2);flex-shrink:0}
+.airline-logo{border-radius:14px;background:#fff;display:grid;place-items:center;overflow:hidden;margin-bottom:8px}
+.airline-logo img{object-fit:contain}
+
+.price{display:flex;flex-direction:column;text-align:center;width:100%}
+.price-kicker{margin:0 0 6px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.7);text-transform:uppercase}
+.price-line{display:flex;align-items:baseline;justify-content:center}
+.price-x{font-weight:700;margin-right:10px}
+.price-cur{font-weight:700;color:var(--orange);margin-right:8px}
+.price-num{font-weight:900;color:var(--orange);letter-spacing:-.04em;line-height:1}
+.price-cents{font-weight:700;color:var(--orange)}
+.price-free{font-weight:600;color:rgba(255,255,255,.9);margin-left:12px}
+.price-bar{width:100%;height:1px;background:var(--orange);opacity:.5;margin:14px 0}
+.price-total{margin:0;font-weight:500}
+.price-total span{color:var(--orange);font-weight:700}
+
+.side{display:flex;flex-direction:column;gap:14px}
+.side-card{display:flex;align-items:center;gap:18px;width:100%}
+.side-icon{color:rgba(255,255,255,.9);display:inline-flex;flex-shrink:0}
+.side-card p{margin:0;font-weight:500;line-height:1.35;color:#fff}
+.side-card p b{color:var(--orange);font-weight:800}
+.side-fine{opacity:.7}
+.note{margin:0;text-align:center;color:rgba(255,255,255,.95);line-height:1.35;font-weight:500;text-shadow:0 1px 3px rgba(0,0,0,.9)}
 `;
 
 const STORY_CSS = `
-.frame{width:1080px;height:1920px;padding:62px 58px}
-.logo-slot{width:520px;height:230px}
-.hero{margin-top:72px}.destination{font-size:158px;margin:34px 0 30px}
-.category-badge{font-size:26px;padding:14px 22px;letter-spacing:2px}
-.found-badge{font-size:25px;padding:14px 20px}
-.found-dot{width:12px;height:12px}
-.route-glass{padding:24px 30px}
-.route-city{font-size:56px}.route-city .arrow{font-size:34px}
-.route-iata{font-size:34px}
-.details{--ds:1;margin-top:calc(44px * var(--ds));gap:calc(14px * var(--ds));width:100%}
-.detail-row{min-height:calc(80px * var(--ds));padding:calc(18px * var(--ds)) calc(24px * var(--ds));gap:calc(16px * var(--ds))}
-.detail-row .label{font-size:calc(25px * var(--ds))}
-.detail-row .value{font-size:calc(32px * var(--ds))}
-.detail-row.row-baggage .value{white-space:normal;line-height:1.15}
-.airline-logo{width:calc(56px * var(--ds));height:calc(56px * var(--ds))}.airline-logo img{width:calc(46px * var(--ds));height:calc(46px * var(--ds))}
-.airline-iata{font-size:calc(21px * var(--ds))}
-
-.price-box{left:58px;right:58px;bottom:96px;padding:40px 42px}
-.price-top{font-size:28px}
-.main-subtitle{font-size:29px}
-.installments .value{font-size:104px}
-.installments .n{font-size:42px}.installments .de{font-size:23px}.installments .currency{font-size:42px}
-.interest-free{font-size:27px}
-.original-total-label{font-size:21px}.original-total-value{font-size:25px}
-.more-installments{margin-top:22px;border-left:0;border-top:1px solid rgba(255,134,27,.28);padding:22px 0 0}
-.more-installments .headline{font-size:32px;margin-bottom:8px}
-.more-installments .twelve-label{font-size:25px}
-.more-installments .twelve-price .n{font-size:32px}
-.more-installments .twelve-price .currency{font-size:28px}
-.more-installments .twelve-price .value{font-size:56px}
-.more-installments .discount{font-size:26px;max-width:900px}
-.note{font-size:25px;line-height:1.5}
-.cards-seal{width:170px;height:170px}.offer-seal{width:170px;height:170px}
+.frame{width:1080px;height:1920px;padding:56px 56px 44px}
+.logo-slot img{max-height:88px;max-width:400px}
+.cards-seal,.offer-seal{width:150px;height:150px}
+.category-badge{font-size:26px;padding:12px 30px}
+.found-badge{font-size:24px;padding:12px 26px}
+.hero{margin-top:56px}
+.destination{font-size:170px;margin:34px 0 0}
+.route-city{font-size:56px}.route-city .arrow{font-size:40px}
+.route-iata{font-size:28px}
+.bottom{display:flex;flex-direction:column;gap:24px}
+.info{padding:34px 26px}
+.info-icon,.info-icon svg{width:50px;height:50px}
+.info-strong{font-size:30px}
+.info-small{font-size:24px}
+.info-div{height:110px}
+.airline-logo{width:64px;height:64px}.airline-logo img{width:52px;height:52px}
+.price{padding:38px 34px}
+.price-kicker{font-size:24px}
+.price-x{font-size:34px}
+.price-cur{font-size:52px}
+.price-num{font-size:150px}
+.price-cents{font-size:58px}
+.price-free{font-size:28px}
+.price-total{font-size:30px}
+.side-card{padding:26px 30px}
+.side-icon,.side-icon svg{width:46px;height:46px}
+.side-card p{font-size:26px}
+.side-fine{font-size:22px}
+.note{font-size:22px;margin-top:6px}
 `;
-
 
 const FEED_CSS = `
-.frame{width:1080px;height:1350px;padding:54px 58px}
-.hero{margin-top:46px}.destination{font-size:136px;margin:30px 0 24px}
-.details{margin-top:28px}
-.price-box{left:58px;right:58px;bottom:88px;padding:30px 32px}
-.installments .value{font-size:76px}
-.price-layout{display:grid;grid-template-columns:1.05fr .95fr;gap:38px;align-items:center}
-.price-layout.pix-only{grid-template-columns:1fr}
-.price-layout.pix-only .more-installments{display:none}
+.frame{width:1080px;height:1350px;padding:48px 48px 38px}
+.logo-slot img{max-height:74px;max-width:340px}
+.cards-seal,.offer-seal{width:124px;height:124px}
+.category-badge{font-size:22px;padding:10px 24px}
+.found-badge{font-size:20px;padding:10px 22px}
+.hero{margin-top:30px}
+.destination{font-size:132px;margin:24px 0 0}
+.route-city{font-size:44px}.route-city .arrow{font-size:32px}
+.route-iata{font-size:23px}
+.bottom{display:flex;flex-direction:column;gap:18px}
+.info{padding:24px 22px}
+.info-icon,.info-icon svg{width:40px;height:40px}
+.info-strong{font-size:25px}
+.info-small{font-size:20px}
+.info-div{height:92px}
+.airline-logo{width:52px;height:52px}.airline-logo img{width:42px;height:42px}
+.price{padding:28px 30px}
+.price-kicker{font-size:20px}
+.price-x{font-size:28px}
+.price-cur{font-size:42px}
+.price-num{font-size:112px}
+.price-cents{font-size:46px}
+.price-free{font-size:24px}
+.price-total{font-size:25px}
+.side{flex-direction:row}
+.side-card{padding:20px 22px;align-items:flex-start}
+.side-icon,.side-icon svg{width:38px;height:38px}
+.side-card p{font-size:21px}
+.side-fine{font-size:18px}
+.note{font-size:19px;margin-top:4px}
 `;
+
 
 
 const SEALS = `
