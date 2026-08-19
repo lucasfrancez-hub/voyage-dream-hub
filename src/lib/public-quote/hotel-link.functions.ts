@@ -5,10 +5,11 @@ import { z } from "zod";
 /** Busca propriedades no TripAdvisor para vincular a um hotel do orçamento. */
 export const buscarHotelTripAdvisor = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: { query: string }) => z.object({ query: z.string().min(3).max(160) }).parse(i))
+  .inputValidator((i: { query: string }) => z.object({ query: z.string().min(3).max(400) }).parse(i))
   .handler(async ({ data }) => {
-    const { searchHotelLocations } = await import("./hotel-enrichment.server");
-    return { results: await searchHotelLocations(data.query) };
+    const { searchHotelLocations, tripAdvisorLimitado } = await import("./hotel-enrichment.server");
+    const results = await searchHotelLocations(data.query);
+    return { results, limitado: !results.length && tripAdvisorLimitado() };
   });
 
 /** Fixa a propriedade TripAdvisor de um hotel e recarrega os dados reais. */
