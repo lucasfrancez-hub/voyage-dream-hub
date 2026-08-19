@@ -107,8 +107,7 @@ async function processPayload(payload: IGPayload) {
     if (!account) throw new Error(`Conta ${igAccountId} não cadastrada`);
     const igToken = (account as { access_token?: string }).access_token ?? null;
     const igApiUserId = (account as { ig_user_id?: string }).ig_user_id ?? igAccountId;
-    const { iaPodeResponderComentario } = await import("@/lib/instagram/ai-toggle");
-    const { contaComIaAtiva } = await import("@/lib/instagram/ai-toggle");
+    const { iaPodeResponderComentario, contaComIaAtiva, contaRespondeDirectComoPessoa } = await import("@/lib/instagram/ai-toggle");
     const iaAtiva = contaComIaAtiva((account as { metadata?: unknown }).metadata);
     const igMetadata = (account as { metadata?: unknown }).metadata;
 
@@ -255,11 +254,41 @@ async function processPayload(payload: IGPayload) {
         console.error("[instagram] espelho no chat falhou:", (e as Error).message);
       }
 
-      // IA responde as DMs com os mesmos agentes/regras do WhatsApp
+      // Perfil pessoal: IA responde no Direct apenas quando instruída pelo dono
+      // (conversa espelhada em modo "ai" e com ai_instruction preenchida).
+      const respondeComoPessoa = !isFromMe && espelho && contaRespondeDirectComoPessoa(igMetadata);
+      if (respondeComoPessoa) {
+        try {
+          if (!espelho) return;
+          const { data: mirror } = await supabaseAdmin
+            .from("wa_conversations")
+            .select("id, mode, ai_instruction")
+            .eq("wa_phone", espelho.waPhone)
+            .maybeSingle();
+          if (mirror?.mode === "ai" && mirror?.ai_instruction) {
+            const { responderDirectComoDono } = await import("@/lib/instagram/persona-dm.server");
+            await responderDirectComoDono({
+              conversationId: conv.id,
+              accountRowId: account.id,
+              contactIgId,
+              mensagem: msg.message.text ?? anexo.rotulo ?? "",
+              instrucao: mirror.ai_instruction as string,
+            });
+            // Limpa a instrução após o uso (comportamento igual ao WhatsApp).
+            await supabaseAdmin
+              .from("wa_conversations")
+              .update({ ai_instruction: null })
+              .eq("id", mirror.id);
+          }
+        } catch (e) {
+          console.error("[instagram] IA pessoal falhou:", (e as Error).message);
+        }
+      }
+
+      // IA responde as DMs com os mesmos agentes/regras do WhatsApp (contas comerciais).
       if (!isFromMe && espelho && iaAtiva) {
         try {
           const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
-
           await runAgent({
             wa_phone: espelho.waPhone,
             profile_name: contatoNome ?? contatoUser ?? null,

@@ -18,7 +18,7 @@ const VIA_AIR_ARROBA = "@viaars";
 
 type Historico = { direction: string; text: string | null }[];
 
-function buildSystem(nome: string, username: string | null) {
+function buildSystem(nome: string, username: string | null, instrucao?: string | null) {
   return `Você está escrevendo mensagens no Direct do Instagram PESSOAL de ${nome}${
     username ? ` (@${username})` : ""
   }. Você É ${nome} — escreva em primeira pessoa, como a própria pessoa.
@@ -30,7 +30,8 @@ REGRAS ABSOLUTAS:
 - Nunca peça dados de viagem (origem, destino, datas, passageiros, CPF).
 - SEMPRE que a pessoa pedir cotação, valor, passagem, pacote, hotel, reserva ou qualquer coisa comercial: responda curto e passe UM dos canais oficiais — o WhatsApp ${VIA_AIR_WHATSAPP_FORMATADO} (${VIA_AIR_WHATSAPP_LINK}) ou o Instagram ${VIA_AIR_ARROBA}. Nunca prometa que alguém vai chamar, nunca cite valores.
 
-ESTILO: informal, direto, 1 ou 2 frases curtas, sem emoji em excesso (no máximo 1), sem saudação repetida se a conversa já começou, sem texto de vendedor.`;
+ESTILO: informal, direto, 1 ou 2 frases curtas, sem emoji em excesso (no máximo 1), sem saudação repetida se a conversa já começou, sem texto de vendedor.
+${instrucao ? `\nORIENTAÇÃO DO DONO (prioridade máxima, siga sem quebrar as regras acima):\n${instrucao}\n` : ""}`;
 }
 
 export async function gerarRespostaPessoal(params: {
@@ -38,6 +39,7 @@ export async function gerarRespostaPessoal(params: {
   username: string | null;
   historico: Historico;
   mensagem: string;
+  instrucao?: string | null;
 }): Promise<string | null> {
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) return null;
@@ -49,7 +51,7 @@ export async function gerarRespostaPessoal(params: {
       .join("\n");
     const { text } = await generateText({
       model: provider(MODEL),
-      system: buildSystem(params.nome, params.username),
+      system: buildSystem(params.nome, params.username, params.instrucao),
       prompt: `${contexto ? `Conversa até agora:\n${contexto}\n\n` : ""}Nova mensagem: ${params.mensagem}\n\nEscreva SOMENTE a resposta.`,
       temperature: 0.7,
     });
@@ -67,6 +69,7 @@ export async function responderDirectComoDono(params: {
   accountRowId: string;
   contactIgId: string;
   mensagem: string;
+  instrucao?: string | null;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -83,11 +86,22 @@ export async function responderDirectComoDono(params: {
     .order("created_at", { ascending: false })
     .limit(10);
 
+  let instrucao = params.instrucao ?? null;
+  if (!instrucao) {
+    const { data: mirror } = await supabaseAdmin
+      .from("wa_conversations")
+      .select("ai_instruction")
+      .eq("wa_phone", `ig:${params.contactIgId}`)
+      .maybeSingle();
+    instrucao = (mirror?.ai_instruction as string | null) ?? null;
+  }
+
   const resposta = await gerarRespostaPessoal({
     nome: conta?.display_name || conta?.username || "eu",
     username: conta?.username ?? null,
     historico: ((msgs ?? []) as Historico).slice().reverse(),
     mensagem: params.mensagem,
+    instrucao,
   });
   if (!resposta) return;
 

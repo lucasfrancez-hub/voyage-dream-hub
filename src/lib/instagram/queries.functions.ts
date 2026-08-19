@@ -90,9 +90,14 @@ export const listInstagramConversations = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const rows = data ?? [];
     // @username da conta que recebeu a DM (identifica @viaairs x @lucasfrancez na lista)
-    const { data: contas } = await context.supabase.from("instagram_accounts").select("id, username");
+    const { data: contas } = await context.supabase.from("instagram_accounts").select("id, username, metadata");
     const nomes = new Map((contas ?? []).map((a) => [a.id as string, (a.username as string | null) ?? null]));
-    return rows.map((r) => ({ ...r, account_username: nomes.get(r.account_id) ?? null }));
+    const personal = new Set((contas ?? []).filter((a) => ((a.metadata as { ai_enabled?: boolean } | null)?.ai_enabled === false)).map((a) => a.id as string));
+    return rows.map((r) => ({
+      ...r,
+      account_username: nomes.get(r.account_id) ?? null,
+      account_is_personal: personal.has(r.account_id),
+    }));
   });
 
 export const markInstagramConversationRead = createServerFn({ method: "POST" })
@@ -141,6 +146,55 @@ export const deleteInstagramConversation = createServerFn({ method: "POST" })
 
 
 
+
+/** Garante que uma conversa Instagram tenha espelho em wa_conversations. */
+export const ensureInstagramMirror = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { instagram_conversation_id: string }) => z.object({ instagram_conversation_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: conv, error } = await context.supabase
+      .from("instagram_conversations")
+      .select("id, account_id, contact_ig_id, contact_username, contact_name, contact_profile_pic, last_message_at, last_message_preview")
+      .eq("id", data.instagram_conversation_id)
+      .maybeSingle();
+    if (error || !conv) throw new Error("Conversa não encontrada");
+
+    const { data: account } = await context.supabase
+      .from("instagram_accounts")
+      .select("id, username")
+      .eq("id", conv.account_id)
+      .maybeSingle();
+
+    const waPhone = `ig:${conv.contact_ig_id}`;
+    const { data: existing } = await context.supabase
+      .from("wa_conversations")
+      .select("id")
+      .eq("wa_phone", waPhone)
+      .maybeSingle();
+    if (existing) return { id: existing.id };
+
+    const { data: created, error: createErr } = await context.supabase
+      .from("wa_conversations")
+      .insert({
+        wa_phone: waPhone,
+        display_name: conv.contact_name ?? (conv.contact_username ? `@${conv.contact_username}` : `Instagram ${conv.contact_ig_id.slice(-6)}`),
+        last_message_at: conv.last_message_at ?? new Date().toISOString(),
+        last_message_preview: conv.last_message_preview ?? "[instagram]",
+        meta: {
+          channel: "instagram",
+          ig_account_id: account?.id ?? conv.account_id,
+          ig_conversation_id: conv.id,
+          ig_contact_id: conv.contact_ig_id,
+          ig_username: conv.contact_username ?? null,
+          ig_profile_pic: conv.contact_profile_pic ?? null,
+        },
+        unread_count: 0,
+      })
+      .select("id")
+      .single();
+    if (createErr) throw new Error(createErr.message);
+    return { id: created!.id };
+  });
 
 export const listInstagramMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

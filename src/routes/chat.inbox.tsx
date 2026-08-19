@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
-import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused, setInstagramCommentAiInstruction } from "@/lib/instagram/queries.functions";
+import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused, setInstagramCommentAiInstruction, ensureInstagramMirror } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 
@@ -2307,6 +2307,17 @@ function InstagramConversationView({
   const [text, setText] = useState("");
   const [midiaAberta, setMidiaAberta] = useState<string | null>(null);
 
+  // Garante espelho em wa_conversations para DMs antigas que ainda não
+  // foram sincronizadas via webhook (preciso para instruir a IA e resposta).
+  const ensureMirrorFn = useServerFn(ensureInstagramMirror);
+  useEffect(() => {
+    if (!mirror && conversationId) {
+      ensureMirrorFn({ data: { instagram_conversation_id: conversationId } })
+        .then(() => onRefetch?.())
+        .catch(() => {});
+    }
+  }, [mirror, conversationId, ensureMirrorFn, onRefetch]);
+
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [igRecording, setIgRecording] = useState(false);
   const igRecorderRef = useRef<MediaRecorder | null>(null);
@@ -2692,7 +2703,7 @@ function InstagramConversationView({
         )}
       </div>
 
-      {mirror?.mode === "ai" && (
+      {((mirror?.mode === "ai") || (profile?.account_is_personal && mirror)) && (
         <div className="shrink-0 border-t border-slate-200 bg-white px-3 pt-2">
           <AiInstructionBar
             conversationId={mirror.id}
