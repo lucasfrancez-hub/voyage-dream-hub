@@ -233,13 +233,14 @@ function normalizePasseios(services?: PackageServices | null): string[] {
   return out;
 }
 
-function countServices(services?: PackageServices | null): number {
-  if (!services) return 0;
+function countServices(services?: PackageServices | null, list?: string[] | null): number {
+  if (!services && !(list ?? []).length) return 0;
   let n = 0;
+  if (!services) return derivePasseios(list, null).length ? 1 : 0;
   if (services.seguro?.enabled) n++;
   if (services.cancelamento?.enabled) n++;
   if (services.transfer?.enabled) n++;
-  if (normalizePasseios(services).length) n++;
+  if (derivePasseios(list, services).length) n++;
   if (services.tickets?.enabled && (services.tickets.parks ?? []).some((p) => p && p.trim())) n++;
   n += (services.outros ?? []).filter((x) => x && x.trim()).length;
   return n;
@@ -275,18 +276,44 @@ export function deriveTicketParks(
   return out;
 }
 
+/**
+ * Passeios (ex.: City Tour) podem estar só no texto de "o que inclui", sem
+ * estarem marcados em services. Nesse caso a arte ainda precisa mostrar.
+ */
+const RE_PASSEIO = /city\s*tour|passeio|excurs|tour\b/i;
+
+export function derivePasseios(
+  list: string[] | null | undefined,
+  services?: PackageServices | null,
+): string[] {
+  const out = normalizePasseios(services);
+  const seen = new Set(out.map((x) => norm(x)));
+  const temCityTour = out.some((x) => /city\s*tour/i.test(x));
+  for (const raw of list ?? []) {
+    const t = String(raw ?? "").trim().replace(/\s+/g, " ");
+    if (!t || !RE_PASSEIO.test(t)) continue;
+    if (RE_INGRESSO.test(t) && !/city\s*tour|passeio|excurs/i.test(t)) continue;
+    if (/city\s*tour/i.test(t) && temCityTour) continue;
+    const k = norm(t);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(t);
+  }
+  return out;
+}
+
 function detectIncludes(
   list: string[] | null | undefined,
   services?: PackageServices | null,
   kind?: "package" | "service" | "cruise" | "tour" | null,
 ) {
   const s = (list ?? []).map((x) => norm(x)).join(" | ");
-  const svcCount = countServices(services);
+  const svcCount = countServices(services, list ?? null);
   const groupServices = svcCount >= 2;
   const seguroOn = !!services?.seguro?.enabled;
   const transferOn = !!services?.transfer?.enabled;
   const ticketsOn = deriveTicketParks(list, services).length > 0;
-  const passeiosOn = normalizePasseios(services).length > 0;
+  const passeiosOn = derivePasseios(list, services).length > 0;
   const isService = kind === "service";
   return {
     // Ingresso não tem aéreo / hotel / café / bagagem por padrão
@@ -416,7 +443,7 @@ export async function buildFeedArtData(pkg: FeedInputPkg): Promise<FeedArtData> 
     mealPlanLabel: deriveMealPlanLabel(pkg.meal_plan, pkg.includes),
     ticketsLabel: parks.join(" · ") || null,
     ticketsParks: parks,
-    passeiosList: normalizePasseios(pkg.services ?? null),
+    passeiosList: derivePasseios(pkg.includes ?? null, pkg.services ?? null),
   };
 
 }
