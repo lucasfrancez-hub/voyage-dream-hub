@@ -160,7 +160,12 @@ svg{display:block;width:100%;height:100%}
 const STORY_CSS = `
 .frame{width:1080px;height:1920px;padding:56px 56px 44px}
 .logo-slot img{max-height:88px;max-width:400px}
-.cards-seal,.offer-seal{width:150px;height:150px}
+.stamp-inner{padding:16px 26px;gap:9px}
+.stamp-tag{font-size:17px;letter-spacing:.34em}
+.stamp-foot{font-size:15px;letter-spacing:.3em}
+.stamp-l1{font-size:46px}
+.stamp-l2{font-size:34px}
+
 .category-badge{font-size:26px;padding:12px 30px}
 .category-badge .cb-ico,.category-badge .cb-ico svg{width:30px;height:30px}
 .found-badge{font-size:24px;padding:12px 26px}
