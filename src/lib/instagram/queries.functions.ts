@@ -90,9 +90,14 @@ export const listInstagramConversations = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const rows = data ?? [];
     // @username da conta que recebeu a DM (identifica @viaairs x @lucasfrancez na lista)
-    const { data: contas } = await context.supabase.from("instagram_accounts").select("id, username");
+    const { data: contas } = await context.supabase.from("instagram_accounts").select("id, username, metadata");
     const nomes = new Map((contas ?? []).map((a) => [a.id as string, (a.username as string | null) ?? null]));
-    return rows.map((r) => ({ ...r, account_username: nomes.get(r.account_id) ?? null }));
+    const personal = new Set((contas ?? []).filter((a) => ((a.metadata as { ai_enabled?: boolean } | null)?.ai_enabled === false)).map((a) => a.id as string));
+    return rows.map((r) => ({
+      ...r,
+      account_username: nomes.get(r.account_id) ?? null,
+      account_is_personal: personal.has(r.account_id),
+    }));
   });
 
 export const markInstagramConversationRead = createServerFn({ method: "POST" })
