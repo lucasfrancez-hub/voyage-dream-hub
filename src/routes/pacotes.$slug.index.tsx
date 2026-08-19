@@ -319,21 +319,38 @@ function PackageDetails() {
   const fetchHotelInfo = useServerFn(getPackageHotelOptionInfo);
   // Quando não há múltiplas hospedagens, ainda buscamos o hotel base para
   // trazer fotos/endereço do TripAdvisor.
-  const hotelQueryTargets = useMemo(
-    () => (hotelOptions.length > 0 ? hotelOptions.map((h) => h.hotel_name) : baseHotelName ? [baseHotelName] : []),
-    [hotelOptions, baseHotelName],
-  );
+  const hotelQueryTargets = useMemo(() => {
+    const toId = (v: unknown): number | null => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+    if (hotelOptions.length > 0) {
+      return hotelOptions.map((h) => ({
+        name: h.hotel_name,
+        locationId: toId(h.tripadvisor_location_id),
+      }));
+    }
+    return baseHotelName
+      ? [
+          {
+            name: baseHotelName,
+            locationId: toId((pkg as unknown as { tripadvisor_location_id?: unknown })?.tripadvisor_location_id),
+          },
+        ]
+      : [];
+  }, [hotelOptions, baseHotelName, pkg]);
   // Uma query por hospedagem: cache do React Query mantém a troca instantânea
   // (item 19 do briefing) e o servidor já cacheia o TripAdvisor por 30 dias.
   const hotelInfoQueries = useQueries({
-    queries: hotelQueryTargets.map((nome) => ({
-      queryKey: ["package-hotel-option", nome, hotelCity],
-      queryFn: () => fetchHotelInfo({ data: { hotelName: nome, city: hotelCity } }),
+    queries: hotelQueryTargets.map(({ name: nome, locationId }) => ({
+      queryKey: ["package-hotel-option", nome, hotelCity, locationId],
+      queryFn: () => fetchHotelInfo({ data: { hotelName: nome, city: hotelCity, locationId } }),
       staleTime: 30 * 60_000,
       gcTime: 60 * 60_000,
       enabled: !!nome,
     })),
   });
+
 
 
 
