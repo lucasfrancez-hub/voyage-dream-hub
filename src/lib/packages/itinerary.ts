@@ -17,19 +17,55 @@ const curto = (s: string) =>
     .replace(/[.,;:–-]+$/, "")
     .trim();
 
-export function gerarRoteiro({
-  destino,
-  noites,
-  temTransfer = false,
-  passeios = [],
-  ingressos = [],
-}: RoteiroInput): string {
-  const dias = Math.max(1, (Number(noites) || 0) + 1);
-  const cidade = (destino ?? "").trim();
-  const atividades = [...passeios, ...ingressos]
-    .map((p) => curto(String(p ?? "")))
-    .filter(Boolean)
-    .filter((p, i, arr) => arr.indexOf(p) === i);
+const MINUSCULAS = new Set([
+  "de", "da", "do", "das", "dos", "e", "em", "na", "no", "nas", "nos",
+  "a", "o", "as", "os", "com", "para", "por", "ao", "à", "às", "aos", "the", "of",
+]);
+
+/** "TRANSPORTE IDA E VOLTA PARA ITAIPU BINACIONAL PANORAMICA" → "Itaipu binacional panorâmica" */
+export function nomeBonitoPasseio(v: unknown): string {
+  let t = String(v ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\*+/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // corta observações do operador ("...: AS RESERVAS SOLICITADAS EM")
+  t = t.split(/\s*:\s*/)[0] ?? t;
+  // remove sufixos técnicos após hífen ("- NÃO", "- TRANSPORTE", "- REGULAR")
+  t = t.replace(
+    /\s*[-–—]\s*(n[aã]o|sim|transporte|regular|privativo|di[aá]rio|opcional|com ingresso\s*\+?|ingresso)\s*\+?\s*$/gi,
+    "",
+  );
+  // "transporte ida e volta para X" / "transfer ida e volta para X" → X
+  t = t.replace(/^(transporte|transfer|traslado)\s+(ida\s+e\s+volta\s+)?(para|ao|at[ée]|a)\s+/i, "");
+  t = t.replace(/^(ingresso|ticket)\s+(para\s+)?/i, "");
+  t = t.replace(/\s*[-–—]\s*(visita\s+)?panor[aâ]mica\s*$/i, " panorâmica");
+  t = t.replace(/\s*\+\s*$/, "").replace(/\s{2,}/g, " ").trim();
+
+  if (!t) return "";
+
+  // caixa: só a primeira letra maiúscula (mantém palavras já bem escritas)
+  const tudoMaiusculo = t === t.toUpperCase();
+  if (tudoMaiusculo) {
+    t = t
+      .toLowerCase()
+      .split(" ")
+      .map((w, i) => (i === 0 || !MINUSCULAS.has(w) ? w : w))
+      .join(" ");
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+  }
+
+  // encurta por palavras (nunca no meio de uma abreviação)
+  if (t.length > 58) {
+    const corte = t.slice(0, 58);
+    const p = corte.lastIndexOf(" ");
+    t = (p > 24 ? corte.slice(0, p) : corte).trim();
+  }
+  return t.replace(/[.,;:–\-+]+$/, "").trim();
+}
+
 
   const linhas: string[] = [];
   linhas.push(
