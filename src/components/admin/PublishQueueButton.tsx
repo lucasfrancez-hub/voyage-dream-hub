@@ -1,9 +1,15 @@
 import { CheckCircle2, Loader2, ListChecks, XCircle, Clock, Trash2, CalendarClock } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { clearFinishedPublishJobs, usePublishQueue } from "@/lib/publish-queue";
 import { listarPublicacoesAgendadas } from "@/lib/social-schedule.functions";
+import {
+  limparFilaManualAereo,
+  listarFilaManualAereo,
+  retomarFilaManualAereo,
+} from "@/lib/airfare-manual-queue.functions";
 import {
   agendamentoCanal,
   agendamentoQuando,
@@ -21,12 +27,27 @@ function estadoAgendamento(status: string) {
 
 export function PublishQueueButton() {
   const jobs = usePublishQueue();
+  const queryClient = useQueryClient();
   const listarAgendados = useServerFn(listarPublicacoesAgendadas);
+  const listarFilaManual = useServerFn(listarFilaManualAereo);
+  const retomarFila = useServerFn(retomarFilaManualAereo);
+  const limparFilaManual = useServerFn(limparFilaManualAereo);
   const { data: agendadosRaw = [] } = useQuery({
     queryKey: ["social-scheduled-posts"],
     queryFn: () => listarAgendados(),
     refetchInterval: 60_000,
   });
+  const { data: filaManual = [] } = useQuery({
+    queryKey: ["airfare-manual-queue"],
+    queryFn: () => listarFilaManual(),
+    refetchInterval: 15_000,
+  });
+
+  useEffect(() => {
+    void retomarFila().finally(() => {
+      void queryClient.invalidateQueries({ queryKey: ["airfare-manual-queue"] });
+    });
+  }, [queryClient, retomarFila]);
 
   const agendados = (agendadosRaw as unknown as AgendamentoSocial[])
     .filter((a) => a.status !== "cancelado")
@@ -35,11 +56,18 @@ export function PublishQueueButton() {
     .slice(0, 30);
 
   const pendentes = agendados.filter((a) => a.status === "agendado" || a.status === "enviando").length;
-  const ativos =
-    jobs.filter((j) => j.status === "queued" || j.status === "running").length + pendentes;
+  const filaManualAtiva = filaManual.filter((item) => item.status === "queued" || item.status === "running").length;
+  const ativos = jobs.filter((j) => j.status === "queued" || j.status === "running").length + pendentes + filaManualAtiva;
   const erros =
     jobs.filter((j) => j.status === "error").length +
-    agendados.filter((a) => a.status === "falhou").length;
+    agendados.filter((a) => a.status === "falhou").length +
+    filaManual.filter((item) => item.status === "error").length;
+
+  const limparConcluidos = async () => {
+    clearFinishedPublishJobs();
+    await limparFilaManual({ data: { before: new Date().toISOString() } });
+    await queryClient.invalidateQueries({ queryKey: ["airfare-manual-queue"] });
+  };
 
   return (
     <Popover>
@@ -62,10 +90,11 @@ export function PublishQueueButton() {
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b border-border px-3 py-2">
           <span className="text-sm font-medium">Fila</span>
-          {jobs.some((j) => j.status === "done" || j.status === "error") && (
+          {(jobs.some((j) => j.status === "done" || j.status === "error") ||
+            filaManual.some((item) => item.status === "done" || item.status === "error")) && (
             <button
               type="button"
-              onClick={clearFinishedPublishJobs}
+              onClick={() => void limparConcluidos()}
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <Trash2 className="h-3 w-3" /> Limpar
@@ -73,12 +102,40 @@ export function PublishQueueButton() {
           )}
         </div>
         <div className="max-h-80 overflow-y-auto p-2">
-          {jobs.length === 0 && agendados.length === 0 ? (
+          {jobs.length === 0 && filaManual.length === 0 && agendados.length === 0 ? (
             <p className="px-2 py-6 text-center text-xs text-muted-foreground">
               Nada na fila. Ao salvar, enviar, publicar ou agendar, o item aparece aqui com o progresso.
             </p>
           ) : (
             <>
+              {filaManual.length ? (
+                <>
+                  <p className="px-2 pb-1 pt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Cotações de passagens
+                  </p>
+                  <ul className="space-y-1">
+                    {filaManual.map((item) => (
+                      <li key={item.id} className="flex items-start gap-2 rounded-lg px-2 py-2 hover:bg-muted/50">
+                        <span className="mt-0.5">
+                          {item.status === "running" && <Loader2 className="h-4 w-4 animate-spin text-brand-orange" />}
+                          {item.status === "queued" && <Clock className="h-4 w-4 text-muted-foreground" />}
+                          {item.status === "done" && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                          {item.status === "error" && <XCircle className="h-4 w-4 text-destructive" />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-xs font-medium text-foreground">
+                            {item.origin_iata} → {item.destination_iata}
+                          </span>
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            {item.status === "error" ? item.error : item.detail ?? "Aguardando cotação"}
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+
               {jobs.length ? (
                 <ul className="space-y-1">
                   {jobs.map((job) => (
