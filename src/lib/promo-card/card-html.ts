@@ -69,11 +69,11 @@ html,body{margin:0;background:#000;color:#fff;font-family:'Montserrat',Arial,Hel
 body{display:grid;place-items:center;min-height:100vh}
 .frame{position:relative;overflow:hidden;background:#000;display:flex;flex-direction:column;justify-content:space-between}
 .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:block}
-.veil{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 38%,rgba(0,0,0,.96) 100%)}
+.veil{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,.06) 34%,rgba(0,0,0,.55) 62%,rgba(0,0,0,.88) 100%)}
 .frame > *:not(.photo):not(.veil){position:relative;z-index:2}
 
-.glass{background:rgba(0,0,0,.42);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.30);border-radius:40px}
-.glass-dark{background:rgba(15,15,15,.68);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.14);border-radius:40px}
+.glass{background:rgba(0,0,0,.34);backdrop-filter:blur(30px) saturate(150%);border:1px solid rgba(255,255,255,.30);border-radius:40px}
+.glass-dark{background:rgba(10,10,10,.56);backdrop-filter:blur(30px) saturate(150%);border:1px solid rgba(255,255,255,.16);border-radius:40px}
 
 .top{display:flex;flex-direction:column}
 .brand{display:flex;align-items:center;justify-content:space-between;gap:24px}
@@ -84,8 +84,8 @@ body{display:grid;place-items:center;min-height:100vh}
 svg{display:block;width:100%;height:100%}
 
 .category-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.category-badge{display:inline-flex;align-items:center;border:2px solid var(--orange);border-radius:9999px;color:var(--orange);font-weight:700;letter-spacing:.18em;text-transform:uppercase;line-height:1}
-.found-badge{display:inline-flex;align-items:center;gap:12px;border:2px solid rgba(53,208,127,.85);border-radius:9999px;color:#7ff0b0;font-weight:700;letter-spacing:.08em;line-height:1}
+.category-badge{display:inline-flex;align-items:center;border:2px solid var(--orange);border-radius:9999px;color:var(--orange);font-weight:700;letter-spacing:.18em;text-transform:uppercase;line-height:1;background:rgba(0,0,0,.28)}
+.found-badge{display:inline-flex;align-items:center;gap:12px;border:2px solid rgba(53,208,127,.85);border-radius:9999px;color:#7ff0b0;font-weight:700;letter-spacing:.08em;line-height:1;background:rgba(0,0,0,.28)}
 .found-dot{width:14px;height:14px;border-radius:50%;background:#35d07f;box-shadow:0 0 14px rgba(53,208,127,.8)}
 
 .destination{font-weight:900;line-height:.9;letter-spacing:-.03em;margin:0;text-transform:uppercase;color:#fff;text-shadow:0 4px 12px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.45)}
@@ -96,36 +96,46 @@ svg{display:block;width:100%;height:100%}
 .route-city{display:flex;align-items:center;gap:16px;font-weight:800;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.55)}
 .route-city span{white-space:nowrap}
 .route-city .arrow{color:var(--orange);flex:none}
-.route-iata{color:rgba(255,255,255,.85);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.route-iata{color:rgba(255,255,255,.9);letter-spacing:.14em;text-transform:uppercase;font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,.6)}
 
-.info{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%}
-.info-col{display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;min-width:0}
-.info-icon{color:rgba(255,255,255,.9);margin-bottom:10px;display:inline-flex}
-.info-small{margin:0;color:rgba(255,255,255,.85);line-height:1.25}
-.info-strong{margin:0;font-weight:700;line-height:1.2}
-.info-div{width:1px;background:rgba(255,255,255,.2);flex-shrink:0}
-.airline-logo{border-radius:14px;background:#fff;display:grid;place-items:center;overflow:hidden;margin-bottom:8px}
-.airline-logo img{object-fit:contain}
+/* Bloco de informações em LINHAS (período / companhia / bagagem) */
+.info{display:flex;flex-direction:column;width:100%}
+.info-row{display:flex;align-items:center;gap:18px}
+.info-row + .info-row{border-top:1px solid rgba(255,255,255,.16)}
+.info-icon{color:var(--orange);display:inline-flex;flex-shrink:0}
+.info-label{margin:0;color:rgba(255,255,255,.72);font-weight:600;letter-spacing:.14em;text-transform:uppercase;flex-shrink:0}
+.info-value{margin:0 0 0 auto;font-weight:700;color:#fff;text-align:right;display:flex;align-items:center;gap:14px;justify-content:flex-end;min-width:0}
+.info-value .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info-value .txt.wrap{white-space:normal;line-height:1.2}
+.airline-logo{border-radius:12px;background:#fff;display:grid;place-items:center;overflow:hidden;flex:none;padding:6px}
+.airline-logo img{width:100%;height:100%;object-fit:contain}
+.airline-iata{color:var(--orange);font-weight:800;letter-spacing:.06em}
 
-.price{display:flex;flex-direction:column;text-align:center;width:100%}
-.price-kicker{margin:0 0 6px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.7);text-transform:uppercase}
-.price-line{display:flex;align-items:baseline;justify-content:center}
-.price-x{font-weight:700;margin-right:10px}
-.price-cur{font-weight:700;color:var(--orange);margin-right:8px}
-.price-num{font-weight:900;color:var(--orange);letter-spacing:-.03em;line-height:1;margin-right:6px}
+/* Melhor condição + mais prazo em duas colunas */
+.price{display:flex;align-items:stretch;width:100%}
+.price-col{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;text-align:center}
+.price-div{width:1px;background:rgba(255,255,255,.2);flex:none}
+.price-kicker{margin:0 0 8px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.72);text-transform:uppercase}
+.price-line{display:flex;align-items:baseline;justify-content:center;flex-wrap:nowrap}
+.price-x{font-weight:700;margin-right:8px}
+.price-cur{font-weight:700;color:var(--orange);margin-right:6px}
+.price-num{font-weight:900;color:var(--orange);letter-spacing:-.03em;line-height:1;margin-right:4px}
 .price-cents{font-weight:700;color:var(--orange)}
-.price-free{font-weight:600;color:rgba(255,255,255,.9);margin-left:12px}
-.price-bar{width:100%;height:1px;background:var(--orange);opacity:.5;margin:14px 0}
-.price-total{margin:0;font-weight:500}
-.price-total span{color:var(--orange);font-weight:700}
+.price-free{font-weight:600;color:rgba(255,255,255,.92);margin-left:10px}
+.price-total{margin:10px 0 0;font-weight:500;color:rgba(255,255,255,.92)}
+.price-total span{color:#fff;font-weight:800}
+.price-fine{margin:10px 0 0;color:rgba(255,255,255,.7);line-height:1.3}
+.price-alt-num{font-weight:900;color:#fff;line-height:1}
+.price-alt-num span{color:var(--orange)}
 
-.side{display:flex;flex-direction:column;gap:14px}
-.side-card{display:flex;align-items:center;gap:18px;width:100%}
-.side-icon{color:rgba(255,255,255,.9);display:inline-flex;flex-shrink:0}
+.side{display:flex;gap:14px}
+.side-card{display:flex;align-items:center;gap:16px;width:100%}
+.side-icon{color:var(--orange);display:inline-flex;flex-shrink:0}
 .side-card p{margin:0;font-weight:500;line-height:1.35;color:#fff}
 .side-card p b{color:var(--orange);font-weight:800}
-.side-fine{opacity:.7}
+.side-fine{opacity:.72}
 .note{margin:0;text-align:center;color:rgba(255,255,255,.95);line-height:1.35;font-weight:500;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+
 `;
 
 const STORY_CSS = `
@@ -138,26 +148,29 @@ const STORY_CSS = `
 .destination{font-size:170px;margin:34px 0 0}
 .route-city{font-size:56px}.route-city .arrow{font-size:40px}
 .route-iata{font-size:28px}
-.bottom{display:flex;flex-direction:column;gap:24px}
-.info{padding:34px 26px}
-.info-icon,.info-icon svg{width:50px;height:50px}
-.info-strong{font-size:30px}
-.info-small{font-size:24px}
-.info-div{height:110px}
-.airline-logo{width:64px;height:64px}.airline-logo img{width:52px;height:52px}
-.price{padding:38px 34px}
-.price-kicker{font-size:24px}
-.price-x{font-size:34px}
-.price-cur{font-size:52px}
-.price-num{font-size:150px}
-.price-cents{font-size:58px}
-.price-free{font-size:28px}
-.price-total{font-size:30px}
-.side-card{padding:26px 30px}
-.side-icon,.side-icon svg{width:46px;height:46px}
-.side-card p{font-size:26px}
-.side-fine{font-size:22px}
-.note{font-size:22px;margin-top:6px}
+.bottom{display:flex;flex-direction:column;gap:22px}
+.info{padding:12px 34px}
+.info-row{padding:22px 0}
+.info-icon,.info-icon svg{width:44px;height:44px}
+.info-label{font-size:23px}
+.info-value{font-size:30px;max-width:640px}
+.airline-logo{width:62px;height:62px}
+.airline-iata{font-size:24px}
+.price{padding:34px 26px}
+.price-kicker{font-size:23px}
+.price-x{font-size:36px}
+.price-cur{font-size:46px}
+.price-num{font-size:110px}
+.price-cents{font-size:46px}
+.price-free{font-size:26px}
+.price-total{font-size:26px}
+.price-fine{font-size:20px}
+.price-alt-num{font-size:64px}
+.side-card{padding:24px 30px}
+.side-icon,.side-icon svg{width:44px;height:44px}
+.side-card p{font-size:25px}
+.side-fine{font-size:21px}
+.note{font-size:21px;margin-top:4px}
 `;
 
 const FEED_CSS = `
@@ -166,32 +179,35 @@ const FEED_CSS = `
 .cards-seal,.offer-seal{width:124px;height:124px}
 .category-badge{font-size:22px;padding:10px 24px}
 .found-badge{font-size:20px;padding:10px 22px}
-.hero{margin-top:30px}
-.destination{font-size:132px;margin:24px 0 0}
+.hero{margin-top:28px}
+.destination{font-size:132px;margin:22px 0 0}
 .route-city{font-size:44px}.route-city .arrow{font-size:32px}
 .route-iata{font-size:23px}
-.bottom{display:flex;flex-direction:column;gap:18px}
-.info{padding:24px 22px}
-.info-icon,.info-icon svg{width:40px;height:40px}
-.info-strong{font-size:25px}
-.info-small{font-size:20px}
-.info-div{height:92px}
-.airline-logo{width:52px;height:52px}.airline-logo img{width:42px;height:42px}
-.price{padding:28px 30px}
-.price-kicker{font-size:20px}
-.price-x{font-size:28px}
-.price-cur{font-size:42px}
-.price-num{font-size:112px}
-.price-cents{font-size:46px}
-.price-free{font-size:24px}
-.price-total{font-size:25px}
-.side{flex-direction:row}
-.side-card{padding:20px 22px;align-items:flex-start}
-.side-icon,.side-icon svg{width:38px;height:38px}
+.bottom{display:flex;flex-direction:column;gap:16px}
+.info{padding:6px 28px}
+.info-row{padding:16px 0}
+.info-icon,.info-icon svg{width:36px;height:36px}
+.info-label{font-size:19px}
+.info-value{font-size:25px;max-width:600px}
+.airline-logo{width:52px;height:52px}
+.airline-iata{font-size:20px}
+.price{padding:26px 22px}
+.price-kicker{font-size:19px}
+.price-x{font-size:30px}
+.price-cur{font-size:38px}
+.price-num{font-size:88px}
+.price-cents{font-size:38px}
+.price-free{font-size:22px}
+.price-total{font-size:22px}
+.price-fine{font-size:17px}
+.price-alt-num{font-size:52px}
+.side-card{padding:18px 24px}
+.side-icon,.side-icon svg{width:36px;height:36px}
 .side-card p{font-size:21px}
 .side-fine{font-size:18px}
-.note{font-size:19px;margin-top:4px}
+.note{font-size:18px;margin-top:2px}
 `;
+
 
 
 
@@ -304,24 +320,39 @@ const ICONS = {
   clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
 };
 
-/** Bloco principal de preço, no mesmo padrão dos cards de pacote/ingresso. */
+/** Melhor condição + mais prazo, lado a lado em duas colunas. */
 function precoBloco(d: PromoCardData): string {
   const parcelado = !d.pixOnly && d.interestFreeInstallments > 1;
   const valor = parcelado ? d.interestFreeInstallmentValue : d.totalPrice;
   const [reais, centavos] = brl(valor).split(",");
   const kicker = parcelado ? "Melhor condição" : d.pixOnly ? "À vista no Pix" : "À vista";
-  return `<section class="price glass-dark">
+
+  const principal = `<div class="price-col">
     <p class="price-kicker">${esc(kicker)}</p>
     <div class="price-line">
       ${parcelado ? `<span class="price-x">${d.interestFreeInstallments}x</span>` : ""}
       <span class="price-cur">R$</span>
       <span class="price-num">${esc(reais)}</span>
       <span class="price-cents">,${esc(centavos ?? "00")}</span>
-      ${parcelado ? `<span class="price-free">sem juros</span>` : ""}
     </div>
-    <div class="price-bar"></div>
+    ${parcelado ? `<p class="price-fine">sem juros no cartão</p>` : ""}
     <p class="price-total">Valor total: <span>${esc(brlFull(d.totalPrice))}</span></p>
-  </section>`;
+  </div>`;
+
+  const segunda =
+    d.extendedInstallments && d.extendedInstallmentValue
+      ? `<div class="price-col">
+           <p class="price-kicker">Precisa de mais prazo?</p>
+           <p class="price-alt-num">${d.extendedInstallments}x <span>R$ ${esc(brl(d.extendedInstallmentValue))}</span></p>
+           <p class="price-fine">Quanto menos parcelas,<br/>mais barato você paga.</p>
+         </div>`
+      : `<div class="price-col">
+           <p class="price-kicker">Formas de pagamento</p>
+           <p class="price-alt-num"><span>Pix</span> ou cartão</p>
+           <p class="price-fine">Pague em até 3 cartões diferentes.</p>
+         </div>`;
+
+  return `<section class="price glass-dark">${principal}<div class="price-div"></div>${segunda}</section>`;
 }
 
 export function renderPromoCardHtml(
@@ -336,24 +367,6 @@ export function renderPromoCardHtml(
   const nota = `Parcelamento sem juros conforme regra vigente da companhia aérea.${dataTarifa ? ` Tarifa encontrada em ${dataTarifa}.` : ""} Válida para o dia da compra e sujeita à disponibilidade e atualização tarifária até a emissão.`;
   const ciaLogo = abs(base, d.airlineLogo);
   const foto = d.destinationImage ? abs(base, d.destinationImage) : "";
-
-  const prazo =
-    d.extendedInstallments && d.extendedInstallmentValue
-      ? `<div class="side-card glass-dark">
-           <span class="side-icon">${ICONS.clock}</span>
-           <p>Precisa de mais prazo? <b>${d.extendedInstallments}x de R$ ${esc(brl(d.extendedInstallmentValue))}</b><br/>
-             <span class="side-fine">Quanto menos parcelas, mais barato você paga.</span></p>
-         </div>`
-      : "";
-
-  const pagamento = `<div class="side-card glass-dark">
-      <span class="side-icon">${ICONS.card}</span>
-      <p>${
-        d.pixOnly
-          ? "Pagamento à vista no Pix ou cartão"
-          : `Cartão em até <b>${d.interestFreeInstallments}x sem juros</b>`
-      }<br/><span class="side-fine">Pague em até 3 cartões diferentes.</span></p>
-    </div>`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <title>VIA AIR — Promoção aérea (${format})</title>
@@ -390,38 +403,32 @@ ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" 
 
 <div class="bottom">
   <section class="info glass">
-    <div class="info-col">
+    <div class="info-row">
       <span class="info-icon">${ICONS.calendar}</span>
-      <p class="info-small">Período</p>
-      <p class="info-strong">${esc(periodo)}</p>
+      <p class="info-label">Período</p>
+      <p class="info-value"><span class="txt">${esc(periodo)}</span></p>
     </div>
-    <div class="info-div"></div>
-    <div class="info-col">
-      ${
-        ciaLogo
-          ? `<span class="airline-logo"><img src="${esc(ciaLogo)}" alt="${esc(d.airline)}"/></span>`
-          : `<span class="info-icon">${ICONS.plane}</span>`
-      }
-      <p class="info-small">Companhia</p>
-      <p class="info-strong">${esc(d.airline)}</p>
+    <div class="info-row">
+      <span class="info-icon">${ICONS.plane}</span>
+      <p class="info-label">Companhia</p>
+      <p class="info-value">
+        ${ciaLogo ? `<span class="airline-logo"><img src="${esc(ciaLogo)}" alt="${esc(d.airline)}"/></span>` : ""}
+        <span class="txt">${esc(d.airline)}</span>
+        ${!ciaLogo && d.airlineIata ? `<span class="airline-iata">${esc(d.airlineIata)}</span>` : ""}
+      </p>
     </div>
-    <div class="info-div"></div>
-    <div class="info-col">
+    <div class="info-row">
       <span class="info-icon">${ICONS.briefcase}</span>
-      <p class="info-small">Bagagem</p>
-      <p class="info-strong">${esc(d.baggage)}</p>
+      <p class="info-label">Bagagem</p>
+      <p class="info-value"><span class="txt wrap">${esc(d.baggage)}</span></p>
     </div>
   </section>
 
   ${precoBloco(d)}
 
-  <div class="side">
-    ${pagamento}
-    ${prazo}
-  </div>
-
   <p class="note">${esc(nota)}</p>
 </div>
 </main>${AUTOFIT}</body></html>`;
 }
+
 
