@@ -278,7 +278,11 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                           ))}
                         </div>
                       ) : null}
+                      {data.outrasHospedagens ? (
+                        <p className="vstory-info-alt">ou outras opções de hospedagem</p>
+                      ) : null}
                     </div>
+
                   </>
                 )}
               </div>
