@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
-import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused } from "@/lib/instagram/queries.functions";
+import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused, setInstagramCommentAiInstruction } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
 
@@ -2692,9 +2692,19 @@ function InstagramConversationView({
         )}
       </div>
 
+      {mirror?.mode === "ai" && (
+        <div className="shrink-0 border-t border-slate-200 bg-white px-3 pt-2">
+          <AiInstructionBar
+            conversationId={mirror.id}
+            pending={(mirror as { ai_instruction?: string | null }).ai_instruction ?? null}
+            onChange={() => onRefetch?.()}
+          />
+        </div>
+      )}
+
       <form
         onSubmit={(e) => { e.preventDefault(); if (text.trim()) send.mutate(text.trim()); }}
-        className="shrink-0 flex items-center gap-2 border-t border-slate-200 bg-white p-3"
+        className={cn("shrink-0 flex items-center gap-2 bg-white p-3", mirror?.mode === "ai" ? "" : "border-t border-slate-200")}
       >
         <input
           ref={fileRef}
@@ -3025,6 +3035,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const syncLikesFn = useServerFn(syncInstagramCommentLikes);
   const likeFn = useServerFn(toggleInstagramCommentLike);
   const pausarIaFn = useServerFn(setInstagramCommentAiPaused);
+  const instrucaoComentarioFn = useServerFn(setInstagramCommentAiInstruction);
 
   // Pausa/retoma a IA nesta publicação (vale pra resposta pública e pro direct).
   const comentarioPausaMut = useMutation({
