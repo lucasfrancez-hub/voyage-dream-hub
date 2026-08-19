@@ -302,8 +302,8 @@ const SEALS = `
         <filter id="sealShadowB" x="-40%" y="-40%" width="180%" height="180%">
           <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity=".42"/>
         </filter>
-        <path id="offerArcTop" d="M100,100 m-72,0 a72,72 0 0,1 144,0" fill="none"/>
-        <path id="offerArcBottom" d="M100,100 m-70,0 a70,70 0 0,0 140,0" fill="none"/>
+        <path id="offerArcTop" d="M100,100 m-71,0 a71,71 0 0,1 142,0" fill="none"/>
+        <path id="offerArcBottom" d="M100,100 m-68,0 a68,68 0 0,0 136,0" fill="none"/>
       </defs>
       <g filter="url(#sealShadowB)">
         <circle cx="100" cy="100" r="94" fill="rgba(53,208,127,.18)"/>
