@@ -252,9 +252,10 @@ const SEALS = `
         <rect x="6" y="27" width="12" height="5" rx="1" fill="#0d3140"/>
         <rect x="22" y="27" width="18" height="3" rx="1.5" fill="#9aa8af"/>
       </g>
-      <text x="80" y="84" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="800" letter-spacing="1.6">PAGUE EM</text>
+      <text x="80" y="84" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="800" letter-spacing="1.6">DIVIDA EM</text>
       <text x="80" y="109" text-anchor="middle" fill="#fff" font-size="24" font-weight="950">ATÉ 3</text>
       <text x="80" y="126" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="800" letter-spacing="1.2">CARTÕES</text>
+
     </svg>
   </div>
 
