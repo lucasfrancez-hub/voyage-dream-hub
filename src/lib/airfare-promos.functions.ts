@@ -462,6 +462,67 @@ export const salvarOportunidadePassagensBaratas = createServerFn({ method: "POST
 
 
 
+
+/* ------------------------------------------------------------------ */
+/* PROMOÇÃO 100% MANUAL (voos e valores digitados pelo administrador)   */
+/* ------------------------------------------------------------------ */
+
+const legSchema = z.object({
+  direction: z.enum(["OUTBOUND", "INBOUND"]),
+  date: z.string().trim().min(8).max(10),
+  fromIata: z.string().trim().length(3),
+  toIata: z.string().trim().length(3),
+  airlineIata: z.string().trim().min(2).max(3),
+  flightNumber: z.string().trim().max(10).optional().nullable(),
+  departureTime: z.string().trim().max(5).optional().nullable(),
+  arrivalTime: z.string().trim().max(5).optional().nullable(),
+  duration: z.string().trim().max(20).optional().nullable(),
+  stops: z.number().int().min(0).max(5).optional().nullable(),
+  checkedBaggage: z.boolean().optional(),
+});
+
+/** Cria/edita uma promoção digitada à mão (sem passar pelo motor). */
+export const salvarPromocaoAereaManual = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid().optional().nullable(),
+        originCity: z.string().trim().max(80).optional().nullable(),
+        destinationCity: z.string().trim().max(80).optional().nullable(),
+        cabinClass: z.string().trim().max(40).optional().nullable(),
+        adults: z.number().int().min(1).max(9),
+        farePrice: z.number().min(0),
+        taxes: z.number().min(0),
+        notes: z.string().trim().max(400).optional().nullable(),
+        legs: z.array(legSchema).min(1).max(2),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { saveManualPromotion } = await import("@/lib/airfare-promos.manual-entry.server");
+    return await saveManualPromotion(data as never);
+  });
+
+/** Dados brutos da promoção manual (para editar no formulário). */
+export const carregarPromocaoAereaManual = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { data: row, error } = await context.supabase
+      .from("airfare_promotions")
+      .select(
+        "id,passengers,fare_price,taxes,cabin_class,origin_city,destination_city,reference_source,raw",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Promoção não encontrada");
+    return row;
+  });
+
 /** Reconsulta UMA promoção no motor e atualiza preço/condições. */
 export const refreshAirfarePromotion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -475,6 +536,9 @@ export const refreshAirfarePromotion = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!promo) throw new Error("Promoção não encontrada");
+    if (promo.reference_source === "manual") {
+      throw new Error("Promoção manual: os voos e valores são digitados, não há recotação no motor.");
+    }
 
     const { loadMarkups, quoteRoute } = await import("@/lib/airfare-promos.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -630,6 +694,28 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
     if (!data.force && promo.cart_url && promo.short_url) {
       return { cart_url: promo.cart_url, short_url: promo.short_url, reused: true };
     }
+    // MANUAL: voos digitados pelo administrador — o link é o NOSSO checkout
+    // (orçamento público AIR_ONLY), com parcelamento da cia + markup.
+    if (promo.reference_source === "manual") {
+      const { data: bruto } = await context.supabase
+        .from("airfare_promotions")
+        .select("raw")
+        .eq("id", data.id)
+        .maybeSingle();
+      const { buildManualCheckoutLink } = await import("@/lib/airfare-promos.manual-entry.server");
+      const link = await buildManualCheckoutLink({
+        ...(promo as never as Record<string, unknown>),
+        raw: (bruto as { raw?: unknown } | null)?.raw ?? null,
+      } as never);
+      const short = link.shortUrl ?? (await criarShortLink(context, link.url, promo));
+      const { error: mErr } = await context.supabase
+        .from("airfare_promotions")
+        .update({ cart_url: link.url, short_url: short })
+        .eq("id", data.id);
+      if (mErr) throw new Error(mErr.message);
+      return { cart_url: link.url, short_url: short, reused: false };
+    }
+
     // MULTI-TRECHO (nacional, ida e volta em companhias diferentes):
     // não existe carrinho único na operadora — o link abre o motor VIA AIR
     // em multi-trecho e o cliente compra cada trecho pelo Comprar Viagem.
