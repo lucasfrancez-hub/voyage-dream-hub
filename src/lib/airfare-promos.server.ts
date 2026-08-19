@@ -18,7 +18,9 @@ import { INVOCATION_BUDGET_MS, type OriginMetrics } from "@/lib/airfare-promos.c
 import { isMetroCode, resolveCity } from "@/lib/iata-lookup";
 import { encodePicks } from "@/lib/multicity";
 
+import { flightToDetail } from "@/lib/airfare-promos.flight-details.server";
 import { searchFlights, searchInboundFlights } from "@/lib/onertravel.server";
+
 import { flightHasBaggage, type OnerFlight } from "@/lib/onertravel.types";
 
 type AnyClient = { from: (t: string) => any };
