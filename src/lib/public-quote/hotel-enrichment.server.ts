@@ -181,19 +181,7 @@ function pickName(raw: unknown): string {
 
 /** Traduz termos administrativos comuns que a API devolve em inglês. */
 function ptTermo(valor: string): string {
-  return valor
-    .replace(/^State of\s+/i, "")
-    .replace(/^Province of\s+/i, "")
-    .replace(/\bBrazil\b/gi, "Brasil")
-    .replace(/\bUnited States\b/gi, "Estados Unidos")
-    .replace(/\bSpain\b/gi, "Espanha")
-    .replace(/\bItaly\b/gi, "Itália")
-    .replace(/\bFrance\b/gi, "França")
-    .replace(/\bPortugal\b/gi, "Portugal")
-    .replace(/\bArgentina\b/gi, "Argentina")
-    .replace(/\bChile\b/gi, "Chile")
-    .replace(/\bMexico\b/gi, "México")
-    .trim();
+  return traduzirEndereco(valor) ?? valor.trim();
 }
 
 /** Monta o endereço em português a partir das partes (evita o "formatted" em inglês). */
