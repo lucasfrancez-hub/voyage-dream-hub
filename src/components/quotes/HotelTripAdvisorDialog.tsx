@@ -56,7 +56,13 @@ export function HotelTripAdvisorDialog({
     mutationFn: async () => await buscar({ data: { query: termo.trim() } }),
     onSuccess: (r) => {
       setResults(r.results as Candidate[]);
-      if (!r.results.length) toast.info("Nenhuma propriedade encontrada no TripAdvisor para esse termo.");
+      if (!r.results.length) {
+        if (r.limitado) {
+          toast.error("O TripAdvisor atingiu o limite de consultas da nossa chave. Tente de novo em alguns minutos.");
+        } else {
+          toast.info("Nenhuma propriedade encontrada no TripAdvisor para esse termo.");
+        }
+      }
     },
     onError: () => toast.error("Não foi possível consultar o TripAdvisor agora."),
   });
