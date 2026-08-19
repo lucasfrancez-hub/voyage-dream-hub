@@ -745,6 +745,74 @@ export type Database = {
         }
         Relationships: []
       }
+      asaas_anticipations: {
+        Row: {
+          asaas_anticipation_id: string | null
+          asaas_installment_id: string | null
+          asaas_payment_id: string | null
+          charge_id: string | null
+          created_at: string
+          credit_date: string | null
+          denial_reason: string | null
+          id: string
+          parcelas_antecipadas: number | null
+          raw: Json | null
+          requested_at: string | null
+          scheduled_date: string | null
+          status: string
+          taxa: number | null
+          updated_at: string
+          valor_bruto: number | null
+          valor_liquido: number | null
+        }
+        Insert: {
+          asaas_anticipation_id?: string | null
+          asaas_installment_id?: string | null
+          asaas_payment_id?: string | null
+          charge_id?: string | null
+          created_at?: string
+          credit_date?: string | null
+          denial_reason?: string | null
+          id?: string
+          parcelas_antecipadas?: number | null
+          raw?: Json | null
+          requested_at?: string | null
+          scheduled_date?: string | null
+          status?: string
+          taxa?: number | null
+          updated_at?: string
+          valor_bruto?: number | null
+          valor_liquido?: number | null
+        }
+        Update: {
+          asaas_anticipation_id?: string | null
+          asaas_installment_id?: string | null
+          asaas_payment_id?: string | null
+          charge_id?: string | null
+          created_at?: string
+          credit_date?: string | null
+          denial_reason?: string | null
+          id?: string
+          parcelas_antecipadas?: number | null
+          raw?: Json | null
+          requested_at?: string | null
+          scheduled_date?: string | null
+          status?: string
+          taxa?: number | null
+          updated_at?: string
+          valor_bruto?: number | null
+          valor_liquido?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_anticipations_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "asaas_card_charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asaas_bill_payment_events: {
         Row: {
           actor_name: string | null
@@ -910,6 +978,212 @@ export type Database = {
             columns: ["financial_entry_id"]
             isOneToOne: false
             referencedRelation: "financial_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asaas_card_charges: {
+        Row: {
+          acquirer_transaction_id: string | null
+          anticipation_status: string | null
+          asaas_customer_id: string | null
+          asaas_installment_id: string | null
+          asaas_payment_id: string | null
+          asaas_status: string | null
+          atendente_id: string | null
+          atendente_nome: string | null
+          authorization_code: string | null
+          billing_type: string
+          card_brand: string | null
+          card_holder_name: string | null
+          card_last4: string | null
+          card_token: string | null
+          chargeback_status: string | null
+          cliente_documento: string | null
+          cliente_email: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          confirmed_date: string | null
+          created_at: string
+          credit_date: string | null
+          date_created: string | null
+          descricao: string | null
+          erro_codigo: string | null
+          erro_mensagem: string | null
+          external_reference: string | null
+          id: string
+          nsu: string | null
+          order_id: string | null
+          parcelas: number
+          payment_date: string | null
+          raw: Json | null
+          status: string
+          taxas: number | null
+          tid: string | null
+          updated_at: string
+          valor: number
+          valor_bruto: number | null
+          valor_liquido: number | null
+          valor_parcela: number | null
+          venda_ref: string | null
+        }
+        Insert: {
+          acquirer_transaction_id?: string | null
+          anticipation_status?: string | null
+          asaas_customer_id?: string | null
+          asaas_installment_id?: string | null
+          asaas_payment_id?: string | null
+          asaas_status?: string | null
+          atendente_id?: string | null
+          atendente_nome?: string | null
+          authorization_code?: string | null
+          billing_type?: string
+          card_brand?: string | null
+          card_holder_name?: string | null
+          card_last4?: string | null
+          card_token?: string | null
+          chargeback_status?: string | null
+          cliente_documento?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          confirmed_date?: string | null
+          created_at?: string
+          credit_date?: string | null
+          date_created?: string | null
+          descricao?: string | null
+          erro_codigo?: string | null
+          erro_mensagem?: string | null
+          external_reference?: string | null
+          id?: string
+          nsu?: string | null
+          order_id?: string | null
+          parcelas?: number
+          payment_date?: string | null
+          raw?: Json | null
+          status?: string
+          taxas?: number | null
+          tid?: string | null
+          updated_at?: string
+          valor: number
+          valor_bruto?: number | null
+          valor_liquido?: number | null
+          valor_parcela?: number | null
+          venda_ref?: string | null
+        }
+        Update: {
+          acquirer_transaction_id?: string | null
+          anticipation_status?: string | null
+          asaas_customer_id?: string | null
+          asaas_installment_id?: string | null
+          asaas_payment_id?: string | null
+          asaas_status?: string | null
+          atendente_id?: string | null
+          atendente_nome?: string | null
+          authorization_code?: string | null
+          billing_type?: string
+          card_brand?: string | null
+          card_holder_name?: string | null
+          card_last4?: string | null
+          card_token?: string | null
+          chargeback_status?: string | null
+          cliente_documento?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          confirmed_date?: string | null
+          created_at?: string
+          credit_date?: string | null
+          date_created?: string | null
+          descricao?: string | null
+          erro_codigo?: string | null
+          erro_mensagem?: string | null
+          external_reference?: string | null
+          id?: string
+          nsu?: string | null
+          order_id?: string | null
+          parcelas?: number
+          payment_date?: string | null
+          raw?: Json | null
+          status?: string
+          taxas?: number | null
+          tid?: string | null
+          updated_at?: string
+          valor?: number
+          valor_bruto?: number | null
+          valor_liquido?: number | null
+          valor_parcela?: number | null
+          venda_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_card_charges_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asaas_charge_events: {
+        Row: {
+          anticipation_id: string | null
+          asaas_anticipation_id: string | null
+          asaas_event_id: string | null
+          asaas_payment_id: string | null
+          charge_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json | null
+          received_at: string
+          resultado: string | null
+          status_anterior: string | null
+          status_novo: string | null
+        }
+        Insert: {
+          anticipation_id?: string | null
+          asaas_anticipation_id?: string | null
+          asaas_event_id?: string | null
+          asaas_payment_id?: string | null
+          charge_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+          received_at?: string
+          resultado?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+        }
+        Update: {
+          anticipation_id?: string | null
+          asaas_anticipation_id?: string | null
+          asaas_event_id?: string | null
+          asaas_payment_id?: string | null
+          charge_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          received_at?: string
+          resultado?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asaas_charge_events_anticipation_id_fkey"
+            columns: ["anticipation_id"]
+            isOneToOne: false
+            referencedRelation: "asaas_anticipations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asaas_charge_events_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "asaas_card_charges"
             referencedColumns: ["id"]
           },
         ]
