@@ -259,7 +259,7 @@ const SEALS = `
     </svg>
   </div>
 
-  <div class="offer-seal" aria-label="Oferta aérea">
+  <div class="offer-seal" aria-label="Tarifa relâmpago">
     <svg viewBox="0 0 160 160" role="img">
       <defs>
         <linearGradient id="offerBg3" x1="0" x2="1" y1="0" y2="1">
