@@ -80,7 +80,16 @@ body{display:grid;place-items:center;min-height:100vh}
 .logo-slot{display:flex;align-items:center}
 .logo-slot img{display:block;max-width:100%;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45))}
 .logo-placeholder{font-size:24px;letter-spacing:4px;font-weight:900;color:rgba(255,255,255,.55)}
-.seal-wrap{display:flex;align-items:center;gap:18px}
+.seal-wrap{display:flex;align-items:center;gap:26px}
+/* Carimbo de passaporte */
+.stamp{border:3px solid currentColor;border-radius:16px;padding:7px;box-shadow:0 14px 30px rgba(0,0,0,.42);background:rgba(255,255,255,.06)}
+.stamp-cards{color:#c2410c;transform:rotate(-9deg)}
+.stamp-offer{color:#15803d;transform:rotate(6deg)}
+.stamp-inner{border:1.5px dashed currentColor;border-radius:10px;background:rgba(255,255,255,.94);display:flex;flex-direction:column;align-items:center;text-align:center;line-height:1}
+.stamp-tag,.stamp-foot{font-weight:800;text-transform:uppercase;opacity:.85;white-space:nowrap}
+.stamp-l1,.stamp-l2{font-weight:900;letter-spacing:-.01em;white-space:nowrap}
+.stamp-rule{display:block;width:100%;height:1px;background:currentColor;opacity:.32}
+
 svg{display:block;width:100%;height:100%}
 
 .category-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -151,7 +160,12 @@ svg{display:block;width:100%;height:100%}
 const STORY_CSS = `
 .frame{width:1080px;height:1920px;padding:56px 56px 44px}
 .logo-slot img{max-height:88px;max-width:400px}
-.cards-seal,.offer-seal{width:150px;height:150px}
+.stamp-inner{padding:16px 26px;gap:9px}
+.stamp-tag{font-size:17px;letter-spacing:.34em}
+.stamp-foot{font-size:15px;letter-spacing:.3em}
+.stamp-l1{font-size:46px}
+.stamp-l2{font-size:34px}
+
 .category-badge{font-size:26px;padding:12px 30px}
 .category-badge .cb-ico,.category-badge .cb-ico svg{width:30px;height:30px}
 .found-badge{font-size:24px;padding:12px 26px}
@@ -192,7 +206,12 @@ const STORY_CSS = `
 const FEED_CSS = `
 .frame{width:1080px;height:1350px;padding:48px 48px 38px}
 .logo-slot img{max-height:74px;max-width:340px}
-.cards-seal,.offer-seal{width:124px;height:124px}
+.stamp-inner{padding:13px 21px;gap:7px}
+.stamp-tag{font-size:14px;letter-spacing:.32em}
+.stamp-foot{font-size:12.5px;letter-spacing:.3em}
+.stamp-l1{font-size:38px}
+.stamp-l2{font-size:28px}
+
 .category-badge{font-size:22px;padding:10px 24px}
 .category-badge .cb-ico,.category-badge .cb-ico svg{width:26px;height:26px}
 .found-badge{font-size:20px;padding:10px 22px}
@@ -235,101 +254,28 @@ const FEED_CSS = `
 
 const SEALS = `
 <div class="seal-wrap">
-  <div class="cards-seal" aria-label="Divida em até 3 cartões">
-    <svg viewBox="0 0 200 200" role="img">
-      <defs>
-        <radialGradient id="cardBg" cx="34%" cy="26%" r="88%">
-          <stop offset="0%" stop-color="#ffd39a"/>
-          <stop offset="34%" stop-color="#ff9c34"/>
-          <stop offset="72%" stop-color="#f0730a"/>
-          <stop offset="100%" stop-color="#a83f00"/>
-        </radialGradient>
-        <linearGradient id="cardGloss" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#fff" stop-opacity=".55"/>
-          <stop offset="46%" stop-color="#fff" stop-opacity=".10"/>
-          <stop offset="47%" stop-color="#fff" stop-opacity="0"/>
-        </linearGradient>
-        <filter id="sealShadowA" x="-40%" y="-40%" width="180%" height="180%">
-          <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity=".42"/>
-        </filter>
-        <path id="cardArcTop" d="M100,100 m-71,0 a71,71 0 0,1 142,0" fill="none"/>
-        <path id="cardArcBottom" d="M100,100 m-68,0 a68,68 0 0,0 136,0" fill="none"/>
-      </defs>
-      <g filter="url(#sealShadowA)">
-        <circle cx="100" cy="100" r="94" fill="rgba(255,150,40,.16)"/>
-        <circle cx="100" cy="100" r="88" fill="#fff" fill-opacity=".95"/>
-        <circle cx="100" cy="100" r="82" fill="url(#cardBg)"/>
-      </g>
-      <circle cx="100" cy="100" r="82" fill="url(#cardGloss)"/>
-      <circle cx="100" cy="100" r="79" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6"/>
-      <circle cx="100" cy="100" r="76" fill="none" stroke="rgba(255,255,255,.26)" stroke-width="4" stroke-dasharray="1 8" stroke-linecap="round"/>
-      <circle cx="100" cy="100" r="61" fill="rgba(120,42,0,.20)"/>
-      <circle cx="100" cy="100" r="61" fill="none" stroke="rgba(255,255,255,.42)" stroke-width="1.2"/>
-      <text fill="#fff" font-size="14" font-weight="900" letter-spacing=".2">
-        <textPath href="#cardArcTop" startOffset="50%" text-anchor="middle">DIVIDA EM 3 CARTÕES</textPath>
-      </text>
-
-      <text fill="#fff" font-size="10" font-weight="800" letter-spacing="3.6" opacity=".88">
-        <textPath href="#cardArcBottom" startOffset="50%" text-anchor="middle">PARCELE SEM SUSTO</textPath>
-      </text>
-      <g fill="rgba(255,255,255,.65)"><circle cx="24.5" cy="100" r="2.4"/><circle cx="175.5" cy="100" r="2.4"/></g>
-      <g transform="translate(74 62) scale(1)">
-        <rect x="0" y="4" width="52" height="34" rx="7" fill="#fff" opacity=".18"/>
-        <rect x="4" y="0" width="52" height="34" rx="7" fill="#fff"/>
-        <rect x="4" y="7" width="52" height="7" fill="#c9600a"/>
-        <rect x="10" y="21" width="13" height="6" rx="1.6" fill="#0d3140"/>
-        <rect x="27" y="22" width="20" height="3.4" rx="1.7" fill="#9aa8af"/>
-      </g>
-      <text x="100" y="137" text-anchor="middle" fill="#fff" font-size="30" font-weight="900" letter-spacing="-.5">3X</text>
-
-    </svg>
+  <div class="stamp stamp-cards" aria-label="Divida em até 3 cartões">
+    <div class="stamp-inner">
+      <span class="stamp-tag">Parcele sem susto</span>
+      <span class="stamp-rule"></span>
+      <span class="stamp-l1">ATÉ 3</span>
+      <span class="stamp-l2">CARTÕES</span>
+      <span class="stamp-rule"></span>
+      <span class="stamp-foot">VIA AIR</span>
+    </div>
   </div>
-
-  <div class="offer-seal" aria-label="Tarifa relâmpago">
-    <svg viewBox="0 0 200 200" role="img">
-      <defs>
-        <radialGradient id="offerBg3" cx="34%" cy="26%" r="88%">
-          <stop offset="0%" stop-color="#a8f5a4"/>
-          <stop offset="34%" stop-color="#4fcb63"/>
-          <stop offset="72%" stop-color="#22913f"/>
-          <stop offset="100%" stop-color="#0d5726"/>
-        </radialGradient>
-        <linearGradient id="offerGloss" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#fff" stop-opacity=".5"/>
-          <stop offset="46%" stop-color="#fff" stop-opacity=".08"/>
-          <stop offset="47%" stop-color="#fff" stop-opacity="0"/>
-        </linearGradient>
-        <filter id="sealShadowB" x="-40%" y="-40%" width="180%" height="180%">
-          <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity=".42"/>
-        </filter>
-        <path id="offerArcTop" d="M100,100 m-71,0 a71,71 0 0,1 142,0" fill="none"/>
-        <path id="offerArcBottom" d="M100,100 m-68,0 a68,68 0 0,0 136,0" fill="none"/>
-      </defs>
-      <g filter="url(#sealShadowB)">
-        <circle cx="100" cy="100" r="94" fill="rgba(53,208,127,.18)"/>
-        <circle cx="100" cy="100" r="88" fill="#fff" fill-opacity=".95"/>
-        <circle cx="100" cy="100" r="82" fill="url(#offerBg3)"/>
-      </g>
-      <circle cx="100" cy="100" r="82" fill="url(#offerGloss)"/>
-      <circle cx="100" cy="100" r="79" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.6"/>
-      <circle cx="100" cy="100" r="76" fill="none" stroke="rgba(255,255,255,.24)" stroke-width="4" stroke-dasharray="1 8" stroke-linecap="round"/>
-      <circle cx="100" cy="100" r="61" fill="rgba(4,60,25,.22)"/>
-      <circle cx="100" cy="100" r="61" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
-      <text fill="#fff" font-size="18" font-weight="900" letter-spacing="1.2">
-        <textPath href="#offerArcTop" startOffset="50%" text-anchor="middle">TARIFA RELÂMPAGO</textPath>
-      </text>
-      <text fill="#fff" font-size="10" font-weight="800" letter-spacing="3.6" opacity=".88">
-        <textPath href="#offerArcBottom" startOffset="50%" text-anchor="middle">OFERTA DO DIA</textPath>
-      </text>
-      <g fill="rgba(255,255,255,.65)"><circle cx="24.5" cy="100" r="2.4"/><circle cx="175.5" cy="100" r="2.4"/></g>
-      <g transform="translate(0 6) scale(.78) translate(30 22)">
-        <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#0d5726" opacity=".25" transform="translate(3 4)"/>
-        <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#fff"/>
-      </g>
-
-    </svg>
+  <div class="stamp stamp-offer" aria-label="Tarifa relâmpago">
+    <div class="stamp-inner">
+      <span class="stamp-tag">Oferta do dia</span>
+      <span class="stamp-rule"></span>
+      <span class="stamp-l1">TARIFA</span>
+      <span class="stamp-l2">RELÂMPAGO</span>
+      <span class="stamp-rule"></span>
+      <span class="stamp-foot">VIA AIR</span>
+    </div>
   </div>
 </div>`;
+
 
 /** Ajuste automático do destino grande: reduz até caber, sem cortar. */
 /** Auto-fit do destino (v24): uma linha, sem cortar, com 48px de respiro. */
