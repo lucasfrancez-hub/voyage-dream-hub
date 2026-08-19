@@ -463,6 +463,24 @@ export const salvarOportunidadePassagensBaratas = createServerFn({ method: "POST
 
 
 
+/** Ajusta manualmente o preço de uma promoção e recalcula o parcelamento. */
+export const ajustarPrecoPromocao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        pricePerPassenger: z.number().min(1).max(200000),
+        taxesPerPassenger: z.number().min(0).max(200000).optional().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { applyPromotionPriceOverride } = await import("@/lib/airfare-promos.price-override.server");
+    return await applyPromotionPriceOverride(data);
+  });
+
 /* ------------------------------------------------------------------ */
 /* PROMOÇÃO 100% MANUAL (voos e valores digitados pelo administrador)   */
 /* ------------------------------------------------------------------ */
