@@ -39,6 +39,7 @@ export async function gerarRespostaPessoal(params: {
   username: string | null;
   historico: Historico;
   mensagem: string;
+  instrucao?: string | null;
 }): Promise<string | null> {
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) return null;
@@ -50,7 +51,7 @@ export async function gerarRespostaPessoal(params: {
       .join("\n");
     const { text } = await generateText({
       model: provider(MODEL),
-      system: buildSystem(params.nome, params.username),
+      system: buildSystem(params.nome, params.username, params.instrucao),
       prompt: `${contexto ? `Conversa até agora:\n${contexto}\n\n` : ""}Nova mensagem: ${params.mensagem}\n\nEscreva SOMENTE a resposta.`,
       temperature: 0.7,
     });
