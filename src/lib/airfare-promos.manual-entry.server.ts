@@ -392,3 +392,68 @@ export async function buildManualCheckoutLink(promo: {
 
   return { url, shortUrl };
 }
+
+/* ------------------------------------------------------------------ */
+/* Edição dos trechos de uma promoção já salva                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Regrava apenas os VOOS (trechos) da promoção — o preço não muda.
+ * Serve para completar horários/nº de voo das promoções vindas do motor,
+ * que chegam sem esses dados e apareciam zeradas no orçamento público.
+ * Zera o link para que seja regerado com os trechos corrigidos.
+ */
+export async function updatePromotionLegs(id: string, legs: ManualLegInput[]) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const client = supabaseAdmin as never as { from: (t: string) => any };
+
+  const { data: row, error } = await client
+    .from("airfare_promotions")
+    .select("id,raw")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) throw new Error("Promoção não encontrada");
+
+  const out = legs.find((l) => l.direction === "OUTBOUND");
+  if (!out) throw new Error("Informe pelo menos o voo de ida.");
+  const inb = legs.find((l) => l.direction === "INBOUND") ?? null;
+
+  const norm = legs.map((l) => ({
+    ...l,
+    fromIata: l.fromIata.trim().toUpperCase(),
+    toIata: l.toIata.trim().toUpperCase(),
+    airlineIata: l.airlineIata.trim().toUpperCase(),
+    stops: Math.max(0, Number(l.stops) || 0),
+    checkedBaggage: !!l.checkedBaggage,
+  }));
+
+  const raw = ((row as { raw?: Record<string, unknown> | null }).raw ?? {}) as Record<string, unknown>;
+  const manualPrev = (raw.manual ?? {}) as Record<string, unknown>;
+  const air = findAirline(out.airlineIata) ?? null;
+  const airIn = inb ? (findAirline(inb.airlineIata) ?? null) : null;
+
+  const { error: uErr } = await client
+    .from("airfare_promotions")
+    .update({
+      raw: { ...raw, manual: { ...manualPrev, legs: norm } },
+      origin_iata: norm[0]!.fromIata,
+      destination_iata: norm[0]!.toIata,
+      departure_date: out.date,
+      return_date: inb?.date ?? null,
+      is_round_trip: !!inb,
+      stops: Math.max(0, Number(out.stops) || 0),
+      has_checked_baggage: !!out.checkedBaggage && (!inb || !!inb.checkedBaggage),
+      airline_iata: air?.iata ?? out.airlineIata.toUpperCase(),
+      airline_name: air?.name ?? out.airlineIata.toUpperCase(),
+      airline_logo: air?.logo ?? null,
+      inbound_airline_iata: airIn?.iata ?? inb?.airlineIata?.toUpperCase() ?? null,
+      inbound_airline_name: airIn?.name ?? null,
+      inbound_airline_logo: airIn?.logo ?? null,
+      cart_url: null,
+      short_url: null,
+    })
+    .eq("id", id);
+  if (uErr) throw new Error(uErr.message);
+  return { ok: true };
+}
