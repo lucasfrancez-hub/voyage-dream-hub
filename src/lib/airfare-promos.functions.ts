@@ -882,19 +882,3 @@ export const salvarTrechosPromocao = createServerFn({ method: "POST" })
     const { updatePromotionLegs } = await import("@/lib/airfare-promos.manual-entry.server");
     return await updatePromotionLegs(data.id, data.legs as never);
   });
-
-/** Lê os trechos salvos de uma promoção (para preencher o editor de voos). */
-export const carregarPromocaoAereaManual = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }) => {
-    await assertAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await (supabaseAdmin as never as { from: (t: string) => any })
-      .from("airfare_promotions")
-      .select("id,raw")
-      .eq("id", data.id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    return row ?? null;
-  });
