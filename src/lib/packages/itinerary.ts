@@ -31,6 +31,8 @@ export function nomeBonitoPasseio(v: unknown): string {
     .replace(/\s+/g, " ")
     .trim();
 
+  const tudoMaiusculo = !!t && t === t.toUpperCase();
+
   // corta observações do operador ("...: AS RESERVAS SOLICITADAS EM")
   t = t.split(/\s*:\s*/)[0] ?? t;
   // remove sufixos técnicos após hífen ("- NÃO", "- TRANSPORTE", "- REGULAR")
@@ -46,16 +48,12 @@ export function nomeBonitoPasseio(v: unknown): string {
 
   if (!t) return "";
 
-  // caixa: só a primeira letra maiúscula (mantém palavras já bem escritas)
-  const tudoMaiusculo = t === t.toUpperCase();
+  // caixa: só a primeira letra maiúscula
   if (tudoMaiusculo) {
-    t = t
-      .toLowerCase()
-      .split(" ")
-      .map((w, i) => (i === 0 || !MINUSCULAS.has(w) ? w : w))
-      .join(" ");
+    t = t.toLowerCase();
     t = t.charAt(0).toUpperCase() + t.slice(1);
   }
+
 
   // encurta por palavras (nunca no meio de uma abreviação)
   if (t.length > 58) {
