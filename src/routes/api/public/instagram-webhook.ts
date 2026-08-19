@@ -107,8 +107,7 @@ async function processPayload(payload: IGPayload) {
     if (!account) throw new Error(`Conta ${igAccountId} não cadastrada`);
     const igToken = (account as { access_token?: string }).access_token ?? null;
     const igApiUserId = (account as { ig_user_id?: string }).ig_user_id ?? igAccountId;
-    const { iaPodeResponderComentario } = await import("@/lib/instagram/ai-toggle");
-    const { contaComIaAtiva } = await import("@/lib/instagram/ai-toggle");
+    const { iaPodeResponderComentario, contaComIaAtiva, contaRespondeDirectComoPessoa } = await import("@/lib/instagram/ai-toggle");
     const iaAtiva = contaComIaAtiva((account as { metadata?: unknown }).metadata);
     const igMetadata = (account as { metadata?: unknown }).metadata;
 
