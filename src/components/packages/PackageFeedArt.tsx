@@ -475,7 +475,8 @@ ${SELO_ANIVERSARIO_CSS}
 .vfeed-info-strong{margin:0;font-weight:700;font-size:18px;line-height:1.2}
 .vfeed-info-mid{margin:0;font-weight:500;font-size:16px;line-height:1.2;color:rgba(255,255,255,.8)}
 .vfeed-info-small{margin:0;font-size:14px;color:rgba(255,255,255,.6);line-height:1.2}
-.vfeed-info-hotel{margin:0;font-weight:700;font-size:16px;line-height:1.15;margin-bottom:4px;word-wrap:break-word;hyphens:auto}
+.vfeed-info-hotel{margin:0;font-weight:700;font-size:16px;line-height:1.15;margin-bottom:4px;word-wrap:break-word;hyphens:auto;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.vfeed-info-alt{margin:4px 0 0;font-size:12px;line-height:1.15;font-weight:600;color:var(--brand-orange)}
 .vfeed-info-div{width:1px;height:64px;background:rgba(255,255,255,.20);flex-shrink:0}
 .vfeed-stars{display:flex;justify-content:center;gap:4px;color:var(--brand-orange)}
 .vfeed-stars svg{width:14px;height:14px}
