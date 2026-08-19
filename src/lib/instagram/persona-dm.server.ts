@@ -69,6 +69,7 @@ export async function responderDirectComoDono(params: {
   accountRowId: string;
   contactIgId: string;
   mensagem: string;
+  instrucao?: string | null;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -85,11 +86,22 @@ export async function responderDirectComoDono(params: {
     .order("created_at", { ascending: false })
     .limit(10);
 
+  let instrucao = params.instrucao ?? null;
+  if (!instrucao) {
+    const { data: mirror } = await supabaseAdmin
+      .from("wa_conversations")
+      .select("ai_instruction")
+      .eq("wa_phone", `ig:${params.contactIgId}`)
+      .maybeSingle();
+    instrucao = (mirror?.ai_instruction as string | null) ?? null;
+  }
+
   const resposta = await gerarRespostaPessoal({
     nome: conta?.display_name || conta?.username || "eu",
     username: conta?.username ?? null,
     historico: ((msgs ?? []) as Historico).slice().reverse(),
     mensagem: params.mensagem,
+    instrucao,
   });
   if (!resposta) return;
 
