@@ -105,16 +105,18 @@ svg{display:block;width:100%;height:100%}
 .destination-one-line .dest-highlight{color:var(--orange)}
 
 /* Rota em cartão de embarque */
-.route{margin-top:22px;display:flex;align-items:center;width:max-content;max-width:100%}
+/* Sombra atrás da rota: em fotos claras o IATA e a cidade sumiam. */
+.route{margin-top:22px;display:flex;align-items:center;width:max-content;max-width:100%;position:relative;padding:14px 26px;margin-left:-26px;border-radius:26px;background:radial-gradient(120% 140% at 50% 50%,rgba(0,0,0,.62) 0%,rgba(0,0,0,.42) 55%,rgba(0,0,0,0) 100%)}
 .route-end{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
-.route-iata-big{font-weight:900;color:#fff;line-height:1;letter-spacing:-.02em;text-shadow:0 2px 10px rgba(0,0,0,.6)}
-.route-city-name{font-weight:600;color:rgba(255,255,255,.86);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.route-iata-big{font-weight:900;color:#fff;line-height:1;letter-spacing:-.02em;text-shadow:0 2px 6px rgba(0,0,0,.9),0 6px 20px rgba(0,0,0,.75)}
+.route-city-name{font-weight:700;color:rgba(255,255,255,.94);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;text-shadow:0 2px 6px rgba(0,0,0,.9),0 4px 14px rgba(0,0,0,.7)}
 .route-mid{display:flex;flex-direction:column;align-items:center;gap:8px;flex:none}
 .route-track{display:flex;align-items:center;gap:8px;color:var(--orange)}
 .route-track i{display:block;height:2px;border-radius:2px;background:linear-gradient(90deg,rgba(255,127,0,.15),rgba(255,127,0,.95))}
 .route-track i.rev{background:linear-gradient(90deg,rgba(255,127,0,.95),rgba(255,127,0,.15))}
-.route-track .route-plane{display:inline-flex;color:var(--orange)}
-.route-trip{display:inline-flex;align-items:center;border-radius:9999px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#ffd7ac;background:rgba(255,127,0,.16);border:1px solid rgba(255,159,63,.5);white-space:nowrap}
+.route-track .route-plane{display:inline-flex;color:var(--orange);filter:drop-shadow(0 2px 6px rgba(0,0,0,.75))}
+.route-track .route-plane svg{fill:currentColor;stroke:currentColor;stroke-width:1.2}
+.route-trip{display:inline-flex;align-items:center;border-radius:9999px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#ffe2c2;background:rgba(120,52,0,.78);border:1px solid rgba(255,159,63,.55);box-shadow:0 4px 14px rgba(0,0,0,.45);white-space:nowrap}
 
 
 /* Bloco de informações em LINHAS (período / companhia / bagagem) */
