@@ -1,4 +1,8 @@
-import { saveManualOpportunity, type ManualOpportunityInput } from "@/lib/airfare-promos.manual.server";
+import {
+  saveManualOpportunity,
+  type ManualOpportunityInput,
+  type ManualOpportunityResult,
+} from "@/lib/airfare-promos.manual.server";
 
 type QueueRow = {
   id: string;
@@ -79,7 +83,10 @@ async function claimAndProcess(id: string) {
   return processClaimedRow(row as QueueRow);
 }
 
-export async function enqueueManualOpportunity(input: ManualOpportunityInput, userId: string) {
+export async function enqueueManualOpportunity(
+  input: ManualOpportunityInput,
+  userId: string,
+): Promise<ManualOpportunityResult> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const normalized = {
     created_by: userId,
@@ -101,17 +108,19 @@ export async function enqueueManualOpportunity(input: ManualOpportunityInput, us
 
   let id = inserted?.id as string | undefined;
   if (error?.code === "23505") {
-    const { data: existing } = await supabaseAdmin
+    let existingQuery = supabaseAdmin
       .from("airfare_manual_queue")
       .select("id")
       .eq("origin_iata", normalized.origin_iata)
       .eq("destination_iata", normalized.destination_iata)
       .eq("departure_date", normalized.departure_date)
-      .filter("return_date", normalized.return_date == null ? "is" : "eq", normalized.return_date)
       .in("status", ["queued", "running"])
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    existingQuery = normalized.return_date == null
+      ? existingQuery.is("return_date", null)
+      : existingQuery.eq("return_date", normalized.return_date);
+    const { data: existing } = await existingQuery.maybeSingle();
     id = existing?.id as string | undefined;
   } else if (error) {
     throw new Error(error.message);
@@ -126,7 +135,9 @@ export async function enqueueManualOpportunity(input: ManualOpportunityInput, us
     .select("status,result,error")
     .eq("id", id)
     .maybeSingle();
-  if (current?.status === "done" && current.result) return current.result;
+  if (current?.status === "done" && current.result) {
+    return current.result as unknown as ManualOpportunityResult;
+  }
   if (current?.status === "error") return { ok: false as const, reason: "no_fare" as const };
   return { ok: false as const, reason: "no_fare" as const };
 }
