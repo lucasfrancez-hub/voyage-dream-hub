@@ -496,10 +496,23 @@ export function buildCamilaTools(conversation: WaConversation) {
         const priceP = Number(pkg.price_per_person) || 0;
         const total = priceP * qtd;
         const pixTotal = total * 0.95;
-        const isCaptive = /cativ/i.test(String((pkg as any).supplier_name ?? ""));
-        const parcelaVisaMaster = total / 15;
-        const parcelaOutrasBandeiras = total / 10;
-        const parcelaCartao10 = total / 10;
+        // Parcelamento sempre pela regra da operadora (FRT 15x; demais 10x)
+        // e, na Cativa, bandeiras limitadas (Hipercard/Diners/Elo/Amex) em 6x.
+        const { packageMaxInstallments, maxCardInstallments, CATIVA_LIMITED_MAX_INSTALLMENTS } =
+          await import("@/lib/packages/card-installments");
+        const supplierName = String((pkg as any).supplier_name ?? "");
+        const sourceName = String((pkg as any).source ?? "");
+        const maxParcelas = packageMaxInstallments({ supplierName, source: sourceName });
+        const maxBandeiraLimitada = maxCardInstallments({
+          brand: "Elo",
+          supplierName,
+          source: sourceName,
+          defaultMax: maxParcelas,
+        });
+        const temBandeiraLimitada = maxBandeiraLimitada < maxParcelas;
+        const parcelaCartao = total / maxParcelas;
+        const parcelaBandeiraLimitada = total / (maxBandeiraLimitada || CATIVA_LIMITED_MAX_INSTALLMENTS);
+
 
         const link = `https://pedidos.viaair.tur.br/w/${pkg.slug}`;
 
