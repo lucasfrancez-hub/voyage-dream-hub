@@ -107,10 +107,11 @@ export function gerarRoteiro({
     i = fim + 1;
   }
 
-  const restantes = atividades.slice(miolo);
+  const restantes = atividades.slice(miolo).slice(0, 2);
   if (restantes.length && linhas.length > 1) {
     linhas[linhas.length - 1] = `${linhas[linhas.length - 1]!.replace(/\.$/, "")} · ${restantes.join(" · ")}.`;
   }
+
 
   if (dias > 1) {
     linhas.push(
