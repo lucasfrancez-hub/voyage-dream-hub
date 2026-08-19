@@ -86,7 +86,7 @@ body{display:grid;place-items:center;min-height:100vh}
 .stamp-cards{color:#c2410c;transform:rotate(-9deg)}
 .stamp-offer{color:#15803d;transform:rotate(6deg)}
 .stamp-inner{border:1.5px dashed currentColor;border-radius:10px;background:rgba(255,255,255,.94);display:flex;flex-direction:column;align-items:center;text-align:center;line-height:1}
-.stamp-tag,.stamp-foot{font-weight:800;text-transform:uppercase;opacity:.85}
+.stamp-tag,.stamp-foot{font-weight:800;text-transform:uppercase;opacity:.85;white-space:nowrap}
 .stamp-l1,.stamp-l2{font-weight:900;letter-spacing:-.01em;white-space:nowrap}
 .stamp-rule{display:block;width:100%;height:1px;background:currentColor;opacity:.32}
 
