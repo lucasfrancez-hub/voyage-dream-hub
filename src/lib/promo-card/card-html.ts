@@ -265,9 +265,10 @@ const SEALS = `
       <circle cx="100" cy="100" r="76" fill="none" stroke="rgba(255,255,255,.26)" stroke-width="4" stroke-dasharray="1 8" stroke-linecap="round"/>
       <circle cx="100" cy="100" r="61" fill="rgba(120,42,0,.20)"/>
       <circle cx="100" cy="100" r="61" fill="none" stroke="rgba(255,255,255,.42)" stroke-width="1.2"/>
-      <text fill="#fff" font-size="16.5" font-weight="900" letter-spacing="1.1">
-        <textPath href="#cardArcTop" startOffset="50%" text-anchor="middle">DIVIDA EM ATÉ 3 CARTÕES</textPath>
+      <text fill="#fff" font-size="14" font-weight="900" letter-spacing=".2">
+        <textPath href="#cardArcTop" startOffset="50%" text-anchor="middle">DIVIDA EM 3 CARTÕES</textPath>
       </text>
+
       <text fill="#fff" font-size="10" font-weight="800" letter-spacing="3.6" opacity=".88">
         <textPath href="#cardArcBottom" startOffset="50%" text-anchor="middle">PARCELE SEM SUSTO</textPath>
       </text>
