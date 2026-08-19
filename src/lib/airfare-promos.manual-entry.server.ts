@@ -356,7 +356,8 @@ export async function buildManualCheckoutLink(promo: {
     source: { type: "SYSTEM" },
     validUntil: null,
     publicNotes: null,
-    flightQuoteId: `promo-manual-${promo.id}`,
+    // reaproveita o mesmo orçamento público (mesmo link) a cada regeração
+    flightQuoteId: promo.id,
     optionIndex: 1,
   } as never);
 
