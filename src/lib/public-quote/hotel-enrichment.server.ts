@@ -310,7 +310,9 @@ export async function enrichHotel(params: {
 
   const apiKey = process.env["TRIPADVISOR_API_KEY"];
   const local = params.city ?? params.destination ?? null;
-  const fixado = params.locationId ?? (await readPinnedLocation(nome, local));
+  // O cadastro às vezes traz a URL da ficha do TripAdvisor no lugar do nome.
+  const idColado = locationIdDaUrl(nome);
+  const fixado = params.locationId ?? idColado ?? (await readPinnedLocation(nome, local));
   const key = cacheKey(nome, local, fixado);
 
   if (!params.force) {
