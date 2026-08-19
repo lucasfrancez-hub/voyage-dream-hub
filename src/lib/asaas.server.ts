@@ -802,3 +802,54 @@ export async function getAsaasTransferReceiptUrl(transferId: string): Promise<st
   const t = await getAsaasTransfer(transferId).catch(() => null)
   return t?.transactionReceiptUrl ?? null
 }
+
+/* ───────────────────────── Links de pagamento (ASAAS) ───────────────────────── */
+
+export interface AsaasPaymentLinkInput {
+  name: string
+  description?: string | null
+  /** Valor fixo em reais (opcional quando o cliente digita o valor). */
+  value?: number | null
+  billingType: 'UNDEFINED' | 'BOLETO' | 'CREDIT_CARD' | 'PIX'
+  chargeType: 'DETACHED' | 'INSTALLMENT' | 'RECURRENT'
+  /** Número máximo de parcelas (chargeType INSTALLMENT). */
+  maxInstallmentCount?: number | null
+  /** Dias até o vencimento após o cliente abrir o link. */
+  dueDateLimitDays?: number | null
+  /** Data (YYYY-MM-DD) em que o link para de aceitar pagamentos. */
+  endDate?: string | null
+  notificationEnabled?: boolean
+  externalReference?: string | null
+}
+
+/** Cria um link de pagamento no ASAAS e devolve o link pronto pra enviar. */
+export async function createAsaasPaymentLink(input: AsaasPaymentLinkInput) {
+  const body: Record<string, unknown> = {
+    name: input.name,
+    billingType: input.billingType,
+    chargeType: input.chargeType,
+    notificationEnabled: input.notificationEnabled ?? true,
+  }
+  if (input.description) body['description'] = input.description
+  if (input.value && input.value > 0) body['value'] = Number(input.value.toFixed(2))
+  if (input.chargeType === 'INSTALLMENT' && input.maxInstallmentCount)
+    body['maxInstallmentCount'] = input.maxInstallmentCount
+  if (input.dueDateLimitDays) body['dueDateLimitDays'] = input.dueDateLimitDays
+  if (input.endDate) body['endDate'] = input.endDate
+  if (input.externalReference) body['externalReference'] = input.externalReference
+
+  const link = await asaasFetch('/paymentLinks', { method: 'POST', body: JSON.stringify(body) })
+  return link as any
+}
+
+/** Lista os links de pagamento criados (mais recentes primeiro). */
+export async function listAsaasPaymentLinks(limit = 20) {
+  const q = new URLSearchParams({ limit: String(Math.min(limit, 100)), offset: '0' })
+  const res = await asaasFetch(`/paymentLinks?${q.toString()}`).catch(() => ({ data: [] }))
+  return (res?.data ?? []) as any[]
+}
+
+/** Remove um link de pagamento. */
+export async function deleteAsaasPaymentLink(id: string) {
+  return await asaasFetch(`/paymentLinks/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
