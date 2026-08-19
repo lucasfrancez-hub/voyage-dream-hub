@@ -285,7 +285,12 @@ export async function buildManualCheckoutLink(promo: {
     const vivos = (await fetchPromoFlightDetails(promo as never)) as ManualLegInput[] | null;
     if (vivos?.length) {
       detalhes = vivos;
+      const completo = promo.return_date
+        ? vivos.some((l) => l.direction === "INBOUND")
+        : true;
       // guarda para os próximos links (sem apagar nada do raw existente)
+      if (completo)
+
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         await supabaseAdmin
