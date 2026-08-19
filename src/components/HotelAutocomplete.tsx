@@ -112,6 +112,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     const q = (value || "").trim();
     if (q.length < 3) return;
     setLoading(true);
+    setErro(null);
     try {
       lastQueryRef.current = q;
       const r = await search({ data: { query: q, force: true } });
@@ -119,6 +120,11 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
       setOpen(true);
     } catch (e) {
       console.error(e);
+      setErro(
+        String((e as Error)?.message || "").includes("TRIPADVISOR_RATE_LIMIT")
+          ? "Limite de consultas do TripAdvisor atingido. Aguarde alguns minutos, cole o link do hotel ou use o modo Manual."
+          : "Não foi possível consultar o TripAdvisor agora.",
+      );
     } finally {
       setLoading(false);
     }
