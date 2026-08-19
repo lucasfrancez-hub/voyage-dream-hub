@@ -75,6 +75,7 @@ body{display:grid;place-items:center;min-height:100vh}
 .glass{background:rgba(0,0,0,.42);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.30);border-radius:40px}
 .glass-dark{background:rgba(15,15,15,.68);backdrop-filter:blur(28px) saturate(140%);border:1px solid rgba(255,255,255,.14);border-radius:40px}
 
+.top{display:flex;flex-direction:column}
 .brand{display:flex;align-items:center;justify-content:space-between;gap:24px}
 .logo-slot{display:flex;align-items:center}
 .logo-slot img{display:block;max-width:100%;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45))}
