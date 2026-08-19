@@ -868,3 +868,17 @@ export const generatePromotionLink = createServerFn({ method: "POST" })
 
     return { cart_url: cart.url, short_url: short, reused: false };
   });
+
+/** Edita apenas os VOOS de uma promoção salva (preço inalterado). */
+export const salvarTrechosPromocao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({ id: z.string().uuid(), legs: z.array(legSchema).min(1).max(2) })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { updatePromotionLegs } = await import("@/lib/airfare-promos.manual-entry.server");
+    return await updatePromotionLegs(data.id, data.legs as never);
+  });
