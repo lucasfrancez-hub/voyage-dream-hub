@@ -105,18 +105,18 @@ svg{display:block;width:100%;height:100%}
 .destination-one-line .dest-highlight{color:var(--orange)}
 
 /* Rota em cartão de embarque */
-/* Sombra forte nas letras (não em caixa) para fotos claras. */
-.route{margin-top:22px;display:flex;align-items:center;width:max-content;max-width:100%;position:relative;padding:14px 26px;margin-left:-26px;border-radius:26px}
+/* Sem caixa/borda — só sombra forte nas letras para sobressair em fotos claras. */
+.route{margin-top:22px;display:flex;align-items:center;width:max-content;max-width:100%;position:relative;padding:0;margin-left:0;border-radius:0;background:none}
 .route-end{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
-.route-iata-big{font-weight:900;color:#fff;line-height:1;letter-spacing:-.02em;text-shadow:0 3px 8px rgba(0,0,0,.95),0 6px 18px rgba(0,0,0,.85),0 10px 32px rgba(0,0,0,.75)}
-.route-city-name{font-weight:700;color:#fff;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;text-shadow:0 3px 8px rgba(0,0,0,.95),0 6px 18px rgba(0,0,0,.85),0 10px 32px rgba(0,0,0,.75)}
-.route-mid{display:flex;flex-direction:column;align-items:center;gap:8px;flex:none}
+.route-iata-big{font-weight:900;color:#fff;line-height:1;letter-spacing:-.02em;text-shadow:0 3px 10px rgba(0,0,0,.95),0 7px 22px rgba(0,0,0,.9),0 12px 36px rgba(0,0,0,.8)}
+.route-city-name{font-weight:700;color:#fff;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;text-shadow:0 3px 10px rgba(0,0,0,.95),0 7px 22px rgba(0,0,0,.9),0 12px 36px rgba(0,0,0,.8)}
+.route-mid{display:flex;flex-direction:column;align-items:center;gap:8px;flex:none;padding:0 22px}
 .route-track{display:flex;align-items:center;gap:8px;color:var(--orange)}
 .route-track i{display:block;height:2px;border-radius:2px;background:linear-gradient(90deg,rgba(255,127,0,.15),rgba(255,127,0,.95))}
 .route-track i.rev{background:linear-gradient(90deg,rgba(255,127,0,.95),rgba(255,127,0,.15))}
 .route-track .route-plane{display:inline-flex;color:var(--orange);filter:drop-shadow(0 3px 8px rgba(0,0,0,.9))}
 .route-track .route-plane svg{fill:currentColor;stroke:currentColor;stroke-width:1.2}
-.route-trip{display:inline-flex;align-items:center;border-radius:9999px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#ffe2c2;background:rgba(120,52,0,.78);border:1px solid rgba(255,159,63,.55);box-shadow:0 4px 14px rgba(0,0,0,.45);text-shadow:0 2px 6px rgba(0,0,0,.85);white-space:nowrap}
+.route-trip{display:inline-flex;align-items:center;border-radius:9999px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#ffe2c2;background:none;border:none;box-shadow:none;text-shadow:0 2px 6px rgba(0,0,0,.85),0 4px 14px rgba(0,0,0,.7);white-space:nowrap}
 
 
 /* Bloco de informações em LINHAS (período / companhia / bagagem) */
