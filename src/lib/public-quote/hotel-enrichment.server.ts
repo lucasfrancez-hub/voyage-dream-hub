@@ -353,10 +353,15 @@ export async function enrichHotel(params: {
       .map((p) => String(p.photo?.original_size_url ?? p.photo?.url ?? ""))
       .filter(Boolean);
     let photosFallback = false;
-    if (!photos.length) {
+    // Muitas propriedades novas têm pouquíssimas fotos publicadas no TripAdvisor:
+    // completamos a galeria com fotos reais da própria propriedade.
+    if (photos.length < 5) {
       const alt = await fotosAlternativas(nome, local, escolhido.id ?? null, api);
-      photos = alt.photos;
-      photosFallback = alt.fallback;
+      const juntas = [...photos, ...alt.photos].filter(
+        (url, i, todas) => todas.indexOf(url) === i,
+      );
+      photos = juntas.slice(0, 5);
+      photosFallback = photos.length ? alt.fallback && !photos.length : false;
     }
 
     const endereco = pickAddress(d.addresses as Array<Record<string, unknown>> | undefined);
