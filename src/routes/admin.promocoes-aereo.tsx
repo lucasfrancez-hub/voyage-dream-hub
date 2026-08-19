@@ -63,6 +63,8 @@ import {
 } from "@/lib/social-schedule-format";
 import { scopeOfRoute } from "@/lib/br-airports";
 import { isOriginAllowedForScope } from "@/lib/airfare-promos.config";
+import { AIRLINES } from "@/lib/airlines";
+
 
 
 
