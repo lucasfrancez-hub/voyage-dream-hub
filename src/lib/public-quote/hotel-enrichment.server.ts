@@ -45,9 +45,9 @@ function norm(s: string) {
 }
 
 function cacheKey(name: string, city: string | null, locationId?: number | null): string {
-  // v4 — inclui endereço/descrição em português e pontos próximos.
+  // v6 — inclui recuperação de até cinco fotos na web quando a fonte oficial falha.
   const pin = locationId ? `|ta${locationId}` : "";
-  return `hotel-enrich:v5:${norm(name)}|${norm(city ?? "")}${pin}`;
+  return `hotel-enrich:v6:${norm(name)}|${norm(city ?? "")}${pin}`;
 }
 
 /** Chave estável do hotel usada no vínculo manual com o TripAdvisor. */
@@ -80,7 +80,7 @@ export async function limparCacheHotel(name: string, city?: string | null): Prom
     await supabaseAdmin
       .from("md_response_cache")
       .delete()
-      .like("url", `hotel-enrich:v4:${norm(name)}|%`);
+      .like("url", `hotel-enrich:v%:${norm(name)}|%`);
   } catch { /* best effort */ }
 }
 
@@ -144,7 +144,9 @@ async function readCache(key: string): Promise<HotelEnrichment | null> {
     if (!data?.payload) return null;
     const idade = Date.now() - Date.parse(String(data.fetched_at));
     if (idade > CACHE_DAYS * 86400_000) return null;
-    return data.payload as HotelEnrichment;
+    const cached = data.payload as HotelEnrichment;
+    // Resultado vazio não fica preso no cache: novas fontes devem ser tentadas.
+    return cached.photos?.length ? cached : null;
   } catch {
     return null;
   }
@@ -259,7 +261,14 @@ async function fotosAlternativas(
     }
   } catch { /* segue para o fallback do destino */ }
 
-  // 2) fotos reais do destino (marcadas como ilustrativas)
+  // 2) busca pelo nome exato do hotel na web e guarda cópias estáveis.
+  try {
+    const { recoverHotelPhotos } = await import("./hotel-photo-fallback.server");
+    const fotos = await recoverHotelPhotos(nome, cidade);
+    if (fotos.length) return { photos: fotos.slice(0, 5), fallback: false };
+  } catch { /* segue para fotos ilustrativas do destino */ }
+
+  // 3) fotos reais do destino (marcadas como ilustrativas)
   if (cidade) {
     try {
       const { searchDestinationPhotos } = await import("@/lib/promo-card/photos.server");
@@ -352,8 +361,10 @@ export async function enrichHotel(params: {
          candidatos.find((c) => alvos.some((a) => norm(c.name).includes(a) || a.includes(norm(c.name)))) ??
          candidatos[0]);
     if (!escolhido) {
-      await writeCache(key, vazio);
-      return vazio;
+      const alt = await fotosAlternativas(nome, local, null, api);
+      const semTripAdvisor = { ...vazio, photos: alt.photos, photos_fallback: alt.fallback, status: alt.photos.length ? "PARTIAL" as const : "MATCH_FAILED" as const };
+      await writeCache(key, semTripAdvisor);
+      return semTripAdvisor;
     }
 
 

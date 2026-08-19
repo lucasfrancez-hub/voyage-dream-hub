@@ -38,7 +38,7 @@ export const getPackageHotelOptionInfo = createServerFn({ method: "POST" })
       address: info?.address ?? null,
       rating: info?.rating ?? null,
       num_reviews: info?.num_reviews ?? null,
-      photos: (info?.photos ?? []).slice(0, 8),
+      photos: (info?.photos ?? []).slice(0, 5),
       photos_fallback: !!info?.photos_fallback,
       web_url: info?.web_url ?? null,
     };
