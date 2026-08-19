@@ -233,13 +233,14 @@ function normalizePasseios(services?: PackageServices | null): string[] {
   return out;
 }
 
-function countServices(services?: PackageServices | null): number {
-  if (!services) return 0;
+function countServices(services?: PackageServices | null, list?: string[] | null): number {
+  if (!services && !(list ?? []).length) return 0;
   let n = 0;
+  if (!services) return derivePasseios(list, null).length ? 1 : 0;
   if (services.seguro?.enabled) n++;
   if (services.cancelamento?.enabled) n++;
   if (services.transfer?.enabled) n++;
-  if (normalizePasseios(services).length) n++;
+  if (derivePasseios(list, services).length) n++;
   if (services.tickets?.enabled && (services.tickets.parks ?? []).some((p) => p && p.trim())) n++;
   n += (services.outros ?? []).filter((x) => x && x.trim()).length;
   return n;
@@ -307,7 +308,7 @@ function detectIncludes(
   kind?: "package" | "service" | "cruise" | "tour" | null,
 ) {
   const s = (list ?? []).map((x) => norm(x)).join(" | ");
-  const svcCount = countServices(services);
+  const svcCount = countServices(services, list ?? null);
   const groupServices = svcCount >= 2;
   const seguroOn = !!services?.seguro?.enabled;
   const transferOn = !!services?.transfer?.enabled;
