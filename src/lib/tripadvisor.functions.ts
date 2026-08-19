@@ -210,36 +210,38 @@ export const searchTripAdvisorHotels = createServerFn({ method: "POST" })
     if (words.length > 2) variants.add(words.slice(0, 2).join(" "));
     if (words.length > 1) variants.add(words[0]);
 
-    const urls: string[] = [];
-    for (const v of variants) {
-      const enc = encodeURIComponent(v);
-      if (!data.force) urls.push(`/catalog/locations/search?query=${enc}&search_type=NAME&category=HOTEL`);
-      urls.push(`/catalog/locations/search?query=${enc}&search_type=NAME`);
-      urls.push(`/catalog/locations/search?query=${enc}`);
-    }
-
-    const results = await Promise.all(
-      urls.slice(0, 12).map(async (u) => {
-        try {
-          const r = await taFetch(u);
-          if (!r.ok) return [] as Array<{ location?: Record<string, unknown> }>;
-          const j = (await r.json()) as { data?: Array<{ location?: Record<string, unknown> }> };
-          return j.data ?? [];
-        } catch {
-          return [] as Array<{ location?: Record<string, unknown> }>;
-        }
-      }),
-    );
+    // Uma URL por variação (a busca simples já cobre hotéis). Sequencial e com
+    // parada antecipada: antes eram até 12 requisições por digitação, o que
+    // estourava o limite da chave (429) e deixava a lista sempre vazia.
+    const urls = [...variants]
+      .slice(0, data.force ? 4 : 2)
+      .map((v) => `/catalog/locations/search?query=${encodeURIComponent(v)}&search_type=NAME`);
 
     const out: TAHotelSuggestion[] = [];
     const seen = new Set<number>();
-    for (const list of results) {
-      for (const item of mapSearch(list, 30)) {
-        if (!item.location_id || seen.has(item.location_id) || !item.name) continue;
-        seen.add(item.location_id);
-        out.push(item);
+    let limitado = false;
+    let houveResposta = false;
+
+    for (const u of urls) {
+      if (taLimitado() && houveResposta) break;
+      try {
+        const r = await taFetch(u);
+        if (r.status === 429) { limitado = true; break; }
+        if (!r.ok) continue;
+        houveResposta = true;
+        const j = (await r.json()) as { data?: Array<{ location?: Record<string, unknown> }> };
+        for (const item of mapSearch(j.data ?? [], 30)) {
+          if (!item.location_id || seen.has(item.location_id) || !item.name) continue;
+          seen.add(item.location_id);
+          out.push(item);
+        }
+      } catch {
+        // ignora falha pontual e tenta a próxima variação
       }
+      if (out.length >= 5) break;
     }
+
+    if (!out.length && limitado) throw new Error("TRIPADVISOR_RATE_LIMIT");
 
     // Prioriza quem contém as palavras digitadas no nome.
     const terms = (stripped || q).toLowerCase().split(/\s+/).filter((t) => t.length > 2);
