@@ -276,9 +276,9 @@ const SEALS = `
         <rect x="10" y="21" width="13" height="6" rx="1.6" fill="#0d3140"/>
         <rect x="27" y="22" width="20" height="3.4" rx="1.7" fill="#9aa8af"/>
       </g>
-      <text x="100" y="118" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800" letter-spacing="2.4" opacity=".92">DIVIDA EM</text>
-      <text x="100" y="146" text-anchor="middle" fill="#fff" font-size="30" font-weight="900" letter-spacing="-.5">ATÉ 3</text>
-      <text x="100" y="162" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800" letter-spacing="2.6" opacity=".92">CARTÕES</text>
+      <text x="100" y="114" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800" letter-spacing="2.4" opacity=".92">DIVIDA EM</text>
+      <text x="100" y="142" text-anchor="middle" fill="#fff" font-size="30" font-weight="900" letter-spacing="-.5">ATÉ 3</text>
+      <text x="100" y="157" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800" letter-spacing="2.6" opacity=".92">CARTÕES</text>
     </svg>
   </div>
 
@@ -321,7 +321,7 @@ const SEALS = `
         <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#fff"/>
       </g>
       <text x="100" y="135" text-anchor="middle" fill="#fff" font-size="14.5" font-weight="900" letter-spacing="1.8">TARIFA</text>
-      <text x="100" y="155" text-anchor="middle" fill="#fff" font-size="14.5" font-weight="900" letter-spacing="1.4">RELÂMPAGO</text>
+      <text x="100" y="155" text-anchor="middle" fill="#fff" font-size="13.5" font-weight="900" letter-spacing=".8">RELÂMPAGO</text>
     </svg>
   </div>
 </div>`;
