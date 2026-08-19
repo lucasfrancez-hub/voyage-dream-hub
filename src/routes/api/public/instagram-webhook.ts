@@ -259,6 +259,7 @@ async function processPayload(payload: IGPayload) {
       const respondeComoPessoa = !isFromMe && espelho && contaRespondeDirectComoPessoa(igMetadata);
       if (respondeComoPessoa) {
         try {
+          if (!espelho) return;
           const { data: mirror } = await supabaseAdmin
             .from("wa_conversations")
             .select("id, mode, ai_instruction")
@@ -270,7 +271,7 @@ async function processPayload(payload: IGPayload) {
               conversationId: conv.id,
               accountRowId: account.id,
               contactIgId,
-              mensagem: msg.message.text ?? anexo.rotulo,
+              mensagem: msg.message.text ?? anexo.rotulo ?? "",
               instrucao: mirror.ai_instruction as string,
             });
             // Limpa a instrução após o uso (comportamento igual ao WhatsApp).
