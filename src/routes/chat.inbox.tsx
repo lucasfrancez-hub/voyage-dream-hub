@@ -3365,6 +3365,17 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
       </header>
 
 
+      {thread && (
+        <div className="border-b border-slate-200 bg-white px-4 pt-2">
+          <AiInstructionBar
+            pending={(thread as { ai_instruction?: string | null }).ai_instruction ?? null}
+            submit={(instruction) => instrucaoComentarioFn({ data: { media_id: thread.media_id, instruction } })}
+            onChange={() => qc.invalidateQueries({ queryKey: ["ig", "comment-threads"] })}
+            description="Escreva o que a IA deve responder nos comentários desta publicação. Ela segue a orientação com o tom dela, e o cliente nunca vê que veio de um atendente."
+          />
+        </div>
+      )}
+
       {thread?.collab && (
         <div className="border-b border-[#F26B1F]/20 bg-[#F26B1F]/5 px-4 py-2 text-[11px] text-[#8a3d0d]">
           Publicação em colaboração: tentamos responder com o token do perfil dono do post.
