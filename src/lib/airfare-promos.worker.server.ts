@@ -1634,7 +1634,9 @@ export async function finalizePromoRun(
         .eq("origin_iata", origem)
         .eq("destination_iata", destino)
         .eq("departure_date", ida)
-        .eq("fare_status", "valida");
+        .eq("fare_status", "valida")
+        // promoções digitadas à mão não vivem do motor: nunca expiram na coleta
+        .or("reference_source.is.null,reference_source.neq.manual");
       for (const p of (antigas ?? []) as Array<{ id: string; signature: string; total_price: number }>) {
         if (assinaturasValidadas.has(p.signature)) continue;
         await client
