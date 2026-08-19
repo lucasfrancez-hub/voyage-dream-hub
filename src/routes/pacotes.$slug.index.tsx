@@ -1,3 +1,4 @@
+import { traduzirEndereco } from "@/lib/utils/endereco-pt";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -408,11 +409,12 @@ function PackageDetails() {
   const pkgIfBase = <T,>(value: T): T | null => (isBaseHotel ? value : null);
   const hotelStars =
     selHotel?.hotel_stars ?? pkgIfBase(pkg.hotel_stars ?? null) ?? selInfo?.stars ?? null;
-  const hotelAddress =
+  const hotelAddress = traduzirEndereco(
     selHotel?.tripadvisor_address ??
     pkgIfBase((pkg as unknown as { tripadvisor_address?: string | null }).tripadvisor_address ?? null) ??
     selInfo?.address ??
-    null;
+    null,
+  );
   const hotelTaId =
     selHotel?.tripadvisor_location_id ??
     pkgIfBase((pkg as unknown as { tripadvisor_location_id?: number | null }).tripadvisor_location_id ?? null) ??
