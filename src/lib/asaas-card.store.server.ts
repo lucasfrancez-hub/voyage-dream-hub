@@ -157,7 +157,7 @@ export async function processarWebhookCartao(body: any) {
     patch['chargeback_status'] = event
   if (event === 'PAYMENT_ANTICIPATED') patch['anticipation_status'] = 'ANTICIPATED'
 
-  await supabaseAdmin.from('asaas_card_charges').update(patch).eq('id', charge.id)
+  await supabaseAdmin.from('asaas_card_charges').update(patch as never).eq('id', charge.id)
 
   await supabaseAdmin.from('asaas_charge_events').insert({
     charge_id: charge.id,
