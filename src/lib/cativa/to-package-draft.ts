@@ -210,10 +210,12 @@ export function destinoComercial(pacote: {
   const doNome = destinoDoNome(pacote.nome);
   // Nome do pacote/hotel costuma trazer o destino real ("Enotel Porto de Galinhas").
   const conhecido =
-    destinoConhecidoNoTexto(pacote.nome) ||
     hoteis.map((h) => destinoConhecidoNoTexto(h?.["nome"] ?? h?.["hotel"])).find(Boolean) ||
+    destinoConhecidoNoTexto(pacote.nome) ||
     "";
-  return tituloCidade(semIata(doNome || cidadeHotel || conhecido || (pacote.destino ?? "").trim()));
+  // O destino é onde o cliente se hospeda — não o aeroporto nem o nome de um passeio.
+  return tituloCidade(semIata(cidadeHotel || conhecido || doNome || (pacote.destino ?? "").trim()));
+
 }
 
 
