@@ -291,6 +291,7 @@ export async function buildManualCheckoutLink(promo: {
       // guarda para os próximos links (sem apagar nada do raw existente)
       if (completo)
 
+
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         await supabaseAdmin
