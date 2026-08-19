@@ -47,6 +47,7 @@ import {
   deletePromotion,
   countArchivedPromotions,
 } from "@/lib/airfare-promos.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { confirmThen } from "@/lib/confirm";
 import { ArquivadosDialog } from "@/components/promocoes/ArquivadosDialog";
 import { PromocaoManualPanel } from "@/components/promocoes/PromocaoManualPanel";
