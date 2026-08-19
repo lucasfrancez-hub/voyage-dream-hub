@@ -738,7 +738,13 @@ function PackageDetails() {
                           ))}
                         </div>
                       )}
+                      {galeria.length > 0 && selInfo?.photos_fallback && photos === (selInfo?.photos ?? []) && (
+                        <p className="mt-2 text-[10px] text-muted-foreground">
+                          Imagens ilustrativas do destino — a propriedade ainda não possui fotos publicadas.
+                        </p>
+                      )}
                       <div className="mt-3 flex justify-end">
+
                         {taId ? (
                           <button
                             type="button"

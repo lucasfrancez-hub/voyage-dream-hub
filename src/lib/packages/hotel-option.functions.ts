@@ -9,6 +9,7 @@ export type PublicHotelOptionInfo = {
   rating: number | null;
   num_reviews: number | null;
   photos: string[];
+  photos_fallback: boolean;
   web_url: string | null;
 };
 
@@ -38,6 +39,7 @@ export const getPackageHotelOptionInfo = createServerFn({ method: "POST" })
       rating: info?.rating ?? null,
       num_reviews: info?.num_reviews ?? null,
       photos: (info?.photos ?? []).slice(0, 8),
+      photos_fallback: !!info?.photos_fallback,
       web_url: info?.web_url ?? null,
     };
   });
