@@ -17,6 +17,53 @@ const curto = (s: string) =>
     .replace(/[.,;:–-]+$/, "")
     .trim();
 
+const MINUSCULAS = new Set([
+  "de", "da", "do", "das", "dos", "e", "em", "na", "no", "nas", "nos",
+  "a", "o", "as", "os", "com", "para", "por", "ao", "à", "às", "aos", "the", "of",
+]);
+
+/** "TRANSPORTE IDA E VOLTA PARA ITAIPU BINACIONAL PANORAMICA" → "Itaipu binacional panorâmica" */
+export function nomeBonitoPasseio(v: unknown): string {
+  let t = String(v ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\*+/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const tudoMaiusculo = !!t && t === t.toUpperCase();
+
+  // corta observações do operador ("...: AS RESERVAS SOLICITADAS EM")
+  t = t.split(/\s*:\s*/)[0] ?? t;
+  // remove sufixos técnicos após hífen ("- NÃO", "- TRANSPORTE", "- REGULAR")
+  t = t.replace(
+    /\s*[-–—]\s*(n[aã]o|sim|transporte|regular|privativo|di[aá]rio|opcional|com ingresso\s*\+?|ingresso)\s*\+?\s*$/gi,
+    "",
+  );
+  // "transporte ida e volta para X" / "transfer ida e volta para X" → X
+  t = t.replace(/^(transporte|transfer|traslado)\s+(ida\s+e\s+volta\s+)?(para|ao|at[ée]|a)\s+/i, "");
+  t = t.replace(/^(ingresso|ticket)\s+(para\s+)?/i, "");
+  t = t.replace(/\s*[-–—]\s*(visita\s+)?panor[aâ]mica\s*$/i, " panorâmica");
+  t = t.replace(/\s*\+\s*$/, "").replace(/\s{2,}/g, " ").trim();
+
+  if (!t) return "";
+
+  // caixa: só a primeira letra maiúscula
+  if (tudoMaiusculo) {
+    t = t.toLowerCase();
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+  }
+
+
+  // encurta por palavras (nunca no meio de uma abreviação)
+  if (t.length > 58) {
+    const corte = t.slice(0, 58);
+    const p = corte.lastIndexOf(" ");
+    t = (p > 24 ? corte.slice(0, p) : corte).trim();
+  }
+  return t.replace(/[.,;:–\-+]+$/, "").trim();
+}
+
 export function gerarRoteiro({
   destino,
   noites,
@@ -27,11 +74,12 @@ export function gerarRoteiro({
   const dias = Math.max(1, (Number(noites) || 0) + 1);
   const cidade = (destino ?? "").trim();
   const atividades = [...passeios, ...ingressos]
-    .map((p) => curto(String(p ?? "")))
-    .filter(Boolean)
-    .filter((p, i, arr) => arr.indexOf(p) === i);
+    .map((p) => nomeBonitoPasseio(curto(String(p ?? ""))))
+    .filter((p) => p.length > 3)
+    .filter((p, i, arr) => arr.findIndex((x) => x.toLowerCase() === p.toLowerCase()) === i);
 
   const linhas: string[] = [];
+
   linhas.push(
     `Dia 1 — Chegada${cidade ? ` em ${cidade}` : ""}${
       temTransfer ? ", transfer do aeroporto até o hotel e check-in" : " e check-in no hotel"
@@ -57,10 +105,11 @@ export function gerarRoteiro({
     i = fim + 1;
   }
 
-  const restantes = atividades.slice(miolo);
+  const restantes = atividades.slice(miolo).slice(0, 2);
   if (restantes.length && linhas.length > 1) {
     linhas[linhas.length - 1] = `${linhas[linhas.length - 1]!.replace(/\.$/, "")} · ${restantes.join(" · ")}.`;
   }
+
 
   if (dias > 1) {
     linhas.push(
