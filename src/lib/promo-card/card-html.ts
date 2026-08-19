@@ -236,56 +236,92 @@ const FEED_CSS = `
 const SEALS = `
 <div class="seal-wrap">
   <div class="cards-seal" aria-label="Divida em até 3 cartões">
-    <svg viewBox="0 0 160 160" role="img">
+    <svg viewBox="0 0 200 200" role="img">
       <defs>
-        <linearGradient id="cardBg" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stop-color="#ffb15a"/>
-          <stop offset="45%" stop-color="#ff861b"/>
-          <stop offset="100%" stop-color="#c94f00"/>
+        <radialGradient id="cardBg" cx="34%" cy="26%" r="88%">
+          <stop offset="0%" stop-color="#ffd39a"/>
+          <stop offset="34%" stop-color="#ff9c34"/>
+          <stop offset="72%" stop-color="#f0730a"/>
+          <stop offset="100%" stop-color="#a83f00"/>
+        </radialGradient>
+        <linearGradient id="cardGloss" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fff" stop-opacity=".55"/>
+          <stop offset="46%" stop-color="#fff" stop-opacity=".10"/>
+          <stop offset="47%" stop-color="#fff" stop-opacity="0"/>
         </linearGradient>
-        <filter id="shadowA" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="5" stdDeviation="5" flood-opacity=".28"/>
+        <filter id="sealShadowA" x="-40%" y="-40%" width="180%" height="180%">
+          <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity=".42"/>
         </filter>
+        <path id="cardArcTop" d="M100,100 m-72,0 a72,72 0 0,1 144,0" fill="none"/>
+        <path id="cardArcBottom" d="M100,100 m-70,0 a70,70 0 0,0 140,0" fill="none"/>
       </defs>
-      <circle cx="80" cy="80" r="73" fill="url(#cardBg)" stroke="#fff3e6" stroke-width="5" filter="url(#shadowA)"/>
-      <circle cx="80" cy="80" r="63" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"/>
-      <g transform="translate(52 25)">
-        <rect x="0" y="8" width="48" height="31" rx="6" fill="#fff" opacity=".98"/>
-        <rect x="0" y="14" width="48" height="6" fill="#f4b93b"/>
-        <rect x="6" y="27" width="12" height="5" rx="1" fill="#0d3140"/>
-        <rect x="22" y="27" width="18" height="3" rx="1.5" fill="#9aa8af"/>
+      <g filter="url(#sealShadowA)">
+        <circle cx="100" cy="100" r="94" fill="rgba(255,150,40,.16)"/>
+        <circle cx="100" cy="100" r="88" fill="#fff" fill-opacity=".95"/>
+        <circle cx="100" cy="100" r="82" fill="url(#cardBg)"/>
       </g>
-      <text x="80" y="84" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="800" letter-spacing="1.6">DIVIDA EM</text>
-      <text x="80" y="109" text-anchor="middle" fill="#fff" font-size="24" font-weight="950">ATÉ 3</text>
-      <text x="80" y="126" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="800" letter-spacing="1.2">CARTÕES</text>
-
+      <circle cx="100" cy="100" r="82" fill="url(#cardGloss)"/>
+      <circle cx="100" cy="100" r="74" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6"/>
+      <circle cx="100" cy="100" r="69" fill="none" stroke="rgba(255,255,255,.30)" stroke-width="6" stroke-dasharray="1 9" stroke-linecap="round"/>
+      <circle cx="100" cy="100" r="60" fill="rgba(120,42,0,.20)"/>
+      <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(255,255,255,.42)" stroke-width="1.2"/>
+      <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.4" opacity=".95">
+        <textPath href="#cardArcTop" startOffset="50%" text-anchor="middle">PARCELE SEM SUSTO</textPath>
+      </text>
+      <g fill="rgba(255,255,255,.7)"><circle cx="70" cy="168" r="2.6"/><circle cx="100" cy="173" r="2.6"/><circle cx="130" cy="168" r="2.6"/></g>
+      <g transform="translate(74 52)">
+        <rect x="0" y="4" width="52" height="34" rx="7" fill="#fff" opacity=".18"/>
+        <rect x="4" y="0" width="52" height="34" rx="7" fill="#fff"/>
+        <rect x="4" y="7" width="52" height="7" fill="#c9600a"/>
+        <rect x="10" y="21" width="13" height="6" rx="1.6" fill="#0d3140"/>
+        <rect x="27" y="22" width="20" height="3.4" rx="1.7" fill="#9aa8af"/>
+      </g>
+      <text x="100" y="114" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800" letter-spacing="2.4" opacity=".92">DIVIDA EM</text>
+      <text x="100" y="142" text-anchor="middle" fill="#fff" font-size="30" font-weight="900" letter-spacing="-.5">ATÉ 3</text>
+      <text x="100" y="157" text-anchor="middle" fill="#fff" font-size="10.5" font-weight="800" letter-spacing="2.6" opacity=".92">CARTÕES</text>
     </svg>
   </div>
 
   <div class="offer-seal" aria-label="Tarifa relâmpago">
-    <svg viewBox="0 0 160 160" role="img">
+    <svg viewBox="0 0 200 200" role="img">
       <defs>
-        <linearGradient id="offerBg3" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stop-color="#69d75f"/>
-          <stop offset="52%" stop-color="#35a947"/>
-          <stop offset="100%" stop-color="#17682d"/>
+        <radialGradient id="offerBg3" cx="34%" cy="26%" r="88%">
+          <stop offset="0%" stop-color="#a8f5a4"/>
+          <stop offset="34%" stop-color="#4fcb63"/>
+          <stop offset="72%" stop-color="#22913f"/>
+          <stop offset="100%" stop-color="#0d5726"/>
+        </radialGradient>
+        <linearGradient id="offerGloss" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fff" stop-opacity=".5"/>
+          <stop offset="46%" stop-color="#fff" stop-opacity=".08"/>
+          <stop offset="47%" stop-color="#fff" stop-opacity="0"/>
         </linearGradient>
-        <filter id="shadowOffer" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="5" stdDeviation="5" flood-opacity=".28"/>
+        <filter id="sealShadowB" x="-40%" y="-40%" width="180%" height="180%">
+          <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity=".42"/>
         </filter>
+        <path id="offerArcTop" d="M100,100 m-72,0 a72,72 0 0,1 144,0" fill="none"/>
+        <path id="offerArcBottom" d="M100,100 m-70,0 a70,70 0 0,0 140,0" fill="none"/>
       </defs>
-      <circle cx="80" cy="80" r="73" fill="url(#offerBg3)" stroke="#effff0" stroke-width="5" filter="url(#shadowOffer)"/>
-      <circle cx="80" cy="80" r="61" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2"/>
-      <g stroke="rgba(255,255,255,.42)" stroke-width="2" stroke-linecap="round">
-        <path d="M80 24v7"/><path d="M80 129v7"/>
-        <path d="M24 80h7"/><path d="M129 80h7"/>
-        <path d="M41 41l5 5"/><path d="M114 114l5 5"/>
-        <path d="M119 41l-5 5"/><path d="M46 114l-5 5"/>
+      <g filter="url(#sealShadowB)">
+        <circle cx="100" cy="100" r="94" fill="rgba(53,208,127,.18)"/>
+        <circle cx="100" cy="100" r="88" fill="#fff" fill-opacity=".95"/>
+        <circle cx="100" cy="100" r="82" fill="url(#offerBg3)"/>
       </g>
-      <path d="M87 39L64 74h16l-8 30 28-42H82z" fill="#fff"/>
-      <text x="80" y="114" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="950" letter-spacing="1.05">TARIFA</text>
-      <text x="80" y="131" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="950" letter-spacing="1.05">RELÂMPAGO</text>
-
+      <circle cx="100" cy="100" r="82" fill="url(#offerGloss)"/>
+      <circle cx="100" cy="100" r="74" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.6"/>
+      <circle cx="100" cy="100" r="69" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="6" stroke-dasharray="1 9" stroke-linecap="round"/>
+      <circle cx="100" cy="100" r="60" fill="rgba(4,60,25,.22)"/>
+      <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2"/>
+      <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.4" opacity=".95">
+        <textPath href="#offerArcTop" startOffset="50%" text-anchor="middle">OFERTA DO DIA</textPath>
+      </text>
+      <g fill="rgba(255,255,255,.7)"><circle cx="70" cy="171" r="2.6"/><circle cx="100" cy="176" r="2.6"/><circle cx="130" cy="171" r="2.6"/></g>
+      <g transform="translate(0 -6) scale(.78) translate(28 18)">
+        <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#0d5726" opacity=".25" transform="translate(3 4)"/>
+        <path d="M110 48L80 94h20l-10 40 34-52h-22z" fill="#fff"/>
+      </g>
+      <text x="100" y="135" text-anchor="middle" fill="#fff" font-size="14.5" font-weight="900" letter-spacing="1.8">TARIFA</text>
+      <text x="100" y="155" text-anchor="middle" fill="#fff" font-size="13.5" font-weight="900" letter-spacing=".8">RELÂMPAGO</text>
     </svg>
   </div>
 </div>`;
