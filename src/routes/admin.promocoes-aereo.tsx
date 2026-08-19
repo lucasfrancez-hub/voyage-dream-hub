@@ -1693,9 +1693,10 @@ function PromocoesAereoPage() {
               setRestaurando(false);
             }
           }}
-          className="inline-flex items-center gap-2 rounded-xl border border-border/60 px-4 py-2 text-xs font-black uppercase tracking-widest text-muted-foreground transition hover:border-brand-orange/40 hover:text-foreground disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-brand-orange/40 bg-brand-orange/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-brand-orange transition hover:bg-brand-orange/20 disabled:opacity-50"
         >
-          ✈ {restaurando ? "Restaurando…" : "Restaurar voos (preço ajustado)"}
+          <RefreshCw className={`h-4 w-4 ${restaurando ? "animate-spin" : ""}`} />
+          {restaurando ? "Restaurando…" : "Restaurar voos (preço ajustado)"}
         </button>
       </div>
 
