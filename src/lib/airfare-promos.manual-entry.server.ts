@@ -298,30 +298,35 @@ export async function buildManualCheckoutLink(promo: {
     }
   }
 
-  const legsInput: ManualLegInput[] = detalhes ?? [
-    {
-      direction: "OUTBOUND" as const,
-      date: promo.departure_date,
-      fromIata: promo.origin_iata,
-      toIata: promo.destination_iata,
-      airlineIata: promo.airline_iata ?? "",
-      stops: paradas,
-      checkedBaggage: !!promo.has_checked_baggage,
-    },
+  const resumoIda: ManualLegInput = {
+    direction: "OUTBOUND",
+    date: promo.departure_date,
+    fromIata: promo.origin_iata,
+    toIata: promo.destination_iata,
+    airlineIata: promo.airline_iata ?? "",
+    stops: paradas,
+    checkedBaggage: !!promo.has_checked_baggage,
+  };
+  const resumoVolta: ManualLegInput = {
+    direction: "INBOUND",
+    date: promo.return_date ?? "",
+    fromIata: promo.destination_iata,
+    toIata: promo.origin_iata,
+    airlineIata: promo.inbound_airline_iata ?? promo.airline_iata ?? "",
+    stops: paradas,
+    checkedBaggage: !!promo.has_checked_baggage,
+  };
+
+  // A volta NUNCA pode sumir do orçamento: se o detalhe veio só da ida,
+  // completamos com o resumo salvo na promoção.
+  const encontrados = detalhes ?? [];
+  const legsInput: ManualLegInput[] = [
+    encontrados.find((l) => l.direction === "OUTBOUND") ?? resumoIda,
     ...(promo.return_date
-      ? [
-          {
-            direction: "INBOUND" as const,
-            date: promo.return_date,
-            fromIata: promo.destination_iata,
-            toIata: promo.origin_iata,
-            airlineIata: promo.inbound_airline_iata ?? promo.airline_iata ?? "",
-            stops: paradas,
-            checkedBaggage: !!promo.has_checked_baggage,
-          },
-        ]
+      ? [encontrados.find((l) => l.direction === "INBOUND") ?? resumoVolta]
       : []),
   ];
+
 
 
 
