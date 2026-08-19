@@ -100,6 +100,22 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     }
   }
 
+  async function forceSearch() {
+    const q = (value || "").trim();
+    if (q.length < 3) return;
+    setLoading(true);
+    try {
+      lastQueryRef.current = q;
+      const r = await search({ data: { query: q, force: true } });
+      setItems(r);
+      setOpen(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // Antes de escolher o modo, mostra os dois botões.
   if (mode === null) {
     return (
@@ -160,6 +176,18 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         </div>
       )}
+      {mode === "live" && !loading && (value || "").trim().length >= 3 && items.length === 0 && (
+        <div className="mt-1 flex items-center justify-between gap-2 rounded-md border bg-popover px-3 py-2 text-[11px] text-muted-foreground">
+          <span>Nenhum hotel encontrado. Tente o nome sem palavras extras ou cole o link do TripAdvisor.</span>
+          <button
+            type="button"
+            onClick={forceSearch}
+            className="shrink-0 text-brand-orange underline underline-offset-2 hover:opacity-80"
+          >
+            Forçar busca
+          </button>
+        </div>
+      )}
       {mode === "live" && open && items.length > 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-72 overflow-y-auto">
           {items.map((it) => (
@@ -185,8 +213,15 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
               {fetchingId === it.location_id && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
             </button>
           ))}
-          <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-t">
-            Não encontrou? Troque para "Manual" e preencha à mão.
+          <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-t flex items-center justify-between gap-2">
+            <span>Não encontrou? Cole o link do TripAdvisor do hotel ou troque para "Manual".</span>
+            <button
+              type="button"
+              onClick={forceSearch}
+              className="shrink-0 text-brand-orange underline underline-offset-2 hover:opacity-80"
+            >
+              Forçar busca
+            </button>
           </div>
         </div>
       )}
