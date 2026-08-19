@@ -351,13 +351,15 @@ export async function enrichHotel(params: {
       push(semCidade);
     }
 
-    const consultas = local
+    // No máximo 3 buscas por hotel — mais que isso queima a cota da chave.
+    const consultas = (local
       ? [...variantes.map((v) => `${v} ${local}`), ...variantes]
-      : variantes;
+      : variantes
+    ).slice(0, 3);
 
     let search: Record<string, unknown> | null = null;
     let candidatos: Array<{ id: number; name: string }> = [];
-    if (!fixado) {
+    if (!fixado && !tripAdvisorLimitado()) {
       for (const q of consultas) {
         search = await api(
           `/catalog/locations/search?query=${encodeURIComponent(q)}&search_type=NAME&category=HOTEL`,
