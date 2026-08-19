@@ -261,14 +261,17 @@ const SEALS = `
         <circle cx="100" cy="100" r="82" fill="url(#cardBg)"/>
       </g>
       <circle cx="100" cy="100" r="82" fill="url(#cardGloss)"/>
-      <circle cx="100" cy="100" r="74" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6"/>
-      <circle cx="100" cy="100" r="69" fill="none" stroke="rgba(255,255,255,.30)" stroke-width="6" stroke-dasharray="1 9" stroke-linecap="round"/>
-      <circle cx="100" cy="100" r="60" fill="rgba(120,42,0,.20)"/>
-      <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(255,255,255,.42)" stroke-width="1.2"/>
-      <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.4" opacity=".95">
+      <circle cx="100" cy="100" r="79" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6"/>
+      <circle cx="100" cy="100" r="76" fill="none" stroke="rgba(255,255,255,.26)" stroke-width="4" stroke-dasharray="1 8" stroke-linecap="round"/>
+      <circle cx="100" cy="100" r="61" fill="rgba(120,42,0,.20)"/>
+      <circle cx="100" cy="100" r="61" fill="none" stroke="rgba(255,255,255,.42)" stroke-width="1.2"/>
+      <text fill="#fff" font-size="11" font-weight="800" letter-spacing="3.2" opacity=".95">
         <textPath href="#cardArcTop" startOffset="50%" text-anchor="middle">PARCELE SEM SUSTO</textPath>
       </text>
-      <g fill="rgba(255,255,255,.7)"><circle cx="70" cy="168" r="2.6"/><circle cx="100" cy="173" r="2.6"/><circle cx="130" cy="168" r="2.6"/></g>
+      <text fill="#fff" font-size="9.5" font-weight="800" letter-spacing="4.2" opacity=".85">
+        <textPath href="#cardArcBottom" startOffset="50%" text-anchor="middle">VIA AIR</textPath>
+      </text>
+      <g fill="rgba(255,255,255,.65)"><circle cx="24.5" cy="100" r="2.4"/><circle cx="175.5" cy="100" r="2.4"/></g>
       <g transform="translate(74 52)">
         <rect x="0" y="4" width="52" height="34" rx="7" fill="#fff" opacity=".18"/>
         <rect x="4" y="0" width="52" height="34" rx="7" fill="#fff"/>
