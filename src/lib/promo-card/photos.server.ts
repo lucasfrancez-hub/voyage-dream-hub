@@ -176,14 +176,16 @@ export async function searchDestinationPhotos(
     `${nome} city`,
   ];
 
+  // Todas as consultas em paralelo (antes eram sequenciais e o card podia
+  // ficar "montando" por minutos quando uma das APIs demorava).
   const brutos: DestinationPhoto[] = [];
-  for (const q of consultas) {
-    const [a, b] = await Promise.all([pexels(q, portrait), unsplash(q, portrait)]);
-    for (const p of [...a, ...b]) {
-      if (!brutos.some((x) => x.url === p.url)) brutos.push(p);
-    }
-    if (brutos.length >= 40) break;
+  const lotes = await Promise.all(
+    consultas.slice(0, 4).flatMap((q) => [pexels(q, portrait), unsplash(q, portrait)]),
+  );
+  for (const p of lotes.flat()) {
+    if (!brutos.some((x) => x.url === p.url)) brutos.push(p);
   }
+
 
   // Relevância: foto cuja descrição/tags mencionam a cidade vem primeiro.
   const combina = (p: DestinationPhoto) => {
