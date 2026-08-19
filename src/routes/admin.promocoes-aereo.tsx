@@ -64,6 +64,7 @@ import {
 import { scopeOfRoute } from "@/lib/br-airports";
 import { isOriginAllowedForScope } from "@/lib/airfare-promos.config";
 import { AIRLINES } from "@/lib/airlines";
+import { TrechosPromocaoDialog } from "@/components/promocoes/TrechosPromocaoDialog";
 
 
 
@@ -1022,6 +1023,7 @@ function PromocoesAereoPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [artPromo, setArtPromo] = useState<(PromoRow & { id: string }) | null>(null);
   const [precoPromo, setPrecoPromo] = useState<Promo | null>(null);
+  const [trechosPromo, setTrechosPromo] = useState<Promo | null>(null);
   const [artEditando, setArtEditando] = useState(false);
   const [socialPromo, setSocialPromo] = useState<(PromoRow & { id: string }) | null>(null);
   const [socialCanal, setSocialCanal] = useState<"whatsapp" | "instagram">("whatsapp");
@@ -1785,6 +1787,7 @@ function PromocoesAereoPage() {
                 agendamentos={agendaPorPromo.get(promo.id) ?? []}
                 onArt={() => setArtPromo(promo)}
                 onPrice={() => setPrecoPromo(promo)}
+                onLegs={() => setTrechosPromo(promo)}
                 onSocial={(canal) => {
                   setSocialCanal(canal);
                   setSocialPromo(promo);
@@ -1871,6 +1874,15 @@ function PromocoesAereoPage() {
           }}
         />
       ) : null}
+
+      <TrechosPromocaoDialog
+        promo={trechosPromo}
+        onClose={() => setTrechosPromo(null)}
+        onSaved={() => {
+          setTrechosPromo(null);
+          qc.invalidateQueries({ queryKey: ["airfare-promos"] });
+        }}
+      />
 
       <PrecoManualDialog
         promo={precoPromo}
