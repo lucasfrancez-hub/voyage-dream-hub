@@ -263,38 +263,66 @@ export async function buildManualCheckoutLink(promo: {
   const { cityLabel } = await import("@/lib/iata-lookup");
   const { rotatingAgent } = await import("@/lib/public-quote/agents");
 
-  const manual = ((promo.raw as { manual?: { legs?: ManualLegInput[] } } | null)?.manual ?? {}) as {
-    legs?: ManualLegInput[];
+  const rawObj = (promo.raw && typeof promo.raw === "object" ? (promo.raw as Record<string, unknown>) : {}) as {
+    manual?: { legs?: ManualLegInput[] };
+    flights?: ManualLegInput[];
   };
+  const manual = rawObj.manual ?? {};
   // Promoção vinda do motor (preço ajustado à mão): monta ida (e volta) com o
   // que já está salvo na promoção.
   const paradas = Math.max(0, Number(promo.stops) || 0);
-  const legsInput: ManualLegInput[] = manual.legs?.length
+
+  // 1) trechos digitados à mão  2) detalhes gravados na coleta
+  // 3) busca ao vivo no motor (promoções antigas, sem detalhe salvo)
+  let detalhes: ManualLegInput[] | null = manual.legs?.length
     ? manual.legs
-    : [
-        {
-          direction: "OUTBOUND" as const,
-          date: promo.departure_date,
-          fromIata: promo.origin_iata,
-          toIata: promo.destination_iata,
-          airlineIata: promo.airline_iata ?? "",
-          stops: paradas,
-          checkedBaggage: !!promo.has_checked_baggage,
-        },
-        ...(promo.return_date
-          ? [
-              {
-                direction: "INBOUND" as const,
-                date: promo.return_date,
-                fromIata: promo.destination_iata,
-                toIata: promo.origin_iata,
-                airlineIata: promo.inbound_airline_iata ?? promo.airline_iata ?? "",
-                stops: paradas,
-                checkedBaggage: !!promo.has_checked_baggage,
-              },
-            ]
-          : []),
-      ];
+    : rawObj.flights?.length
+      ? rawObj.flights
+      : null;
+
+  if (!detalhes) {
+    const { fetchPromoFlightDetails } = await import("@/lib/airfare-promos.flight-details.server");
+    const vivos = (await fetchPromoFlightDetails(promo as never)) as ManualLegInput[] | null;
+    if (vivos?.length) {
+      detalhes = vivos;
+      // guarda para os próximos links (sem apagar nada do raw existente)
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin
+          .from("airfare_promotions")
+          .update({ raw: { ...rawObj, flights: vivos } as never })
+          .eq("id", promo.id);
+      } catch {
+        /* detalhe é opcional: segue com o link mesmo sem gravar */
+      }
+    }
+  }
+
+  const legsInput: ManualLegInput[] = detalhes ?? [
+    {
+      direction: "OUTBOUND" as const,
+      date: promo.departure_date,
+      fromIata: promo.origin_iata,
+      toIata: promo.destination_iata,
+      airlineIata: promo.airline_iata ?? "",
+      stops: paradas,
+      checkedBaggage: !!promo.has_checked_baggage,
+    },
+    ...(promo.return_date
+      ? [
+          {
+            direction: "INBOUND" as const,
+            date: promo.return_date,
+            fromIata: promo.destination_iata,
+            toIata: promo.origin_iata,
+            airlineIata: promo.inbound_airline_iata ?? promo.airline_iata ?? "",
+            stops: paradas,
+            checkedBaggage: !!promo.has_checked_baggage,
+          },
+        ]
+      : []),
+  ];
+
 
 
   const legs = legsInput.map((l) => {
