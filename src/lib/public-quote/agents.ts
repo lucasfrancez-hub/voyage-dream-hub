@@ -65,7 +65,7 @@ export function agentProfile(name?: string | null): AgentProfile | null {
  * (promoções aéreas, links de oferta). O rodízio é determinístico pelo id do
  * orçamento — o mesmo link mostra sempre o mesmo consultor.
  */
-const RODIZIO = ["nath", "camila", "paula", "bruno", "maria"] as const;
+const RODIZIO = ["nath", "camila", "maria", "giovani", "roberto", "fabricio"] as const;
 
 export function rotatingAgent(seed?: string | null): {
   name: string;
