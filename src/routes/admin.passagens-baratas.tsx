@@ -34,6 +34,16 @@ import { enqueuePublish } from "@/lib/publish-queue";
 
 
 export const Route = createFileRoute("/admin/passagens-baratas")({
+  head: () => ({
+    meta: [
+      { title: "Passagens baratas | VIA AIR" },
+      { name: "description", content: "Curadoria interna de oportunidades aéreas e cotações VIA AIR." },
+      { property: "og:title", content: "Passagens baratas | VIA AIR" },
+      { property: "og:description", content: "Curadoria interna de oportunidades aéreas e cotações VIA AIR." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: PassagensBaratasPage,
 });
 
