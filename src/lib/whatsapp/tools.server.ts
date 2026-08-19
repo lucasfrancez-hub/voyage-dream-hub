@@ -642,11 +642,15 @@ export function buildCamilaTools(conversation: WaConversation) {
           lines.push(`🗓️ ${dateRange}${nights ? ` (${nights} noites)` : ""}`);
           if (pkg.hotel_name) {
             lines.push(`🏨 ${pkg.hotel_name}${stars ? ` ${stars}` : ""}${regime ? ` — ${regime}` : ""}`);
-            const outrasHosp = (Array.isArray((pkg as any).hotel_options)
-              ? ((pkg as any).hotel_options as Array<{ hotel_name?: string | null }>)
-              : []
-            ).filter((h) => h && String(h?.hotel_name ?? "").trim()).length;
-            if (outrasHosp > 1) lines.push(`   _ou outras opções de hospedagem_`);
+            const outrasHosp = Math.max(
+              0,
+              (Array.isArray((pkg as any).hotel_options)
+                ? ((pkg as any).hotel_options as Array<{ hotel_name?: string | null }>)
+                : []
+              ).filter((h) => h && String(h?.hotel_name ?? "").trim()).length - 1,
+            );
+            if (outrasHosp === 1) lines.push(`   _ou outra opção de hospedagem_`);
+            if (outrasHosp > 1) lines.push(`   _ou outras ${outrasHosp} opções de hospedagem_`);
           }
           if (services_lines.length) {
             lines.push("");
