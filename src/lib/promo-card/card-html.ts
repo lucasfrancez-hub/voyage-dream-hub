@@ -405,7 +405,7 @@ ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" 
 
   <section class="hero">
     <div class="category-row">
-      <div class="category-badge">${esc(d.categoria || "PASSAGEM AÉREA")}</div>
+      <div class="category-badge"><span class="cb-ico">${ICONS.plane}</span>${esc(d.categoria || "PASSAGEM AÉREA")}</div>
       <div class="found-badge"><span class="found-dot"></span>${esc(d.statusLabel || "Tarifa encontrada hoje")}</div>
     </div>
     <h1 class="destination destination-one-line" data-full-destination="${esc(d.destination)}">${
@@ -414,9 +414,22 @@ ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" 
         : ""
     }<span class="dest-highlight">${esc(destinationParts(d.destination).last)}</span></h1>
     <div class="route">
-      <div class="route-city"><span>${esc(d.origin)}</span><span class="arrow">→</span><span>${esc(d.destinationCity)}</span></div>
-      <div class="route-iata">${esc(d.originIata)} → ${esc(d.destinationIata)} • ${tipo}</div>
+      <div class="route-end">
+        <span class="route-iata-big">${esc(d.originIata)}</span>
+        <span class="route-city-name">${esc(d.origin)}</span>
+      </div>
+      <div class="route-mid">
+        <div class="route-track">
+          <i></i><span class="route-plane">${ICONS.plane}</span><i class="rev"></i>
+        </div>
+        <span class="route-trip">${esc(tipo)}</span>
+      </div>
+      <div class="route-end">
+        <span class="route-iata-big">${esc(d.destinationIata)}</span>
+        <span class="route-city-name">${esc(d.destinationCity)}</span>
+      </div>
     </div>
+
   </section>
 </header>
 
