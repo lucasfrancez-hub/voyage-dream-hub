@@ -1,0 +1,1 @@
+delete from public.md_response_cache where url like 'hotel-enrich:%' and payload::text like '%"photos": []%';
