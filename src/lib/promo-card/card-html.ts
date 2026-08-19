@@ -320,24 +320,39 @@ const ICONS = {
   clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
 };
 
-/** Bloco principal de preço, no mesmo padrão dos cards de pacote/ingresso. */
+/** Melhor condição + mais prazo, lado a lado em duas colunas. */
 function precoBloco(d: PromoCardData): string {
   const parcelado = !d.pixOnly && d.interestFreeInstallments > 1;
   const valor = parcelado ? d.interestFreeInstallmentValue : d.totalPrice;
   const [reais, centavos] = brl(valor).split(",");
   const kicker = parcelado ? "Melhor condição" : d.pixOnly ? "À vista no Pix" : "À vista";
-  return `<section class="price glass-dark">
+
+  const principal = `<div class="price-col">
     <p class="price-kicker">${esc(kicker)}</p>
     <div class="price-line">
       ${parcelado ? `<span class="price-x">${d.interestFreeInstallments}x</span>` : ""}
       <span class="price-cur">R$</span>
       <span class="price-num">${esc(reais)}</span>
       <span class="price-cents">,${esc(centavos ?? "00")}</span>
-      ${parcelado ? `<span class="price-free">sem juros</span>` : ""}
     </div>
-    <div class="price-bar"></div>
+    ${parcelado ? `<p class="price-fine">sem juros no cartão</p>` : ""}
     <p class="price-total">Valor total: <span>${esc(brlFull(d.totalPrice))}</span></p>
-  </section>`;
+  </div>`;
+
+  const segunda =
+    d.extendedInstallments && d.extendedInstallmentValue
+      ? `<div class="price-col">
+           <p class="price-kicker">Precisa de mais prazo?</p>
+           <p class="price-alt-num">${d.extendedInstallments}x <span>R$ ${esc(brl(d.extendedInstallmentValue))}</span></p>
+           <p class="price-fine">Quanto menos parcelas,<br/>mais barato você paga.</p>
+         </div>`
+      : `<div class="price-col">
+           <p class="price-kicker">Formas de pagamento</p>
+           <p class="price-alt-num"><span>Pix</span> ou cartão</p>
+           <p class="price-fine">Pague em até 3 cartões diferentes.</p>
+         </div>`;
+
+  return `<section class="price glass-dark">${principal}<div class="price-div"></div>${segunda}</section>`;
 }
 
 export function renderPromoCardHtml(
@@ -352,24 +367,6 @@ export function renderPromoCardHtml(
   const nota = `Parcelamento sem juros conforme regra vigente da companhia aérea.${dataTarifa ? ` Tarifa encontrada em ${dataTarifa}.` : ""} Válida para o dia da compra e sujeita à disponibilidade e atualização tarifária até a emissão.`;
   const ciaLogo = abs(base, d.airlineLogo);
   const foto = d.destinationImage ? abs(base, d.destinationImage) : "";
-
-  const prazo =
-    d.extendedInstallments && d.extendedInstallmentValue
-      ? `<div class="side-card glass-dark">
-           <span class="side-icon">${ICONS.clock}</span>
-           <p>Precisa de mais prazo? <b>${d.extendedInstallments}x de R$ ${esc(brl(d.extendedInstallmentValue))}</b><br/>
-             <span class="side-fine">Quanto menos parcelas, mais barato você paga.</span></p>
-         </div>`
-      : "";
-
-  const pagamento = `<div class="side-card glass-dark">
-      <span class="side-icon">${ICONS.card}</span>
-      <p>${
-        d.pixOnly
-          ? "Pagamento à vista no Pix ou cartão"
-          : `Cartão em até <b>${d.interestFreeInstallments}x sem juros</b>`
-      }<br/><span class="side-fine">Pague em até 3 cartões diferentes.</span></p>
-    </div>`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <title>VIA AIR — Promoção aérea (${format})</title>
@@ -406,38 +403,32 @@ ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" 
 
 <div class="bottom">
   <section class="info glass">
-    <div class="info-col">
+    <div class="info-row">
       <span class="info-icon">${ICONS.calendar}</span>
-      <p class="info-small">Período</p>
-      <p class="info-strong">${esc(periodo)}</p>
+      <p class="info-label">Período</p>
+      <p class="info-value"><span class="txt">${esc(periodo)}</span></p>
     </div>
-    <div class="info-div"></div>
-    <div class="info-col">
-      ${
-        ciaLogo
-          ? `<span class="airline-logo"><img src="${esc(ciaLogo)}" alt="${esc(d.airline)}"/></span>`
-          : `<span class="info-icon">${ICONS.plane}</span>`
-      }
-      <p class="info-small">Companhia</p>
-      <p class="info-strong">${esc(d.airline)}</p>
+    <div class="info-row">
+      <span class="info-icon">${ICONS.plane}</span>
+      <p class="info-label">Companhia</p>
+      <p class="info-value">
+        ${ciaLogo ? `<span class="airline-logo"><img src="${esc(ciaLogo)}" alt="${esc(d.airline)}"/></span>` : ""}
+        <span class="txt">${esc(d.airline)}</span>
+        ${!ciaLogo && d.airlineIata ? `<span class="airline-iata">${esc(d.airlineIata)}</span>` : ""}
+      </p>
     </div>
-    <div class="info-div"></div>
-    <div class="info-col">
+    <div class="info-row">
       <span class="info-icon">${ICONS.briefcase}</span>
-      <p class="info-small">Bagagem</p>
-      <p class="info-strong">${esc(d.baggage)}</p>
+      <p class="info-label">Bagagem</p>
+      <p class="info-value"><span class="txt wrap">${esc(d.baggage)}</span></p>
     </div>
   </section>
 
   ${precoBloco(d)}
 
-  <div class="side">
-    ${pagamento}
-    ${prazo}
-  </div>
-
   <p class="note">${esc(nota)}</p>
 </div>
 </main>${AUTOFIT}</body></html>`;
 }
+
 
