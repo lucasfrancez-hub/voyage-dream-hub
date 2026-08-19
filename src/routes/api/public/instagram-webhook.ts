@@ -397,12 +397,14 @@ async function processPayload(payload: IGPayload) {
               mediaType: midia.media_type,
             });
             const { gerarRespostaComentario } = await import("@/lib/instagram/comment-ai.server");
+            const { getCommentAiInstruction } = await import("@/lib/instagram/comment-pause.server");
             const resposta = await gerarRespostaComentario({
               fromUsername: v.from?.username ?? null,
               text: v.text ?? null,
               mediaCaption: midia.caption,
               mediaPermalink: midia.permalink,
               videoTranscricao,
+              instrucao: await getCommentAiInstruction(v.media.id),
             });
             if (resposta) {
               // Nada de responder no mesmo segundo, mas sem demorar: a

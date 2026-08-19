@@ -96,12 +96,14 @@ export async function syncCollabComments(): Promise<CollabSyncResult> {
             mediaType: midia.mediaType,
           });
           const { gerarRespostaComentario } = await import("@/lib/instagram/comment-ai.server");
+          const { getCommentAiInstruction } = await import("@/lib/instagram/comment-pause.server");
           const resposta = await gerarRespostaComentario({
             fromUsername: c.username ?? null,
             text: c.text ?? null,
             mediaCaption: midia.caption,
             mediaPermalink: midia.permalink,
             videoTranscricao,
+            instrucao: await getCommentAiInstruction(midia.mediaId),
           });
           if (!resposta) continue;
 

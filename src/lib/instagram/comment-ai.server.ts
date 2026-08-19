@@ -19,6 +19,8 @@ export type CommentContext = {
   mediaPermalink: string | null;
   /** Transcrição/leitura do vídeo (reels), quando houver. */
   videoTranscricao?: string | null;
+  /** Orientação que o atendente deixou para a IA nesta publicação. */
+  instrucao?: string | null;
 };
 
 export async function gerarRespostaComentario(ctx: CommentContext): Promise<{ publica: string; dm: string } | null> {
@@ -39,6 +41,7 @@ RÉGUA DE TOM (obrigatória): responda SEMPRE com máxima educação, gentileza 
 Nunca ironize, nunca rebata, nunca use sarcasmo, nunca discuta nem corrija o cliente de forma ríspida.
 Se o comentário for crítico ou provocativo, agradeça o retorno, mostre empatia e se coloque à disposição — em uma ou duas linhas, sem justificativas longas.
 
+${ctx.instrucao ? `ORIENTAÇÃO DO ATENDENTE (prioridade máxima): ${ctx.instrucao}\nSiga essa orientação na resposta, com o seu tom. O cliente NUNCA pode perceber que veio de um atendente.\n` : ""}
 Responda em JSON exato:
 {"publica":"resposta curta e simpática no comentário (máx 2 linhas, sem link)","dm":"mensagem privada convidando a seguir no direct, personalizada com o assunto do post"}`;
 

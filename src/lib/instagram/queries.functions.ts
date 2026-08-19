@@ -303,16 +303,18 @@ export const sugerirRespostaComentarioIa = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("instagram_comments")
-      .select("id, text, from_username, media_caption, media_permalink")
+      .select("id, text, from_username, media_caption, media_permalink, media_id")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !row) throw new Error("Comentário não encontrado");
     const { gerarRespostaComentario } = await import("./comment-ai.server");
+    const { getCommentAiInstruction } = await import("./comment-pause.server");
     const r = await gerarRespostaComentario({
       fromUsername: row.from_username,
       text: row.text,
       mediaCaption: row.media_caption,
       mediaPermalink: row.media_permalink,
+      instrucao: await getCommentAiInstruction((row as { media_id?: string | null }).media_id),
     });
     if (!r) throw new Error("Não consegui gerar a sugestão agora");
     return { texto: r.publica };
@@ -525,6 +527,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
       account_username: string | null;
       collab: boolean;
       ai_paused: boolean;
+      ai_instruction: string | null;
       last_at: string | null;
       total: number;
       pendentes: number;
@@ -546,6 +549,7 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
         account_username: null,
         collab: false,
         ai_paused: false,
+        ai_instruction: null as string | null,
         last_at: null,
         total: 0,
         pendentes: 0,
@@ -569,10 +573,13 @@ export const listInstagramCommentThreads = createServerFn({ method: "GET" })
     // Publicações com a IA pausada pelo atendente.
     const { data: pausas } = await context.supabase
       .from("instagram_comment_ai_pauses")
-      .select("media_id, paused");
-    for (const p of (pausas ?? []) as Array<{ media_id: string; paused: boolean }>) {
+      .select("media_id, paused, ai_instruction");
+    for (const p of (pausas ?? []) as Array<{ media_id: string; paused: boolean; ai_instruction: string | null }>) {
       const t = threads.get(p.media_id);
-      if (t) t.ai_paused = !!p.paused;
+      if (t) {
+        t.ai_paused = !!p.paused;
+        t.ai_instruction = p.ai_instruction?.trim() || null;
+      }
     }
 
     return [...threads.values()].sort((a, b) => (b.last_at ?? "").localeCompare(a.last_at ?? ""));
@@ -602,6 +609,31 @@ export const setInstagramCommentAiPaused = createServerFn({ method: "POST" })
         .eq("auto_reply_status", "scheduled");
     }
     return { ok: true, paused: data.paused };
+  });
+
+/** Orientação do atendente para a IA nos comentários de uma publicação. */
+export const setInstagramCommentAiInstruction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { media_id: string; instruction: string | null }) =>
+    z.object({ media_id: z.string().min(1), instruction: z.string().max(2000).nullable() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const texto = data.instruction?.trim() || null;
+    const { error } = await context.supabase
+      .from("instagram_comment_ai_pauses")
+      .upsert(
+        {
+          media_id: data.media_id,
+          paused: false,
+          ai_instruction: texto,
+          ai_instruction_at: texto ? new Date().toISOString() : null,
+          ai_instruction_by: texto ? context.userId : null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "media_id" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 /** Marca todos os comentários de uma publicação como lidos (some o badge). */
