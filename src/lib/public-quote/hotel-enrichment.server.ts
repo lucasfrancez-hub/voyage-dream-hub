@@ -233,8 +233,8 @@ async function jsonOf(
  */
 /**
  * Algumas propriedades novas ainda não têm fotos na API do TripAdvisor
- * (photos.total_count = 0). Nesses casos procuramos uma listagem irmã com o
- * mesmo nome no Google Places. Nunca usamos fotos genéricas do destino.
+ * (photos.total_count = 0). Nesses casos buscamos fotos reais da propriedade na
+ * web, confirmando pelo nome do hotel. Nunca usamos fotos genéricas do destino.
  */
 async function fotosAlternativas(
   nome: string,
@@ -244,7 +244,7 @@ async function fotosAlternativas(
 ): Promise<{ photos: string[]; fallback: boolean }> {
   void idAtual;
   void api;
-  // Busca pelo nome exato no Google Places e guarda cópias estáveis.
+  // Busca web pelo nome exato do hotel e guarda cópias estáveis das fotos.
   try {
     const { recoverHotelPhotos } = await import("./hotel-photo-fallback.server");
     const fotos = await recoverHotelPhotos(nome, cidade);
