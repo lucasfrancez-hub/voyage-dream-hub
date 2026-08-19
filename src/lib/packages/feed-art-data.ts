@@ -243,6 +243,36 @@ function countServices(services?: PackageServices | null): number {
   return n;
 }
 
+/**
+ * Ingressos podem estar apenas no texto de "o que inclui" (sem estarem
+ * marcados em services.tickets). Nesse caso a arte ainda precisa mostrar.
+ */
+const RE_INGRESSO = /ingresso|ticket|parque|park\b|entrada para/i;
+
+export function deriveTicketParks(
+  list: string[] | null | undefined,
+  services?: PackageServices | null,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (raw: string) => {
+    const t = String(raw ?? "").trim().replace(/\s+/g, " ");
+    if (!t) return;
+    const k = norm(t);
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push(t);
+  };
+  for (const p of services?.tickets?.parks ?? []) push(String(p ?? ""));
+  if (out.length) return out;
+  for (const raw of list ?? []) {
+    const t = String(raw ?? "").trim();
+    if (!t || !RE_INGRESSO.test(t)) continue;
+    push(t.replace(/^ingressos?\s*(:|-|–|para)?\s*/i, "").trim() || t);
+  }
+  return out;
+}
+
 function detectIncludes(
   list: string[] | null | undefined,
   services?: PackageServices | null,
@@ -253,7 +283,7 @@ function detectIncludes(
   const groupServices = svcCount >= 2;
   const seguroOn = !!services?.seguro?.enabled;
   const transferOn = !!services?.transfer?.enabled;
-  const ticketsOn = !!services?.tickets?.enabled && (services?.tickets?.parks ?? []).some((p) => p && p.trim());
+  const ticketsOn = deriveTicketParks(list, services).length > 0;
   const passeiosOn = normalizePasseios(services).length > 0;
   const isService = kind === "service";
   return {
@@ -270,6 +300,7 @@ function detectIncludes(
     maisServicos: groupServices,
   };
 }
+
 
 
 
