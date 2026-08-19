@@ -303,6 +303,120 @@ function IconBtn({
 /* ------------------------------------------------------------------ */
 
 
+
+/* ------------------------------------------------------------------ */
+/* Ajuste manual de preço                                              */
+/* ------------------------------------------------------------------ */
+
+function PrecoManualDialog({
+  promo,
+  onClose,
+  onSaved,
+}: {
+  promo: Promo | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const ajustar = useServerFn(ajustarPrecoPromocao);
+  const [valor, setValor] = useState("");
+  const [taxa, setTaxa] = useState("");
+  const [aberto, setAberto] = useState<string | null>(null);
+
+  // reinicia os campos quando muda a promoção selecionada
+  if (promo && aberto !== promo.id) {
+    setAberto(promo.id);
+    setValor(String(Number(promo.price_per_passenger ?? 0).toFixed(2)).replace(".", ","));
+    setTaxa(
+      promo.passengers
+        ? String((Number(promo.taxes ?? 0) / Math.max(1, promo.passengers)).toFixed(2)).replace(".", ",")
+        : "",
+    );
+  }
+
+  const numero = (v: string) => Number(String(v).replace(/\./g, "").replace(",", ".")) || 0;
+
+  const mut = useMutation({
+    mutationFn: () =>
+      ajustar({
+        data: {
+          id: promo!.id,
+          pricePerPassenger: numero(valor),
+          taxesPerPassenger: taxa.trim() ? numero(taxa) : null,
+        },
+      }),
+    onSuccess: (r) => {
+      const res = r as { interestFreeInstallments: number; interestFreeInstallmentValue: number };
+      toast.success("Preço ajustado", {
+        description:
+          res.interestFreeInstallments > 1
+            ? `Até ${res.interestFreeInstallments}x de ${brl(res.interestFreeInstallmentValue)} sem juros. O link será regerado com o novo valor.`
+            : "Parcelamento recalculado. O link será regerado com o novo valor.",
+      });
+      onSaved();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={!!promo} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-base">Editar preço manualmente</DialogTitle>
+        </DialogHeader>
+        {promo ? (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              {cityLabel(promo.origin_iata, promo.origin_city)} → {cityLabel(promo.destination_iata, promo.destination_city)} ·{" "}
+              {promo.passengers} passageiro(s). O parcelamento sem juros da companhia e as parcelas com markup
+              são recalculados na hora, e a arte/card já sai com o valor novo.
+            </p>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Preço por passageiro (com taxas)
+              <input
+                autoFocus
+                inputMode="decimal"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-lg font-black tracking-tight text-foreground outline-none focus:border-brand-orange"
+              />
+            </label>
+            <label className="block text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Taxas por passageiro (opcional)
+              <input
+                inputMode="decimal"
+                value={taxa}
+                onChange={(e) => setTaxa(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-brand-orange"
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Total: <strong className="text-foreground">{brl(numero(valor) * Math.max(1, promo.passengers))}</strong>
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-border/60 px-4 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={numero(valor) <= 0 || mut.isPending}
+                onClick={() => mut.mutate()}
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-orange px-4 py-2 text-xs font-black uppercase tracking-widest text-white transition hover:brightness-110 disabled:opacity-50"
+              >
+                {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Salvar preço
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PromoCard({
   promo,
   agendamentos = [],
@@ -873,6 +987,7 @@ function PromocoesAereoPage() {
   const [sort, setSort] = useState("preco");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [artPromo, setArtPromo] = useState<(PromoRow & { id: string }) | null>(null);
+  const [precoPromo, setPrecoPromo] = useState<Promo | null>(null);
   const [artEditando, setArtEditando] = useState(false);
   const [socialPromo, setSocialPromo] = useState<(PromoRow & { id: string }) | null>(null);
   const [socialCanal, setSocialCanal] = useState<"whatsapp" | "instagram">("whatsapp");
@@ -1635,6 +1750,7 @@ function PromocoesAereoPage() {
                 busy={busyId === promo.id}
                 agendamentos={agendaPorPromo.get(promo.id) ?? []}
                 onArt={() => setArtPromo(promo)}
+                onPrice={() => setPrecoPromo(promo)}
                 onSocial={(canal) => {
                   setSocialCanal(canal);
                   setSocialPromo(promo);
@@ -1721,6 +1837,15 @@ function PromocoesAereoPage() {
           }}
         />
       ) : null}
+
+      <PrecoManualDialog
+        promo={precoPromo}
+        onClose={() => setPrecoPromo(null)}
+        onSaved={() => {
+          setPrecoPromo(null);
+          qc.invalidateQueries({ queryKey: ["airfare-promos"] });
+        }}
+      />
 
       <PromoSocialDialog
         promo={socialPromo}
