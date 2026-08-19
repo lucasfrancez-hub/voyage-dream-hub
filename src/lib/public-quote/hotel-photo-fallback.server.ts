@@ -1,25 +1,28 @@
 const BUCKET = "package-hotel-photos";
 const MAX_PHOTOS = 5;
 const MAX_BYTES = 12 * 1024 * 1024;
+const GATEWAY = "https://connector-gateway.lovable.dev/firecrawl/v2";
 
 function norm(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/\b(hotel|resort|pousada|by|gav|hoteis|hotels)\b/g, " ")
+    .replace(/\b(hotel|resort|pousada|by|gav|hoteis|hotels|flat|inn)\b/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function isMatchingHotel(expected: string, found: string) {
-  const a = norm(expected);
-  const b = norm(found);
-  if (!a || !b) return false;
-  if (a === b || a.includes(b) || b.includes(a)) return true;
-  const tokens = a.split(" ").filter((token) => token.length > 2);
-  return tokens.length > 0 && tokens.filter((token) => b.includes(token)).length / tokens.length >= 0.75;
+/** Confere se a legenda da foto realmente cita o hotel procurado. */
+function legendaBate(hotelName: string, legenda: string) {
+  const alvo = norm(hotelName);
+  const texto = norm(legenda);
+  if (!alvo || !texto) return false;
+  const tokens = alvo.split(" ").filter((t) => t.length > 2);
+  if (!tokens.length) return false;
+  const acertos = tokens.filter((t) => texto.includes(t)).length;
+  return acertos / tokens.length >= 0.6;
 }
 
 function extensionFor(contentType: string) {
@@ -29,82 +32,121 @@ function extensionFor(contentType: string) {
   return "jpg";
 }
 
-async function googlePlacePhotos(hotelName: string, city: string | null, apiKey: string) {
-  const lovableApiKey = process.env["LOVABLE_API_KEY"];
-  if (!lovableApiKey) return [];
-  try {
-    const response = await fetch("https://connector-gateway.lovable.dev/google_maps/v1/places:searchText", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableApiKey}`,
-        "X-Connection-Api-Key": apiKey,
-        "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.photos",
-      },
-      body: JSON.stringify({
-        textQuery: `${hotelName}${city ? `, ${city}` : ""}`,
-        languageCode: "pt-BR",
-        regionCode: "BR",
-        includedType: "hotel",
-        maxResultCount: 5,
-      }),
-    });
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      console.warn(`[hotel-photos] Google Places ${response.status}: ${detail.slice(0, 500)}`);
-      return [];
-    }
-    const json = (await response.json()) as {
-      places?: Array<{
-        displayName?: { text?: string };
-        formattedAddress?: string;
-        photos?: Array<{ name?: string }>;
-      }>;
-    };
-    const place = (json.places ?? []).find((item) =>
-      isMatchingHotel(hotelName, item.displayName?.text ?? ""),
-    );
-    if (!place) {
-      console.warn(`[hotel-photos] Google Places sem correspondência exata para: ${hotelName}`);
-    }
-    return (place?.photos ?? []).map((photo) => photo.name).filter((name): name is string => Boolean(name));
-  } catch {
-    return [];
-  }
+/** Sobe a resolução das miniaturas conhecidas para uma versão grande. */
+function emAltaResolucao(url: string) {
+  return url
+    .replace(/\/max(?:300|500|750|800)(?:x\d+)?\//i, "/max1024x768/")
+    .replace(/\/square\d+\//i, "/max1024x768/");
 }
 
-/** Busca a ficha exata no Google Places e salva até cinco fotos oficiais. */
+function fotoValida(url: string) {
+  if (!/^https:\/\//i.test(url)) return false;
+  if (/\.(svg|gif)(\?|$)/i.test(url)) return false;
+  // Ignora avatares de avaliadores, bandeiras e ícones de layout.
+  return !/(googleusercontent|graph\.facebook|design-assets|images-flags|xphoto|static\/img|logo|icon|sprite)/i.test(
+    url,
+  );
+}
+
+type Achado = { url: string; legenda: string };
+
+function extrairImagens(markdown: string): Achado[] {
+  const achados: Achado[] = [];
+  const regex = /!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(markdown))) {
+    const legenda = match[1] ?? "";
+    const url = match[2] ?? "";
+    if (fotoValida(url)) achados.push({ url, legenda });
+  }
+  return achados;
+}
+
+async function firecrawlSearch(query: string) {
+  const lovableApiKey = process.env["LOVABLE_API_KEY"];
+  const firecrawlKey = process.env["FIRECRAWL_API_KEY"];
+  if (!lovableApiKey || !firecrawlKey) return [] as Achado[];
+
+  const response = await fetch(`${GATEWAY}/search`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${lovableApiKey}`,
+      "X-Connection-Api-Key": firecrawlKey,
+    },
+    body: JSON.stringify({
+      query,
+      limit: 3,
+      lang: "pt",
+      country: "br",
+      scrapeOptions: { formats: ["markdown"] },
+    }),
+  });
+  if (!response.ok) {
+    const detalhe = await response.text().catch(() => "");
+    console.warn(`[hotel-photos] Firecrawl ${response.status}: ${detalhe.slice(0, 400)}`);
+    return [] as Achado[];
+  }
+
+  const json = (await response.json()) as {
+    data?: { web?: Array<{ markdown?: string; description?: string }> } | Array<{ markdown?: string }>;
+  };
+  const resultados = Array.isArray(json.data) ? json.data : (json.data?.web ?? []);
+  const achados: Achado[] = [];
+  for (const item of resultados) {
+    const texto = `${item.markdown ?? ""}\n${(item as { description?: string }).description ?? ""}`;
+    achados.push(...extrairImagens(texto));
+  }
+  return achados;
+}
+
+/** Busca fotos reais da propriedade na web e salva até cinco no storage. */
 export async function recoverHotelPhotos(
   hotelName: string,
   city: string | null,
 ): Promise<string[]> {
-  const apiKey = process.env["GOOGLE_MAPS_API_KEY"];
-  const lovableApiKey = process.env["LOVABLE_API_KEY"];
-  if (!apiKey || !lovableApiKey) return [];
-  const photoNames = await googlePlacePhotos(hotelName, city, apiKey);
-  if (!photoNames.length) return [];
+  const local = city ? `${hotelName} ${city}` : hotelName;
+  const achados = [
+    ...(await firecrawlSearch(`${local} booking.com fotos do hotel`).catch(() => [])),
+    ...(await firecrawlSearch(`${local} hotel fotos`).catch(() => [])),
+  ];
+  if (!achados.length) return [];
+
+  const preferidas = achados.filter((a) => legendaBate(hotelName, a.legenda));
+  const ordenadas = preferidas.length ? preferidas : [];
+  if (!ordenadas.length) {
+    console.warn(`[hotel-photos] nenhuma foto confirmada para: ${hotelName}`);
+    return [];
+  }
+
+  const vistas = new Set<string>();
+  const candidatas: string[] = [];
+  for (const achado of ordenadas) {
+    const url = emAltaResolucao(achado.url);
+    const chave = url.split("?")[0] ?? url;
+    if (vistas.has(chave)) continue;
+    vistas.add(chave);
+    candidatas.push(url);
+    if (candidatas.length >= MAX_PHOTOS * 3) break;
+  }
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const folder = crypto.randomUUID();
   const persisted: string[] = [];
 
-  for (const photoName of photoNames) {
+  for (const url of candidatas) {
     if (persisted.length >= MAX_PHOTOS) break;
     try {
-      const url = new URL(`https://connector-gateway.lovable.dev/google_maps/v1/${photoName}/media`);
-      url.searchParams.set("maxWidthPx", "1600");
-      url.searchParams.set("maxHeightPx", "1200");
-      url.searchParams.set("skipHttpRedirect", "false");
       const response = await fetch(url, {
         headers: {
-          Accept: "image/*",
-          Authorization: `Bearer ${lovableApiKey}`,
-          "X-Connection-Api-Key": apiKey,
+          Accept: "image/*,*/*;q=0.8",
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
         },
         redirect: "follow",
       });
       if (!response.ok) continue;
-      const contentType = (response.headers.get("content-type") ?? "").split(";")[0];
+      const contentType = (response.headers.get("content-type") ?? "").split(";")[0] ?? "";
       if (!contentType.startsWith("image/")) continue;
       const bytes = new Uint8Array(await response.arrayBuffer());
       if (bytes.byteLength < 20_000 || bytes.byteLength > MAX_BYTES) continue;
@@ -114,7 +156,7 @@ export async function recoverHotelPhotos(
         .upload(path, bytes, { contentType, upsert: true, cacheControl: "31536000" });
       if (!error) persisted.push(`/api/public/package-hotel-photo/${path}`);
     } catch {
-      // Tenta o próximo resultado da busca.
+      // Tenta a próxima imagem encontrada.
     }
   }
 
