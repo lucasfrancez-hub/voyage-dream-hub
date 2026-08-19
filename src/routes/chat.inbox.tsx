@@ -2307,6 +2307,17 @@ function InstagramConversationView({
   const [text, setText] = useState("");
   const [midiaAberta, setMidiaAberta] = useState<string | null>(null);
 
+  // Garante espelho em wa_conversations para DMs antigas que ainda não
+  // foram sincronizadas via webhook (preciso para instruir a IA e resposta).
+  const ensureMirrorFn = useServerFn(ensureInstagramMirror);
+  useEffect(() => {
+    if (!mirror && conversationId) {
+      ensureMirrorFn({ data: { instagram_conversation_id: conversationId } })
+        .then(() => onRefetch?.())
+        .catch(() => {});
+    }
+  }, [mirror, conversationId, ensureMirrorFn, onRefetch]);
+
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [igRecording, setIgRecording] = useState(false);
   const igRecorderRef = useRef<MediaRecorder | null>(null);
