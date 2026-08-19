@@ -129,8 +129,11 @@ function LinkAsaasPage() {
     );
 
   const zap = criado && telefone.replace(/\D/g, "").length >= 10
-    ? whatsappUrl(telefone.replace(/\D/g, ""), `Olá! Segue o link para pagamento:\n${criado.url}`)
+    ? `https://wa.me/55${telefone.replace(/\D/g, "").replace(/^55/, "")}?text=${encodeURIComponent(
+        `Olá! Segue o link para pagamento:\n${criado.url}`,
+      )}`
     : "";
+
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
