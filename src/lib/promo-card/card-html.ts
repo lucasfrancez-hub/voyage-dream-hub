@@ -232,7 +232,7 @@ const FEED_CSS = `
 
 const SEALS = `
 <div class="seal-wrap">
-  <div class="cards-seal" aria-label="Pague em até 3 cartões">
+  <div class="cards-seal" aria-label="Divida em até 3 cartões">
     <svg viewBox="0 0 160 160" role="img">
       <defs>
         <linearGradient id="cardBg" x1="0" x2="1" y1="0" y2="1">
