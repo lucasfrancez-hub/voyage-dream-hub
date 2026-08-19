@@ -120,13 +120,12 @@ export async function recoverHotelPhotos(
   }
 
   const vistas = new Set<string>();
-  const candidatas: string[] = [];
+  const candidatas: Array<{ grande: string; original: string }> = [];
   for (const achado of ordenadas) {
-    const url = emAltaResolucao(achado.url);
-    const chave = url.split("?")[0] ?? url;
+    const chave = (achado.url.split("?")[0] ?? achado.url).replace(/\/max\d+(?:x\d+)?\//i, "/");
     if (vistas.has(chave)) continue;
     vistas.add(chave);
-    candidatas.push(url);
+    candidatas.push({ grande: emAltaResolucao(achado.url), original: achado.url });
     if (candidatas.length >= MAX_PHOTOS * 3) break;
   }
 
@@ -134,22 +133,34 @@ export async function recoverHotelPhotos(
   const folder = crypto.randomUUID();
   const persisted: string[] = [];
 
-  for (const url of candidatas) {
+  const baixar = async (url: string) => {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "image/*,*/*;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      },
+      redirect: "follow",
+    });
+    if (!response.ok) return null;
+    const contentType = (response.headers.get("content-type") ?? "").split(";")[0] ?? "";
+    if (!contentType.startsWith("image/")) return null;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength < 8_000 || bytes.byteLength > MAX_BYTES) return null;
+    return { bytes, contentType };
+  };
+
+  for (const candidata of candidatas) {
     if (persisted.length >= MAX_PHOTOS) break;
     try {
-      const response = await fetch(url, {
-        headers: {
-          Accept: "image/*,*/*;q=0.8",
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-        },
-        redirect: "follow",
-      });
-      if (!response.ok) continue;
-      const contentType = (response.headers.get("content-type") ?? "").split(";")[0] ?? "";
-      if (!contentType.startsWith("image/")) continue;
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      if (bytes.byteLength < 20_000 || bytes.byteLength > MAX_BYTES) continue;
+      // A URL ampliada pode não ter assinatura válida; nesse caso usa a original.
+      const baixada =
+        (await baixar(candidata.grande).catch(() => null)) ??
+        (candidata.grande === candidata.original
+          ? null
+          : await baixar(candidata.original).catch(() => null));
+      if (!baixada) continue;
+      const { bytes, contentType } = baixada;
       const path = `${folder}/${persisted.length + 1}.${extensionFor(contentType)}`;
       const { error } = await supabaseAdmin.storage
         .from(BUCKET)
