@@ -35,6 +35,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<TAHotelSuggestion[]>([]);
   const [fetchingId, setFetchingId] = useState<number | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastQueryRef = useRef<string>("");
