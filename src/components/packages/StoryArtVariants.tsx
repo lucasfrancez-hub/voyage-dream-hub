@@ -117,7 +117,7 @@ export const StoryArtVariant = forwardRef<
     <div className="vsv-card glass-dark">
       <div className="vsv-card-icon">{I.card}</div>
       <p>
-        {data.isCativa ? "15x sem juros no cartão Visa e Amex" : `Cartão em até ${parcelas}x sem juros`}
+        {`Cartão em até ${parcelas}x sem juros`}
         <br />
         <span className="vsv-fine">
           {isIngresso ? "*Sem boleto para ingressos." : "*Sujeito à disponibilidade de vagas."}
