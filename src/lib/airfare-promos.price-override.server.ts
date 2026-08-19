@@ -59,6 +59,14 @@ export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
       : n2(Math.max(0, Number(input.taxesPerPassenger) || 0) * passengers);
   const fare = n2(Math.max(0, total - taxes));
 
+  // troca opcional da companhia aérea (aplica na ida e na volta)
+  const { findAirline } = await import("@/lib/airlines");
+  const novaCia = input.airlineIata?.trim() ? findAirline(input.airlineIata) : undefined;
+  const airlineIata = novaCia?.iata ?? promo.airline_iata ?? null;
+  const airlineName = novaCia?.name ?? promo.airline_name ?? null;
+  const inboundIata = novaCia ? novaCia.iata : (promo.inbound_airline_iata ?? null);
+  const inboundName = novaCia ? novaCia.name : (promo.inbound_airline_name ?? null);
+
   const markups = await loadMarkups(supabaseAdmin as never);
   const quotes = buildExtendedQuotes(total, markups as never);
   const extendedOptions = quotesToExtendedOptions(quotes);
@@ -66,19 +74,20 @@ export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
   const condOut = getAirfarePaymentConditions({
     total,
     passengers,
-    airline: { iata: promo.airline_iata ?? null, name: promo.airline_name ?? null },
+    airline: { iata: airlineIata, name: airlineName },
     extendedOptions,
   });
-  const condIn = promo.inbound_airline_iata
+  const condIn = inboundIata
     ? getAirfarePaymentConditions({
         total,
         passengers,
-        airline: { iata: promo.inbound_airline_iata, name: promo.inbound_airline_name ?? null },
+        airline: { iata: inboundIata, name: inboundName },
         extendedOptions,
       })
     : null;
   const cond =
     condIn && condIn.interestFree.installments < condOut.interestFree.installments ? condIn : condOut;
+
   const q12 = quotes.find((q) => q.installments === 12) ?? quotes[quotes.length - 1] ?? null;
 
   const raw = (promo.raw && typeof promo.raw === "object" ? { ...(promo.raw as object) } : {}) as Record<
