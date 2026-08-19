@@ -86,7 +86,8 @@ async function claimAndProcess(id: string) {
 export async function enqueueManualOpportunity(
   input: ManualOpportunityInput,
   userId: string,
-): Promise<ManualOpportunityResult> {
+  processImmediately = true,
+): Promise<ManualOpportunityResult | { ok: true; queued: true; id: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const normalized = {
     created_by: userId,
@@ -127,6 +128,10 @@ export async function enqueueManualOpportunity(
   }
   if (!id) throw new Error("Não foi possível registrar a cotação na fila");
 
+  // O clique precisa estar persistido antes de aguardar sua vez no motor.
+  // Assim, uma atualização/fechamento da tela não perde os próximos itens.
+  if (!processImmediately) return { ok: true, queued: true, id };
+
   const result = await claimAndProcess(id);
   if (result) return result;
 
@@ -140,6 +145,10 @@ export async function enqueueManualOpportunity(
   }
   if (current?.status === "error") return { ok: false as const, reason: "no_fare" as const };
   return { ok: false as const, reason: "no_fare" as const };
+}
+
+export async function processManualOpportunity(id: string): Promise<ManualOpportunityResult | null> {
+  return claimAndProcess(id);
 }
 
 export async function resumeManualQueue(limit = 3) {

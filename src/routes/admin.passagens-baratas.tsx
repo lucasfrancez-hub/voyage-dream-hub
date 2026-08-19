@@ -29,7 +29,10 @@ import { Badge } from "@/components/ui/badge";
 import { explorarPassagensMdPublic as explorarPassagensMd, buscarOrigensMdPublic as buscarOrigensMd } from "@/lib/melhores-destinos.public.functions";
 import { nomeCompanhia } from "@/lib/melhores-destinos.parse";
 import { imagemRegiao } from "@/lib/regiao-imagens";
-import { salvarOportunidadePassagensBaratas } from "@/lib/airfare-promos.functions";
+import {
+  processarOportunidadePassagensBaratas,
+  salvarOportunidadePassagensBaratas,
+} from "@/lib/airfare-promos.functions";
 import { enqueuePublish } from "@/lib/publish-queue";
 
 
@@ -70,26 +73,42 @@ function SalvarPromocaoButton({
   referencia: number | null;
 }) {
   const salvar = useServerFn(salvarOportunidadePassagensBaratas);
+  const processar = useServerFn(processarOportunidadePassagensBaratas);
   const [estado, setEstado] = useState<"idle" | "queued">("idle");
 
-  // Não prende a tela: a cotação no motor roda na Fila, em segundo plano.
-  const onClick = () => {
+  // Persiste primeiro e só então deixa a cotação aguardar sua vez no motor.
+  const onClick = async () => {
     if (estado !== "idle") return;
     setEstado("queued");
+    let registered: Awaited<ReturnType<typeof salvar>>;
+    try {
+      registered = await salvar({
+        data: {
+          origin: origem,
+          destination: destino,
+          departureDate: ida,
+          returnDate: volta,
+          referencePrice: referencia ?? null,
+        },
+      });
+    } catch (error) {
+      setEstado("idle");
+      toast.error(error instanceof Error ? error.message : "Não foi possível registrar a cotação");
+      return;
+    }
+    if (!("queued" in registered) || !registered.queued) {
+      setEstado("idle");
+      toast.error("Não foi possível registrar a cotação na fila");
+      return;
+    }
+
     enqueuePublish({
       label: `Salvar promoção ${origem} → ${destino}`,
       channel: "promocao",
       detail: "Cotando no motor VIA AIR…",
       run: async () => {
-        const r = await salvar({
-          data: {
-            origin: origem,
-            destination: destino,
-            departureDate: ida,
-            returnDate: volta,
-            referencePrice: referencia ?? null,
-          },
-        });
+        const r = await processar({ data: { id: registered.id } });
+        if ("queued" in r && r.queued) return "Aguardando processamento persistente";
         if (!r.ok) {
           toast.error(`Tarifa não encontrada no motor VIA AIR: ${origem} → ${destino}`);
           throw new Error("Tarifa não encontrada no motor VIA AIR");
