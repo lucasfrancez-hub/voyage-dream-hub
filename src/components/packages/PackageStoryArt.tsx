@@ -278,7 +278,11 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                           ))}
                         </div>
                       ) : null}
+                      {data.outrasHospedagens ? (
+                        <p className="vstory-info-alt">ou outras opções de hospedagem</p>
+                      ) : null}
                     </div>
+
                   </>
                 )}
               </div>
@@ -328,25 +332,20 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                   <div className="vstory-side-icon">{I.card}</div>
                   {data.kind === "service" ? (
                     <p>
-                      {data.isCativa ? "15x sem juros no cartão Visa e Amex" : "Cartão em até 10x sem juros"}
+                      Cartão em até {parcelas}x sem juros
                       <br />
                       <span className="vstory-side-fine">*Sem boleto para ingressos.</span>
                     </p>
-                  ) : data.isCativa ? (
-                    <p>
-                      15x sem juros no cartão Visa e Amex
-                      <br />
-                      Boleto bancário em até 10x
-                      <br />
-                      <span className="vstory-side-fine">*Boleto sujeito a análise de crédito.</span>
-                    </p>
                   ) : (
                     <p>
-                      No cartão e boleto bancário sem juros
+                      Cartão em até {parcelas}x sem juros
+                      <br />
+                      Boleto bancário em até {parcelas}x
                       <br />
                       <span className="vstory-side-fine">*Boleto sujeito a análise de crédito.</span>
                     </p>
                   )}
+
                 </div>
               </div>
 
@@ -406,7 +405,8 @@ ${SELO_ANIVERSARIO_CSS}
 .vstory-info-icon svg{width:26px;height:26px}
 .vstory-info-strong{margin:0;font-weight:700;font-size:16px;line-height:1.2}
 .vstory-info-small{margin:0;font-size:13px;color:rgba(255,255,255,.85);line-height:1.25}
-.vstory-info-hotel{margin:0;font-weight:700;font-size:14px;line-height:1.15;word-wrap:break-word;hyphens:auto;text-align:center}
+.vstory-info-hotel{margin:0;font-weight:700;font-size:14px;line-height:1.15;word-wrap:break-word;hyphens:auto;text-align:center;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.vstory-info-alt{margin:4px 0 0;font-size:11px;line-height:1.15;font-weight:600;text-align:center;color:var(--brand-orange)}
 .vstory-info-div{width:1px;height:56px;background:rgba(255,255,255,.2);flex-shrink:0}
 .vstory-stars{display:flex;justify-content:center;gap:2px;color:var(--brand-orange);margin-top:4px}
 .vstory-stars svg{width:12px;height:12px}

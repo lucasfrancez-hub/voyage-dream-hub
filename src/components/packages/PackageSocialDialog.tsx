@@ -143,6 +143,10 @@ export function PackageSocialDialog({
               meal_plan: pkg.meal_plan ?? null,
               slug: pkg.slug,
               supplier_name: pkg.supplier_name ?? null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              source: ((pkg as any).source ?? null) as string | null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              hotel_options: ((pkg as any).hotel_options ?? null) as any,
               flexible_dates: !!pkg.flexible_dates,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               services: (pkg.services ?? null) as any,

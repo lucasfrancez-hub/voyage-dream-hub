@@ -396,7 +396,7 @@ export function buildCamilaTools(conversation: WaConversation) {
 
     enviar_pacote: tool({
       description:
-        "Envia o FOLDER completo do pacote pelo WhatsApp: imagem do header + descritivo formatado (origem, datas, hotel, refeição, serviços inclusos) + formas de pagamento (Pix com 5% off, cartão 10x sem juros — e quando for pacote Cativa Operadora, Visa e Master saem em 15x sem juros e demais bandeiras em 10x sem juros —, boleto 10x mediante aprovação, boleto sem análise de crédito até a data da viagem) + link. NUNCA use o termo 'assessoria completa' nem 'assessoria' em nenhum lugar. Use SEMPRE que o cliente demonstrar interesse num pacote específico. NÃO exige CPF nem confirmação — pacote é conteúdo público. Depois de chamar, responda com UM balão curto só perguntando 'O que você achou?' (ou variação natural).",
+        "Envia o FOLDER completo do pacote pelo WhatsApp: imagem do header + descritivo formatado (origem, datas, hotel, refeição, serviços inclusos) + formas de pagamento (Pix com 5% off, cartão sem juros conforme o limite de parcelas da operadora do pacote — nunca invente 15x: pacotes Cativa vão em até 10x e, nas bandeiras Hipercard/Diners/Elo/Amex, em até 6x —, boleto no mesmo número de parcelas mediante aprovação, boleto sem análise de crédito até a data da viagem) + link. NUNCA use o termo 'assessoria completa' nem 'assessoria' em nenhum lugar. Use SEMPRE que o cliente demonstrar interesse num pacote específico. NÃO exige CPF nem confirmação — pacote é conteúdo público. Depois de chamar, responda com UM balão curto só perguntando 'O que você achou?' (ou variação natural).",
       inputSchema: z.object({
         slug: z.string().describe("slug do pacote (vem de buscar_pacotes)"),
         quantidade_adultos: z.number().int().nullable().describe("adultos para calcular Pix total; padrão = base_occupancy (geralmente 2)"),
@@ -412,7 +412,7 @@ export function buildCamilaTools(conversation: WaConversation) {
       execute: async ({ slug, quantidade_adultos, origem_cliente, mes_desejado }) => {
         const { data: pkg } = await supabaseAdmin
           .from("packages")
-          .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_stars, is_active, services, supplier_name")
+          .select("id, slug, title, destination, origin, going_date, return_date, price_per_person, image_url, meal_plan, includes, base_occupancy, hotel_name, hotel_options, hotel_stars, is_active, services, supplier_name")
           .eq("slug", slug)
           .maybeSingle();
         const storedCopyRes = pkg
@@ -496,10 +496,23 @@ export function buildCamilaTools(conversation: WaConversation) {
         const priceP = Number(pkg.price_per_person) || 0;
         const total = priceP * qtd;
         const pixTotal = total * 0.95;
-        const isCaptive = /cativ/i.test(String((pkg as any).supplier_name ?? ""));
-        const parcelaVisaMaster = total / 15;
-        const parcelaOutrasBandeiras = total / 10;
-        const parcelaCartao10 = total / 10;
+        // Parcelamento sempre pela regra da operadora (FRT 15x; demais 10x)
+        // e, na Cativa, bandeiras limitadas (Hipercard/Diners/Elo/Amex) em 6x.
+        const { packageMaxInstallments, maxCardInstallments, CATIVA_LIMITED_MAX_INSTALLMENTS } =
+          await import("@/lib/packages/card-installments");
+        const supplierName = String((pkg as any).supplier_name ?? "");
+        const sourceName = String((pkg as any).source ?? "");
+        const maxParcelas = packageMaxInstallments({ supplierName, source: sourceName });
+        const maxBandeiraLimitada = maxCardInstallments({
+          brand: "Elo",
+          supplierName,
+          source: sourceName,
+          defaultMax: maxParcelas,
+        });
+        const temBandeiraLimitada = maxBandeiraLimitada < maxParcelas;
+        const parcelaCartao = total / maxParcelas;
+        const parcelaBandeiraLimitada = total / (maxBandeiraLimitada || CATIVA_LIMITED_MAX_INSTALLMENTS);
+
 
         const link = `https://pedidos.viaair.tur.br/w/${pkg.slug}`;
 
@@ -605,6 +618,11 @@ export function buildCamilaTools(conversation: WaConversation) {
           lines.push(`🗓️ ${dateRange}${nights ? ` (${nights} noites)` : ""}`);
           if (pkg.hotel_name) {
             lines.push(`🏨 ${pkg.hotel_name}${stars ? ` ${stars}` : ""}${regime ? ` — ${regime}` : ""}`);
+            const outrasHosp = (Array.isArray((pkg as any).hotel_options)
+              ? ((pkg as any).hotel_options as Array<{ hotel_name?: string | null }>)
+              : []
+            ).filter((h) => h && String(h?.hotel_name ?? "").trim()).length;
+            if (outrasHosp > 1) lines.push(`   _ou outras opções de hospedagem_`);
           }
           if (services_lines.length) {
             lines.push("");
@@ -613,13 +631,16 @@ export function buildCamilaTools(conversation: WaConversation) {
           lines.push("");
           lines.push(`*FORMAS DE PAGAMENTO:*`);
           lines.push(`🤑 *PIX:* ${brl2(pixTotal)} PARA ${qtd} ADULTO${qtd === 1 ? "" : "S"} _(5% de desconto já aplicado)_`);
-          if (isCaptive) {
-            lines.push(`💳 *Cartão Visa/Master:* 15x de ${brl2(parcelaVisaMaster)}`);
-            lines.push(`💳 *Demais bandeiras:* 10x de ${brl2(parcelaOutrasBandeiras)}`);
+          if (temBandeiraLimitada) {
+            lines.push(`💳 *Cartão Visa/Master:* ${maxParcelas}x de ${brl2(parcelaCartao)}`);
+            lines.push(
+              `💳 *Demais bandeiras:* ${maxBandeiraLimitada}x de ${brl2(parcelaBandeiraLimitada)}`,
+            );
           } else {
-            lines.push(`💳 *Cartão de crédito:* 10x de ${brl2(parcelaCartao10)}`);
+            lines.push(`💳 *Cartão de crédito:* ${maxParcelas}x de ${brl2(parcelaCartao)}`);
           }
-          lines.push(`📄 *Boleto bancário:* até 10x mediante aprovação`);
+          lines.push(`📄 *Boleto bancário:* até ${maxParcelas}x mediante aprovação`);
+
           if (boletoAteViagem) lines.push(`📄 *Boleto parcelado:* até a data da viagem (sem análise de crédito)`);
           lines.push(`*sem juros em qualquer forma de pagamento*`);
           lines.push("");

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { packageMaxInstallments, maxCardInstallments } from "@/lib/packages/card-installments";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { buildHookDirective } from "@/lib/packages/curate-hook.server";
@@ -59,6 +60,11 @@ const PackageBrief = z.object({
   meal_plan: z.string().nullable().optional(),
   slug: z.string(),
   supplier_name: z.string().nullable().optional(),
+  source: z.string().nullable().optional(),
+  hotel_options: z
+    .array(z.object({ hotel_name: z.string().nullable().optional() }).passthrough())
+    .nullable()
+    .optional(),
   flexible_dates: z.boolean().nullable().optional(),
   services: ServicesSchema,
 });
@@ -117,7 +123,20 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
       const stars = p.hotel_stars ? "★".repeat(Math.min(5, Math.max(1, p.hotel_stars))) : "";
       const d = daysUntil(p.going_date);
       const boleto_ate_data_viagem = d !== null && d >= 60;
-      const is_captive = /cativ/i.test(String(p.supplier_name ?? ""));
+      // Parcelamento SEMPRE pela regra da operadora (FRT 15x; demais 10x).
+      const max_parcelas = packageMaxInstallments({
+        supplierName: p.supplier_name ?? null,
+        source: p.source ?? null,
+      });
+      const max_parcelas_bandeiras_limitadas = maxCardInstallments({
+        brand: "Elo",
+        supplierName: p.supplier_name ?? null,
+        source: p.source ?? null,
+        defaultMax: max_parcelas,
+      });
+      const tem_bandeira_limitada = max_parcelas_bandeiras_limitadas < max_parcelas;
+      const outras_hospedagens =
+        (p.hotel_options ?? []).filter((h) => String(h?.hotel_name ?? "").trim()).length > 1;
 
       const svc = p.services ?? {};
       const services_lines: string[] = [];
@@ -221,7 +240,10 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         url: `${baseUrl}/w/${p.slug}`,
         days_until_departure: d,
         boleto_ate_data_viagem,
-        is_captive,
+        max_parcelas,
+        max_parcelas_bandeiras_limitadas,
+        tem_bandeira_limitada,
+        outras_hospedagens,
         services_lines,
 
       };
@@ -258,12 +280,12 @@ Regras do gancho: 1 linha só, no máximo 14 palavras, sem clichê genérico ("p
 
 *FORMAS DE PAGAMENTO:*
 🤑 *PIX:* {valor total com 5% off já aplicado} PARA {N} ADULTO(S) _(5% de desconto já aplicado)_
-{SE "is_captive" for true, incluir AS DUAS linhas abaixo (Visa/Master 15x + demais bandeiras 10x):}
-💳 *Cartão Visa/Master:* 15x de {total / 15}
-💳 *Demais bandeiras:* 10x de {total / 10}
-{SE "is_captive" for false, incluir SOMENTE esta linha única (cartão 10x):}
-💳 *Cartão de crédito:* 10x de {total / 10}
-📄 *Boleto bancário:* até 10x mediante aprovação
+{SE "tem_bandeira_limitada" for true, incluir AS DUAS linhas abaixo:}
+💳 *Cartão Visa/Master:* {max_parcelas}x de {total / max_parcelas}
+💳 *Demais bandeiras:* {max_parcelas_bandeiras_limitadas}x de {total / max_parcelas_bandeiras_limitadas}
+{SE "tem_bandeira_limitada" for false, incluir SOMENTE esta linha única:}
+💳 *Cartão de crédito:* {max_parcelas}x de {total / max_parcelas}
+📄 *Boleto bancário:* até {max_parcelas}x mediante aprovação
 {SE E SOMENTE SE o item tiver "boleto_ate_data_viagem": true, adicione esta linha extra logo abaixo:}
 📄 *Boleto parcelado:* até a data da viagem (sem análise de crédito)
 {SE "boleto_ate_data_viagem" for false, NÃO inclua a linha acima.}
@@ -278,7 +300,8 @@ REGRAS FIRMES:
 - Sem markdown de heading (#), sem hashtags.
 - Nunca invente dados; use SÓ os fornecidos.
 - Mês em CAIXA ALTA (JANEIRO, FEVEREIRO…). Data no formato "15 a 22/SETEMBRO". Se "flexible_dates" for true, NUNCA cite datas nem mês: use apenas "Datas flexíveis" (com o número de noites, se houver).
-- Valor do PIX = total x 0,95 (5% off). Cartão: se "is_captive" for true, mostrar DUAS linhas — Visa/Master em 15x (total/15) e demais bandeiras em 10x (total/10). Se "is_captive" for false, mostrar UMA linha só "Cartão de crédito: 10x de {total/10}".
+- Valor do PIX = total x 0,95 (5% off). O número de parcelas NUNCA é inventado: use exatamente "max_parcelas" do item (e "max_parcelas_bandeiras_limitadas" quando "tem_bandeira_limitada" for true). Jamais escreva 15x se "max_parcelas" não for 15.
+- Quando "outras_hospedagens" for true, escreva logo após a linha do hotel: "ou outras opções de hospedagem".
 - A linha "Boleto parcelado até a data da viagem" só aparece quando "boleto_ate_data_viagem" do item for true (antecedência mínima de 60 dias). Nunca inclua se for false.
 - Se houver mais de 1 pacote, gere um bloco por pacote separado por uma linha em branco, e repita a assinatura "✨ Para mais informações…" só UMA vez no fim.`
 

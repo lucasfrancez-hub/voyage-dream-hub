@@ -26,11 +26,15 @@ export type FeedArtData = {
   origem: string;
   hotel: string;
   estrelas: number | null;
+  /** Existe mais de uma opção de hospedagem cadastrada no pacote. */
+  outrasHospedagens?: boolean;
   quantidadePessoas: number;
   apartamento: string;
   parcelas: number;
+  /** @deprecated mantido só para compatibilidade — o parcelamento vem de `parcelas`. */
   isCativa?: boolean;
   valorTotal: number;
+
   inclusos: {
     aereo: boolean;
     hotel: boolean;
@@ -325,7 +329,11 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                           ))}
                         </div>
                       ) : null}
+                      {data.outrasHospedagens ? (
+                        <p className="vfeed-info-alt">ou outras opções de hospedagem</p>
+                      ) : null}
                     </div>
+
                   </>
                 )}
               </div>
@@ -372,18 +380,15 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                     <div className="vfeed-inc-icon">{I.card}</div>
                     {data.kind === "service" ? (
                       <p>
-                        {data.isCativa
-                          ? "15x sem juros no cartão Visa e Amex"
-                          : "Parcele no cartão em até 10x sem juros"}
+                        Parcele no cartão em até {parcelas}x sem juros
                         <br />
                         <span style={{ opacity: 0.7, fontSize: "10px" }}>*Sem boleto para ingressos.</span>
                       </p>
-                    ) : data.isCativa ? (
-                      <p>15x sem juros no cartão Visa e Amex<br/>Boleto bancário em até 10x<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
                     ) : (
-                      <p>No cartão e boleto bancário sem juros<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
+                      <p>Cartão em até {parcelas}x sem juros<br/>Boleto bancário em até {parcelas}x<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
                     )}
                   </div>
+
                 </div>
 
                 <div className="vfeed-side">
@@ -470,7 +475,8 @@ ${SELO_ANIVERSARIO_CSS}
 .vfeed-info-strong{margin:0;font-weight:700;font-size:18px;line-height:1.2}
 .vfeed-info-mid{margin:0;font-weight:500;font-size:16px;line-height:1.2;color:rgba(255,255,255,.8)}
 .vfeed-info-small{margin:0;font-size:14px;color:rgba(255,255,255,.6);line-height:1.2}
-.vfeed-info-hotel{margin:0;font-weight:700;font-size:16px;line-height:1.15;margin-bottom:4px;word-wrap:break-word;hyphens:auto}
+.vfeed-info-hotel{margin:0;font-weight:700;font-size:16px;line-height:1.15;margin-bottom:4px;word-wrap:break-word;hyphens:auto;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.vfeed-info-alt{margin:4px 0 0;font-size:12px;line-height:1.15;font-weight:600;color:var(--brand-orange)}
 .vfeed-info-div{width:1px;height:64px;background:rgba(255,255,255,.20);flex-shrink:0}
 .vfeed-stars{display:flex;justify-content:center;gap:4px;color:var(--brand-orange)}
 .vfeed-stars svg{width:14px;height:14px}
