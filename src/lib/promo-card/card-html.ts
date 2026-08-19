@@ -84,19 +84,29 @@ body{display:grid;place-items:center;min-height:100vh}
 svg{display:block;width:100%;height:100%}
 
 .category-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.category-badge{display:inline-flex;align-items:center;border:2px solid var(--orange);border-radius:9999px;color:var(--orange);font-weight:700;letter-spacing:.18em;text-transform:uppercase;line-height:1;background:rgba(0,0,0,.28)}
-.found-badge{display:inline-flex;align-items:center;gap:12px;border:2px solid rgba(53,208,127,.85);border-radius:9999px;color:#7ff0b0;font-weight:700;letter-spacing:.08em;line-height:1;background:rgba(0,0,0,.28)}
-.found-dot{width:14px;height:14px;border-radius:50%;background:#35d07f;box-shadow:0 0 14px rgba(53,208,127,.8)}
+.category-badge{display:inline-flex;align-items:center;gap:12px;border:none;border-radius:9999px;color:#fff;font-weight:800;letter-spacing:.2em;text-transform:uppercase;line-height:1;background:linear-gradient(135deg,#ff9f3f 0%,#ff7f00 52%,#d85c00 100%);box-shadow:0 10px 28px rgba(255,127,0,.35)}
+.category-badge .cb-ico{display:inline-flex;flex:none;color:#fff}
+.category-badge .cb-ico svg{width:100%;height:100%}
+.found-badge{display:inline-flex;align-items:center;gap:12px;border:1px solid rgba(53,208,127,.55);border-radius:9999px;color:#9dfbc6;font-weight:700;letter-spacing:.06em;line-height:1;background:rgba(6,32,20,.5);backdrop-filter:blur(24px) saturate(150%)}
+.found-dot{width:14px;height:14px;border-radius:50%;background:#35d07f;box-shadow:0 0 0 6px rgba(53,208,127,.18),0 0 16px rgba(53,208,127,.9);flex:none}
 
 .destination{font-weight:900;line-height:.9;letter-spacing:-.03em;margin:0;text-transform:uppercase;color:#fff;text-shadow:0 4px 12px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.45)}
 .destination-one-line{display:flex;flex-direction:row;align-items:baseline;gap:.22em;white-space:nowrap;width:max-content;max-width:100%;transform-origin:left center}
 .destination-one-line .dest-prefix{color:#fff}
 .destination-one-line .dest-highlight{color:var(--orange)}
-.route{margin-top:18px;display:flex;flex-direction:column;gap:6px}
-.route-city{display:flex;align-items:center;gap:16px;font-weight:800;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.55)}
-.route-city span{white-space:nowrap}
-.route-city .arrow{color:var(--orange);flex:none}
-.route-iata{color:rgba(255,255,255,.9);letter-spacing:.14em;text-transform:uppercase;font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+
+/* Rota em cartão de embarque */
+.route{margin-top:22px;display:flex;align-items:center;width:max-content;max-width:100%}
+.route-end{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.route-iata-big{font-weight:900;color:#fff;line-height:1;letter-spacing:-.02em;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.route-city-name{font-weight:600;color:rgba(255,255,255,.86);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.route-mid{display:flex;flex-direction:column;align-items:center;gap:8px;flex:none}
+.route-track{display:flex;align-items:center;gap:8px;color:var(--orange)}
+.route-track i{display:block;height:2px;border-radius:2px;background:linear-gradient(90deg,rgba(255,127,0,.15),rgba(255,127,0,.95))}
+.route-track i.rev{background:linear-gradient(90deg,rgba(255,127,0,.95),rgba(255,127,0,.15))}
+.route-track .route-plane{display:inline-flex;color:var(--orange)}
+.route-trip{display:inline-flex;align-items:center;border-radius:9999px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#ffd7ac;background:rgba(255,127,0,.16);border:1px solid rgba(255,159,63,.5);white-space:nowrap}
+
 
 /* Bloco de informações em LINHAS (período / companhia / bagagem) */
 .info{display:flex;flex-direction:column;width:100%}
@@ -143,11 +153,17 @@ const STORY_CSS = `
 .logo-slot img{max-height:88px;max-width:400px}
 .cards-seal,.offer-seal{width:150px;height:150px}
 .category-badge{font-size:26px;padding:12px 30px}
+.category-badge .cb-ico,.category-badge .cb-ico svg{width:30px;height:30px}
 .found-badge{font-size:24px;padding:12px 26px}
 .hero{margin-top:56px}
 .destination{font-size:170px;margin:34px 0 0}
-.route-city{font-size:56px}.route-city .arrow{font-size:40px}
-.route-iata{font-size:28px}
+.route-iata-big{font-size:66px}
+.route-city-name{font-size:24px}
+.route-mid{padding:0 26px}
+.route-track i{width:74px}
+.route-track .route-plane,.route-track .route-plane svg{width:40px;height:40px}
+.route-trip{font-size:20px;padding:8px 20px}
+
 .bottom{display:flex;flex-direction:column;gap:22px}
 .info{padding:12px 34px}
 .info-row{padding:22px 0}
@@ -178,11 +194,17 @@ const FEED_CSS = `
 .logo-slot img{max-height:74px;max-width:340px}
 .cards-seal,.offer-seal{width:124px;height:124px}
 .category-badge{font-size:22px;padding:10px 24px}
+.category-badge .cb-ico,.category-badge .cb-ico svg{width:26px;height:26px}
 .found-badge{font-size:20px;padding:10px 22px}
 .hero{margin-top:28px}
 .destination{font-size:132px;margin:22px 0 0}
-.route-city{font-size:44px}.route-city .arrow{font-size:32px}
-.route-iata{font-size:23px}
+.route-iata-big{font-size:54px}
+.route-city-name{font-size:20px}
+.route-mid{padding:0 20px}
+.route-track i{width:58px}
+.route-track .route-plane,.route-track .route-plane svg{width:34px;height:34px}
+.route-trip{font-size:17px;padding:7px 16px}
+
 .bottom{display:flex;flex-direction:column;gap:16px}
 .info{padding:6px 28px}
 .info-row{padding:16px 0}
@@ -213,7 +235,7 @@ const FEED_CSS = `
 
 const SEALS = `
 <div class="seal-wrap">
-  <div class="cards-seal" aria-label="Pague em até 3 cartões">
+  <div class="cards-seal" aria-label="Divida em até 3 cartões">
     <svg viewBox="0 0 160 160" role="img">
       <defs>
         <linearGradient id="cardBg" x1="0" x2="1" y1="0" y2="1">
@@ -233,13 +255,14 @@ const SEALS = `
         <rect x="6" y="27" width="12" height="5" rx="1" fill="#0d3140"/>
         <rect x="22" y="27" width="18" height="3" rx="1.5" fill="#9aa8af"/>
       </g>
-      <text x="80" y="84" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="800" letter-spacing="1.6">PAGUE EM</text>
+      <text x="80" y="84" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="800" letter-spacing="1.6">DIVIDA EM</text>
       <text x="80" y="109" text-anchor="middle" fill="#fff" font-size="24" font-weight="950">ATÉ 3</text>
       <text x="80" y="126" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="800" letter-spacing="1.2">CARTÕES</text>
+
     </svg>
   </div>
 
-  <div class="offer-seal" aria-label="Oferta aérea">
+  <div class="offer-seal" aria-label="Tarifa relâmpago">
     <svg viewBox="0 0 160 160" role="img">
       <defs>
         <linearGradient id="offerBg3" x1="0" x2="1" y1="0" y2="1">
@@ -260,7 +283,9 @@ const SEALS = `
         <path d="M119 41l-5 5"/><path d="M46 114l-5 5"/>
       </g>
       <path d="M87 39L64 74h16l-8 30 28-42H82z" fill="#fff"/>
-      <text x="80" y="118" text-anchor="middle" fill="#fff" font-size="12" font-weight="950" letter-spacing="1.05">OFERTA AÉREA</text>
+      <text x="80" y="114" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="950" letter-spacing="1.05">TARIFA</text>
+      <text x="80" y="131" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="950" letter-spacing="1.05">RELÂMPAGO</text>
+
     </svg>
   </div>
 </div>`;
@@ -386,7 +411,7 @@ ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" 
 
   <section class="hero">
     <div class="category-row">
-      <div class="category-badge">${esc(d.categoria || "PASSAGEM AÉREA")}</div>
+      <div class="category-badge"><span class="cb-ico">${ICONS.plane}</span>${esc(d.categoria || "PASSAGEM AÉREA")}</div>
       <div class="found-badge"><span class="found-dot"></span>${esc(d.statusLabel || "Tarifa encontrada hoje")}</div>
     </div>
     <h1 class="destination destination-one-line" data-full-destination="${esc(d.destination)}">${
@@ -395,9 +420,22 @@ ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" 
         : ""
     }<span class="dest-highlight">${esc(destinationParts(d.destination).last)}</span></h1>
     <div class="route">
-      <div class="route-city"><span>${esc(d.origin)}</span><span class="arrow">→</span><span>${esc(d.destinationCity)}</span></div>
-      <div class="route-iata">${esc(d.originIata)} → ${esc(d.destinationIata)} • ${tipo}</div>
+      <div class="route-end">
+        <span class="route-iata-big">${esc(d.originIata)}</span>
+        <span class="route-city-name">${esc(d.origin)}</span>
+      </div>
+      <div class="route-mid">
+        <div class="route-track">
+          <i></i><span class="route-plane">${ICONS.plane}</span><i class="rev"></i>
+        </div>
+        <span class="route-trip">${esc(tipo)}</span>
+      </div>
+      <div class="route-end">
+        <span class="route-iata-big">${esc(d.destinationIata)}</span>
+        <span class="route-city-name">${esc(d.destinationCity)}</span>
+      </div>
     </div>
+
   </section>
 </header>
 
