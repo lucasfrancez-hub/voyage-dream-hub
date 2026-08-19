@@ -242,13 +242,14 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
 
               <h2
                 className="vfeed-dest"
-                style={{ fontSize: fitDestSize([top, bottom], 100, 688, 240) }}
+                style={{
+                  fontSize: fitOneLineSize([top, bottom].filter(Boolean).join(" "), 100, 688),
+                  whiteSpace: "nowrap",
+                }}
               >
                 {bottom ? (
                   <>
-                    {top}
-                    <br />
-                    <span>{bottom}</span>
+                    {top} <span>{bottom}</span>
                   </>
                 ) : (
                   <span>{top}</span>
