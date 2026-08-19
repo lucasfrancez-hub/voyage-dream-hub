@@ -773,17 +773,13 @@ export const getTripAdvisorHotelByUrl = createServerFn({ method: "POST" })
       }
     }
 
-    // Fallback: scraping da página pública.
+    // Fallback: leitura da página pública (o TripAdvisor bloqueia fetch direto,
+    // então usamos o Firecrawl quando o acesso simples devolve 403).
     if (!det || !det.name || det.photos.length === 0 || det.rating == null || det.hotel_class == null) {
       try {
-        const res = await fetch(url, {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-            "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-          },
-        });
-        if (res.ok) {
-          const html = await res.text();
+        const html = await lerPaginaTripAdvisor(url);
+        if (html) {
+
           const nameFromUrl = url.match(/-Reviews-([^-]+(?:_[^-]+)*)-/)?.[1]?.replace(/_/g, " ") ?? "";
           const ogTitle = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? "";
           const name = (det?.name || ogTitle.split("|")[0].split(" - ")[0].trim() || nameFromUrl).trim();
