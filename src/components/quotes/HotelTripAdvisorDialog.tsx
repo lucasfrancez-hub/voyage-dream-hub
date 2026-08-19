@@ -109,7 +109,7 @@ export function HotelTripAdvisorDialog({
             onKeyDown={(e) => {
               if (e.key === "Enter") search.mutate();
             }}
-            placeholder="Nome do hotel + cidade"
+            placeholder="Nome do hotel + cidade ou link do TripAdvisor"
           />
           <Button onClick={() => search.mutate()} disabled={search.isPending || termo.trim().length < 3}>
             {search.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
