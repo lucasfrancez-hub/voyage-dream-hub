@@ -135,8 +135,10 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         defaultMax: max_parcelas,
       });
       const tem_bandeira_limitada = max_parcelas_bandeiras_limitadas < max_parcelas;
-      const outras_hospedagens =
-        (p.hotel_options ?? []).filter((h) => String(h?.hotel_name ?? "").trim()).length > 1;
+      const extra_hotel_options = Math.max(
+        0,
+        (p.hotel_options ?? []).filter((h) => String(h?.hotel_name ?? "").trim()).length - 1,
+      );
 
       const svc = p.services ?? {};
       const services_lines: string[] = [];
@@ -243,7 +245,8 @@ export const generateCurationCopy = createServerFn({ method: "POST" })
         max_parcelas,
         max_parcelas_bandeiras_limitadas,
         tem_bandeira_limitada,
-        outras_hospedagens,
+        outras_hospedagens: extra_hotel_options > 0,
+        extra_hotel_options,
         services_lines,
 
       };
@@ -301,7 +304,7 @@ REGRAS FIRMES:
 - Nunca invente dados; use SÓ os fornecidos.
 - Mês em CAIXA ALTA (JANEIRO, FEVEREIRO…). Data no formato "15 a 22/SETEMBRO". Se "flexible_dates" for true, NUNCA cite datas nem mês: use apenas "Datas flexíveis" (com o número de noites, se houver).
 - Valor do PIX = total x 0,95 (5% off). O número de parcelas NUNCA é inventado: use exatamente "max_parcelas" do item (e "max_parcelas_bandeiras_limitadas" quando "tem_bandeira_limitada" for true). Jamais escreva 15x se "max_parcelas" não for 15.
-- Quando "outras_hospedagens" for true, escreva logo após a linha do hotel: "ou outras opções de hospedagem".
+- Quando "extra_hotel_options" for 1, escreva logo após a linha do hotel: "ou outra opção de hospedagem". Quando for maior que 1, escreva: "ou outras {extra_hotel_options} opções de hospedagem".
 - A linha "Boleto parcelado até a data da viagem" só aparece quando "boleto_ate_data_viagem" do item for true (antecedência mínima de 60 dias). Nunca inclua se for false.
 - Se houver mais de 1 pacote, gere um bloco por pacote separado por uma linha em branco, e repita a assinatura "✨ Para mais informações…" só UMA vez no fim.`
 

@@ -26,8 +26,8 @@ export type FeedArtData = {
   origem: string;
   hotel: string;
   estrelas: number | null;
-  /** Existe mais de uma opção de hospedagem cadastrada no pacote. */
-  outrasHospedagens?: boolean;
+  /** Quantidade de opções de hospedagem EXTRAS além do hotel principal. */
+  extraHotelOptions?: number;
   quantidadePessoas: number;
   apartamento: string;
   parcelas: number;
@@ -329,8 +329,12 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                           ))}
                         </div>
                       ) : null}
-                      {data.outrasHospedagens ? (
-                        <p className="vfeed-info-alt">ou outras opções de hospedagem</p>
+                      {data.extraHotelOptions ? (
+                        <p className="vfeed-info-alt">
+                          {data.extraHotelOptions === 1
+                            ? "ou outra opção de hospedagem"
+                            : `ou outras ${data.extraHotelOptions} opções de hospedagem`}
+                        </p>
                       ) : null}
                     </div>
 
