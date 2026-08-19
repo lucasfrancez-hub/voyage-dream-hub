@@ -84,19 +84,28 @@ body{display:grid;place-items:center;min-height:100vh}
 svg{display:block;width:100%;height:100%}
 
 .category-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.category-badge{display:inline-flex;align-items:center;border:2px solid var(--orange);border-radius:9999px;color:var(--orange);font-weight:700;letter-spacing:.18em;text-transform:uppercase;line-height:1;background:rgba(0,0,0,.28)}
-.found-badge{display:inline-flex;align-items:center;gap:12px;border:2px solid rgba(53,208,127,.85);border-radius:9999px;color:#7ff0b0;font-weight:700;letter-spacing:.08em;line-height:1;background:rgba(0,0,0,.28)}
-.found-dot{width:14px;height:14px;border-radius:50%;background:#35d07f;box-shadow:0 0 14px rgba(53,208,127,.8)}
+.category-badge{display:inline-flex;align-items:center;gap:12px;border:none;border-radius:9999px;color:#fff;font-weight:800;letter-spacing:.2em;text-transform:uppercase;line-height:1;background:linear-gradient(135deg,#ff9f3f 0%,#ff7f00 52%,#d85c00 100%);box-shadow:0 10px 28px rgba(255,127,0,.35)}
+.category-badge .cb-ico{display:inline-flex;flex:none;color:#fff}
+.found-badge{display:inline-flex;align-items:center;gap:12px;border:1px solid rgba(53,208,127,.55);border-radius:9999px;color:#9dfbc6;font-weight:700;letter-spacing:.06em;line-height:1;background:rgba(6,32,20,.5);backdrop-filter:blur(24px) saturate(150%)}
+.found-dot{width:14px;height:14px;border-radius:50%;background:#35d07f;box-shadow:0 0 0 6px rgba(53,208,127,.18),0 0 16px rgba(53,208,127,.9);flex:none}
 
 .destination{font-weight:900;line-height:.9;letter-spacing:-.03em;margin:0;text-transform:uppercase;color:#fff;text-shadow:0 4px 12px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.45)}
 .destination-one-line{display:flex;flex-direction:row;align-items:baseline;gap:.22em;white-space:nowrap;width:max-content;max-width:100%;transform-origin:left center}
 .destination-one-line .dest-prefix{color:#fff}
 .destination-one-line .dest-highlight{color:var(--orange)}
-.route{margin-top:18px;display:flex;flex-direction:column;gap:6px}
-.route-city{display:flex;align-items:center;gap:16px;font-weight:800;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.55)}
-.route-city span{white-space:nowrap}
-.route-city .arrow{color:var(--orange);flex:none}
-.route-iata{color:rgba(255,255,255,.9);letter-spacing:.14em;text-transform:uppercase;font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+
+/* Rota em cartão de embarque */
+.route{margin-top:22px;display:flex;align-items:center;width:max-content;max-width:100%}
+.route-end{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.route-iata-big{font-weight:900;color:#fff;line-height:1;letter-spacing:-.02em;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.route-city-name{font-weight:600;color:rgba(255,255,255,.86);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.route-mid{display:flex;flex-direction:column;align-items:center;gap:8px;flex:none}
+.route-track{display:flex;align-items:center;gap:8px;color:var(--orange)}
+.route-track i{display:block;height:2px;border-radius:2px;background:linear-gradient(90deg,rgba(255,127,0,.15),rgba(255,127,0,.95))}
+.route-track i.rev{background:linear-gradient(90deg,rgba(255,127,0,.95),rgba(255,127,0,.15))}
+.route-track .route-plane{display:inline-flex;color:var(--orange)}
+.route-trip{display:inline-flex;align-items:center;border-radius:9999px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#ffd7ac;background:rgba(255,127,0,.16);border:1px solid rgba(255,159,63,.5);white-space:nowrap}
+
 
 /* Bloco de informações em LINHAS (período / companhia / bagagem) */
 .info{display:flex;flex-direction:column;width:100%}
