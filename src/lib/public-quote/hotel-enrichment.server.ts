@@ -256,6 +256,10 @@ async function jsonOf(
       headers: { accept: "application/json", "X-API-KEY": apiKey },
     });
     if (!r.ok) {
+      if (r.status === 429) {
+        // Limite da chave estourado: pausa curta para não queimar mais cota.
+        bloqueadoAte = Date.now() + 10 * 60_000;
+      }
       console.warn("[hotel-enrichment] TripAdvisor", r.status, url.split("?")[0]);
       return null;
     }
