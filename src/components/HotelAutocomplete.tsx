@@ -191,8 +191,8 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
         </div>
       )}
       {mode === "live" && !loading && (value || "").trim().length >= 3 && items.length === 0 && (
-        <div className="mt-1 flex items-center justify-between gap-2 rounded-md border bg-popover px-3 py-2 text-[11px] text-muted-foreground">
-          <span>Nenhum hotel encontrado. Tente o nome sem palavras extras ou cole o link do TripAdvisor.</span>
+        <div className={`mt-1 flex items-center justify-between gap-2 rounded-md border bg-popover px-3 py-2 text-[11px] ${erro ? "border-destructive/50 text-destructive" : "text-muted-foreground"}`}>
+          <span>{erro ?? "Nenhum hotel encontrado. Tente o nome sem palavras extras ou cole o link do TripAdvisor."}</span>
           <button
             type="button"
             onClick={forceSearch}
