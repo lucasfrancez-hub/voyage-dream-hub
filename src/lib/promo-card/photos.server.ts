@@ -28,6 +28,9 @@ function norm(s: string) {
     .trim();
 }
 
+/** Toda chamada externa tem prazo — sem isso o card fica "montando" pra sempre. */
+const FETCH_TIMEOUT = 6_000;
+
 async function pexels(query: string, portrait: boolean): Promise<DestinationPhoto[]> {
   const key = process.env.PEXELS_API_KEY;
   if (!key) return [];
@@ -37,8 +40,12 @@ async function pexels(query: string, portrait: boolean): Promise<DestinationPhot
     url.searchParams.set("per_page", "24");
     url.searchParams.set("orientation", portrait ? "portrait" : "square");
     url.searchParams.set("size", "large");
-    const r = await fetch(url.toString(), { headers: { Authorization: key } });
+    const r = await fetch(url.toString(), {
+      headers: { Authorization: key },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    });
     if (!r.ok) return [];
+
     const j = (await r.json()) as any;
     return (Array.isArray(j?.photos) ? j.photos : [])
       .map((p: any) => ({
@@ -65,7 +72,9 @@ async function unsplash(query: string, portrait: boolean): Promise<DestinationPh
     url.searchParams.set("content_filter", "high");
     const r = await fetch(url.toString(), {
       headers: { Authorization: `Client-ID ${key}`, "Accept-Version": "v1" },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
     });
+
     if (!r.ok) return [];
     const j = (await r.json()) as any;
     return (Array.isArray(j?.results) ? j.results : [])
@@ -167,14 +176,16 @@ export async function searchDestinationPhotos(
     `${nome} city`,
   ];
 
+  // Todas as consultas em paralelo (antes eram sequenciais e o card podia
+  // ficar "montando" por minutos quando uma das APIs demorava).
   const brutos: DestinationPhoto[] = [];
-  for (const q of consultas) {
-    const [a, b] = await Promise.all([pexels(q, portrait), unsplash(q, portrait)]);
-    for (const p of [...a, ...b]) {
-      if (!brutos.some((x) => x.url === p.url)) brutos.push(p);
-    }
-    if (brutos.length >= 40) break;
+  const lotes = await Promise.all(
+    consultas.slice(0, 4).flatMap((q) => [pexels(q, portrait), unsplash(q, portrait)]),
+  );
+  for (const p of lotes.flat()) {
+    if (!brutos.some((x) => x.url === p.url)) brutos.push(p);
   }
+
 
   // Relevância: foto cuja descrição/tags mencionam a cidade vem primeiro.
   const combina = (p: DestinationPhoto) => {

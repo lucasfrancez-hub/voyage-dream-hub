@@ -59,7 +59,12 @@ export const buildPromoCard = createServerFn({ method: "POST" })
 
     const card: PromoCardData = { ...base, ...(overrides ?? {}) };
     const { searchDestinationPhotos } = await import("@/lib/promo-card/photos.server");
-    const fotos = await searchDestinationPhotos(card.destinationCity).catch(() => []);
+    // A busca de fotos nunca pode travar a montagem do card.
+    const fotos = await Promise.race([
+      searchDestinationPhotos(card.destinationCity).catch(() => []),
+      new Promise<never[]>((r) => setTimeout(() => r([]), 9_000)),
+    ]);
+
     // só sugere foto automática quando o admin ainda não escolheu uma
     if (!overrides?.destinationImage && fotos[0]) card.destinationImage = fotos[0].url;
     return { card, fotos, editado: !!overrides };

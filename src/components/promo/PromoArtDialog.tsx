@@ -115,7 +115,10 @@ export function PromoArtDialog({
   const inicial = useQuery({
     queryKey: ["promo-card", promo.id],
     queryFn: () => build({ data: { id: promo.id } }),
+    retry: 1,
+    staleTime: 60_000,
   });
+
 
   useEffect(() => {
     if (inicial.data && !card) {
@@ -258,10 +261,27 @@ export function PromoArtDialog({
         </div>
 
         {!card ? (
-          <p className="py-24 text-center text-sm text-muted-foreground">
-            <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Montando o card…
-          </p>
+          inicial.isError ? (
+            <div className="space-y-3 py-20 text-center">
+              <p className="text-sm text-muted-foreground">
+                Não foi possível montar o card
+                {inicial.error instanceof Error ? `: ${inicial.error.message}` : "."}
+              </p>
+              <button
+                type="button"
+                onClick={() => inicial.refetch()}
+                className="inline-flex items-center gap-2 rounded-full bg-brand-orange px-5 py-2.5 text-[10px] font-bold text-white"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> TENTAR DE NOVO
+              </button>
+            </div>
+          ) : (
+            <p className="py-24 text-center text-sm text-muted-foreground">
+              <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Montando o card…
+            </p>
+          )
         ) : (
+
           <div className={`grid ${editando ? "lg:grid-cols-[1fr_400px]" : "grid-cols-1"}`}>
             {/* Palco do preview — retângulo justo */}
             <div className="flex flex-col">
