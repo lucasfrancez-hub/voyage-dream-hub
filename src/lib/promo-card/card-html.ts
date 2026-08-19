@@ -295,33 +295,32 @@ const AUTOFIT = `
 
 
 
-function precoBloco(d: PromoCardData): { melhor: string; prazo: string } {
-  const melhor = d.pixOnly
-    ? `<div class="price-top">Melhor condição</div>
-       <div class="installments"><span class="currency">R$</span><span class="value">${esc(brl(d.totalPrice))}</span><span class="interest-free">via Pix</span></div>`
-    : d.interestFreeInstallments > 1
-      ? `<div class="price-top">Melhor condição</div><div class="main-subtitle">Parcele em até</div>
-         <div class="installments"><span class="n">${d.interestFreeInstallments}x</span><span class="de">de</span><span class="currency">R$</span><span class="value">${esc(brl(d.interestFreeInstallmentValue))}</span><span class="interest-free">sem juros</span></div>
-         <div class="original-total"><span class="original-total-label">Valor total</span><span class="original-total-value">${esc(brlFull(d.totalPrice))}</span></div>`
-      : `<div class="price-top">Melhor condição</div><div class="main-subtitle">À vista</div>
-         <div class="installments"><span class="currency">R$</span><span class="value">${esc(brl(d.totalPrice))}</span></div>`;
+const ICONS = {
+  calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
+  plane: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>`,
+  briefcase: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
+  card: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+  clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
+};
 
-  const melhorComTotal =
-    d.pixOnly || d.interestFreeInstallments <= 1
-      ? `${melhor}<div class="original-total"><span class="original-total-label">Valor total</span><span class="original-total-value">${esc(brlFull(d.totalPrice))}</span></div>`
-      : melhor;
-
-  const prazo =
-    d.extendedInstallments && d.extendedInstallmentValue
-      ? `<div class="more-installments">
-           <div class="headline">Precisa de mais prazo?</div>
-           <div class="twelve-label">Parcele em até</div>
-           <div class="twelve-price"><span class="n">${d.extendedInstallments}x de</span><span class="currency">R$</span><span class="value">${esc(brl(d.extendedInstallmentValue))}</span></div>
-           <div class="discount">Nas opções de maior parcelamento, quanto menos parcelas, mais barato você paga.</div>
-         </div>`
-      : "";
-
-  return { melhor: melhorComTotal, prazo };
+/** Bloco principal de preço, no mesmo padrão dos cards de pacote/ingresso. */
+function precoBloco(d: PromoCardData): string {
+  const parcelado = !d.pixOnly && d.interestFreeInstallments > 1;
+  const valor = parcelado ? d.interestFreeInstallmentValue : d.totalPrice;
+  const [reais, centavos] = brl(valor).split(",");
+  const kicker = parcelado ? "Melhor condição" : d.pixOnly ? "À vista no Pix" : "À vista";
+  return `<section class="price glass-dark">
+    <p class="price-kicker">${esc(kicker)}</p>
+    <div class="price-line">
+      ${parcelado ? `<span class="price-x">${d.interestFreeInstallments}x</span>` : ""}
+      <span class="price-cur">R$</span>
+      <span class="price-num">${esc(reais)}</span>
+      <span class="price-cents">,${esc(centavos ?? "00")}</span>
+      ${parcelado ? `<span class="price-free">sem juros</span>` : ""}
+    </div>
+    <div class="price-bar"></div>
+    <p class="price-total">Valor total: <span>${esc(brlFull(d.totalPrice))}</span></p>
+  </section>`;
 }
 
 export function renderPromoCardHtml(
@@ -329,64 +328,99 @@ export function renderPromoCardHtml(
   format: PromoCardFormat,
   base = "",
 ): string {
-  const { melhor, prazo } = precoBloco(d);
   const tipo = d.tripType === "ida-e-volta" ? "ida e volta" : "somente ida";
   const periodo = d.returnDate ? `${d.departureDate} → ${d.returnDate}` : d.departureDate;
-  const logo = abs(base, VIAAIR_LOGOS[d.logoVariant ?? "color"] ?? viaairLogo.url);
+  const logo = abs(base, VIAAIR_LOGOS[d.logoVariant ?? "white"] ?? viaairLogoWhite.url);
   const dataTarifa = dataTarifaPorExtenso(d.fareFoundAt);
   const nota = `Parcelamento sem juros conforme regra vigente da companhia aérea.${dataTarifa ? ` Tarifa encontrada em ${dataTarifa}.` : ""} Válida para o dia da compra e sujeita à disponibilidade e atualização tarifária até a emissão.`;
   const ciaLogo = abs(base, d.airlineLogo);
   const foto = d.destinationImage ? abs(base, d.destinationImage) : "";
 
-  const precoSection =
-    format === "story"
-      ? `<section class="price-box">${melhor}${prazo}
-           <div class="note" style="margin-top:16px">${esc(nota)}</div>
-         </section>`
-      : `<section class="price-box">
-           <div class="price-layout${prazo ? "" : " pix-only"}">
-             <div>${melhor}</div>
-             ${prazo}
-           </div>
-           <div class="note" style="margin-top:16px">${esc(nota)}</div>
-         </section>`;
+  const prazo =
+    d.extendedInstallments && d.extendedInstallmentValue
+      ? `<div class="side-card glass-dark">
+           <span class="side-icon">${ICONS.clock}</span>
+           <p>Precisa de mais prazo? <b>${d.extendedInstallments}x de R$ ${esc(brl(d.extendedInstallmentValue))}</b><br/>
+             <span class="side-fine">Quanto menos parcelas, mais barato você paga.</span></p>
+         </div>`
+      : "";
+
+  const pagamento = `<div class="side-card glass-dark">
+      <span class="side-icon">${ICONS.card}</span>
+      <p>${
+        d.pixOnly
+          ? "Pagamento à vista no Pix ou cartão"
+          : `Cartão em até <b>${d.interestFreeInstallments}x sem juros</b>`
+      }<br/><span class="side-fine">Pague em até 3 cartões diferentes.</span></p>
+    </div>`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <title>VIA AIR — Promoção aérea (${format})</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <style>${BASE_CSS}${format === "story" ? STORY_CSS : FEED_CSS}</style></head>
 <body><main class="frame">
 ${foto ? `<img class="photo" src="${esc(foto)}" alt="${esc(d.destinationCity)}" style="object-position:${esc(d.imagePosition ?? "50% 45%")}"/>` : ""}
 <div class="veil"></div>
-<div class="brand">
-  <div class="logo-slot">${logo ? `<img src="${esc(logo)}" alt="VIA AIR"/>` : `<span class="logo-placeholder">VIA AIR</span>`}</div>
-  ${SEALS}
+
+<header class="top">
+  <div class="brand">
+    <div class="logo-slot">${logo ? `<img src="${esc(logo)}" alt="VIA AIR"/>` : `<span class="logo-placeholder">VIA AIR</span>`}</div>
+    ${SEALS}
+  </div>
+
+  <section class="hero">
+    <div class="category-row">
+      <div class="category-badge">${esc(d.categoria || "PASSAGEM AÉREA")}</div>
+      <div class="found-badge"><span class="found-dot"></span>${esc(d.statusLabel || "Tarifa encontrada hoje")}</div>
+    </div>
+    <h1 class="destination destination-one-line" data-full-destination="${esc(d.destination)}">${
+      destinationParts(d.destination).prefix
+        ? `<span class="dest-prefix">${esc(destinationParts(d.destination).prefix)}</span>`
+        : ""
+    }<span class="dest-highlight">${esc(destinationParts(d.destination).last)}</span></h1>
+    <div class="route">
+      <div class="route-city"><span>${esc(d.origin)}</span><span class="arrow">→</span><span>${esc(d.destinationCity)}</span></div>
+      <div class="route-iata">${esc(d.originIata)} → ${esc(d.destinationIata)} • ${tipo}</div>
+    </div>
+  </section>
+</header>
+
+<div class="bottom">
+  <section class="info glass">
+    <div class="info-col">
+      <span class="info-icon">${ICONS.calendar}</span>
+      <p class="info-small">Período</p>
+      <p class="info-strong">${esc(periodo)}</p>
+    </div>
+    <div class="info-div"></div>
+    <div class="info-col">
+      ${
+        ciaLogo
+          ? `<span class="airline-logo"><img src="${esc(ciaLogo)}" alt="${esc(d.airline)}"/></span>`
+          : `<span class="info-icon">${ICONS.plane}</span>`
+      }
+      <p class="info-small">Companhia</p>
+      <p class="info-strong">${esc(d.airline)}</p>
+    </div>
+    <div class="info-div"></div>
+    <div class="info-col">
+      <span class="info-icon">${ICONS.briefcase}</span>
+      <p class="info-small">Bagagem</p>
+      <p class="info-strong">${esc(d.baggage)}</p>
+    </div>
+  </section>
+
+  ${precoBloco(d)}
+
+  <div class="side">
+    ${pagamento}
+    ${prazo}
+  </div>
+
+  <p class="note">${esc(nota)}</p>
 </div>
-
-<section class="hero">
-  <div class="category-row">
-    <div class="category-badge">${esc(d.categoria || "PASSAGEM AÉREA")}</div>
-    <div class="found-badge"><span class="found-dot"></span>${esc(d.statusLabel || "Tarifa encontrada hoje")}</div>
-  </div>
-  <h1 class="destination destination-one-line" data-full-destination="${esc(d.destination)}">${
-    destinationParts(d.destination).prefix
-      ? `<span class="dest-prefix">${esc(destinationParts(d.destination).prefix)}</span>`
-      : ""
-  }<span class="dest-highlight">${esc(destinationParts(d.destination).last)}</span></h1>
-  <div class="route-glass">
-    <div class="route-city"><span>${esc(d.origin)}</span><span class="arrow">→</span><span>${esc(d.destinationCity)}</span></div>
-    <div class="route-iata">${esc(d.originIata)} → ${esc(d.destinationIata)} • ${tipo}</div>
-  </div>
-
-  <div class="details">
-    <div class="detail-row"><span class="label">Período</span><span class="value">${esc(periodo)}</span></div>
-    <div class="detail-row"><span class="label">Companhia</span><span class="value airline">
-      <span class="airline-logo">${ciaLogo ? `<img src="${esc(ciaLogo)}" alt="${esc(d.airline)}"/>` : `<span class="airline-iata">${esc(d.airlineIata ?? "")}</span>`}</span>
-      <span>${esc(d.airline)}</span>${d.airlineIata ? `<span class="airline-iata">${esc(d.airlineIata)}</span>` : ""}
-    </span></div>
-    <div class="detail-row row-baggage"><span class="label">Bagagem</span><span class="value">${esc(d.baggage)}</span></div>
-  </div>
-</section>
-
-${precoSection}
 </main>${AUTOFIT}</body></html>`;
 }
+
