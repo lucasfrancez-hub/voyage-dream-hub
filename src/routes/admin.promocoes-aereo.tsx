@@ -321,12 +321,14 @@ function PrecoManualDialog({
   const ajustar = useServerFn(ajustarPrecoPromocao);
   const [valor, setValor] = useState("");
   const [taxa, setTaxa] = useState("");
+  const [cia, setCia] = useState("");
   const [aberto, setAberto] = useState<string | null>(null);
 
   // reinicia os campos quando muda a promoção selecionada
   if (promo && aberto !== promo.id) {
     setAberto(promo.id);
     setValor(String(Number(promo.price_per_passenger ?? 0).toFixed(2)).replace(".", ","));
+    setCia(promo.airline_iata ?? "");
     setTaxa(
       promo.passengers
         ? String((Number((promo as { taxes?: number }).taxes ?? 0) / Math.max(1, promo.passengers)).toFixed(2)).replace(".", ",")
@@ -343,8 +345,10 @@ function PrecoManualDialog({
           id: promo!.id,
           pricePerPassenger: numero(valor),
           taxesPerPassenger: taxa.trim() ? numero(taxa) : null,
+          airlineIata: cia.trim() ? cia.trim().toUpperCase() : null,
         },
       }),
+
     onSuccess: (r) => {
       const res = r as { interestFreeInstallments: number; interestFreeInstallmentValue: number };
       toast.success("Preço ajustado", {
