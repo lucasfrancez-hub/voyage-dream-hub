@@ -337,12 +337,20 @@ export async function buildManualCheckoutLink(promo: {
 
   const total = Number(promo.total_price) || 0;
   const adults = Math.max(1, Number(promo.passengers) || 1);
-  const payment = buildPayment({
+  // Promoção aérea: só Pix e cartão (X sem juros da companhia + demais com
+  // juros de mercado). Boleto não vale para tarifa promocional.
+  const base = buildPayment({
     type: "AIR_ONLY",
     total,
     airline: promo.airline_iata,
     startDate: promo.departure_date,
   });
+  const payment = {
+    ...base,
+    methods: ["CARD", "PIX"] as typeof base.methods,
+    boleto: { enabled: false, installments: [], note: null, untilTravel: null },
+  };
+
 
   const origem = promo.origin_city || cityLabel(promo.origin_iata) || promo.origin_iata;
   const destino = promo.destination_city || cityLabel(promo.destination_iata) || promo.destination_iata;
