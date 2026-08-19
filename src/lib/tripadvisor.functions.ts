@@ -161,30 +161,86 @@ function extractRating(obj: Record<string, unknown>): number | null {
 }
 
 
-// Busca hotéis por nome (autocomplete). Retorna até 8 sugestões.
+// Busca hotéis por nome (autocomplete).
+// Estratégia em camadas: alguns hotéis não voltam com o filtro de categoria,
+// com o nome completo ou com palavras extras. Rodamos várias variações da
+// consulta em paralelo, unimos e deduplicamos. Também aceita colar a URL do
+// TripAdvisor (…-dNNNNN…) para forçar o hotel exato.
 export const searchTripAdvisorHotels = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { query: string }) => input)
+  .inputValidator((input: { query: string; force?: boolean }) => input)
   .handler(async ({ data }): Promise<TAHotelSuggestion[]> => {
     const q = (data.query || "").trim();
     if (q.length < 3) return [];
-    const url = `/catalog/locations/search?query=${encodeURIComponent(q)}&search_type=NAME&category=HOTEL`;
-    const r = await taFetch(url);
-    if (!r.ok) {
-      const body = await r.text().catch(() => "");
-      console.error("[tripadvisor] search failed", r.status, body);
-      // fall back: sem filtro de categoria
-      const r2 = await taFetch(`/catalog/locations/search?query=${encodeURIComponent(q)}`);
-      if (!r2.ok) return [];
-      const j2 = (await r2.json()) as { data?: Array<{ location?: Record<string, unknown> }> };
-      return mapSearch(j2.data || []);
+
+    // 1) Colou uma URL/ID do TripAdvisor? Resolve direto pelo location id.
+    const idMatch = q.match(/(?:-d|location_id=|\/locations?\/)(\d{3,})/i) ?? (/^\d{4,}$/.test(q) ? [q, q] : null);
+    if (idMatch) {
+      const id = Number(idMatch[1]);
+      const r = await taFetch(`/locations/${id}`);
+      if (r.ok) {
+        const raw = (await r.json()) as Record<string, unknown>;
+        const loc = ((raw.data as Record<string, unknown> | undefined) ?? (raw.location as Record<string, unknown> | undefined) ?? raw);
+        const mapped = mapSearch([{ location: loc }]);
+        if (mapped.length && mapped[0].location_id) return mapped;
+      }
     }
-    const j = (await r.json()) as { data?: Array<{ location?: Record<string, unknown> }> };
-    return mapSearch(j.data || []);
+
+    // 2) Variações de consulta.
+    const stripped = q
+      .replace(/\b(hotel|hotéis|hoteis|pousada|resort|inn|spa|suites?|apart|flat)\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const words = q.split(/\s+/).filter(Boolean);
+    const variants = new Set<string>([q]);
+    if (stripped.length >= 3) variants.add(stripped);
+    if (words.length > 1) variants.add(words.slice(0, -1).join(" "));
+    if (words.length > 2) variants.add(words.slice(0, 2).join(" "));
+    if (words.length > 1) variants.add(words[0]);
+
+    const urls: string[] = [];
+    for (const v of variants) {
+      const enc = encodeURIComponent(v);
+      if (!data.force) urls.push(`/catalog/locations/search?query=${enc}&search_type=NAME&category=HOTEL`);
+      urls.push(`/catalog/locations/search?query=${enc}&search_type=NAME`);
+      urls.push(`/catalog/locations/search?query=${enc}`);
+    }
+
+    const results = await Promise.all(
+      urls.slice(0, 12).map(async (u) => {
+        try {
+          const r = await taFetch(u);
+          if (!r.ok) return [] as Array<{ location?: Record<string, unknown> }>;
+          const j = (await r.json()) as { data?: Array<{ location?: Record<string, unknown> }> };
+          return j.data ?? [];
+        } catch {
+          return [] as Array<{ location?: Record<string, unknown> }>;
+        }
+      }),
+    );
+
+    const out: TAHotelSuggestion[] = [];
+    const seen = new Set<number>();
+    for (const list of results) {
+      for (const item of mapSearch(list, 30)) {
+        if (!item.location_id || seen.has(item.location_id) || !item.name) continue;
+        seen.add(item.location_id);
+        out.push(item);
+      }
+    }
+
+    // Prioriza quem contém as palavras digitadas no nome.
+    const terms = (stripped || q).toLowerCase().split(/\s+/).filter((t) => t.length > 2);
+    const score = (h: TAHotelSuggestion) => {
+      const name = h.name.toLowerCase();
+      return terms.reduce((acc, t) => acc + (name.includes(t) ? 1 : 0), 0);
+    };
+    out.sort((a, b) => score(b) - score(a) || (b.rating ?? 0) - (a.rating ?? 0));
+    return out.slice(0, 12);
   });
 
-function mapSearch(list: Array<{ location?: Record<string, unknown> }>): TAHotelSuggestion[] {
-  return list.slice(0, 8).map((item) => {
+function mapSearch(list: Array<{ location?: Record<string, unknown> }>, limit = 8): TAHotelSuggestion[] {
+  return list.slice(0, limit).map((item) => {
     const loc = (item.location ?? item) as Record<string, unknown>;
     const addr = pickAddress(loc.addresses as Array<Record<string, unknown>> | undefined);
     const coords = (loc.coordinates as { latitude?: number; longitude?: number } | undefined) || undefined;
