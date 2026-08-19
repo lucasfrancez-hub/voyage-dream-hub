@@ -40,3 +40,15 @@ export function fitDestSize(lines: string[], base: number, avail: number, maxH: 
   }
   return min;
 }
+
+/**
+ * Ajusta a fonte para o destino caber SEMPRE em uma única linha.
+ * Nunca quebra em duas linhas (evita empurrar/cortar o resto da arte).
+ */
+export function fitOneLineSize(text: string, base: number, avail: number, min = 34) {
+  const CW = 0.62; // largura média de caractere maiúsculo Montserrat 900 (em em)
+  const len = text.trim().length;
+  if (!len) return base;
+  const size = Math.floor(avail / (len * CW));
+  return Math.max(min, Math.min(base, size));
+}

@@ -10,7 +10,7 @@
 import { forwardRef, Fragment, type ReactElement } from "react";
 import logoAsset from "@/assets/viaair-logo-white.png.asset.json";
 import type { FeedArtData } from "./PackageFeedArt";
-import { fitDestSize } from "./fit-title";
+import { fitOneLineSize } from "./fit-title";
 import { AnniversarySeal, SELO_ANIVERSARIO_CSS, seloAniversarioAtivo } from "@/components/packages/AnniversarySeal";
 
 const BRL = (n: number) =>
@@ -198,13 +198,14 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
 
               <h2
                 className="vstory-dest"
-                style={{ fontSize: fitDestSize([top, bottom], 96, 484, 200) }}
+                style={{
+                  fontSize: fitOneLineSize([top, bottom].filter(Boolean).join(" "), 96, 484),
+                  whiteSpace: "nowrap",
+                }}
               >
                 {top ? (
                   <>
-                    {top}
-                    <br />
-                    <span>{bottom}</span>
+                    {top} <span>{bottom}</span>
                   </>
                 ) : (
                   <span>{bottom}</span>
