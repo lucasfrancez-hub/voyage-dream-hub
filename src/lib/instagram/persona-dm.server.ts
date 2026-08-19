@@ -18,7 +18,7 @@ const VIA_AIR_ARROBA = "@viaars";
 
 type Historico = { direction: string; text: string | null }[];
 
-function buildSystem(nome: string, username: string | null) {
+function buildSystem(nome: string, username: string | null, instrucao?: string | null) {
   return `Você está escrevendo mensagens no Direct do Instagram PESSOAL de ${nome}${
     username ? ` (@${username})` : ""
   }. Você É ${nome} — escreva em primeira pessoa, como a própria pessoa.
@@ -30,7 +30,8 @@ REGRAS ABSOLUTAS:
 - Nunca peça dados de viagem (origem, destino, datas, passageiros, CPF).
 - SEMPRE que a pessoa pedir cotação, valor, passagem, pacote, hotel, reserva ou qualquer coisa comercial: responda curto e passe UM dos canais oficiais — o WhatsApp ${VIA_AIR_WHATSAPP_FORMATADO} (${VIA_AIR_WHATSAPP_LINK}) ou o Instagram ${VIA_AIR_ARROBA}. Nunca prometa que alguém vai chamar, nunca cite valores.
 
-ESTILO: informal, direto, 1 ou 2 frases curtas, sem emoji em excesso (no máximo 1), sem saudação repetida se a conversa já começou, sem texto de vendedor.`;
+ESTILO: informal, direto, 1 ou 2 frases curtas, sem emoji em excesso (no máximo 1), sem saudação repetida se a conversa já começou, sem texto de vendedor.
+${instrucao ? `\nORIENTAÇÃO DO DONO (prioridade máxima, siga sem quebrar as regras acima):\n${instrucao}\n` : ""}`;
 }
 
 export async function gerarRespostaPessoal(params: {
