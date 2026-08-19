@@ -376,18 +376,15 @@ export const PackageFeedArt = forwardRef<HTMLDivElement, { data: FeedArtData }>(
                     <div className="vfeed-inc-icon">{I.card}</div>
                     {data.kind === "service" ? (
                       <p>
-                        {data.isCativa
-                          ? "15x sem juros no cartão Visa e Amex"
-                          : "Parcele no cartão em até 10x sem juros"}
+                        Parcele no cartão em até {parcelas}x sem juros
                         <br />
                         <span style={{ opacity: 0.7, fontSize: "10px" }}>*Sem boleto para ingressos.</span>
                       </p>
-                    ) : data.isCativa ? (
-                      <p>15x sem juros no cartão Visa e Amex<br/>Boleto bancário em até 10x<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
                     ) : (
-                      <p>No cartão e boleto bancário sem juros<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
+                      <p>Cartão em até {parcelas}x sem juros<br/>Boleto bancário em até {parcelas}x<br/><span style={{opacity:.7,fontSize:'10px'}}>*Boleto sujeito a análise de crédito.</span></p>
                     )}
                   </div>
+
                 </div>
 
                 <div className="vfeed-side">
