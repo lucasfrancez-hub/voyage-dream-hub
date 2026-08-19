@@ -329,7 +329,7 @@ function PrecoManualDialog({
     setValor(String(Number(promo.price_per_passenger ?? 0).toFixed(2)).replace(".", ","));
     setTaxa(
       promo.passengers
-        ? String((Number(promo.taxes ?? 0) / Math.max(1, promo.passengers)).toFixed(2)).replace(".", ",")
+        ? String((Number((promo as { taxes?: number }).taxes ?? 0) / Math.max(1, promo.passengers)).toFixed(2)).replace(".", ",")
         : "",
     );
   }
