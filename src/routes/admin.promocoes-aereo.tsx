@@ -1665,7 +1665,34 @@ function PromocoesAereoPage() {
             {arquivados?.total ?? 0}
           </span>
         </button>
+        <button
+          type="button"
+          disabled={restaurando}
+          onClick={async () => {
+            setRestaurando(true);
+            try {
+              const r = (await restaurarVoos({})) as {
+                total: number;
+                ok: number;
+                falhas: string[];
+              };
+              qc.invalidateQueries({ queryKey: ["airfare-promos"] });
+              toast.success(
+                `Voos restaurados em ${r.ok} de ${r.total} promoções ajustadas`,
+                r.falhas.length ? { description: r.falhas.join(" · ") } : undefined,
+              );
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Não foi possível restaurar");
+            } finally {
+              setRestaurando(false);
+            }
+          }}
+          className="inline-flex items-center gap-2 rounded-xl border border-border/60 px-4 py-2 text-xs font-black uppercase tracking-widest text-muted-foreground transition hover:border-brand-orange/40 hover:text-foreground disabled:opacity-50"
+        >
+          ✈ {restaurando ? "Restaurando…" : "Restaurar voos (preço ajustado)"}
+        </button>
       </div>
+
 
       <ArquivadosDialog aberto={arquivadosAberto} onFechar={() => setArquivadosAberto(false)} />
 
