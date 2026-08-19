@@ -80,12 +80,12 @@ body{display:grid;place-items:center;min-height:100vh}
 .logo-slot{display:flex;align-items:center}
 .logo-slot img{display:block;max-width:100%;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45))}
 .logo-placeholder{font-size:24px;letter-spacing:4px;font-weight:900;color:rgba(255,255,255,.55)}
-.seal-wrap{display:flex;align-items:center;gap:26px}
+.seal-wrap{display:flex;align-items:center;gap:16px}
 /* Carimbo de passaporte */
-.stamp{border:3px solid currentColor;border-radius:16px;padding:7px;box-shadow:0 14px 30px rgba(0,0,0,.42);background:rgba(255,255,255,.06)}
-.stamp-cards{color:#c2410c;transform:rotate(-9deg)}
-.stamp-offer{color:#15803d;transform:rotate(6deg)}
-.stamp-inner{border:1.5px dashed currentColor;border-radius:10px;background:rgba(255,255,255,.94);display:flex;flex-direction:column;align-items:center;text-align:center;line-height:1}
+.stamp{border:2px solid currentColor;border-radius:12px;padding:5px;box-shadow:0 10px 22px rgba(0,0,0,.4);background:rgba(255,255,255,.06)}
+.stamp-cards{color:#c2410c;transform:rotate(-5deg)}
+.stamp-offer{color:#15803d;transform:rotate(4deg)}
+.stamp-inner{border:1.2px dashed currentColor;border-radius:8px;justify-content:center;box-sizing:border-box;background:rgba(255,255,255,.94);display:flex;flex-direction:column;align-items:center;text-align:center;line-height:1}
 .stamp-tag,.stamp-foot{font-weight:800;text-transform:uppercase;opacity:.85;white-space:nowrap}
 .stamp-l1,.stamp-l2{font-weight:900;letter-spacing:-.01em;white-space:nowrap}
 .stamp-rule{display:block;width:100%;height:1px;background:currentColor;opacity:.32}
@@ -160,11 +160,11 @@ svg{display:block;width:100%;height:100%}
 const STORY_CSS = `
 .frame{width:1080px;height:1920px;padding:56px 56px 44px}
 .logo-slot img{max-height:88px;max-width:400px}
-.stamp-inner{padding:16px 26px;gap:9px}
-.stamp-tag{font-size:17px;letter-spacing:.34em}
-.stamp-foot{font-size:15px;letter-spacing:.3em}
-.stamp-l1{font-size:46px}
-.stamp-l2{font-size:34px}
+.stamp-inner{padding:9px 16px;gap:5px;min-width:212px;min-height:120px}
+.stamp-tag{font-size:11px;letter-spacing:.26em}
+.stamp-foot{font-size:10px;letter-spacing:.24em}
+.stamp-l1{font-size:29px}
+.stamp-l2{font-size:22px}
 
 .category-badge{font-size:26px;padding:12px 30px}
 .category-badge .cb-ico,.category-badge .cb-ico svg{width:30px;height:30px}
@@ -206,11 +206,11 @@ const STORY_CSS = `
 const FEED_CSS = `
 .frame{width:1080px;height:1350px;padding:48px 48px 38px}
 .logo-slot img{max-height:74px;max-width:340px}
-.stamp-inner{padding:13px 21px;gap:7px}
-.stamp-tag{font-size:14px;letter-spacing:.32em}
-.stamp-foot{font-size:12.5px;letter-spacing:.3em}
-.stamp-l1{font-size:38px}
-.stamp-l2{font-size:28px}
+.stamp-inner{padding:8px 14px;gap:4px;min-width:186px;min-height:106px}
+.stamp-tag{font-size:10px;letter-spacing:.24em}
+.stamp-foot{font-size:9px;letter-spacing:.22em}
+.stamp-l1{font-size:25px}
+.stamp-l2{font-size:19px}
 
 .category-badge{font-size:22px;padding:10px 24px}
 .category-badge .cb-ico,.category-badge .cb-ico svg{width:26px;height:26px}
