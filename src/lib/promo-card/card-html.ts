@@ -86,6 +86,7 @@ svg{display:block;width:100%;height:100%}
 .category-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .category-badge{display:inline-flex;align-items:center;gap:12px;border:none;border-radius:9999px;color:#fff;font-weight:800;letter-spacing:.2em;text-transform:uppercase;line-height:1;background:linear-gradient(135deg,#ff9f3f 0%,#ff7f00 52%,#d85c00 100%);box-shadow:0 10px 28px rgba(255,127,0,.35)}
 .category-badge .cb-ico{display:inline-flex;flex:none;color:#fff}
+.category-badge .cb-ico svg{width:100%;height:100%}
 .found-badge{display:inline-flex;align-items:center;gap:12px;border:1px solid rgba(53,208,127,.55);border-radius:9999px;color:#9dfbc6;font-weight:700;letter-spacing:.06em;line-height:1;background:rgba(6,32,20,.5);backdrop-filter:blur(24px) saturate(150%)}
 .found-dot{width:14px;height:14px;border-radius:50%;background:#35d07f;box-shadow:0 0 0 6px rgba(53,208,127,.18),0 0 16px rgba(53,208,127,.9);flex:none}
 
@@ -152,6 +153,7 @@ const STORY_CSS = `
 .logo-slot img{max-height:88px;max-width:400px}
 .cards-seal,.offer-seal{width:150px;height:150px}
 .category-badge{font-size:26px;padding:12px 30px}
+.category-badge .cb-ico,.category-badge .cb-ico svg{width:30px;height:30px}
 .found-badge{font-size:24px;padding:12px 26px}
 .hero{margin-top:56px}
 .destination{font-size:170px;margin:34px 0 0}
@@ -192,6 +194,7 @@ const FEED_CSS = `
 .logo-slot img{max-height:74px;max-width:340px}
 .cards-seal,.offer-seal{width:124px;height:124px}
 .category-badge{font-size:22px;padding:10px 24px}
+.category-badge .cb-ico,.category-badge .cb-ico svg{width:26px;height:26px}
 .found-badge{font-size:20px;padding:10px 22px}
 .hero{margin-top:28px}
 .destination{font-size:132px;margin:22px 0 0}
