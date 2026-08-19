@@ -195,8 +195,13 @@ const FEED_CSS = `
 .found-badge{font-size:20px;padding:10px 22px}
 .hero{margin-top:28px}
 .destination{font-size:132px;margin:22px 0 0}
-.route-city{font-size:44px}.route-city .arrow{font-size:32px}
-.route-iata{font-size:23px}
+.route-iata-big{font-size:54px}
+.route-city-name{font-size:20px}
+.route-mid{padding:0 20px}
+.route-track i{width:58px}
+.route-track .route-plane,.route-track .route-plane svg{width:34px;height:34px}
+.route-trip{font-size:17px;padding:7px 16px}
+
 .bottom{display:flex;flex-direction:column;gap:16px}
 .info{padding:6px 28px}
 .info-row{padding:16px 0}
