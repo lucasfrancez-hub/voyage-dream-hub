@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, MapPin, Star, Radio, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { searchTripAdvisorHotels, getTripAdvisorHotelDetails, type TAHotelSuggestion, type TAHotelDetails } from "@/lib/tripadvisor.functions";
+import { searchTripAdvisorHotels, getTripAdvisorHotelDetails, getTripAdvisorHotelByUrl, parseTripAdvisorUrl, type TAHotelSuggestion, type TAHotelDetails } from "@/lib/tripadvisor.functions";
 
 export type HotelSelection = TAHotelDetails;
 
@@ -41,10 +41,44 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
   const lastQueryRef = useRef<string>("");
   const suppressRef = useRef(false);
 
+  // Link do TripAdvisor colado: busca direto pelo link (não gasta a busca da API).
+  const byUrl = useServerFn(getTripAdvisorHotelByUrl);
+  const [loadingUrl, setLoadingUrl] = useState(false);
+  const urlInfo = parseTripAdvisorUrl(value || "");
+  const lastUrlRef = useRef<string>("");
+
+  async function pickByUrl(link: string) {
+    if (!link || loadingUrl) return;
+    lastUrlRef.current = link;
+    setLoadingUrl(true);
+    setErro(null);
+    try {
+      const full = await byUrl({ data: { url: link, photoLimit } });
+      suppressRef.current = true;
+      onSelect(full);
+      setOpen(false);
+      setItems([]);
+    } catch (e) {
+      console.error(e);
+      setErro("Não foi possível ler esse link do TripAdvisor.");
+    } finally {
+      setLoadingUrl(false);
+    }
+  }
+
+  useEffect(() => {
+    const link = urlInfo.url;
+    if (!link || link === lastUrlRef.current) return;
+    const t = setTimeout(() => { void pickByUrl(link); }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlInfo.url]);
+
   useEffect(() => {
     if (mode !== "live") { setItems([]); setOpen(false); return; }
     if (suppressRef.current) { suppressRef.current = false; return; }
     const q = (value || "").trim();
+    if (parseTripAdvisorUrl(q).locationId) { setItems([]); setOpen(false); return; }
     if (q.length < 3) { setItems([]); setOpen(false); return; }
     if (q === lastQueryRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -185,12 +219,29 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
         placeholder={placeholder ?? (mode === "live" ? "Digite o nome do hotel (busca no TripAdvisor)" : "Digite o nome do hotel")}
         autoComplete="off"
       />
+      {urlInfo.locationId != null && (
+        <div className="mt-1 flex items-center justify-between gap-2 rounded-md border bg-popover px-3 py-2 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            {loadingUrl && <Loader2 className="h-3 w-3 animate-spin" />}
+            {loadingUrl ? "Lendo o hotel pelo link do TripAdvisor…" : (erro ?? "Link do TripAdvisor detectado.")}
+          </span>
+          {!loadingUrl && (
+            <button
+              type="button"
+              onClick={() => { lastUrlRef.current = ""; void pickByUrl(urlInfo.url!); }}
+              className="shrink-0 text-brand-orange underline underline-offset-2 hover:opacity-80"
+            >
+              Buscar pelo link
+            </button>
+          )}
+        </div>
+      )}
       {mode === "live" && loading && (
         <div className="absolute right-2 top-9 -translate-y-1/2 text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         </div>
       )}
-      {mode === "live" && !loading && (value || "").trim().length >= 3 && items.length === 0 && (
+      {mode === "live" && !loading && urlInfo.locationId == null && (value || "").trim().length >= 3 && items.length === 0 && (
         <div className={`mt-1 flex items-center justify-between gap-2 rounded-md border bg-popover px-3 py-2 text-[11px] ${erro ? "border-destructive/50 text-destructive" : "text-muted-foreground"}`}>
           <span>{erro ?? "Nenhum hotel encontrado. Tente o nome sem palavras extras ou cole o link do TripAdvisor."}</span>
           <button

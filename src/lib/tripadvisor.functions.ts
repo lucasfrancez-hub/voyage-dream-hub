@@ -687,3 +687,135 @@ export const getTripAdvisorPublicHotelInfo = createServerFn({ method: "POST" })
     };
   });
 
+
+// ---------------------------------------------------------------------------
+// Hotel por LINK do TripAdvisor (não usa a busca da API — economiza cota).
+// ---------------------------------------------------------------------------
+
+export function parseTripAdvisorUrl(input: string): { locationId: number | null; url: string | null } {
+  const s = (input || "").trim();
+  const m = s.match(/tripadvisor\.[^\s]*\/[^\s]*?-d(\d+)/i);
+  if (!m) return { locationId: null, url: null };
+  const raw = s.match(/https?:\/\/[^\s]+/i)?.[0] ?? null;
+  return { locationId: Number(m[1]), url: raw };
+}
+
+function scrapePhotos(html: string, limit: number): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const re = /https:\/\/(?:dynamic-)?media[^"'\s\\]*tripadvisor\.com\/media\/photo-[a-z]\/[^"'\s\\]+?\.(?:jpg|jpeg|webp)/gi;
+  for (const m of html.matchAll(re)) {
+    const u = m[0].replace(/\\u002F/gi, "/");
+    if (seen.has(u)) continue;
+    seen.add(u);
+    out.push(u);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/**
+ * Busca dados do hotel a partir do link público do TripAdvisor.
+ * 1) tenta a API oficial pelo location_id extraído da URL;
+ * 2) se a API falhar (429/sem chave), faz scraping da própria página.
+ */
+export const getTripAdvisorHotelByUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { url: string; photoLimit?: number }) => input)
+  .handler(async ({ data }): Promise<TAHotelDetails> => {
+    const limit = Math.min(Math.max(data.photoLimit ?? 5, 1), 10);
+    const { locationId, url } = parseTripAdvisorUrl(data.url);
+    if (!locationId || !url) throw new Error("Link do TripAdvisor inválido");
+
+    let det: TAHotelDetails | null = null;
+    if (!taLimitado()) {
+      try {
+        const [rDet, rPhotos] = await Promise.all([
+          taFetch(`/locations/${locationId}`),
+          taFetch(`/locations/${locationId}/photos?limit=${limit}`),
+        ]);
+        if (rDet.ok) {
+          const rawDet = (await rDet.json()) as Record<string, unknown>;
+          const d = ((rawDet.data as Record<string, unknown> | undefined)
+            ?? (rawDet.location as Record<string, unknown> | undefined)
+            ?? rawDet);
+          const addr = pickAddress(d.addresses as Array<Record<string, unknown>> | undefined);
+          const coords = (d.coordinates as { latitude?: number; longitude?: number } | undefined) || undefined;
+          const phones = d.phone_numbers as Array<{ value?: string }> | undefined;
+          const websites = d.websites as Array<{ url?: string }> | undefined;
+          let photos: string[] = [];
+          if (rPhotos.ok) {
+            const jp = (await rPhotos.json()) as { data?: Array<{ photo?: { original_size_url?: string; large_size_url?: string } }> };
+            photos = (jp.data || [])
+              .map((p) => p.photo?.original_size_url ?? p.photo?.large_size_url)
+              .filter((u): u is string => typeof u === "string" && u.length > 0)
+              .slice(0, limit);
+          }
+          det = {
+            location_id: locationId,
+            name: pickName(d.names as Array<{ language?: string; value?: string; primary?: boolean }>),
+            address: addr?.formatted ?? null,
+            city: addr?.city ?? null,
+            country: addr?.country ?? null,
+            latitude: coords?.latitude ?? null,
+            longitude: coords?.longitude ?? null,
+            rating: extractRating(d),
+            tripadvisor_url: (d.urls as { tripadvisor?: { main?: string } } | undefined)?.tripadvisor?.main ?? url,
+            phone: phones?.[0]?.value ?? null,
+            website: websites?.[0]?.url ?? null,
+            photos,
+            description: localizedText(d.description) || null,
+            hotel_class: extractHotelClass(d),
+          };
+        }
+      } catch {
+        det = null;
+      }
+    }
+
+    // Fallback: scraping da página pública.
+    if (!det || !det.name || det.photos.length === 0 || det.rating == null || det.hotel_class == null) {
+      try {
+        const res = await fetch(url, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+            "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+          },
+        });
+        if (res.ok) {
+          const html = await res.text();
+          const nameFromUrl = url.match(/-Reviews-([^-]+(?:_[^-]+)*)-/)?.[1]?.replace(/_/g, " ") ?? "";
+          const ogTitle = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? "";
+          const name = (det?.name || ogTitle.split("|")[0].split(" - ")[0].trim() || nameFromUrl).trim();
+          const desc = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? null;
+          const ratingStr = html.match(/"ratingValue"\s*:\s*"?([0-5](?:[.,]\d)?)/i)?.[1];
+          const addrStreet = html.match(/"streetAddress"\s*:\s*"([^"]+)"/i)?.[1] ?? null;
+          const addrCity = html.match(/"addressLocality"\s*:\s*"([^"]+)"/i)?.[1] ?? null;
+          const addrCountry = html.match(/"addressCountry"\s*:\s*"([^"]+)"/i)?.[1] ?? null;
+          const starStr = html.match(/"starRating"\s*:\s*\{[^}]*"ratingValue"\s*:\s*"?([1-5](?:\.\d)?)/i)?.[1];
+          const photos = det?.photos.length ? det.photos : scrapePhotos(html, limit);
+          det = {
+            location_id: locationId,
+            name: name || det?.name || "",
+            address: det?.address ?? (addrStreet ? [addrStreet, addrCity, addrCountry].filter(Boolean).join(", ") : null),
+            city: det?.city ?? addrCity,
+            country: det?.country ?? addrCountry,
+            latitude: det?.latitude ?? null,
+            longitude: det?.longitude ?? null,
+            rating: det?.rating ?? (ratingStr ? Number(ratingStr.replace(",", ".")) : null),
+            tripadvisor_url: det?.tripadvisor_url ?? url,
+            phone: det?.phone ?? null,
+            website: det?.website ?? null,
+            photos,
+            description: det?.description ?? (desc ? desc.slice(0, 800) : null),
+            hotel_class: det?.hotel_class ?? (starStr ? Math.round(Number(starStr)) : null),
+          };
+        }
+      } catch {
+        // mantém o que já temos
+      }
+    }
+
+    if (!det) throw new Error("Não foi possível ler o hotel pelo link do TripAdvisor");
+    return det;
+  });
