@@ -155,8 +155,13 @@ const STORY_CSS = `
 .found-badge{font-size:24px;padding:12px 26px}
 .hero{margin-top:56px}
 .destination{font-size:170px;margin:34px 0 0}
-.route-city{font-size:56px}.route-city .arrow{font-size:40px}
-.route-iata{font-size:28px}
+.route-iata-big{font-size:66px}
+.route-city-name{font-size:24px}
+.route-mid{padding:0 26px}
+.route-track i{width:74px}
+.route-track .route-plane,.route-track .route-plane svg{width:40px;height:40px}
+.route-trip{font-size:20px;padding:8px 20px}
+
 .bottom{display:flex;flex-direction:column;gap:22px}
 .info{padding:12px 34px}
 .info-row{padding:22px 0}
