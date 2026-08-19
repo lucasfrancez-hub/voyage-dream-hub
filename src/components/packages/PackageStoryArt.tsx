@@ -332,25 +332,20 @@ export const PackageStoryArt = forwardRef<HTMLDivElement, { data: FeedArtData }>
                   <div className="vstory-side-icon">{I.card}</div>
                   {data.kind === "service" ? (
                     <p>
-                      {data.isCativa ? "15x sem juros no cartão Visa e Amex" : "Cartão em até 10x sem juros"}
+                      Cartão em até {parcelas}x sem juros
                       <br />
                       <span className="vstory-side-fine">*Sem boleto para ingressos.</span>
                     </p>
-                  ) : data.isCativa ? (
-                    <p>
-                      15x sem juros no cartão Visa e Amex
-                      <br />
-                      Boleto bancário em até 10x
-                      <br />
-                      <span className="vstory-side-fine">*Boleto sujeito a análise de crédito.</span>
-                    </p>
                   ) : (
                     <p>
-                      No cartão e boleto bancário sem juros
+                      Cartão em até {parcelas}x sem juros
+                      <br />
+                      Boleto bancário em até {parcelas}x
                       <br />
                       <span className="vstory-side-fine">*Boleto sujeito a análise de crédito.</span>
                     </p>
                   )}
+
                 </div>
               </div>
 
