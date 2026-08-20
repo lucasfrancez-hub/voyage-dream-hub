@@ -13,6 +13,65 @@ import type { FlightQuoteLeg, FlightQuoteOption, FlightQuoteResult } from "@/lib
 
 const db = async () => (await import("@/integrations/supabase/client.server")).supabaseAdmin;
 
+/**
+ * Constrói os segmentos reais do trecho.
+ *
+ * Antes o trecho inteiro virava UM segmento, então os orçamentos nunca
+ * mostravam a conexão. Agora usamos `trechos` (detalhe vindo da operadora) e,
+ * quando a cotação é antiga e só tem `escalas` ("GRU (1h10)"), reconstruímos a
+ * cadeia de aeroportos para pelo menos exibir onde é a conexão.
+ */
+function toSegments(leg: FlightQuoteLeg): NormalizedFlight["segments"] {
+  const bagagem = leg.bagagem_despachada ? "1 bagagem despachada" : null;
+
+  if (leg.trechos?.length) {
+    return leg.trechos.map((t) => ({
+      airline: t.cia ?? leg.cia ?? null,
+      airlineIata: t.ciaIata ?? null,
+      flightNumber: t.voo ?? null,
+      fromIata: t.origem ?? null,
+      toIata: t.destino ?? null,
+      departure: t.partida ?? null,
+      arrival: t.chegada ?? null,
+      duration: null,
+      baggage: bagagem,
+    }));
+  }
+
+  const escalas = (leg.escalas ?? [])
+    .map((e) => String(e).match(/[A-Z]{3}/)?.[0] ?? null)
+    .filter((x): x is string => Boolean(x));
+
+  if (escalas.length) {
+    const pontos = [leg.origem, ...escalas, leg.destino];
+    return pontos.slice(0, -1).map((de, i) => ({
+      airline: leg.cia ?? null,
+      airlineIata: null,
+      flightNumber: i === 0 ? (leg.voo ?? null) : null,
+      fromIata: de ?? null,
+      toIata: pontos[i + 1] ?? null,
+      departure: i === 0 ? (leg.partida ?? null) : null,
+      arrival: i === pontos.length - 2 ? (leg.chegada ?? null) : null,
+      duration: null,
+      baggage: bagagem,
+    }));
+  }
+
+  return [
+    {
+      airline: leg.cia ?? null,
+      airlineIata: leg.cia ?? null,
+      flightNumber: leg.voo ?? null,
+      fromIata: leg.origem ?? null,
+      toIata: leg.destino ?? null,
+      departure: leg.partida ?? null,
+      arrival: leg.chegada ?? null,
+      duration: leg.duracao ?? null,
+      baggage: bagagem,
+    },
+  ];
+}
+
 function toFlight(leg: FlightQuoteLeg, direction: "OUTBOUND" | "INBOUND"): NormalizedFlight {
   return {
     direction,
@@ -23,21 +82,10 @@ function toFlight(leg: FlightQuoteLeg, direction: "OUTBOUND" | "INBOUND"): Norma
     arrival: leg.chegada ?? null,
     duration: leg.duracao ?? null,
     stops: Number(leg.paradas) || 0,
-    segments: [
-      {
-        airline: leg.cia ?? null,
-        airlineIata: leg.cia ?? null,
-        flightNumber: leg.voo ?? null,
-        fromIata: leg.origem ?? null,
-        toIata: leg.destino ?? null,
-        departure: leg.partida ?? null,
-        arrival: leg.chegada ?? null,
-        duration: leg.duracao ?? null,
-        baggage: leg.bagagem_despachada ? "1 bagagem despachada" : null,
-      },
-    ],
+    segments: toSegments(leg),
   };
 }
+
 
 function toOption(op: FlightQuoteOption, numero: number, result: FlightQuoteResult): NormalizedOption {
   const base = emptyOption(numero);

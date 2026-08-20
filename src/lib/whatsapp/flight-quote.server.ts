@@ -32,7 +32,21 @@ export type FlightQuoteLeg = {
   duracao: string; // "3h20"
   paradas: number;
   escalas: string[]; // ["GRU (1h10)"]
+  /** Detalhe de cada perna do trecho (necessário pra exibir a conexão no orçamento). */
+  trechos?: FlightQuoteHop[];
   bagagem_despachada: boolean;
+};
+
+/** Uma perna real do voo (entre dois aeroportos, sem parada intermediária). */
+export type FlightQuoteHop = {
+  cia: string | null;
+  ciaIata: string | null;
+  voo: string | null;
+  origem: string;
+  destino: string;
+  partida: string;
+  chegada: string;
+  esperaMin?: number | null;
 };
 
 /** Chaves da operadora necessárias pra gerar o carrinho do Comprar Viagem. */
@@ -132,6 +146,19 @@ function toLeg(f: OnerFlight): FlightQuoteLeg {
     duracao: `${j.flyingTime.hour}h${pad(j.flyingTime.minute)}`,
     paradas: j.numberOfStops ?? Math.max(0, segs.length - 1),
     escalas,
+    trechos: segs.map((sg, i) => ({
+      cia: sg.marketingAirline?.name ?? null,
+      ciaIata: sg.marketingAirline?.iata ?? null,
+      voo: sg.flightNumber ? `${sg.marketingAirline?.iata ?? ""} ${sg.flightNumber}`.trim() : null,
+      origem: sg.departure.iata,
+      destino: sg.destination.iata,
+      partida: stamp(sg.departure),
+      chegada: stamp(sg.destination),
+      esperaMin:
+        i < segs.length - 1
+          ? Math.max(0, minutesOf(segs[i + 1]!.departure) - minutesOf(sg.destination))
+          : null,
+    })),
     bagagem_despachada: flightHasBaggage(f),
   };
 }

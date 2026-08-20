@@ -42,7 +42,46 @@ function stops(leg: FlightQuoteLeg): { n: number; label: string } {
   return { n, label: leg.escalas?.length ? `${base} em ${leg.escalas.join(", ")}` : base };
 }
 
+/**
+ * Segmentos reais do trecho: sem isso a página pública mostrava "1 conexão"
+ * mas nenhuma informação de onde/como era a conexão.
+ */
 function toSegments(leg: FlightQuoteLeg): FlightSegment[] {
+  if (leg.trechos?.length) {
+    return leg.trechos.map((t) => ({
+      airline: findAirline(t.ciaIata ?? leg.cia)?.name ?? t.cia ?? leg.cia,
+      airlineIata: t.ciaIata ?? leg.cia,
+      flightNumber: t.voo || null,
+      fromIata: t.origem,
+      fromName: cityLabel(t.origem) || null,
+      toIata: t.destino,
+      toName: cityLabel(t.destino) || null,
+      departure: t.partida,
+      arrival: t.chegada,
+      duration: null,
+    }));
+  }
+
+  const escalas = (leg.escalas ?? [])
+    .map((e) => String(e).match(/[A-Z]{3}/)?.[0] ?? null)
+    .filter((x): x is string => Boolean(x));
+
+  if (escalas.length) {
+    const pontos = [leg.origem, ...escalas, leg.destino];
+    return pontos.slice(0, -1).map((de, i) => ({
+      airline: findAirline(leg.cia)?.name ?? leg.cia,
+      airlineIata: leg.cia,
+      flightNumber: i === 0 ? leg.voo || null : null,
+      fromIata: de,
+      fromName: cityLabel(de) || null,
+      toIata: pontos[i + 1]!,
+      toName: cityLabel(pontos[i + 1]!) || null,
+      departure: i === 0 ? leg.partida : "",
+      arrival: i === pontos.length - 2 ? leg.chegada : "",
+      duration: null,
+    }));
+  }
+
   return [
     {
       airline: findAirline(leg.cia)?.name ?? leg.cia,
@@ -58,6 +97,7 @@ function toSegments(leg: FlightQuoteLeg): FlightSegment[] {
     },
   ];
 }
+
 
 function toLeg(leg: FlightQuoteLeg, direction: "OUTBOUND" | "INBOUND"): FlightLeg {
   const p = parse(leg.partida);
