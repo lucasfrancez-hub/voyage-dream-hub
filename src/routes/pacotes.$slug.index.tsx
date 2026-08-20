@@ -705,13 +705,14 @@ function PackageDetails() {
                   }
 
                   const abrir = (i: number) => {
-                    if (taId) {
+                    if (taUrl) {
+                      window.open(taUrl, "_blank", "noreferrer");
+                    } else if (taId) {
                       setDialogPhotoIndex(i);
                       setHotelDialogOpen(true);
-                    } else if (taUrl) {
-                      window.open(taUrl, "_blank", "noreferrer");
                     }
                   };
+
 
                   const galeria = photos.slice(0, 5);
 
