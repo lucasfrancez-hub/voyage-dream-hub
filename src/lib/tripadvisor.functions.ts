@@ -726,11 +726,12 @@ async function lerPaginaTripAdvisor(url: string): Promise<string | null> {
   if (!lovableApiKey || !firecrawlKey) return null;
 
   try {
-    const r = await fetch("https://api.firecrawl.dev/v2/scrape", {
+    const r = await fetch("https://connector-gateway.lovable.dev/firecrawl/v2/scrape", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${firecrawlKey}`,
+        Authorization: `Bearer ${lovableApiKey}`,
+        "X-Connection-Api-Key": firecrawlKey,
       },
       body: JSON.stringify({ url, formats: ["rawHtml", "markdown"], onlyMainContent: false }),
     });
@@ -738,8 +739,13 @@ async function lerPaginaTripAdvisor(url: string): Promise<string | null> {
       console.warn(`[tripadvisor] Firecrawl ${r.status}: ${(await r.text().catch(() => "")).slice(0, 300)}`);
       return null;
     }
-    const j = (await r.json()) as { data?: { rawHtml?: string; html?: string; markdown?: string } };
-    return j.data?.rawHtml || j.data?.html || j.data?.markdown || null;
+    const j = (await r.json()) as {
+      rawHtml?: string;
+      html?: string;
+      markdown?: string;
+      data?: { rawHtml?: string; html?: string; markdown?: string };
+    };
+    return j.rawHtml || j.html || j.markdown || j.data?.rawHtml || j.data?.html || j.data?.markdown || null;
   } catch (e) {
     console.warn("[tripadvisor] Firecrawl falhou", e);
     return null;
@@ -859,6 +865,26 @@ export const getTripAdvisorHotelByUrl = createServerFn({ method: "POST" })
       }
     }
 
-    if (!det) throw new Error("Não foi possível ler o hotel pelo link do TripAdvisor");
+    // Mesmo quando API e leitura pública estão temporariamente indisponíveis,
+    // preserve o vínculo pelo location_id e use o nome legível da própria URL.
+    if (!det) {
+      const nameFromUrl = url.match(/-Reviews-([^-]+(?:_[^-]+)*)-/)?.[1]?.replace(/_/g, " ").trim() ?? "";
+      det = {
+        location_id: locationId,
+        name: nameFromUrl || `Hotel TripAdvisor ${locationId}`,
+        address: null,
+        city: null,
+        country: null,
+        latitude: null,
+        longitude: null,
+        rating: null,
+        tripadvisor_url: url,
+        phone: null,
+        website: null,
+        photos: [],
+        description: null,
+        hotel_class: null,
+      };
+    }
     return det;
   });

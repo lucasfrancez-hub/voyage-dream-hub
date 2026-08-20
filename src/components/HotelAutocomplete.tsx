@@ -228,7 +228,12 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
           {!loadingUrl && (
             <button
               type="button"
-              onClick={() => { lastUrlRef.current = ""; void pickByUrl(urlInfo.url!); }}
+              onClick={() => {
+                const link = urlInfo.url;
+                if (!link) return;
+                lastUrlRef.current = "";
+                void pickByUrl(link);
+              }}
               className="shrink-0 text-brand-orange underline underline-offset-2 hover:opacity-80"
             >
               Buscar pelo link
