@@ -16,6 +16,7 @@ import {
   type ParcelaAgendada,
 } from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
+import { durationBetween } from "@/lib/public-quote/flight-legs";
 import { agentPhoto, agentProfile } from "@/lib/public-quote/agents";
 import { formatRoom } from "@/lib/public-quote/room-label";
 import { fotoDoDestino } from "@/lib/public-quote/destination-photo";
