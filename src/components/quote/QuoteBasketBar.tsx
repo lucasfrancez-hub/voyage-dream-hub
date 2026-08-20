@@ -55,6 +55,7 @@ export function QuoteBasketBar() {
             label: i.label || `Opção ${idx + 1}`,
             total: i.total,
             services: i.services.slice(0, 20),
+            flights: (i.flights ?? []) as unknown as Record<string, unknown>[],
             notes: i.notes,
           })),
         },
