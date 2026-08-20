@@ -107,7 +107,7 @@ export async function sabreToken(): Promise<string> {
         return json.access_token;
       }
       ultimoErro = `${res.status} ${texto.slice(0, 300)}`;
-      if (res.status !== 401 && res.status !== 400) break;
+      if (res.status !== 401 && res.status !== 400 && res.status !== 403) break;
     }
     throw new SabreError(`Falha na autenticação Sabre: ${ultimoErro}`, 401);
   })().finally(() => {
