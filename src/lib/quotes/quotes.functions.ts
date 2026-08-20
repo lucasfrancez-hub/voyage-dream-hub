@@ -257,6 +257,8 @@ export const criarOrcamentoManual = createServerFn({ method: "POST" })
               total: z.number().min(0),
               hotelName: z.string().trim().max(160).optional().nullable(),
               services: z.array(z.string().trim().min(1).max(200)).max(20).optional(),
+              // Voos estruturados (motor interno): alimentam o bloco aéreo.
+              flights: z.array(z.record(z.string(), z.unknown())).max(12).optional(),
               notes: z.string().trim().max(1000).optional().nullable(),
             }),
           )
@@ -304,9 +306,16 @@ export const criarOrcamentoManual = createServerFn({ method: "POST" })
           },
         ];
       }
-      opt.services = (o.services ?? []).map((s) => ({ name: s }));
+      const voos = (o.flights ?? []) as unknown as import("./types").NormalizedFlight[];
+      opt.flights = voos;
+      // Com voos estruturados, as linhas de texto do resumo não viram serviços
+      // duplicados — o aéreo já aparece no bloco próprio do orçamento.
+      opt.services = voos.length ? [] : (o.services ?? []).map((s) => ({ name: s }));
       return opt;
     });
+
+    normalized.flights = normalized.options[0]?.flights ?? [];
+    normalized.services = normalized.options[0]?.services ?? [];
 
     const total = normalized.options[0]?.total ?? null;
     const { data: created, error } = await supabaseAdmin

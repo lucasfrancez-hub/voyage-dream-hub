@@ -36,6 +36,7 @@ import {
   FileText,
 } from "lucide-react";
 import { addToQuoteBasket } from "@/lib/quote-basket";
+import { onerToQuoteFlight } from "@/lib/quote-flight";
 import { QuoteBasketBar } from "@/components/quote/QuoteBasketBar";
 import { Button } from "@/components/ui/button";
 
@@ -1647,6 +1648,10 @@ function SummaryCard({
                   startDate: ctx.departureDate || null,
                   endDate: ctx.returnDate || null,
                   services: summaryText.split("\n").filter(Boolean),
+                  flights: [
+                    onerToQuoteFlight(out, inb ? "OUTBOUND" : null),
+                    ...(inb ? [onerToQuoteFlight(inb, "INBOUND")] : []),
+                  ],
                   notes: null,
                 });
                 toast.success("Voo salvo na cesta de orçamento");

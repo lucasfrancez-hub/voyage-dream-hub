@@ -31,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 import { addToQuoteBasket } from "@/lib/quote-basket";
+import { onerToQuoteFlight } from "@/lib/quote-flight";
 import { Button } from "@/components/ui/button";
 
 import { Label } from "@/components/ui/label";
@@ -1014,6 +1015,7 @@ function SalvarNaCestaMultiTrecho({
             startDate: segs[0]?.input.date ?? null,
             endDate: segs[segs.length - 1]?.input.date ?? null,
             services: linhas,
+            flights: validos.map((f) => onerToQuoteFlight(f, null)),
             notes: `Viagem multi-trecho com ${segs.length} trechos • ${pax.adults} adulto(s)${pax.children ? ` • ${pax.children} criança(s)` : ""}${pax.infants ? ` • ${pax.infants} bebê(s)` : ""}`,
           });
           toast.success("Multi-trecho salvo na cesta de orçamento");
