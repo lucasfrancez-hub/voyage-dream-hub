@@ -33,8 +33,12 @@ import {
   ShoppingCart,
   ExternalLink,
   Copy,
+  FileText,
 } from "lucide-react";
+import { addToQuoteBasket } from "@/lib/quote-basket";
+import { QuoteBasketBar } from "@/components/quote/QuoteBasketBar";
 import { Button } from "@/components/ui/button";
+
 import { NoResults } from "@/components/flights/NoResults";
 
 import { Input } from "@/components/ui/input";
@@ -1631,6 +1635,28 @@ function SummaryCard({
               <ShoppingCart className="h-4 w-4" /> Fazer pedido
             </Button>
             <Button
+              variant="secondary"
+              onClick={() => {
+                addToQuoteBasket({
+                  label: `${out.journey.departure.iata} → ${out.journey.destination.iata}${inb ? " (ida e volta)" : ""} • ${airlineOf(out)?.name?.trim() ?? "—"}`,
+                  total,
+                  adults: ctx.adults,
+                  children: ctx.children,
+                  origin: ctx.departureIata,
+                  destination: ctx.arrivalIata,
+                  startDate: ctx.departureDate || null,
+                  endDate: ctx.returnDate || null,
+                  services: summaryText.split("\n").filter(Boolean),
+                  notes: null,
+                });
+                toast.success("Voo salvo na cesta de orçamento");
+                onOpenChange(false);
+              }}
+              className="w-full py-5 text-[10px] font-black uppercase tracking-[0.15em]"
+            >
+              <FileText className="h-4 w-4" /> Salvar como orçamento
+            </Button>
+            <Button
               variant="outline"
               disabled={!searchKey || cartMut.isPending}
               onClick={() => cartMut.mutate()}
@@ -1644,6 +1670,7 @@ function SummaryCard({
               Comprar viagem
             </Button>
             </>
+
             )}
 
           </div>
@@ -2752,7 +2779,14 @@ export function VoosPage({
 
       </main>
 
+      {!publicMode && !onComboSelect ? (
+        <div className="mx-auto max-w-7xl px-4 pb-6">
+          <QuoteBasketBar />
+        </div>
+      ) : null}
+
     </div>
+
   );
 }
 
