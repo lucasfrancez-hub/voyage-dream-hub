@@ -298,7 +298,12 @@ function FlightLegCard({
 
                           <div className="vq-seg2-path">
                             <span className="vq-seg2-dur">
-                              Duração: <strong>{s.duration ?? leg.duration ?? "—"}</strong>
+                              Duração:{" "}
+                              <strong>
+                                {duracaoSegmento(s.departure, s.arrival) ??
+                                  (leg.segments.length === 1 ? (leg.duration ?? "—") : "—")}
+                              </strong>
+                              
                             </span>
                             <div className="vq-seg2-line">
                               <span className="vq-seg2-dot" />
