@@ -33,8 +33,12 @@ import {
   ShoppingCart,
   ExternalLink,
   Copy,
+  FileText,
 } from "lucide-react";
+import { addToQuoteBasket } from "@/lib/quote-basket";
+import { QuoteBasketBar } from "@/components/quote/QuoteBasketBar";
 import { Button } from "@/components/ui/button";
+
 import { NoResults } from "@/components/flights/NoResults";
 
 import { Input } from "@/components/ui/input";
