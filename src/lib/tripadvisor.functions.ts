@@ -99,6 +99,29 @@ async function translateBatchToPt(texts: string[]): Promise<string[]> {
   }
 }
 
+/**
+ * O título das páginas do TripAdvisor vem poluído
+ * ("ZERMATT HOTEL (GRAMADO): 2026 fotos, comparação de preços e avaliações").
+ * Mantém só o nome do hotel, com capitalização natural.
+ */
+function limparNomeTripAdvisor(raw: string): string {
+  let s = (raw || "").trim();
+  if (!s) return "";
+  s = s.split("|")[0];
+  s = s.replace(/\s*[:\u2013-]\s*(?:\d{4}\s+)?(?:fotos|comparaç|avaliaç|preços|prices|photos|reviews|updated)[\s\S]*$/i, "");
+  s = s.replace(/\s*\([^)]*\)\s*$/g, "");
+  s = s.replace(/\s{2,}/g, " ").trim();
+  const temMinuscula = /[a-zà-ÿ]/.test(s);
+  if (!temMinuscula) {
+    s = s
+      .toLocaleLowerCase("pt-BR")
+      .split(" ")
+      .map((w) => (w.length <= 2 && /^(de|da|do|e|by|of)$/i.test(w) ? w : w.charAt(0).toLocaleUpperCase("pt-BR") + w.slice(1)))
+      .join(" ");
+  }
+  return s;
+}
+
 function pickName(names: Array<{ language?: string; value?: string; primary?: boolean }> | undefined, lang = "pt"): string {
   if (!Array.isArray(names) || names.length === 0) return "";
   const byLang = names.find((n) => n.language === lang);
@@ -835,7 +858,7 @@ export const getTripAdvisorHotelByUrl = createServerFn({ method: "POST" })
 
           const nameFromUrl = url.match(/-Reviews-([^-]+(?:_[^-]+)*)-/)?.[1]?.replace(/_/g, " ") ?? "";
           const ogTitle = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? "";
-          const name = (det?.name || ogTitle.split("|")[0].split(" - ")[0].trim() || nameFromUrl).trim();
+          const name = limparNomeTripAdvisor(det?.name || ogTitle || nameFromUrl);
           const desc = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? null;
           const ratingStr = html.match(/"ratingValue"\s*:\s*"?([0-5](?:[.,]\d)?)/i)?.[1];
           const addrStreet = html.match(/"streetAddress"\s*:\s*"([^"]+)"/i)?.[1] ?? null;
@@ -871,7 +894,7 @@ export const getTripAdvisorHotelByUrl = createServerFn({ method: "POST" })
       const nameFromUrl = url.match(/-Reviews-([^-]+(?:_[^-]+)*)-/)?.[1]?.replace(/_/g, " ").trim() ?? "";
       det = {
         location_id: locationId,
-        name: nameFromUrl || `Hotel TripAdvisor ${locationId}`,
+        name: limparNomeTripAdvisor(nameFromUrl) || `Hotel TripAdvisor ${locationId}`,
         address: null,
         city: null,
         country: null,
