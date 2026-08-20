@@ -74,16 +74,22 @@ function AuthPage() {
 
     // Sem fator verificado → enrollment obrigatório (2FA nunca pulado).
     if (!verified) {
-      for (const f of factors?.totp ?? []) {
-        if (f.status !== "verified") {
-          try { await supabase.auth.mfa.unenroll({ factorId: f.id }); } catch { /* ignore */ }
-        }
+      const todos = [...(factors?.all ?? []), ...(factors?.totp ?? [])];
+      const vistos = new Set<string>();
+      for (const f of todos) {
+        if (f.status === "verified" || vistos.has(f.id)) continue;
+        vistos.add(f.id);
+        try { await supabase.auth.mfa.unenroll({ factorId: f.id }); } catch { /* ignore */ }
       }
+      const agora = new Date();
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        friendlyName: `Authenticator ${new Date().toLocaleDateString("pt-BR")}`,
+        friendlyName: `Authenticator ${agora.toLocaleDateString("pt-BR")} ${agora
+          .toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+          .replace(/:/g, "")}`,
       });
       if (error) throw error;
+
       setEnroll({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
       setStep("enroll");
       return;
