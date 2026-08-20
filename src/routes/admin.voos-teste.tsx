@@ -2779,7 +2779,14 @@ export function VoosPage({
 
       </main>
 
+      {!publicMode && !onComboSelect ? (
+        <div className="mx-auto max-w-7xl px-4 pb-6">
+          <QuoteBasketBar />
+        </div>
+      ) : null}
+
     </div>
+
   );
 }
 
