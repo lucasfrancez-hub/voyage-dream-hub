@@ -186,9 +186,13 @@ export const Route = createFileRoute("/api/public/motor-busca")({
         }
         const body = parsed.data;
 
-        const { searchAirports, searchFlights, searchInboundFlights } = await import(
-          "@/lib/onertravel.server"
-        );
+        const {
+          searchAirports,
+          searchFlights,
+          searchInboundFlights,
+          flightSearchInput,
+          inboundSearchInput,
+        } = await import("@/lib/onertravel.server");
 
         try {
           if (body.tipo === "aeroportos") {
@@ -206,18 +210,23 @@ export const Route = createFileRoute("/api/public/motor-busca")({
           } as const;
 
           if (body.tipo === "multitrecho") {
-            const trechos = [];
+            const trechos: Array<{
+              trecho: string;
+              data: string;
+              searchKey: string;
+              totalEncontrados: number;
+              faixaDePreco: unknown;
+              voos: ReturnType<typeof simplificaVoo>[];
+            }> = [];
             for (const t of body.trechos) {
-              const r = await searchFlights({
-                ...pax,
-                departureIata: t.origem,
-                arrivalIata: t.destino,
-                departureDate: t.data,
-                returnDate: null,
-                searchKey: null,
-                combinedKey: null,
-                filters: undefined as never,
-              } as never);
+              const r = await searchFlights(
+                flightSearchInput.parse({
+                  ...pax,
+                  departureIata: t.origem,
+                  arrivalIata: t.destino,
+                  departureDate: t.data,
+                }),
+              );
               trechos.push({
                 trecho: `${t.origem}-${t.destino}`,
                 data: t.data,
@@ -233,17 +242,17 @@ export const Route = createFileRoute("/api/public/motor-busca")({
           }
 
           if (body.tipo === "volta") {
-            const inbound = await searchInboundFlights({
-              ...pax,
-              departureIata: body.origem,
-              arrivalIata: body.destino,
-              departureDate: body.data,
-              returnDate: body.dataVolta,
-              searchKey: body.searchKey,
-              flightKey: body.flightKey,
-              combinedKey: null,
-              filters: undefined as never,
-            } as never);
+            const inbound = await searchInboundFlights(
+              inboundSearchInput.parse({
+                ...pax,
+                departureIata: body.origem,
+                arrivalIata: body.destino,
+                departureDate: body.data,
+                returnDate: body.dataVolta,
+                searchKey: body.searchKey,
+                flightKey: body.flightKey,
+              }),
+            );
             return json({
               tipo: body.tipo,
               searchKey: body.searchKey,
@@ -251,16 +260,15 @@ export const Route = createFileRoute("/api/public/motor-busca")({
             });
           }
 
-          const result = await searchFlights({
-            ...pax,
-            departureIata: body.origem,
-            arrivalIata: body.destino,
-            departureDate: body.data,
-            returnDate: body.tipo === "ida-volta" ? body.dataVolta : null,
-            searchKey: null,
-            combinedKey: null,
-            filters: undefined as never,
-          } as never);
+          const result = await searchFlights(
+            flightSearchInput.parse({
+              ...pax,
+              departureIata: body.origem,
+              arrivalIata: body.destino,
+              departureDate: body.data,
+              returnDate: body.tipo === "ida-volta" ? body.dataVolta : null,
+            }),
+          );
 
           return json({
             tipo: body.tipo,
