@@ -18,6 +18,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  FileText,
   Info,
   Loader2,
   MapPin,
@@ -29,7 +30,9 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
+import { addToQuoteBasket } from "@/lib/quote-basket";
 import { Button } from "@/components/ui/button";
+
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -833,6 +836,10 @@ function MultiCitySummaryDialog({
           {!inline && !publicMode && (
             <CompartilharCotacao segs={segs} flights={flights} pax={pax} ui={ui} />
           )}
+          {!publicMode && (
+            <SalvarNaCestaMultiTrecho segs={segs} flights={flights} pax={pax} ui={ui} />
+          )}
+
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-primary">
             <CheckCircle2 className="h-3.5 w-3.5" />
             {validos.length === segs.length
@@ -947,6 +954,78 @@ function MultiCitySummaryDialog({
     </Dialog>
   );
 }
+
+/**
+ * Guarda a viagem multi-trecho montada na cesta de orçamento do motor interno.
+ * Cada viagem salva vira UMA opção do orçamento final (junto com voos simples,
+ * ida e volta e outras montagens multi-trecho).
+ */
+function SalvarNaCestaMultiTrecho({
+  segs,
+  flights,
+  pax,
+  ui,
+}: {
+  segs: SegState[];
+  flights: (OnerFlight | null)[];
+  pax: MultiPax;
+  ui: FlightUi;
+}) {
+  const validos = flights.filter(Boolean) as OnerFlight[];
+  const total = validos.reduce((a, f) => a + f.price.total, 0);
+  const completo = validos.length === segs.length && segs.length > 0;
+
+  const linhas = segs.map((s, i) => {
+    const f = flights[i];
+    const pick = f ? pickFromFlight(f, ui) : null;
+    const rota = `${s.input.origin.toUpperCase()} → ${s.input.destination.toUpperCase()}`;
+    const data = s.input.date ? s.input.date.split("-").reverse().join("/") : "";
+    if (!pick) return `Trecho ${i + 1}: ${rota} • ${data} • voo a definir`;
+    const cia = pick.airlineName ?? pick.airline ?? "";
+    const horas = [pick.time, pick.arrival].filter(Boolean).join(" → ");
+    const bag = pick.baggage ? "com bagagem" : "sem bagagem despachada";
+    return `Trecho ${i + 1}: ${rota} • ${data}${cia ? ` • ${cia}` : ""}${pick.flightNumber ? ` ${pick.flightNumber}` : ""}${horas ? ` • ${horas}` : ""} • ${bag}`;
+  });
+
+  const label = `${segs.map((s) => s.input.origin.toUpperCase()).join(" → ")} → ${segs[segs.length - 1]?.input.destination.toUpperCase() ?? ""} (multi-trecho)`;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+      <div className="min-w-0">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          Cesta de orçamento
+        </div>
+        <div className="truncate text-sm font-semibold">
+          {segs.length} trechos • {ui.fmtMoney(total)}
+        </div>
+      </div>
+      <Button
+        variant="secondary"
+        className="shrink-0 text-xs font-black uppercase tracking-[0.15em]"
+        disabled={!completo}
+        onClick={() => {
+          addToQuoteBasket({
+            label,
+            total,
+            adults: pax.adults,
+            children: pax.children,
+            origin: segs[0]?.input.origin.toUpperCase() ?? null,
+            destination: segs[segs.length - 1]?.input.destination.toUpperCase() ?? null,
+            startDate: segs[0]?.input.date ?? null,
+            endDate: segs[segs.length - 1]?.input.date ?? null,
+            services: linhas,
+            notes: `Viagem multi-trecho com ${segs.length} trechos • ${pax.adults} adulto(s)${pax.children ? ` • ${pax.children} criança(s)` : ""}${pax.infants ? ` • ${pax.infants} bebê(s)` : ""}`,
+          });
+          toast.success("Multi-trecho salvo na cesta de orçamento");
+        }}
+      >
+        <FileText className="h-4 w-4" /> Salvar como orçamento
+      </Button>
+    </div>
+  );
+}
+
+
 
 /**
  * Link pronto da cotação: grava a seleção completa no backend e devolve um
