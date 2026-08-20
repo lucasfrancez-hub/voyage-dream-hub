@@ -222,7 +222,12 @@ function FlightLegCard({
           <div className="vq-path">
             {leg.stopsLabel}
             <div className="vq-line">{leg.stops > 0 ? <span className="vq-stop-dot" /> : null}</div>
-            {leg.duration ?? ""}
+            {leg.duration ??
+              durationBetween(
+                leg.segments[0]?.departure,
+                leg.segments[leg.segments.length - 1]?.arrival,
+              ) ??
+              ""}
           </div>
           <div className="vq-airport" style={{ textAlign: "right" }}>
             <time>{leg.arrivalTime}</time>
