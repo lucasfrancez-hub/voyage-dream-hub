@@ -154,8 +154,10 @@ export function buildPayment(params: {
   const boletoFinanciado = type === "TRIP_PACKAGE" && dias != null && dias >= BOLETO_MIN_DAYS;
   // Boleto até a data da viagem: vale sempre que houver 60+ dias (30 de prazo
   // de parcelamento + 30 dias de quitação antes do embarque).
-  const ateViagem = boletoAteViagem(total, params.startDate);
-  const boletoEnabled = boletoFinanciado || !!ateViagem;
+  // REGRA COMERCIAL: somente aéreo (AIR_ONLY, inclusive os orçamentos gerados
+  // pela cesta do motor de busca) NUNCA tem boleto. Só Pix e cartão.
+  const ateViagem = type === "AIR_ONLY" ? null : boletoAteViagem(total, params.startDate);
+  const boletoEnabled = type === "AIR_ONLY" ? false : boletoFinanciado || !!ateViagem;
 
   return {
     methods: boletoEnabled ? ["CARD", "BOLETO", "PIX"] : ["CARD", "PIX"],
