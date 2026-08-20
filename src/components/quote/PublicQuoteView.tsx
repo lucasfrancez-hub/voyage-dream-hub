@@ -63,6 +63,14 @@ function hhmm(v?: string | null): string {
   return m ? `${m[1]}:${m[2]}` : "—";
 }
 
+/**
+ * Duração REAL do segmento (calculada pelos horários dele).
+ * Antes o detalhe do voo repetia a duração do trecho inteiro em cada perna.
+ */
+function duracaoSegmento(de?: string | null, ate?: string | null): string | null {
+  return durationBetween(de, ate);
+}
+
 /** Data curta "sex., 1 de jan." a partir de qualquer formato. */
 function dataCurta(v?: string | null): string {
   const iso = String(v ?? "").slice(0, 10);
