@@ -6,6 +6,7 @@
  * consultor monta múltiplas opções de voo em uma cotação só.
  */
 import { useSyncExternalStore } from "react";
+import type { QuoteFlight } from "@/lib/quote-flight";
 
 export type QuoteBasketItem = {
   id: string;
@@ -19,8 +20,11 @@ export type QuoteBasketItem = {
   endDate: string | null;
   /** Linhas do resumo (ida/volta) que viram itens inclusos da opção. */
   services: string[];
+  /** Voos estruturados: aparecem no bloco aéreo do orçamento. */
+  flights?: QuoteFlight[];
   notes: string | null;
 };
+
 
 const KEY = "viaair.quote-basket.v1";
 
