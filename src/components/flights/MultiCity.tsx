@@ -836,6 +836,10 @@ function MultiCitySummaryDialog({
           {!inline && !publicMode && (
             <CompartilharCotacao segs={segs} flights={flights} pax={pax} ui={ui} />
           )}
+          {!publicMode && (
+            <SalvarNaCestaMultiTrecho segs={segs} flights={flights} pax={pax} ui={ui} />
+          )}
+
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-primary">
             <CheckCircle2 className="h-3.5 w-3.5" />
             {validos.length === segs.length
