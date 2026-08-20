@@ -78,7 +78,12 @@ function toSegments(flight: NormalizedOption["flights"][number]): FlightSegment[
       toName: cityLabel(s.toIata ?? "") || null,
       departure: s.departure ?? flight.departure ?? "",
       arrival: s.arrival ?? flight.arrival ?? "",
-      duration: s.duration ?? flight.duration ?? null,
+      // Duração DO SEGMENTO. Nunca herdar a duração do trecho inteiro:
+      // isso fazia cada perna aparecer com o tempo total (ex.: 8H 35M).
+      duration:
+        s.duration ??
+        durationBetween(s.departure ?? flight.departure, s.arrival ?? flight.arrival) ??
+        null,
       aircraft: s.aircraft ?? null,
     }));
   }
