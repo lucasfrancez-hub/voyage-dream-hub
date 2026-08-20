@@ -71,8 +71,16 @@ const TRADUCOES: Record<string, string> = {
   cancun: "Cancún",
 };
 
-/** "Prague CZ" / "Prague, Czech Republic" → "Praga" */
+/** "Prague CZ" / "Prague, Czech Republic" / "BEL" → "Praga" / "Belém" */
 export function nomeDestino(destino?: string | null): string | null {
+  const bruto = String(destino ?? "").trim();
+  // Código IATA puro ("BEL") vira o nome da cidade, senão a foto do destino
+  // acabaria buscando por siglas e trazendo imagem aleatória.
+  if (/^[A-Za-z]{3}$/.test(bruto)) {
+    const cidade = iataCity(bruto);
+    if (cidade) return cidade;
+  }
+
   let base = String(destino ?? "")
     .split(/[-–—,(/|]/)[0]
     .replace(/\s*\b[A-Z]{2,3}\b\s*$/, "") // sufixo de país/IATA: "Prague CZ"
