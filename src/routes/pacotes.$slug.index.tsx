@@ -705,13 +705,14 @@ function PackageDetails() {
                   }
 
                   const abrir = (i: number) => {
-                    if (taId) {
+                    if (taUrl) {
+                      window.open(taUrl, "_blank", "noreferrer");
+                    } else if (taId) {
                       setDialogPhotoIndex(i);
                       setHotelDialogOpen(true);
-                    } else if (taUrl) {
-                      window.open(taUrl, "_blank", "noreferrer");
                     }
                   };
+
 
                   const galeria = photos.slice(0, 5);
 
@@ -749,7 +750,16 @@ function PackageDetails() {
                       )}
                       <div className="mt-3 flex justify-end">
 
-                        {taId ? (
+                        {taUrl ? (
+                          <a
+                            href={taUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/30 bg-brand-orange/10 px-2.5 py-1.5 text-[10px] font-bold text-brand-orange hover:bg-brand-orange/20 transition"
+                          >
+                            Ver todas as fotos e avaliações <ArrowRight className="h-3.5 w-3.5" />
+                          </a>
+                        ) : taId ? (
                           <button
                             type="button"
                             onClick={() => {
@@ -760,16 +770,8 @@ function PackageDetails() {
                           >
                             Ver fotos e avaliações <ArrowRight className="h-3.5 w-3.5" />
                           </button>
-                        ) : taUrl ? (
-                          <a
-                            href={taUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-full border border-brand-orange/30 bg-brand-orange/10 px-2.5 py-1.5 text-[10px] font-bold text-brand-orange hover:bg-brand-orange/20 transition"
-                          >
-                            Ver mais <ArrowRight className="h-3.5 w-3.5" />
-                          </a>
                         ) : null}
+
                       </div>
                     </div>
                   );

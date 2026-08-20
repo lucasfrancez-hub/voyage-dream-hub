@@ -46,6 +46,13 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
   const [loadingUrl, setLoadingUrl] = useState(false);
   const urlInfo = parseTripAdvisorUrl(value || "");
   const lastUrlRef = useRef<string>("");
+  // Último nome digitado/salvo antes de colar o link — deve ser preservado.
+  const prevNameRef = useRef<string>(parseTripAdvisorUrl(value || "").url ? "" : (value || "").trim());
+
+  useEffect(() => {
+    const v = (value || "").trim();
+    if (v && !parseTripAdvisorUrl(v).url) prevNameRef.current = v;
+  }, [value]);
 
   async function pickByUrl(link: string) {
     if (!link || loadingUrl) return;
@@ -55,7 +62,8 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     try {
       const full = await byUrl({ data: { url: link, photoLimit } });
       suppressRef.current = true;
-      onSelect(full);
+      const nomeAnterior = prevNameRef.current;
+      onSelect(nomeAnterior ? { ...full, name: nomeAnterior } : full);
       setOpen(false);
       setItems([]);
     } catch (e) {
@@ -65,6 +73,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
       setLoadingUrl(false);
     }
   }
+
 
   useEffect(() => {
     const link = urlInfo.url;
