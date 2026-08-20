@@ -4,6 +4,8 @@
  * cidades que costumam chegar em inglês das integrações (Prague → Praga).
  */
 
+import { iataCity } from "@/lib/iata-lookup";
+
 const TRADUCOES: Record<string, string> = {
   prague: "Praga",
   vienna: "Viena",
