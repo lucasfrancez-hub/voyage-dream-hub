@@ -16,6 +16,7 @@ import {
   type ParcelaAgendada,
 } from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
+import { durationBetween } from "@/lib/public-quote/flight-legs";
 import { agentPhoto, agentProfile } from "@/lib/public-quote/agents";
 import { formatRoom } from "@/lib/public-quote/room-label";
 import { fotoDoDestino } from "@/lib/public-quote/destination-photo";
@@ -61,6 +62,14 @@ const WHATSAPP = "5544999514838";
 function hhmm(v?: string | null): string {
   const m = String(v ?? "").match(/(\d{2}):(\d{2})/);
   return m ? `${m[1]}:${m[2]}` : "—";
+}
+
+/**
+ * Duração REAL do segmento (calculada pelos horários dele).
+ * Antes o detalhe do voo repetia a duração do trecho inteiro em cada perna.
+ */
+function duracaoSegmento(de?: string | null, ate?: string | null): string | null {
+  return durationBetween(de, ate);
 }
 
 /** Data curta "sex., 1 de jan." a partir de qualquer formato. */
@@ -213,7 +222,12 @@ function FlightLegCard({
           <div className="vq-path">
             {leg.stopsLabel}
             <div className="vq-line">{leg.stops > 0 ? <span className="vq-stop-dot" /> : null}</div>
-            {leg.duration ?? ""}
+            {leg.duration ??
+              durationBetween(
+                leg.segments[0]?.departure,
+                leg.segments[leg.segments.length - 1]?.arrival,
+              ) ??
+              ""}
           </div>
           <div className="vq-airport" style={{ textAlign: "right" }}>
             <time>{leg.arrivalTime}</time>
@@ -298,7 +312,12 @@ function FlightLegCard({
 
                           <div className="vq-seg2-path">
                             <span className="vq-seg2-dur">
-                              Duração: <strong>{s.duration ?? leg.duration ?? "—"}</strong>
+                              Duração:{" "}
+                              <strong>
+                                {duracaoSegmento(s.departure, s.arrival) ??
+                                  (leg.segments.length === 1 ? (leg.duration ?? "—") : "—")}
+                              </strong>
+                              
                             </span>
                             <div className="vq-seg2-line">
                               <span className="vq-seg2-dot" />
