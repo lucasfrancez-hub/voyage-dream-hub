@@ -427,7 +427,10 @@ export function buildPublicQuoteFromImported(params: {
   const anyPackage = options.some((o) => optionType(o) === "TRIP_PACKAGE");
   const type: QuoteType = anyPackage ? "TRIP_PACKAGE" : "AIR_ONLY";
 
-  const destino = normalized.destination ?? options[0]?.destination ?? "Sua viagem";
+  const destinoBruto = normalized.destination ?? options[0]?.destination ?? "Sua viagem";
+  // Cesta do motor guarda o IATA ("BEL"); o público precisa da cidade ("Belém"),
+  // senão o hero busca foto pela sigla e traz imagem aleatória.
+  const destino = nomeDestino(destinoBruto) ?? destinoBruto;
   const title = params.title ?? (normalized.origin ? `${normalized.origin} → ${destino}` : destino);
   const primeirasLegs = first?.products.flights?.[0]?.legs ?? [];
 
