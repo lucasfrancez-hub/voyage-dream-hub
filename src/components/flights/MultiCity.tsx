@@ -18,6 +18,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  FileText,
   Info,
   Loader2,
   MapPin,
@@ -29,7 +30,9 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
+import { addToQuoteBasket } from "@/lib/quote-basket";
 import { Button } from "@/components/ui/button";
+
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
