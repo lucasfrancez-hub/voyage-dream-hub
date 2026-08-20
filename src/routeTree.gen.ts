@@ -124,6 +124,7 @@ import { Route as ApiPublicHotelCardRouteImport } from './routes/api/public/hote
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
 import { Route as ApiPublicItauPixWebhookRouteImport } from './routes/api/public/itau-pix-webhook'
+import { Route as ApiPublicMotorBuscaRouteImport } from './routes/api/public/motor-busca'
 import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/public/nfse-atendenet-test'
 import { Route as ApiPublicPromoCardRouteImport } from './routes/api/public/promo-card'
 import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/public/test-flight-alert'
@@ -756,6 +757,11 @@ const ApiPublicItauPixWebhookRoute = ApiPublicItauPixWebhookRouteImport.update({
   path: '/api/public/itau-pix-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMotorBuscaRoute = ApiPublicMotorBuscaRouteImport.update({
+  id: '/api/public/motor-busca',
+  path: '/api/public/motor-busca',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicNfseAtendenetTestRoute =
   ApiPublicNfseAtendenetTestRouteImport.update({
     id: '/api/public/nfse-atendenet-test',
@@ -1160,6 +1166,7 @@ export interface FileRoutesByFullPath {
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
+  '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
@@ -1326,6 +1333,7 @@ export interface FileRoutesByTo {
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
+  '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
@@ -1495,6 +1503,7 @@ export interface FileRoutesById {
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
+  '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
@@ -1665,6 +1674,7 @@ export interface FileRouteTypes {
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
+    | '/api/public/motor-busca'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
@@ -1831,6 +1841,7 @@ export interface FileRouteTypes {
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
+    | '/api/public/motor-busca'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
@@ -1999,6 +2010,7 @@ export interface FileRouteTypes {
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
+    | '/api/public/motor-busca'
     | '/api/public/nfse-atendenet-test'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
@@ -2101,6 +2113,7 @@ export interface RootRouteChildren {
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicItauPixWebhookRoute: typeof ApiPublicItauPixWebhookRoute
+  ApiPublicMotorBuscaRoute: typeof ApiPublicMotorBuscaRoute
   ApiPublicNfseAtendenetTestRoute: typeof ApiPublicNfseAtendenetTestRoute
   ApiPublicPromoCardRoute: typeof ApiPublicPromoCardRoute
   ApiPublicTestFlightAlertRoute: typeof ApiPublicTestFlightAlertRoute
@@ -2957,6 +2970,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicItauPixWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/motor-busca': {
+      id: '/api/public/motor-busca'
+      path: '/api/public/motor-busca'
+      fullPath: '/api/public/motor-busca'
+      preLoaderRoute: typeof ApiPublicMotorBuscaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/nfse-atendenet-test': {
       id: '/api/public/nfse-atendenet-test'
       path: '/api/public/nfse-atendenet-test'
@@ -3556,6 +3576,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicItauPixWebhookRoute: ApiPublicItauPixWebhookRoute,
+  ApiPublicMotorBuscaRoute: ApiPublicMotorBuscaRoute,
   ApiPublicNfseAtendenetTestRoute: ApiPublicNfseAtendenetTestRoute,
   ApiPublicPromoCardRoute: ApiPublicPromoCardRoute,
   ApiPublicTestFlightAlertRoute: ApiPublicTestFlightAlertRoute,
