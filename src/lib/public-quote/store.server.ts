@@ -67,9 +67,24 @@ function toRow(q: NewPublicQuote, publicId: string) {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/** Somente aéreo NUNCA tem boleto — vale também para links já gravados. */
+function semBoleto(p: any): any {
+  if (!p) return p;
+  const methods = Array.isArray(p.methods) ? p.methods.filter((m: string) => m !== "BOLETO") : p.methods;
+  return { ...p, methods, boleto: { ...(p.boleto ?? {}), enabled: false, installments: [], note: null } };
+}
+
 function normalizeStoredPayment(quote: PublicQuote): PublicQuote {
+  if (quote.type === "AIR_ONLY") {
+    quote = {
+      ...quote,
+      payment: semBoleto(quote.payment),
+      options: quote.options?.map((o: any) => ({ ...o, payment: semBoleto(o.payment) })),
+    } as PublicQuote;
+  }
   const payment = quote.payment;
   if (!payment?.pix) return quote;
+
 
   // Regra comercial fixa: Pix sempre aceito. Desconto de 5% somente em
   // pacotes (TRIP_PACKAGE). Somente aéreo (AIR_ONLY) não tem desconto.
