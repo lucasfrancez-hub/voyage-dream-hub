@@ -87,7 +87,14 @@ export async function sabreToken(): Promise<string> {
 
   inflight = (async () => {
     const { id, secret } = credenciais();
-    const tentativas = [b64(`${b64(id)}:${b64(secret)}`), b64(`${id}:${secret}`)];
+    const epr = (process.env["SABRE_EPR"] ?? "").trim();
+    const pcc = (process.env["SABRE_PCC"] ?? "").trim();
+    // Ordem: credencial já pronta do Dev Studio → montagem V1:EPR:PCC:AA (login GDS) → simples.
+    const ids = [id, epr && pcc ? `V1:${epr}:${pcc}:AA` : "", epr && pcc ? `V1:${epr}:${pcc}:DEV` : ""].filter(
+      Boolean,
+    );
+    const tentativas = [...ids.map((v) => b64(`${b64(v)}:${b64(secret)}`)), b64(`${id}:${secret}`)];
+
     let ultimoErro = "";
     for (const basic of tentativas) {
       const res = await pedirToken(basic);
