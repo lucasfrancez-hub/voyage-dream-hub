@@ -2978,6 +2978,8 @@ function PackageEditorModal({
                         : hotelMode
                     }
                     onModeChange={setHotelMode}
+                    autoSelect={!hv.tripadvisor_location_id && !!(hv.hotel_name ?? "").trim()}
+
 
                     onChangeText={(v) => setHotel({ hotel_name: v })}
                     onSelect={(h) => {
@@ -4884,6 +4886,11 @@ function PackageImportButton({ onImported }: { onImported: (patch: Partial<Packa
       if (p.room_type) { const v = cleanRoomLabel(String(p.room_type)); if (v) patch.room_type = v; }
       if (p.room_category) { const v = cleanRoomLabel(String(p.room_category)); if (v) patch.room_category = v; }
       if (p.bed_type) patch.bed_type = String(p.bed_type);
+      // Hotel importado sem categoria/cama: padrão Standard + cama de casal.
+      if (patch.hotel_name) {
+        if (!patch.room_type) patch.room_type = "Standard";
+        if (!patch.bed_type) patch.bed_type = "1 cama de casal";
+      }
       // Não usar includes do documento — a derivação automática monta na ordem correta
       // (Passagem Aérea → Hospedagem → Café da Manhã → Bagagem Despachada).
       patch.includes = [];
@@ -4924,7 +4931,9 @@ function PackageImportButton({ onImported }: { onImported: (patch: Partial<Packa
                 : cls != null
                   ? Math.min(5, Math.max(1, Math.round(cls)))
                   : (patch.hotel_stars ?? 3);
-            patch.hotel_name = full.name || best.name || patch.hotel_name;
+            // Mantém o nome do documento (ex.: "Makai") — o TripAdvisor
+            // costuma acrescentar cidade/rede ao nome ("Makai Aracaju").
+            patch.hotel_name = patch.hotel_name || full.name || best.name;
             patch.hotel_stars = stars;
             patch.tripadvisor_location_id = String(best.location_id);
             patch.tripadvisor_url = full.tripadvisor_url ?? best.tripadvisor_url ?? null;
@@ -5179,9 +5188,10 @@ function MultiPackageImportButton({
               ? Math.max(1, Math.min(5, Math.round(Number(p.hotel_stars))))
               : null,
           meal_plan: p.meal_plan || "",
-          room_type: cleanRoomLabel(p.room_type as string) ?? "",
+          // Sem categoria/cama no documento: padrão Standard + cama de casal.
+          room_type: (cleanRoomLabel(p.room_type as string) ?? "") || (p.hotel_name ? "Standard" : ""),
           room_category: cleanRoomLabel(p.room_category as string) ?? "",
-          bed_type: p.bed_type || "",
+          bed_type: p.bed_type || (p.hotel_name ? "1 cama de casal" : ""),
           supplier_name: p.supplier_name || "",
           services: ((p as any).services && typeof (p as any).services === "object"
             ? (p as any).services
@@ -5217,7 +5227,8 @@ function MultiPackageImportButton({
                 : cls != null
                   ? Math.min(5, Math.max(1, Math.round(cls)))
                   : (d.hotel_stars ?? 3);
-            d.hotel_name = full.name || best.name || d.hotel_name;
+            // Mantém o nome do documento; o TripAdvisor acrescenta cidade/rede.
+            d.hotel_name = d.hotel_name || full.name || best.name;
             d.hotel_stars = stars;
             (d as any).tripadvisor_location_id = String(best.location_id);
             (d as any).tripadvisor_url = full.tripadvisor_url ?? best.tripadvisor_url ?? null;

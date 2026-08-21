@@ -20,9 +20,24 @@ type Props = {
   /** Modo controlado (opcional). Se informado, sobrepõe o estado interno. */
   mode?: Mode | null;
   onModeChange?: (mode: Mode | null) => void;
+  /**
+   * Nome já preenchido (importação): vincula sozinho ao melhor resultado do
+   * TripAdvisor, sem precisar clicar na lista. O nome digitado é preservado.
+   */
+  autoSelect?: boolean;
 };
 
-export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, photoLimit = 5, disabled, initialMode = null, mode: modeProp, onModeChange }: Props) {
+/** "Makai Aracaju" x "Makai" → considera o mesmo hotel. */
+function nomeBate(a: string, b: string) {
+  const norm = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const x = norm(a);
+  const y = norm(b);
+  if (!x || !y) return false;
+  return x === y || x.startsWith(y) || y.startsWith(x) || x.includes(y) || y.includes(x);
+}
+
+export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, photoLimit = 5, disabled, initialMode = null, mode: modeProp, onModeChange, autoSelect = false }: Props) {
   const search = useServerFn(searchTripAdvisorHotels);
   const details = useServerFn(getTripAdvisorHotelDetails);
   const [internalMode, setInternalMode] = useState<Mode | null>(initialMode ?? (value?.trim() ? "manual" : null));
@@ -40,6 +55,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastQueryRef = useRef<string>("");
   const suppressRef = useRef(false);
+  const autoDoneRef = useRef(false);
 
   // Link do TripAdvisor colado: busca direto pelo link (não gasta a busca da API).
   const byUrl = useServerFn(getTripAdvisorHotelByUrl);
@@ -98,7 +114,16 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
       try {
         const r = await search({ data: { query: q } });
         setItems(r);
-        setOpen(true);
+        // Nome já veio preenchido (importação): vincula sozinho ao melhor
+        // resultado, mantendo o nome original do documento.
+        const auto = autoSelect && !autoDoneRef.current ? r.find((it) => nomeBate(it.name, q)) ?? r[0] : null;
+        if (auto) {
+          autoDoneRef.current = true;
+          setOpen(false);
+          void pick(auto, true);
+        } else {
+          setOpen(true);
+        }
       } catch (e) {
         console.error(e);
         setErro(
@@ -123,7 +148,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  async function pick(item: TAHotelSuggestion) {
+  async function pick(item: TAHotelSuggestion, manterNome = false) {
     setFetchingId(item.location_id);
     try {
       const full = await details({ data: { locationId: item.location_id, photoLimit } });
@@ -132,7 +157,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
       // o formulário sempre consiga preencher as estrelas automaticamente.
       const selected: HotelSelection = {
         ...full,
-        name: full.name || item.name,
+        name: (manterNome ? (value || "").trim() : "") || full.name || item.name,
         address: full.address ?? item.address,
         city: full.city ?? item.city,
         country: full.country ?? item.country,
