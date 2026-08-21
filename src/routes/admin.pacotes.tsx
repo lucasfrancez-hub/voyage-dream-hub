@@ -2150,7 +2150,6 @@ function PackageEditorModal({
     setImgResults([]);
     setImgPage(1);
     setImgHasMore(false);
-    if (editing.image_url) return;
     void (async () => {
       setImgLoading(true);
       try {
