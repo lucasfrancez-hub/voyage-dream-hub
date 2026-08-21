@@ -2978,6 +2978,8 @@ function PackageEditorModal({
                         : hotelMode
                     }
                     onModeChange={setHotelMode}
+                    autoSelect={!hv.tripadvisor_location_id && !!(hv.hotel_name ?? "").trim()}
+
 
                     onChangeText={(v) => setHotel({ hotel_name: v })}
                     onSelect={(h) => {
