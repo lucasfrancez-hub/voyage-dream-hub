@@ -434,7 +434,7 @@ export async function buildPublicQuoteFromImported(params: {
     .join(" • ");
 
   const inicio = normalized.startDate ?? options[0]?.startDate ?? null;
-  const publicOptions = options.map((o) => optionToPublicOption(o, paxLabel, inicio));
+  const publicOptions = options.map((o) => optionToPublicOption(o, paxLabel, inicio, rule));
   const first = publicOptions[0];
 
   const anyPackage = options.some((o) => optionType(o) === "TRIP_PACKAGE");
