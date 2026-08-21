@@ -5221,7 +5221,8 @@ function MultiPackageImportButton({
                 : cls != null
                   ? Math.min(5, Math.max(1, Math.round(cls)))
                   : (d.hotel_stars ?? 3);
-            d.hotel_name = full.name || best.name || d.hotel_name;
+            // Mantém o nome do documento; o TripAdvisor acrescenta cidade/rede.
+            d.hotel_name = d.hotel_name || full.name || best.name;
             d.hotel_stars = stars;
             (d as any).tripadvisor_location_id = String(best.location_id);
             (d as any).tripadvisor_url = full.tripadvisor_url ?? best.tripadvisor_url ?? null;
