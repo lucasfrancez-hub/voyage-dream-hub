@@ -2498,7 +2498,10 @@ function PackageEditorModal({
                       type="button"
                       onClick={() => {
                         setImgOpen((v) => !v);
-                        if (!imgQuery) setImgQuery(editing.destination ?? "");
+                        if (!imgQuery.trim() || !imgResults.length) {
+                          setImgQuery(destinoBusca);
+                          if (destinoBusca) void handleSearchImages(1);
+                        }
                       }}
                       className="mb-0 shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-brand-orange/40 bg-brand-orange/10 px-3 py-2 text-xs font-semibold text-brand-orange hover:bg-brand-orange/20 transition"
                     >
