@@ -4926,7 +4926,9 @@ function PackageImportButton({ onImported }: { onImported: (patch: Partial<Packa
                 : cls != null
                   ? Math.min(5, Math.max(1, Math.round(cls)))
                   : (patch.hotel_stars ?? 3);
-            patch.hotel_name = full.name || best.name || patch.hotel_name;
+            // Mantém o nome do documento (ex.: "Makai") — o TripAdvisor
+            // costuma acrescentar cidade/rede ao nome ("Makai Aracaju").
+            patch.hotel_name = patch.hotel_name || full.name || best.name;
             patch.hotel_stars = stars;
             patch.tripadvisor_location_id = String(best.location_id);
             patch.tripadvisor_url = full.tripadvisor_url ?? best.tripadvisor_url ?? null;
