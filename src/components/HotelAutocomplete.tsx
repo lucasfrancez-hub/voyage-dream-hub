@@ -156,7 +156,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
       // o formulário sempre consiga preencher as estrelas automaticamente.
       const selected: HotelSelection = {
         ...full,
-        name: full.name || item.name,
+        name: (manterNome ? (value || "").trim() : "") || full.name || item.name,
         address: full.address ?? item.address,
         city: full.city ?? item.city,
         country: full.country ?? item.country,
