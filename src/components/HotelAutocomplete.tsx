@@ -147,7 +147,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  async function pick(item: TAHotelSuggestion) {
+  async function pick(item: TAHotelSuggestion, manterNome = false) {
     setFetchingId(item.location_id);
     try {
       const full = await details({ data: { locationId: item.location_id, photoLimit } });
