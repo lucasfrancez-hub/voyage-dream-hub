@@ -190,7 +190,7 @@ export const gerarLinkOrcamento = createServerFn({ method: "POST" })
     }
 
 
-    const dto = buildPublicQuoteFromImported({
+    const dto = await buildPublicQuoteFromImported({
       normalized,
       title: quote.title,
       headline: normalized.headline ?? null,
@@ -380,7 +380,7 @@ export const definirTituloOrcamento = createServerFn({ method: "POST" })
 
     // Se o link público já existe, regrava com o novo título.
     if (quote.public_quote_id && atualizado?.options?.length) {
-      const dto = buildPublicQuoteFromImported({
+      const dto = await buildPublicQuoteFromImported({
         normalized: atualizado,
         title: headline ?? quote.title,
         headline,

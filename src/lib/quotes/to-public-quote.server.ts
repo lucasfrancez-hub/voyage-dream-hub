@@ -9,6 +9,10 @@ import { nomeDestino } from "@/lib/public-quote/destination-name";
 import { findAirline } from "@/lib/airlines";
 import { buildPayment } from "@/lib/public-quote/payments";
 import {
+  resolveQuoteInstallmentRule,
+  type QuoteInstallmentRule,
+} from "./installment-rule.server";
+import {
   MAX_CONNECTION_HOURS,
   directionsFor,
   durationBetween,
@@ -377,6 +381,7 @@ export function optionToPublicOption(
   option: NormalizedOption,
   occupancy?: string | null,
   startDate?: string | null,
+  rule?: QuoteInstallmentRule,
 ): QuoteOption {
   const type = optionType(option);
   const total = Number(option.total) || 0;
@@ -386,6 +391,9 @@ export function optionToPublicOption(
     total,
     airline,
     startDate: startDate ?? option.startDate ?? null,
+    cardMax: rule?.cardMax,
+    boletoMax: rule?.boletoMax,
+    boletoFinanciadoEnabled: rule?.boletoFinanciadoEnabled,
   });
   return {
     optionId: String(option.optionNumber),
@@ -399,15 +407,19 @@ export function optionToPublicOption(
 }
 
 /** Monta o DTO público do orçamento com TODAS as opções agrupadas. */
-export function buildPublicQuoteFromImported(params: {
+export async function buildPublicQuoteFromImported(params: {
   normalized: NormalizedQuote;
   title?: string | null;
   headline?: string | null;
   clientName?: string | null;
   agentName?: string | null;
   validUntil?: string | null;
-}): Omit<PublicQuote, "id" | "publicId" | "createdAt" | "updatedAt" | "expired" | "shortUrl"> {
+}): Promise<
+  Omit<PublicQuote, "id" | "publicId" | "createdAt" | "updatedAt" | "expired" | "shortUrl">
+> {
   const { normalized } = params;
+  // Regra de parcelamento da operadora de origem (FRT/Infotravel, Cativa…).
+  const rule = await resolveQuoteInstallmentRule(normalized);
   const options = normalized.options.length ? normalized.options : [];
 
   const adultos = Math.max(1, Number(normalized.passengers?.adults ?? 1) || 1);
@@ -422,7 +434,7 @@ export function buildPublicQuoteFromImported(params: {
     .join(" • ");
 
   const inicio = normalized.startDate ?? options[0]?.startDate ?? null;
-  const publicOptions = options.map((o) => optionToPublicOption(o, paxLabel, inicio));
+  const publicOptions = options.map((o) => optionToPublicOption(o, paxLabel, inicio, rule));
   const first = publicOptions[0];
 
   const anyPackage = options.some((o) => optionType(o) === "TRIP_PACKAGE");

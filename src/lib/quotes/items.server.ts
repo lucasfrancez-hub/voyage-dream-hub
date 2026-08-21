@@ -155,7 +155,7 @@ export async function mutateQuoteNormalized(
   if (quote.public_quote_id) {
     const { buildPublicQuoteFromImported } = await import("./to-public-quote.server");
     const { refreshPublicQuote } = await import("@/lib/public-quote/store.server");
-    const dto = buildPublicQuoteFromImported({
+    const dto = await buildPublicQuoteFromImported({
       normalized,
       title: quote.title,
       headline: normalized.headline ?? null,
