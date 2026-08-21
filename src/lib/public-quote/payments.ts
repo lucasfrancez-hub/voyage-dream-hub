@@ -169,7 +169,12 @@ export function buildPayment(params: {
   // de parcelamento + 30 dias de quitação antes do embarque).
   // REGRA COMERCIAL: somente aéreo (AIR_ONLY, inclusive os orçamentos gerados
   // pela cesta do motor de busca) NUNCA tem boleto. Só Pix e cartão.
-  const ateViagem = type === "AIR_ONLY" ? null : boletoAteViagem(total, params.startDate);
+  // A operadora precisa liberar o boleto pré-pago (ex.: FRT/Infotravel não tem
+  // boleto até a data da viagem — só o financiado da própria operadora).
+  const ateViagem =
+    type === "AIR_ONLY" || params.boletoPrepagoEnabled === false
+      ? null
+      : boletoAteViagem(total, params.startDate);
   const boletoEnabled = type === "AIR_ONLY" ? false : boletoFinanciado || !!ateViagem;
 
   return {
