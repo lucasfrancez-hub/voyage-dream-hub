@@ -690,11 +690,12 @@ function PackageDetails() {
 
                 {(() => {
                   const photos = hotelPhotos;
-                  // Só redireciona ao TripAdvisor quando o hotel veio de link
-                  // colado (sem dados da API). Com dados da API, abre no portal.
-                  const temApi = !!(selInfo && (selInfo.num_reviews || selInfo.rating));
+                  // Só redireciona ao TripAdvisor quando NÃO temos ficha própria
+                  // (sem location_id e sem fotos) — ou seja, link colado puro.
                   const taId = hotelTaId;
-                  const taUrl = temApi && taId ? null : hotelTaUrl;
+                  const temPortal = !!taId || photos.length > 0;
+                  const taUrl = temPortal ? null : hotelTaUrl;
+
                   if (photos.length === 0 && !taUrl) {
                     if (!hotelInfoLoading) return null;
                     return (
