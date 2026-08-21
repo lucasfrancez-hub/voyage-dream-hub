@@ -407,15 +407,19 @@ export function optionToPublicOption(
 }
 
 /** Monta o DTO público do orçamento com TODAS as opções agrupadas. */
-export function buildPublicQuoteFromImported(params: {
+export async function buildPublicQuoteFromImported(params: {
   normalized: NormalizedQuote;
   title?: string | null;
   headline?: string | null;
   clientName?: string | null;
   agentName?: string | null;
   validUntil?: string | null;
-}): Omit<PublicQuote, "id" | "publicId" | "createdAt" | "updatedAt" | "expired" | "shortUrl"> {
+}): Promise<
+  Omit<PublicQuote, "id" | "publicId" | "createdAt" | "updatedAt" | "expired" | "shortUrl">
+> {
   const { normalized } = params;
+  // Regra de parcelamento da operadora de origem (FRT/Infotravel, Cativa…).
+  const rule = await resolveQuoteInstallmentRule(normalized);
   const options = normalized.options.length ? normalized.options : [];
 
   const adultos = Math.max(1, Number(normalized.passengers?.adults ?? 1) || 1);
