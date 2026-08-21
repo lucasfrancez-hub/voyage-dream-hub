@@ -5188,9 +5188,10 @@ function MultiPackageImportButton({
               ? Math.max(1, Math.min(5, Math.round(Number(p.hotel_stars))))
               : null,
           meal_plan: p.meal_plan || "",
-          room_type: cleanRoomLabel(p.room_type as string) ?? "",
+          // Sem categoria/cama no documento: padrão Standard + cama de casal.
+          room_type: (cleanRoomLabel(p.room_type as string) ?? "") || (p.hotel_name ? "Standard" : ""),
           room_category: cleanRoomLabel(p.room_category as string) ?? "",
-          bed_type: p.bed_type || "",
+          bed_type: p.bed_type || (p.hotel_name ? "1 cama de casal" : ""),
           supplier_name: p.supplier_name || "",
           services: ((p as any).services && typeof (p as any).services === "object"
             ? (p as any).services
