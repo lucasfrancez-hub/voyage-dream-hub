@@ -113,7 +113,16 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
       try {
         const r = await search({ data: { query: q } });
         setItems(r);
-        setOpen(true);
+        // Nome já veio preenchido (importação): vincula sozinho ao melhor
+        // resultado, mantendo o nome original do documento.
+        const auto = autoSelect && !autoDoneRef.current ? r.find((it) => nomeBate(it.name, q)) ?? r[0] : null;
+        if (auto) {
+          autoDoneRef.current = true;
+          setOpen(false);
+          void pick(auto, true);
+        } else {
+          setOpen(true);
+        }
       } catch (e) {
         console.error(e);
         setErro(
