@@ -2136,6 +2136,37 @@ function PackageEditorModal({
     }
   }
 
+  // Ao trocar de pacote (importação em lote), o buscador de imagens não pode
+  // ficar com o destino anterior: ele passa a seguir o destino atual e já
+  // carrega as fotos sozinho quando ainda não há capa escolhida.
+  const imgAutoRef = useRef<string>("");
+  const destinoBusca = (editing.destination ?? "").trim() || (derived.destCity ?? "").trim();
+  useEffect(() => {
+    const chave = `${(editing as any).id ?? editing.slug ?? ""}|${destinoBusca.toLowerCase()}`;
+    if (!destinoBusca || chave === imgAutoRef.current) return;
+    imgAutoRef.current = chave;
+    setImgQuery(destinoBusca);
+    setImgResults([]);
+    setImgPage(1);
+    setImgHasMore(false);
+    if (editing.image_url) return;
+    void (async () => {
+      setImgLoading(true);
+      try {
+        const res: any = await searchImages({ data: { query: destinoBusca, page: 1 } });
+        setImgResults(res.images ?? []);
+        setImgHasMore(!!res.hasMore);
+        setImgSource(res.sourceLabel ?? "");
+        setImgOpen(true);
+      } catch {
+        // silencioso: o usuário ainda pode buscar manualmente
+      } finally {
+        setImgLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinoBusca, (editing as any).id, editing.slug]);
+
   const kind: PackageKind = (editing.kind ?? "package") as PackageKind;
   const allTabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     {
@@ -2467,7 +2498,10 @@ function PackageEditorModal({
                       type="button"
                       onClick={() => {
                         setImgOpen((v) => !v);
-                        if (!imgQuery) setImgQuery(editing.destination ?? "");
+                        if (!imgQuery.trim() || !imgResults.length) {
+                          setImgQuery(destinoBusca);
+                          if (destinoBusca) void handleSearchImages(1);
+                        }
                       }}
                       className="mb-0 shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-brand-orange/40 bg-brand-orange/10 px-3 py-2 text-xs font-semibold text-brand-orange hover:bg-brand-orange/20 transition"
                     >
