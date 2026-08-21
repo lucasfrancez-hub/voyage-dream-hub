@@ -2138,7 +2138,8 @@ function PackageEditorModal({
 
   // Ao trocar de pacote (importação em lote), o buscador de imagens não pode
   // ficar com o destino anterior: ele passa a seguir o destino atual e já
-  // carrega as fotos sozinho quando ainda não há capa escolhida.
+  // carrega as fotos do destino sozinho — inclusive quando já existe capa
+  // (muitas vezes a capa importada é foto do hotel, e não do destino).
   const imgAutoRef = useRef<string>("");
   const destinoBusca = (editing.destination ?? "").trim() || (derived.destCity ?? "").trim();
   useEffect(() => {
