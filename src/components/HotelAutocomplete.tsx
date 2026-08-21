@@ -55,6 +55,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastQueryRef = useRef<string>("");
   const suppressRef = useRef(false);
+  const autoDoneRef = useRef(false);
 
   // Link do TripAdvisor colado: busca direto pelo link (não gasta a busca da API).
   const byUrl = useServerFn(getTripAdvisorHotelByUrl);
