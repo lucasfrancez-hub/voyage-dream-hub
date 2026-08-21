@@ -52,10 +52,13 @@ export function cardInstallments(
   airline?: string | null,
   type: QuoteType = "TRIP_PACKAGE",
   markups: MarkupTable = DEFAULT_EXTENDED_MARKUPS,
+  /** Teto da operadora (ex.: FRT 15x). Padrão VIA AIR = 10x. */
+  cardMax: number = CARD_MAX_INSTALLMENTS,
 ): Installment[] {
   if (type === "AIR_ONLY") return airCardInstallments(total, airline, markups);
   const out: Installment[] = [];
-  for (let n = 1; n <= CARD_MAX_INSTALLMENTS; n++) {
+  const max = Math.max(1, Math.trunc(cardMax) || CARD_MAX_INSTALLMENTS);
+  for (let n = 1; n <= max; n++) {
     out.push({ number: n, amount: round2(total / n), total: round2(total), interestFree: true });
   }
   return out;
@@ -143,6 +146,10 @@ export function buildPayment(params: {
   pixDiscountPercent?: number;
   /** Tabela de markup do financeiro (parcelamento estendido do aéreo). */
   markups?: MarkupTable;
+  /** Teto de parcelas no cartão da operadora (ex.: FRT 15x). */
+  cardMax?: number;
+  /** Operadora libera boleto financiado? (regra da tabela installment_rules) */
+  boletoFinanciadoEnabled?: boolean;
 }): PaymentConfiguration {
   const { type, total, airline } = params;
   // Regra comercial VIA AIR: Pix sempre aceito. Desconto de 5% somente em
@@ -151,7 +158,11 @@ export function buildPayment(params: {
   const pixTotal = round2(total * (1 - pixPercent / 100));
   const dias = diasAteViagem(params.startDate);
   // Boleto 10x financiado: exclusivo de pacote com 60+ dias de antecedência.
-  const boletoFinanciado = type === "TRIP_PACKAGE" && dias != null && dias >= BOLETO_MIN_DAYS;
+  const boletoFinanciado =
+    type === "TRIP_PACKAGE" &&
+    params.boletoFinanciadoEnabled !== false &&
+    dias != null &&
+    dias >= BOLETO_MIN_DAYS;
   // Boleto até a data da viagem: vale sempre que houver 60+ dias (30 de prazo
   // de parcelamento + 30 dias de quitação antes do embarque).
   // REGRA COMERCIAL: somente aéreo (AIR_ONLY, inclusive os orçamentos gerados
@@ -164,7 +175,7 @@ export function buildPayment(params: {
     card: {
       enabled: true,
       brands: CARD_BRANDS,
-      installments: cardInstallments(total, airline, type, params.markups),
+      installments: cardInstallments(total, airline, type, params.markups, params.cardMax),
     },
     boleto: {
       enabled: boletoEnabled,

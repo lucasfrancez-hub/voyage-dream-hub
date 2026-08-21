@@ -9,6 +9,10 @@ import { nomeDestino } from "@/lib/public-quote/destination-name";
 import { findAirline } from "@/lib/airlines";
 import { buildPayment } from "@/lib/public-quote/payments";
 import {
+  resolveQuoteInstallmentRule,
+  type QuoteInstallmentRule,
+} from "./installment-rule.server";
+import {
   MAX_CONNECTION_HOURS,
   directionsFor,
   durationBetween,
@@ -377,6 +381,7 @@ export function optionToPublicOption(
   option: NormalizedOption,
   occupancy?: string | null,
   startDate?: string | null,
+  rule?: QuoteInstallmentRule,
 ): QuoteOption {
   const type = optionType(option);
   const total = Number(option.total) || 0;
@@ -386,6 +391,9 @@ export function optionToPublicOption(
     total,
     airline,
     startDate: startDate ?? option.startDate ?? null,
+    cardMax: rule?.cardMax,
+    boletoMax: rule?.boletoMax,
+    boletoFinanciadoEnabled: rule?.boletoFinanciadoEnabled,
   });
   return {
     optionId: String(option.optionNumber),
