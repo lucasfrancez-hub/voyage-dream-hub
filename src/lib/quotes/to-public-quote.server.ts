@@ -394,6 +394,7 @@ export function optionToPublicOption(
     cardMax: rule?.cardMax,
     boletoMax: rule?.boletoMax,
     boletoFinanciadoEnabled: rule?.boletoFinanciadoEnabled,
+    boletoPrepagoEnabled: rule?.boletoPrepagoEnabled,
   });
   return {
     optionId: String(option.optionNumber),

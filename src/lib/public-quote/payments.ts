@@ -150,6 +150,8 @@ export function buildPayment(params: {
   cardMax?: number;
   /** Operadora libera boleto financiado? (regra da tabela installment_rules) */
   boletoFinanciadoEnabled?: boolean;
+  /** Operadora libera boleto pré-pago (até a data da viagem)? */
+  boletoPrepagoEnabled?: boolean;
 }): PaymentConfiguration {
   const { type, total, airline } = params;
   // Regra comercial VIA AIR: Pix sempre aceito. Desconto de 5% somente em
@@ -167,7 +169,12 @@ export function buildPayment(params: {
   // de parcelamento + 30 dias de quitação antes do embarque).
   // REGRA COMERCIAL: somente aéreo (AIR_ONLY, inclusive os orçamentos gerados
   // pela cesta do motor de busca) NUNCA tem boleto. Só Pix e cartão.
-  const ateViagem = type === "AIR_ONLY" ? null : boletoAteViagem(total, params.startDate);
+  // A operadora precisa liberar o boleto pré-pago (ex.: FRT/Infotravel não tem
+  // boleto até a data da viagem — só o financiado da própria operadora).
+  const ateViagem =
+    type === "AIR_ONLY" || params.boletoPrepagoEnabled === false
+      ? null
+      : boletoAteViagem(total, params.startDate);
   const boletoEnabled = type === "AIR_ONLY" ? false : boletoFinanciado || !!ateViagem;
 
   return {
