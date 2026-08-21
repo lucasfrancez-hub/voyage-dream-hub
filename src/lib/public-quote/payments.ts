@@ -150,6 +150,8 @@ export function buildPayment(params: {
   cardMax?: number;
   /** Operadora libera boleto financiado? (regra da tabela installment_rules) */
   boletoFinanciadoEnabled?: boolean;
+  /** Operadora libera boleto pré-pago (até a data da viagem)? */
+  boletoPrepagoEnabled?: boolean;
 }): PaymentConfiguration {
   const { type, total, airline } = params;
   // Regra comercial VIA AIR: Pix sempre aceito. Desconto de 5% somente em
