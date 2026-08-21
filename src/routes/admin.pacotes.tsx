@@ -4886,6 +4886,11 @@ function PackageImportButton({ onImported }: { onImported: (patch: Partial<Packa
       if (p.room_type) { const v = cleanRoomLabel(String(p.room_type)); if (v) patch.room_type = v; }
       if (p.room_category) { const v = cleanRoomLabel(String(p.room_category)); if (v) patch.room_category = v; }
       if (p.bed_type) patch.bed_type = String(p.bed_type);
+      // Hotel importado sem categoria/cama: padrão Standard + cama de casal.
+      if (patch.hotel_name) {
+        if (!patch.room_type) patch.room_type = "Standard";
+        if (!patch.bed_type) patch.bed_type = "Casal";
+      }
       // Não usar includes do documento — a derivação automática monta na ordem correta
       // (Passagem Aérea → Hospedagem → Café da Manhã → Bagagem Despachada).
       patch.includes = [];
