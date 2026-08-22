@@ -202,7 +202,15 @@ export type Valores = {
  * Só espelha o que a PassHub devolve: tarifa, taxas, RAV e comissão de
  * incentivo vêm da API. Nada é arbitrado aqui.
  */
-export function calcularValores(voo: PassHubVoo, _ravPercentual = 0): Valores {
+/**
+ * Valores do trecho.
+ *
+ * A busca da PassHub devolve o preço LÍQUIDO (tarifa + taxas) e ignora o
+ * `rav_percentage` — a RAV só é aplicada por eles na tarifação/reserva, com o
+ * mesmo % que enviamos. Então: se vier RAV no retorno, espelhamos; se não
+ * vier, aplicamos o % informado na tela sobre a tarifa.
+ */
+export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
   const tarifa = voo.precoTarifa || 0;
   const taxas = voo.taxas || 0;
   const totalApi = voo.precoTotal || 0;
@@ -211,6 +219,7 @@ export function calcularValores(voo: PassHubVoo, _ravPercentual = 0): Valores {
   let rav = voo.ravValor || 0;
   let pct = voo.ravPercentual || 0;
   let outros = 0;
+  let total = totalApi || Math.round((tarifa + taxas) * 100) / 100;
 
   if (rav > 0) {
     if (!pct && tarifa > 0) pct = Math.round((rav / tarifa) * 1000) / 10;
@@ -219,9 +228,12 @@ export function calcularValores(voo: PassHubVoo, _ravPercentual = 0): Valores {
     // a API já embutiu a RAV no total
     rav = residual;
     pct = tarifa > 0 ? Math.round((rav / tarifa) * 1000) / 10 : 0;
+  } else if (ravPercentual > 0 && tarifa > 0) {
+    // busca veio líquida: aplicamos a RAV da agência sobre a tarifa
+    pct = ravPercentual;
+    rav = Math.round(tarifa * (ravPercentual / 100) * 100) / 100;
+    total = Math.round((tarifa + taxas + rav) * 100) / 100;
   }
-
-  const total = totalApi || Math.round((tarifa + taxas + rav) * 100) / 100;
 
   // Comissão de incentivo: apenas o que a consolidadora informar.
   const comissaoIncentivo =
