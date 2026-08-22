@@ -40,6 +40,10 @@ export type PassHubVoo = {
   ravValor: number;
   /** Percentual de RAV informado pela PassHub, quando disponível. */
   ravPercentual: number;
+  /** Comissão de incentivo informada pela PassHub (R$), quando disponível. */
+  incentivoValor: number;
+  /** Percentual da comissão de incentivo informado pela PassHub. */
+  incentivoPercentual: number;
   provedor: string;
   canal: string;
   rateToken: string;
