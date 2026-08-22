@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Filter, Luggage, Briefcase, Plus, Check, Info, FileText, X } from "lucide-react";
 import type { PassHubOferta, PassHubResultado, PassHubVoo } from "@/lib/passhub/types";
 import { cityLabel } from "@/lib/iata-lookup";
