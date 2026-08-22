@@ -304,23 +304,22 @@ body:has([data-chat-root]),
    busca, resultados, reservas e bilhetes. Tokens escopados.
    ============================================================ */
 .cons {
-  --cons-bg: #07131d;
-  --cons-bg2: #0a1824;
-  --cons-card: #0d2030;
-  --cons-card2: #11283b;
-  --cons-line: #1f3a50;
-  --cons-line2: #2b4b63;
-  --cons-text: #edf6ff;
-  --cons-muted: #8ea9be;
-  --cons-blue: #3f8de3;
-  --cons-blue2: #5aa9ff;
+  --cons-bg: #0b0f17;
+  --cons-bg2: #111722;
+  --cons-card: #151d2a;
+  --cons-card2: #1e2736;
+  --cons-line: #1e293b;
+  --cons-line2: #334155;
+  --cons-text: #f8fafc;
+  --cons-muted: #94a3b8;
+  --cons-blue: #3b82f6;
+  --cons-blue2: #60a5fa;
   --cons-orange: #f26b1f;
-  --cons-orange2: #ff9440;
-  --cons-green: #37d39a;
-  --cons-shadow: 0 22px 48px rgba(0, 0, 0, 0.4);
+  --cons-orange2: #fb923c;
+  --cons-green: #22c55e;
+  --cons-shadow: 0 22px 48px rgba(0, 0, 0, 0.45);
 
   background: var(--cons-bg);
-
   color: var(--cons-text);
   min-height: 100%;
 }
@@ -338,18 +337,18 @@ body:has([data-chat-root]),
 
 .cons-card {
   background: var(--cons-card);
-  border: 1px solid var(--cons-line);
+  border: none;
   border-radius: 16px;
   box-shadow: none;
 }
 .cons-box {
   background: var(--cons-bg2);
-  border: 1px solid var(--cons-line);
+  border: none;
   border-radius: 14px;
 }
 .cons-soft {
   background: var(--cons-bg2);
-  border: 1px solid var(--cons-line);
+  border: none;
   border-radius: 12px;
 }
 .cons-muted { color: var(--cons-muted); }
@@ -365,7 +364,7 @@ body:has([data-chat-root]),
 .cons-field {
   width: 100%;
   height: 44px;
-  border: 1px solid var(--cons-line);
+  border: none;
   border-radius: 10px;
   background: var(--cons-bg2);
   color: var(--cons-text);
@@ -373,8 +372,8 @@ body:has([data-chat-root]),
   font-size: 14px;
   outline: none;
 }
-.cons-field:focus { border-color: var(--cons-orange); }
-.cons-field::placeholder { color: #6f8ba1; }
+.cons-field:focus { box-shadow: 0 0 0 2px var(--cons-orange); }
+.cons-field::placeholder { color: #64748b; }
 .cons input.cons-field[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.6); }
 
 .cons-btn {
@@ -385,25 +384,25 @@ body:has([data-chat-root]),
   height: 44px;
   padding: 0 18px;
   border-radius: 10px;
-  border: 1px solid var(--cons-line);
+  border: none;
   background: var(--cons-bg2);
   color: var(--cons-text);
   font-weight: 700;
   font-size: 13px;
   white-space: nowrap;
 }
-.cons-btn:hover { border-color: var(--cons-orange); background: var(--cons-card2); }
+.cons-btn:hover { background: var(--cons-card2); }
 .cons-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .cons-btn-primary {
   background: var(--cons-orange);
-  border-color: var(--cons-orange);
+  border: none;
   color: #fff;
   box-shadow: none;
 }
-.cons-btn-primary:hover { background: #ff8236; border-color: #ff8236; }
+.cons-btn-primary:hover { background: #ff8236; }
 .cons-btn-blue {
   background: var(--cons-green);
-  border-color: var(--cons-green);
+  border: none;
   color: #05231a;
 }
 
