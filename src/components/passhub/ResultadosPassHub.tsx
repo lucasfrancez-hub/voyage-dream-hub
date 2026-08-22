@@ -1188,11 +1188,14 @@ function ResumoPerna({
   ravPercentual,
   acao,
   rotulo,
+  semPreco,
 }: {
   perna: Perna;
   ravPercentual: number;
   acao?: React.ReactNode;
   rotulo?: string;
+  /** No resumo final o preço é da viagem inteira, então o trecho não repete valor. */
+  semPreco?: boolean;
 }) {
   const v = perna.voo;
   const val = calcularValores(v, ravPercentual);
@@ -1210,20 +1213,23 @@ function ResumoPerna({
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <div className="text-right">
-          <div className="cons-lab">Total</div>
-          <div className="text-[16px] font-black">{brl(val.total)}</div>
-          {val.comissaoIncentivo > 0 && (
-            <div className="text-[11px] font-bold text-emerald-400">
-              +{brl(val.comissaoIncentivo)} comissão de incentivo
-            </div>
-          )}
-        </div>
+        {!semPreco && (
+          <div className="text-right">
+            <div className="cons-lab">Total</div>
+            <div className="text-[16px] font-black">{brl(val.total)}</div>
+            {val.comissaoIncentivo > 0 && (
+              <div className="text-[11px] font-bold text-emerald-400">
+                +{brl(val.comissaoIncentivo)} comissão de incentivo
+              </div>
+            )}
+          </div>
+        )}
         {acao}
       </div>
     </div>
   );
 }
+
 
 export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onReservar }: Props) {
   const [idaSel, setIdaSel] = useState<string | null>(null);
