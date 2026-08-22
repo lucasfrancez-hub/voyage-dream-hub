@@ -90,7 +90,6 @@ export type PassHubTarifacao = {
   preco: number;
   precoSemTaxa: number;
   retarifou: boolean;
-  bruto: unknown;
 };
 
 export type PassHubReserva = {
@@ -101,5 +100,4 @@ export type PassHubReserva = {
   status: string;
   total: number;
   totalSemTaxa: number;
-  bruto: unknown;
 };

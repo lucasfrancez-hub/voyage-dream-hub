@@ -67,7 +67,6 @@ export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHub
     preco: num(r["preco"] ?? r["total_price"], input.precoEsperado),
     precoSemTaxa: num(r["preco_sem_taxa"]),
     retarifou: r["retarifou"] === true,
-    bruto,
   };
 }
 
@@ -138,6 +137,5 @@ export async function passhubReservarOferta(input: ReservarInput): Promise<PassH
     status: str(r["status"] ?? r["booking_status"]),
     total: num(r["total_price"]),
     totalSemTaxa: num(r["preco_sem_taxa"]),
-    bruto,
   };
 }
