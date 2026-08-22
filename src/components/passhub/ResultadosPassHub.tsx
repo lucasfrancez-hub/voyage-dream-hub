@@ -399,7 +399,10 @@ function PainelDetalhe({
   ];
   if (Math.abs(outros) >= 0.01) linhas.push({ rot: "Outros / ajustes", val: outros });
   if (comissaoIncentivo > 0) {
-    linhas.push({ rot: `Comissão de incentivo (${INCENTIVO_PCT}% da tarifa)`, val: comissaoIncentivo, positivo: true });
+    const rot = voo.incentivoPercentual > 0
+      ? `Comissão de incentivo (${voo.incentivoPercentual}% da tarifa)`
+      : "Comissão de incentivo";
+    linhas.push({ rot, val: comissaoIncentivo, positivo: true });
   }
   if (totalComissao > 0) {
     linhas.push({ rot: "Total de comissão (RAV + incentivo)", val: totalComissao, destaque: true, positivo: true });
