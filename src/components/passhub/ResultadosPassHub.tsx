@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Filter, Luggage, Briefcase, Plus, Check, Info, FileText, X } from "lucide-react";
 import type { PassHubOferta, PassHubResultado, PassHubVoo } from "@/lib/passhub/types";
+import { cityLabel } from "@/lib/iata-lookup";
 
 export type FiltrosMotor = {
   ordem: "preco" | "duracao" | "partida" | "chegada";
