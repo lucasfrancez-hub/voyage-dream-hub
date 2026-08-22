@@ -195,8 +195,13 @@ export type Valores = {
   pct: number;
   outros: number;
   comissaoIncentivo: number;
+  /** % de incentivo usado no cálculo (API ou padrão de contrato). */
+  incentivoPct: number;
   total: number;
 };
+
+/** Incentivo de contrato da consolidadora: 1% da tarifa. */
+export const INCENTIVO_PADRAO_PCT = 1;
 
 /**
  * Só espelha o que a PassHub devolve: tarifa, taxas, RAV e comissão de
@@ -235,15 +240,18 @@ export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
     total = Math.round((tarifa + taxas + rav) * 100) / 100;
   }
 
-  // Comissão de incentivo: apenas o que a consolidadora informar.
+  // Comissão de incentivo: o que a consolidadora informar; quando a busca vem
+  // líquida (sem esse campo), vale o incentivo de contrato de 1% da tarifa.
+  const incentivoPct =
+    voo.incentivoPercentual > 0 ? voo.incentivoPercentual : INCENTIVO_PADRAO_PCT;
   const comissaoIncentivo =
     voo.incentivoValor > 0
       ? voo.incentivoValor
-      : voo.incentivoPercentual > 0 && tarifa > 0
-        ? Math.round(tarifa * (voo.incentivoPercentual / 100) * 100) / 100
+      : tarifa > 0
+        ? Math.round(tarifa * (incentivoPct / 100) * 100) / 100
         : 0;
 
-  return { tarifa, taxas, rav, pct, outros, comissaoIncentivo, total };
+  return { tarifa, taxas, rav, pct, outros, comissaoIncentivo, incentivoPct, total };
 }
 
 
@@ -400,7 +408,8 @@ function PainelDetalhe({
   ravPercentual: number;
   onFechar: () => void;
 }) {
-  const { tarifa, taxas, rav, pct, outros, comissaoIncentivo, total } = calcularValores(voo, ravPercentual);
+  const { tarifa, taxas, rav, pct, outros, comissaoIncentivo, incentivoPct, total } =
+    calcularValores(voo, ravPercentual);
 
   const totalComissao = Math.round((rav + comissaoIncentivo) * 100) / 100;
 
@@ -411,10 +420,11 @@ function PainelDetalhe({
   ];
   if (Math.abs(outros) >= 0.01) linhas.push({ rot: "Outros / ajustes", val: outros });
   if (comissaoIncentivo > 0) {
-    const rot = voo.incentivoPercentual > 0
-      ? `Comissão de incentivo (${voo.incentivoPercentual}% da tarifa)`
-      : "Comissão de incentivo";
-    linhas.push({ rot, val: comissaoIncentivo, positivo: true });
+    linhas.push({
+      rot: `Comissão de incentivo (${incentivoPct}% da tarifa)`,
+      val: comissaoIncentivo,
+      positivo: true,
+    });
   }
   if (totalComissao > 0) {
     linhas.push({ rot: "Total de comissão (RAV + incentivo)", val: totalComissao, destaque: true, positivo: true });
