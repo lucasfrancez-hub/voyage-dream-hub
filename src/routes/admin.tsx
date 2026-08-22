@@ -365,6 +365,15 @@ function AdminLayout() {
 
   return (
     <div className={`min-h-screen bg-background text-foreground ${theme === "light" ? "admin-light" : ""}`}>
+      {oferecerPin ? (
+        <ChatPinSetup
+          onFechar={() => {
+            try { localStorage.setItem("viaair-admin-pin-ok", "1"); } catch { /* noop */ }
+            setOferecerPin(false);
+          }}
+        />
+      ) : null}
+
       <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-40" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="mx-auto max-w-7xl px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-3 sm:gap-6 min-w-0">
