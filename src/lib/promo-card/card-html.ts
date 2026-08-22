@@ -7,6 +7,7 @@ import viaairLogo from "@/assets/viaair-logo.png.asset.json";
 import viaairLogoWhite from "@/assets/viaair-logo-white.png.asset.json";
 import viaairLogoBlack from "@/assets/viaair-logo-black.png.asset.json";
 import type { PromoCardData, PromoCardFormat, PromoLogoVariant } from "./card-data";
+import { dataBRT } from "@/lib/datetime-brt";
 
 /** Arquivos oficiais das três versões da logo (sem filtros CSS). */
 export const VIAAIR_LOGOS: Record<PromoLogoVariant, string> = {
@@ -23,14 +24,18 @@ const MESES_PT = [
 /** "12 de agosto de 2026" a partir da data real de coleta da tarifa. */
 export function dataTarifaPorExtenso(iso?: string | null): string | null {
   if (!iso) return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+  const texto = String(iso);
+  // Data pura (YYYY-MM-DD) não tem fuso: usa como está.
+  const soData = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto);
   let y: number, mo: number, da: number;
-  if (m) {
-    y = Number(m[1]); mo = Number(m[2]); da = Number(m[3]);
+  if (soData) {
+    y = Number(soData[1]); mo = Number(soData[2]); da = Number(soData[3]);
   } else {
-    const dt = new Date(iso);
-    if (Number.isNaN(dt.getTime())) return null;
-    y = dt.getUTCFullYear(); mo = dt.getUTCMonth() + 1; da = dt.getUTCDate();
+    // Timestamp: converte para o dia real em Brasília (evita virar o dia após 21h).
+    const brt = dataBRT(texto);
+    if (!brt) return null;
+    const [ys, ms, ds] = brt.split("-");
+    y = Number(ys); mo = Number(ms); da = Number(ds);
   }
   const nome = MESES_PT[mo - 1];
   if (!nome) return null;

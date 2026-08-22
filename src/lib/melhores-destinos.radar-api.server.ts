@@ -16,6 +16,7 @@
  * Nada aqui é usado pelo site público nem pelo motor de busca do cliente.
  */
 import { scopeOfRoute } from "@/lib/br-airports";
+import { hojeBRT } from "@/lib/datetime-brt";
 import { nomeCompanhia } from "@/lib/melhores-destinos.parse";
 
 const API = "https://passagensaereas.melhoresdestinos.com.br/api/v1";
@@ -686,7 +687,7 @@ export async function radarLeadsByCategory(
 }
 
 function isoToday() {
-  return new Date().toISOString().slice(0, 10);
+  return hojeBRT();
 }
 
 /** "15/10" + mês/ano de referência → "2026-10-15" (vira o ano quando precisa). */
