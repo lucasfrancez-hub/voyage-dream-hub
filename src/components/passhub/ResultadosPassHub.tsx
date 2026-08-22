@@ -71,6 +71,38 @@ function corCia(codigo: string, nome: string) {
   return CORES_CIA[k1] ?? CORES_CIA[k2] ?? { bg: "#22303f", fg: "#e8f2ff" };
 }
 
+/** Nome amigável por código IATA, quando a API só devolve a sigla. */
+const NOMES_CIA: Record<string, string> = {
+  G3: "GOL",
+  AD: "Azul",
+  "2Z": "Azul Conecta",
+  LA: "LATAM",
+  JJ: "LATAM",
+  AA: "American",
+  UA: "United",
+  DL: "Delta",
+  CM: "Copa",
+  AV: "Avianca",
+  AR: "Aerolíneas",
+  TP: "TAP",
+  IB: "Ibéria",
+  AF: "Air France",
+  KL: "KLM",
+  LH: "Lufthansa",
+  TK: "Turkish",
+  EK: "Emirates",
+  QR: "Qatar",
+  BA: "British",
+  IG: "ITA Airways",
+};
+
+function nomeCia(codigo: string, nome?: string) {
+  const n = (nome ?? "").trim();
+  const cod = (codigo ?? "").trim().toUpperCase();
+  if (n && n.toUpperCase() !== cod) return n;
+  return NOMES_CIA[cod] ?? n ?? cod;
+}
+
 function BadgeCia({
   codigo,
   nome,
@@ -81,15 +113,16 @@ function BadgeCia({
   grande?: boolean;
 }) {
   const c = corCia(codigo, nome ?? "");
+  const label = nomeCia(codigo, nome);
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-lg font-black tracking-wide ${
-        grande ? "h-9 min-w-[74px] px-3 text-[15px]" : "h-7 min-w-[46px] px-2 text-[12px]"
+      className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg font-black tracking-wide ${
+        grande ? "h-9 px-3.5 text-[15px]" : "h-7 px-2.5 text-[12px]"
       }`}
       style={{ background: c.bg, color: c.fg }}
-      title={nome || codigo}
+      title={label}
     >
-      {codigo || nome}
+      {label}
     </span>
   );
 }
