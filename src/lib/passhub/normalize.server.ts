@@ -99,13 +99,18 @@ export function normalizaBuscaPassHub(bruto: unknown): PassHubResultado {
     const item = rec(p);
     const ida = normalizaVoo(item["ida"]);
     const voltas = arr(item["voltas"]).map(normalizaVoo);
+    // A PassHub NÃO precifica por trecho: `preco_total` da ida e de cada volta
+    // já é o valor fechado da viagem (ida + aquela volta). Somar os dois
+    // duplicaria o preço; o total da oferta é o menor combo disponível.
+    const combos = voltas.map((v) => v.precoTotal).filter((n) => n > 0);
     return {
       id: `${i}-${ida.numeroVoo}-${ida.partida}`,
-      precoTotal: ida.precoTotal + voltas.reduce((s, v) => s + v.precoTotal, 0),
+      precoTotal: combos.length ? Math.min(...combos) : ida.precoTotal,
       ida,
       voltas,
     };
   });
+
 
   const precos = ofertas.map((o) => o.precoTotal).filter((n) => n > 0);
 
