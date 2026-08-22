@@ -417,8 +417,10 @@ function ProdutosNav({ pathname }: { pathname: string }) {
             { to: "/admin/cruzeiros", label: "Cruzeiros" },
             { to: "/admin/promocoes-aereo", label: "Promoções de Aéreo" },
             { to: "/admin/buscar", label: "Motor de busca" },
+            { to: "/admin/passhub", label: "Consolidadora" },
           ],
         },
+
       ]}
     />
   );
@@ -544,8 +546,10 @@ function PedidosNav({ pathname }: { pathname: string }) {
             { to: "/admin/pedidos", label: "Meus pedidos" },
             { to: "/admin/orcamentos", label: "Orçamentos" },
             { to: "/admin/pedidos/terceiros", label: "Pedidos de terceiro" },
+            { to: "/admin/reservas-preview", label: "Reservas e emissões" },
           ],
         },
+
       ]}
     />
   );
