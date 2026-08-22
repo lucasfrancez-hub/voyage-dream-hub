@@ -387,8 +387,8 @@ function PainelDetalhe({
     ravPercentual,
   );
 
-  /* RAV real: a busca vem líquida, então perguntamos à PassHub (tarifação)
-     quanto de comissão ela devolve com o % que a agência configurou. */
+  /* Comissão real: perguntamos à PassHub quanto ela devolve com o percentual
+     configurado, sem fazer nenhum cálculo local. */
   const tarifarFn = useServerFn(passhubTarifarOferta);
   const [tarifacaoApi, setTarifacaoApi] = useState<{
     preco: number;

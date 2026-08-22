@@ -169,6 +169,7 @@ export function ReservaPassHubDialog({
   const [contato, setContato] = useState(CONTATO_PADRAO);
   const [tokens, setTokens] = useState<string[] | null>(null);
   const [precoTarifado, setPrecoTarifado] = useState<number | null>(null);
+  const [precoSemTaxaTarifado, setPrecoSemTaxaTarifado] = useState<number | null>(null);
   const [comissaoTarifada, setComissaoTarifada] = useState<number | null>(null);
   const [reserva, setReserva] = useState<PassHubReserva | null>(null);
   const [copiado, setCopiado] = useState(false);
@@ -243,6 +244,7 @@ export function ReservaPassHubDialog({
       }
       setTokens(r.tarifacao.pricedRateTokens);
       setPrecoTarifado(r.tarifacao.preco);
+      setPrecoSemTaxaTarifado(r.tarifacao.precoSemTaxa);
       setComissaoTarifada(r.tarifacao.ravValor || 0);
       const totalConfirmado = r.tarifacao.preco + (r.tarifacao.ravValor || 0);
       toast[r.tarifacao.retarifou ? "warning" : "success"](
@@ -297,6 +299,7 @@ export function ReservaPassHubDialog({
     setContato(CONTATO_PADRAO);
     setTokens(null);
     setPrecoTarifado(null);
+    setPrecoSemTaxaTarifado(null);
     setComissaoTarifada(null);
     setReserva(null);
     tarifacao.mutate();
@@ -323,7 +326,17 @@ export function ReservaPassHubDialog({
     setTimeout(() => setCopiado(false), 2000);
   };
 
-  const valores = oferta ? valoresDaOferta(oferta) : null;
+  const valoresBusca = oferta ? valoresDaOferta(oferta) : null;
+  const valores = valoresBusca
+    ? {
+        base: precoSemTaxaTarifado ?? valoresBusca.base,
+        taxas:
+          precoTarifado != null && precoSemTaxaTarifado != null
+            ? Math.max(0, precoTarifado - precoSemTaxaTarifado)
+            : valoresBusca.taxas,
+        total: precoTarifado ?? valoresBusca.total,
+      }
+    : null;
   const totalReserva =
     precoTarifado != null
       ? Math.round((precoTarifado + (comissaoTarifada ?? 0)) * 100) / 100
