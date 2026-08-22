@@ -37,7 +37,9 @@ export type TarifarInput = {
 };
 
 export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHubTarifacao> {
-  const tokens = input.rateTokens.filter(Boolean);
+  // A PassHub repete o token combinado nos dois trechos de algumas ofertas.
+  // Enviar esse mesmo token duas vezes pode duplicar a viagem na reserva.
+  const tokens = [...new Set(input.rateTokens.filter(Boolean))];
   if (tokens.length === 0) throw new Error("Oferta sem rateToken — refaça a busca.");
 
   const body: Rec = {
@@ -86,7 +88,8 @@ export type ReservarInput = {
 };
 
 export async function passhubReservarOferta(input: ReservarInput): Promise<PassHubReserva> {
-  const tokens = input.pricedRateTokens.filter(Boolean);
+  // Defesa adicional para nunca reservar duas vezes o mesmo token tarifado.
+  const tokens = [...new Set(input.pricedRateTokens.filter(Boolean))];
   if (tokens.length === 0) throw new Error("Tarifação expirada — tarifar novamente antes de reservar.");
   if (input.paxs.length === 0) throw new Error("Informe ao menos um passageiro.");
 

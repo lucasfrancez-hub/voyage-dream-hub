@@ -208,7 +208,9 @@ export function ReservaPassHubDialog({
     }
   };
 
-  const rateTokens = oferta ? [oferta.ida, ...oferta.voltas].map((v) => v.rateToken) : [];
+  const rateTokens = oferta
+    ? [...new Set([oferta.ida, ...oferta.voltas].map((v) => v.rateToken).filter(Boolean))]
+    : [];
   const provedor = oferta?.ida.provedor || "CVC";
 
   const atualiza = (i: number, campo: keyof PassHubPax, valor: string) =>
@@ -372,7 +374,7 @@ export function ReservaPassHubDialog({
                   <table className="w-full text-sm">
                     <thead className="bg-white/[0.04] text-[10px] uppercase tracking-wider text-white/55">
                       <tr>
-                        {["Tipo", "Qtd.", "Tarifa unitária", "Tx emb.", "RAV", "Total tarifa", "Total taxa", "Total"].map(
+                        {["Tipo", "Qtd.", "Tarifa unitária", "Tx emb.", "Comissão", "Total tarifa", "Total taxa", "Total"].map(
                           (c) => (
                             <th key={c} className="px-3 py-2 text-left font-semibold">
                               {c}
@@ -385,7 +387,7 @@ export function ReservaPassHubDialog({
                       {linhasTarifa.map((l) => {
                         const base = ((valores?.base ?? 0) / qtdPax) * l.qtd;
                         const tx = ((valores?.taxas ?? 0) / qtdPax) * l.qtd;
-                        const comissao = (((comissaoTarifada ?? 0) / qtdPax) * l.qtd);
+                        const comissao = ((comissaoTarifada ?? 0) / qtdPax) * l.qtd;
                         return (
                           <tr key={l.tipo} className="border-t border-white/10">
                             <td className="px-3 py-2 font-semibold">{l.tipo}</td>

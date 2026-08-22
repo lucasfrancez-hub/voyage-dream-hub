@@ -382,8 +382,10 @@ function PainelDetalhe({
   ravPercentual: number;
   onFechar: () => void;
 }) {
-  const { tarifa, taxas, rav, pct, outros, comissaoIncentivo, incentivoPct, total } =
-    calcularValores(voo, ravPercentual);
+  const { tarifa, taxas, rav, outros, comissaoIncentivo, total } = calcularValores(
+    voo,
+    ravPercentual,
+  );
 
   /* RAV real: a busca vem líquida, então perguntamos à PassHub (tarifação)
      quanto de comissão ela devolve com o % que a agência configurou. */
