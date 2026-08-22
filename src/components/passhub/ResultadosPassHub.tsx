@@ -194,8 +194,11 @@ export type Valores = {
   rav: number;
   pct: number;
   outros: number;
+  comissaoIncentivo: number;
   total: number;
 };
+
+const INCENTIVO_PCT = 1; // comissão de incentivo sobre a tarifa (%)
 
 /** Calcula tarifa/taxas/RAV. Quando a PassHub não devolve a RAV, aplica o % fixado na busca. */
 export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
@@ -228,7 +231,10 @@ export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
   }
 
   if (!total) total = Math.round((tarifa + taxas + rav) * 100) / 100;
-  return { tarifa, taxas, rav, pct, outros, total };
+
+  const comissaoIncentivo = tarifa > 0 ? Math.round(tarifa * (INCENTIVO_PCT / 100) * 100) / 100 : 0;
+
+  return { tarifa, taxas, rav, pct, outros, comissaoIncentivo, total };
 }
 
 /* -------------------- matriz de filtro: cias x paradas -------------------- */
@@ -384,14 +390,17 @@ function PainelDetalhe({
   ravPercentual: number;
   onFechar: () => void;
 }) {
-  const { tarifa, taxas, rav, pct, outros, total } = calcularValores(voo, ravPercentual);
+  const { tarifa, taxas, rav, pct, outros, comissaoIncentivo, total } = calcularValores(voo, ravPercentual);
 
-  const linhas: { rot: string; val: number; destaque?: boolean }[] = [
+  const linhas: { rot: string; val: number; destaque?: boolean; positivo?: boolean }[] = [
     { rot: "Tarifa (base)", val: tarifa },
     { rot: "Taxa de embarque / TAX", val: taxas },
     { rot: `RAV (${pct ? `${pct}%` : "0%"})`, val: rav, destaque: true },
   ];
   if (Math.abs(outros) >= 0.01) linhas.push({ rot: "Outros / ajustes", val: outros });
+  if (comissaoIncentivo > 0) {
+    linhas.push({ rot: `Comissão de incentivo (${INCENTIVO_PCT}% da tarifa)`, val: comissaoIncentivo, positivo: true });
+  }
 
   return (
     <tr>
@@ -445,15 +454,15 @@ function PainelDetalhe({
                 <div className="space-y-2.5">
                   {linhas.map((l) => (
                     <div key={l.rot} className="flex items-center justify-between text-[13px]">
-                      <span className={l.destaque ? "font-bold text-[#ffc496]" : "text-white/50"}>
+                      <span className={l.destaque ? "font-bold text-[#ffc496]" : l.positivo ? "font-bold text-emerald-400" : "text-white/50"}>
                         {l.rot}
                       </span>
                       <span
                         className={`tabular-nums font-semibold ${
-                          l.destaque ? "text-[#ffc496]" : "text-white/90"
+                          l.destaque ? "text-[#ffc496]" : l.positivo ? "text-emerald-400" : "text-white/90"
                         }`}
                       >
-                        {brl(l.val)}
+                        {l.positivo ? `+${brl(l.val)}` : brl(l.val)}
                       </span>
                     </div>
                   ))}
@@ -1195,6 +1204,11 @@ function ResumoPerna({
         <div className="text-right">
           <div className="cons-lab">Total</div>
           <div className="text-[16px] font-black">{brl(val.total)}</div>
+          {val.comissaoIncentivo > 0 && (
+            <div className="text-[11px] font-bold text-emerald-400">
+              +{brl(val.comissaoIncentivo)} comissão de incentivo
+            </div>
+          )}
         </div>
         {acao}
       </div>
