@@ -7,6 +7,7 @@ import viaairLogo from "@/assets/viaair-logo.png.asset.json";
 import viaairLogoWhite from "@/assets/viaair-logo-white.png.asset.json";
 import viaairLogoBlack from "@/assets/viaair-logo-black.png.asset.json";
 import type { PromoCardData, PromoCardFormat, PromoLogoVariant } from "./card-data";
+import { dataBRT } from "@/lib/datetime-brt";
 
 /** Arquivos oficiais das três versões da logo (sem filtros CSS). */
 export const VIAAIR_LOGOS: Record<PromoLogoVariant, string> = {
