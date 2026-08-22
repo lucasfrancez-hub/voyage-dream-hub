@@ -131,7 +131,7 @@ function PassHubPage() {
           classe,
           ravPercentual: rav,
           pagina: p,
-          porPagina: 30,
+          porPagina: 50,
         },
       }),
     onSuccess: (r) => {

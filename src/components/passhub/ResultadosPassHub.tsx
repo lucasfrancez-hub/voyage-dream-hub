@@ -840,12 +840,13 @@ function Etapa({
   const [cia, setCia] = useState<string | null>(null);
   const [paradasSel, setParadasSel] = useState<number | null>(null);
   const [painel, setPainel] = useState(false);
+  const [pag, setPag] = useState(1);
 
   useEffect(() => {
     setAv((a) => ({ ...a, duracaoMax: maxDur }));
   }, [maxDur]);
 
-  const visiveis = useMemo(() => {
+  const filtradas = useMemo(() => {
     const q = av.texto.trim().toLowerCase();
     const lista = pernas.filter((p) => {
       const v = p.voo;
@@ -872,8 +873,22 @@ function Etapa({
         return false;
       return true;
     });
-    return ordena(lista, filtros.ordem).slice(0, filtros.mostrar);
+    return ordena(lista, filtros.ordem);
   }, [pernas, av, cia, paradasSel, filtros]);
+
+  const porPagina = Math.max(5, filtros.mostrar || 10);
+  const totalPags = Math.max(1, Math.ceil(filtradas.length / porPagina));
+  const pagAtual = Math.min(pag, totalPags);
+
+  useEffect(() => {
+    setPag(1);
+  }, [filtradas.length, porPagina]);
+
+  const visiveis = useMemo(
+    () => filtradas.slice((pagAtual - 1) * porPagina, pagAtual * porPagina),
+    [filtradas, pagAtual, porPagina],
+  );
+
 
   const filtrosAtivos =
     (av.texto.trim() ? 1 : 0) +
@@ -892,7 +907,10 @@ function Etapa({
           <h2 className="text-[22px] font-black tracking-tight">{titulo}</h2>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[12px] cons-muted">{visiveis.length} exibidas</span>
+          <span className="text-[12px] cons-muted">
+            {filtradas.length} opções · página {pagAtual}/{totalPags}
+          </span>
+
           <button
             type="button"
             className={`cons-btn h-9 ${painel || filtrosAtivos ? "cons-btn-primary" : ""}`}
@@ -1065,6 +1083,48 @@ function Etapa({
           </tbody>
         </table>
       </div>
+
+      {totalPags > 1 && (
+        <div className="cons-card flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-[12px]">
+          <span className="cons-muted">
+            Exibindo {(pagAtual - 1) * porPagina + 1}–{Math.min(pagAtual * porPagina, filtradas.length)} de{" "}
+            <b>{filtradas.length}</b> opções
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              className="cons-btn h-8"
+              disabled={pagAtual <= 1}
+              onClick={() => setPag(pagAtual - 1)}
+            >
+              Anterior
+            </button>
+            {Array.from({ length: totalPags }, (_, i) => i + 1)
+              .filter((n) => n === 1 || n === totalPags || Math.abs(n - pagAtual) <= 2)
+              .map((n, i, arr) => (
+                <span key={n} className="flex items-center gap-1.5">
+                  {i > 0 && arr[i - 1] !== n - 1 && <span className="cons-muted">…</span>}
+                  <button
+                    type="button"
+                    className={`cons-btn h-8 min-w-8 px-2.5 ${n === pagAtual ? "cons-btn-primary" : ""}`}
+                    onClick={() => setPag(n)}
+                  >
+                    {n}
+                  </button>
+                </span>
+              ))}
+            <button
+              type="button"
+              className="cons-btn h-8"
+              disabled={pagAtual >= totalPags}
+              onClick={() => setPag(pagAtual + 1)}
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
+      )}
+
     </section>
   );
 }
