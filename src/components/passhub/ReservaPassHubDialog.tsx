@@ -213,6 +213,17 @@ export function ReservaPassHubDialog({
     ? [...new Set([oferta.ida, ...oferta.voltas].map((v) => v.rateToken).filter(Boolean))]
     : [];
   const provedor = oferta?.ida.provedor || "CVC";
+  const chaveCache = chaveTarifacao(rateTokens, ravPercentual);
+
+  /* Mesmo valor da lista/resumo enquanto a retarifação não volta. */
+  useEffect(() => {
+    const c = lerTarifacao(chaveCache);
+    if (c && precoTarifado === null) {
+      setPrecoTarifado(c.preco);
+      setComissaoTarifada(c.comissao);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveCache]);
 
   const atualiza = (i: number, campo: keyof PassHubPax, valor: string) =>
     setPaxs((prev) => prev.map((p, idx) => (idx === i ? { ...p, [campo]: valor } : p)));
@@ -246,6 +257,7 @@ export function ReservaPassHubDialog({
       setPrecoTarifado(r.tarifacao.preco);
       setPrecoSemTaxaTarifado(r.tarifacao.precoSemTaxa);
       setComissaoTarifada(r.tarifacao.ravValor || 0);
+      salvarTarifacao(chaveCache, r.tarifacao.preco, r.tarifacao.ravValor || 0);
       const totalConfirmado = r.tarifacao.preco + (r.tarifacao.ravValor || 0);
       toast[r.tarifacao.retarifou ? "warning" : "success"](
         r.tarifacao.retarifou

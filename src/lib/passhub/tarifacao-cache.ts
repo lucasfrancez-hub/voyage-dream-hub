@@ -37,6 +37,12 @@ export function lerTarifacao(chave: string): TarifacaoCache | null {
   return cache.get(chave) ?? null;
 }
 
+/** Grava uma tarifação já feita (ex.: tela de reserva) no cache comum. */
+export function salvarTarifacao(chave: string, preco: number, comissao: number) {
+  cache.set(chave, { preco, comissao, total: Math.round((preco + comissao) * 100) / 100 });
+  avisar();
+}
+
 /** Re-renderiza quando qualquer tarifação nova chega ao cache. */
 export function useVersaoTarifacao(): number {
   const snap = useCallback(() => versao, []);
