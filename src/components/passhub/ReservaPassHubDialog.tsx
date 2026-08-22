@@ -120,10 +120,10 @@ export function ReservaPassHubDialog({
   });
 
   const criacao = useMutation({
-    mutationFn: async () =>
+    mutationFn: async (tokensAtuais: string[]) =>
       reservarFn({
         data: {
-          pricedRateTokens: tokens ?? [],
+          pricedRateTokens: tokensAtuais,
           provedor,
           ravPercentual: ravPercentual || null,
           paxs,
@@ -158,7 +158,6 @@ export function ReservaPassHubDialog({
     p.documento.trim().length > 4 &&
     (p.documentoTipo === "cpf" || (!!p.emissao && !!p.validade));
 
-  const podeReservar = !!tokens && paxs.every(paxCompleto);
 
   const localizador = reserva?.localizador || reserva?.bookingId || "";
 
@@ -332,7 +331,7 @@ export function ReservaPassHubDialog({
                 onClick={async () => {
                   const r = await tarifacao.mutateAsync();
                   if (!r.ok) return;
-                  await criacao.mutateAsync();
+                  await criacao.mutateAsync(r.tarifacao.pricedRateTokens);
                 }}
                 disabled={!paxs.every(paxCompleto) || tarifacao.isPending || criacao.isPending}
               >
