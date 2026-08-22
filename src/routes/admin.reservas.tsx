@@ -152,7 +152,42 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
   );
 }
 
-function DetalheReserva({ r, onVoltar }: { r: PassHubReservaLista; onVoltar: () => void }) {
+function DetalheReserva({
+  r,
+  onVoltar,
+  onAtualizar,
+}: {
+  r: PassHubReservaLista;
+  onVoltar: () => void;
+  onAtualizar: () => void;
+}) {
+  const cancelarFn = useServerFn(passhubCancelarReserva);
+  const cancelada = ["CANCELED", "CANCELLED", "EXPIRED"].includes((r.status || "").toUpperCase());
+
+  const cancelar = useMutation({
+    mutationFn: () => cancelarFn({ data: { id: r.idPassagem, motivo: "Cancelamento solicitado pela agência" } }),
+    onSuccess: (res) => {
+      if (!res.ok) {
+        toast.error(res.erro);
+        return;
+      }
+      toast.success(res.mensagem || "Reserva cancelada");
+      onAtualizar();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao cancelar"),
+  });
+
+  const pedirCancelamento = async () => {
+    const ok = await confirm({
+      title: "Cancelar reserva na consolidadora?",
+      description: `A reserva ${r.localizador || r.idPassagem} será cancelada na PassHub. Essa ação não pode ser desfeita.`,
+      confirmText: "Cancelar reserva",
+      cancelText: "Voltar",
+      destructive: true,
+    });
+    if (ok) cancelar.mutate();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -167,11 +202,27 @@ function DetalheReserva({ r, onVoltar }: { r: PassHubReservaLista; onVoltar: () 
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={r.status} />
+          {!cancelada && (
+            <button
+              type="button"
+              className="cons-btn cons-btn-danger"
+              onClick={pedirCancelamento}
+              disabled={cancelar.isPending}
+            >
+              {cancelar.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4" />
+              )}
+              Cancelar reserva
+            </button>
+          )}
           <button type="button" className="cons-btn" onClick={onVoltar}>
             <ArrowLeft className="h-4 w-4" /> Voltar para reservas
           </button>
         </div>
       </div>
+
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="cons-card p-4 md:p-5">
