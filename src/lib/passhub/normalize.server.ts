@@ -3,14 +3,7 @@
  * SERVER-ONLY (só é importado dentro de handlers de server functions).
  */
 
-import type {
-  PassHubConexao,
-  PassHubServico,
-  PassHubParcelamento,
-  PassHubVoo,
-  PassHubOferta,
-  PassHubResultado,
-} from "./types";
+import type { PassHubVoo, PassHubOferta, PassHubResultado } from "./types";
 
 export type * from "./types";
 
