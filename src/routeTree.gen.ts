@@ -65,7 +65,6 @@ import { Route as AdminPacotesCativaRouteImport } from './routes/admin.pacotes-c
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
 import { Route as AdminPassagensBaratasRouteImport } from './routes/admin.passagens-baratas'
 import { Route as AdminPasshubRouteImport } from './routes/admin.passhub'
-import { Route as AdminPasshubPreviewRouteImport } from './routes/admin.passhub-preview'
 import { Route as AdminPessoasRouteImport } from './routes/admin.pessoas'
 import { Route as AdminPromocoesAereoRouteImport } from './routes/admin.promocoes-aereo'
 import { Route as AdminRecebimentosRouteImport } from './routes/admin.recebimentos'
@@ -457,11 +456,6 @@ const AdminPassagensBaratasRoute = AdminPassagensBaratasRouteImport.update({
 const AdminPasshubRoute = AdminPasshubRouteImport.update({
   id: '/passhub',
   path: '/passhub',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPasshubPreviewRoute = AdminPasshubPreviewRouteImport.update({
-  id: '/passhub-preview',
-  path: '/passhub-preview',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPessoasRoute = AdminPessoasRouteImport.update({
@@ -1121,7 +1115,6 @@ export interface FileRoutesByFullPath {
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/passhub': typeof AdminPasshubRoute
-  '/admin/passhub-preview': typeof AdminPasshubPreviewRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/promocoes-aereo': typeof AdminPromocoesAereoRoute
   '/admin/recebimentos': typeof AdminRecebimentosRoute
@@ -1290,7 +1283,6 @@ export interface FileRoutesByTo {
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/passhub': typeof AdminPasshubRoute
-  '/admin/passhub-preview': typeof AdminPasshubPreviewRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/promocoes-aereo': typeof AdminPromocoesAereoRoute
   '/admin/recebimentos': typeof AdminRecebimentosRoute
@@ -1462,7 +1454,6 @@ export interface FileRoutesById {
   '/admin/pagamentos': typeof AdminPagamentosRoute
   '/admin/passagens-baratas': typeof AdminPassagensBaratasRoute
   '/admin/passhub': typeof AdminPasshubRoute
-  '/admin/passhub-preview': typeof AdminPasshubPreviewRoute
   '/admin/pessoas': typeof AdminPessoasRouteWithChildren
   '/admin/promocoes-aereo': typeof AdminPromocoesAereoRoute
   '/admin/recebimentos': typeof AdminRecebimentosRoute
@@ -1635,7 +1626,6 @@ export interface FileRouteTypes {
     | '/admin/pagamentos'
     | '/admin/passagens-baratas'
     | '/admin/passhub'
-    | '/admin/passhub-preview'
     | '/admin/pessoas'
     | '/admin/promocoes-aereo'
     | '/admin/recebimentos'
@@ -1804,7 +1794,6 @@ export interface FileRouteTypes {
     | '/admin/pagamentos'
     | '/admin/passagens-baratas'
     | '/admin/passhub'
-    | '/admin/passhub-preview'
     | '/admin/pessoas'
     | '/admin/promocoes-aereo'
     | '/admin/recebimentos'
@@ -1975,7 +1964,6 @@ export interface FileRouteTypes {
     | '/admin/pagamentos'
     | '/admin/passagens-baratas'
     | '/admin/passhub'
-    | '/admin/passhub-preview'
     | '/admin/pessoas'
     | '/admin/promocoes-aereo'
     | '/admin/recebimentos'
@@ -2573,13 +2561,6 @@ declare module '@tanstack/react-router' {
       path: '/passhub'
       fullPath: '/admin/passhub'
       preLoaderRoute: typeof AdminPasshubRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/passhub-preview': {
-      id: '/admin/passhub-preview'
-      path: '/passhub-preview'
-      fullPath: '/admin/passhub-preview'
-      preLoaderRoute: typeof AdminPasshubPreviewRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pessoas': {
@@ -3417,7 +3398,6 @@ interface AdminRouteChildren {
   AdminPagamentosRoute: typeof AdminPagamentosRoute
   AdminPassagensBaratasRoute: typeof AdminPassagensBaratasRoute
   AdminPasshubRoute: typeof AdminPasshubRoute
-  AdminPasshubPreviewRoute: typeof AdminPasshubPreviewRoute
   AdminPessoasRoute: typeof AdminPessoasRouteWithChildren
   AdminPromocoesAereoRoute: typeof AdminPromocoesAereoRoute
   AdminRecebimentosRoute: typeof AdminRecebimentosRoute
@@ -3479,7 +3459,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPagamentosRoute: AdminPagamentosRoute,
   AdminPassagensBaratasRoute: AdminPassagensBaratasRoute,
   AdminPasshubRoute: AdminPasshubRoute,
-  AdminPasshubPreviewRoute: AdminPasshubPreviewRoute,
   AdminPessoasRoute: AdminPessoasRouteWithChildren,
   AdminPromocoesAereoRoute: AdminPromocoesAereoRoute,
   AdminRecebimentosRoute: AdminRecebimentosRoute,
