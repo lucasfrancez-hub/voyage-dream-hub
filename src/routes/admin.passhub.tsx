@@ -573,6 +573,7 @@ function PassHubPage() {
             <ResultadosPassHub
               resultado={resultado}
               filtros={filtros}
+              ravPercentual={rav}
               onReservar={setOfertaReserva}
             />
           </>

@@ -13,6 +13,7 @@ export type FiltrosMotor = {
 type Props = {
   resultado: PassHubResultado;
   filtros: FiltrosMotor;
+  ravPercentual?: number;
   onReservar: (oferta: PassHubOferta) => void;
 };
 
@@ -184,107 +185,198 @@ function ordena(lista: Perna[], ordem: FiltrosMotor["ordem"]) {
   return copia;
 }
 
-/* -------------------------- resumo: cias + paradas -------------------------- */
+/* ------------------------- cálculo de valores / RAV ------------------------- */
 
-function ResumoCias({
+export type Valores = {
+  tarifa: number;
+  taxas: number;
+  rav: number;
+  pct: number;
+  outros: number;
+  total: number;
+};
+
+/** Calcula tarifa/taxas/RAV. Quando a PassHub não devolve a RAV, aplica o % fixado na busca. */
+export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
+  const tarifa = voo.precoTarifa || 0;
+  const taxas = voo.taxas || 0;
+  const totalApi = voo.precoTotal || 0;
+  const residual = Math.round((totalApi - tarifa - taxas) * 100) / 100;
+
+  let rav = voo.ravValor || 0;
+  let pct = voo.ravPercentual || 0;
+  let outros = 0;
+  let total = totalApi;
+
+  if (rav > 0) {
+    if (!pct && tarifa > 0) pct = Math.round((rav / tarifa) * 1000) / 10;
+    outros = Math.round((residual - rav) * 100) / 100;
+  } else if (residual >= 0.01) {
+    // a API já embutiu a RAV no total
+    rav = residual;
+    pct = tarifa > 0 ? Math.round((rav / tarifa) * 1000) / 10 : 0;
+  } else if (ravPercentual > 0 && tarifa > 0) {
+    // total veio sem RAV: aplica o percentual fixado (10% nacional / 7% internacional)
+    pct = ravPercentual;
+    rav = Math.round(tarifa * (ravPercentual / 100) * 100) / 100;
+    total = Math.round((tarifa + taxas + rav) * 100) / 100;
+  }
+
+  if (!total) total = Math.round((tarifa + taxas + rav) * 100) / 100;
+  return { tarifa, taxas, rav, pct, outros, total };
+}
+
+/* -------------------- matriz de filtro: cias x paradas -------------------- */
+
+function MatrizFiltro({
   pernas,
-  selecionada,
-  onSelecionar,
+  ravPercentual,
+  cia,
   paradasSel,
+  onCia,
   onParadas,
 }: {
   pernas: Perna[];
-  selecionada: string | null;
-  onSelecionar: (cia: string | null) => void;
+  ravPercentual: number;
+  cia: string | null;
   paradasSel: number | null;
+  onCia: (cia: string | null) => void;
   onParadas: (p: number | null) => void;
 }) {
-  const cias = useMemo(() => {
-    const mapa = new Map<string, { preco: number; iata: string; nome: string }>();
+  const { cias, paradas, celulas, menorGeral } = useMemo(() => {
+    const precoDe = (p: Perna) => calcularValores(p.voo, ravPercentual).total || p.preco;
+    const cs = new Map<string, { preco: number; iata: string }>();
+    const ps = new Map<number, number>();
+    const cel = new Map<string, number>();
+    let menor = Infinity;
     for (const p of pernas) {
       const nome = p.voo.companhia || p.voo.companhiaIata;
-      const atual = mapa.get(nome);
-      if (!atual || p.preco < atual.preco)
-        mapa.set(nome, { preco: p.preco, iata: p.voo.companhiaIata || nome, nome });
-    }
-    return [...mapa.entries()].sort((a, b) => a[1].preco - b[1].preco);
-  }, [pernas]);
-
-  const paradas = useMemo(() => {
-    const mapa = new Map<number, number>();
-    for (const p of pernas) {
+      const preco = precoDe(p);
+      if (preco < menor) menor = preco;
+      const c = cs.get(nome);
+      if (!c || preco < c.preco) cs.set(nome, { preco, iata: p.voo.companhiaIata || nome });
       const n = p.voo.paradas;
-      const atual = mapa.get(n);
-      if (atual === undefined || p.preco < atual) mapa.set(n, p.preco);
+      const a = ps.get(n);
+      if (a === undefined || preco < a) ps.set(n, preco);
+      const k = `${nome}|${n}`;
+      const b = cel.get(k);
+      if (b === undefined || preco < b) cel.set(k, preco);
     }
-    return [...mapa.entries()].sort((a, b) => a[0] - b[0]);
-  }, [pernas]);
+    return {
+      cias: [...cs.entries()].sort((a, b) => a[1].preco - b[1].preco),
+      paradas: [...ps.entries()].sort((a, b) => a[0] - b[0]),
+      celulas: cel,
+      menorGeral: menor,
+    };
+  }, [pernas, ravPercentual]);
 
   if (!cias.length) return null;
 
-  const rotuloParada = (n: number) =>
-    n === 0 ? "Voo direto" : n === 1 ? "1 parada" : `${n} paradas`;
+  const rotuloParada = (n: number) => (n === 0 ? "Direto" : n === 1 ? "1 parada" : `${n} paradas`);
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        {cias.map(({ 0: nome, 1: info }, i) => {
-          const ativa = selecionada === nome;
-          return (
-            <button
-              key={nome}
-              type="button"
-              onClick={() => onSelecionar(ativa ? null : nome)}
-              className={`cons-soft flex items-center gap-3 px-3 py-2 text-left transition ${
-                ativa ? "ring-2 ring-[var(--cons-orange)]" : "hover:brightness-125"
-              }`}
-            >
-              <BadgeCia codigo={info.iata || nome} nome={nome} grande />
-              <span className="text-[14px] font-black">
-                {brl(info.preco)}
-                {i === 0 && (
-                  <span className="ml-2 rounded bg-[rgba(55,211,154,.18)] px-1.5 py-0.5 text-[10px] font-black text-[#8effd2]">
-                    menor
-                  </span>
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => onParadas(null)}
-          className={`cons-btn h-9 px-3 text-[12px] ${paradasSel === null ? "cons-btn-blue" : ""}`}
-        >
-          Todas
-        </button>
-        {paradas.map(([n, preco]) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onParadas(paradasSel === n ? null : n)}
-            className={`cons-btn h-9 px-3 text-[12px] ${paradasSel === n ? "cons-btn-blue" : ""}`}
-          >
-            {rotuloParada(n)} <span className="cons-muted">· {brl(preco)}</span>
-          </button>
-        ))}
-      </div>
+    <div className="cons-card overflow-x-auto">
+      <table className="w-full min-w-[680px] border-collapse text-[13px]">
+        <thead>
+          <tr>
+            <th className="w-[150px] px-4 py-3 text-left">
+              <button
+                type="button"
+                onClick={() => {
+                  onCia(null);
+                  onParadas(null);
+                }}
+                className="cons-lab hover:text-[var(--cons-orange)]"
+              >
+                Filtro rápido
+              </button>
+            </th>
+            {cias.map(([nome, info]) => {
+              const ativa = cia === nome;
+              return (
+                <th key={nome} className="px-3 py-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => onCia(ativa ? null : nome)}
+                    className={`inline-flex flex-col items-center gap-1 rounded-lg px-2 py-1 transition ${
+                      ativa ? "ring-2 ring-[var(--cons-orange)]" : "hover:brightness-125"
+                    }`}
+                  >
+                    <BadgeCia codigo={info.iata || nome} nome={nome} />
+                  </button>
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {paradas.map(([n]) => {
+            const linhaAtiva = paradasSel === n;
+            return (
+              <tr key={n} className="border-t border-white/[.06]">
+                <td className="px-4 py-2.5">
+                  <button
+                    type="button"
+                    onClick={() => onParadas(linhaAtiva ? null : n)}
+                    className={`text-[13px] font-bold transition ${
+                      linhaAtiva ? "text-[var(--cons-orange)]" : "hover:text-[var(--cons-orange)]"
+                    }`}
+                  >
+                    {rotuloParada(n)}
+                  </button>
+                </td>
+                {cias.map(([nome]) => {
+                  const preco = celulas.get(`${nome}|${n}`);
+                  const ativo = cia === nome && paradasSel === n;
+                  if (preco === undefined)
+                    return (
+                      <td key={nome} className="px-3 py-2.5 text-center cons-muted">
+                        —
+                      </td>
+                    );
+                  const eMenor = Math.abs(preco - menorGeral) < 0.01;
+                  return (
+                    <td key={nome} className="px-2 py-1.5 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onCia(ativo ? null : nome);
+                          onParadas(ativo ? null : n);
+                        }}
+                        className={`w-full rounded-lg px-3 py-1.5 font-black tabular-nums transition ${
+                          ativo
+                            ? "bg-[rgba(255,148,64,.18)] text-[#ffc496] ring-1 ring-[var(--cons-orange)]"
+                            : eMenor
+                              ? "text-[#8effd2] hover:bg-white/5"
+                              : "hover:bg-white/5"
+                        }`}
+                      >
+                        {brl(preco)}
+                      </button>
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
+
 
 /* ------------------------------- detalhes pop ------------------------------- */
 
 function PainelDetalhe({
   voo,
   aba,
+  ravPercentual,
   onFechar,
 }: {
   voo: PassHubVoo;
   aba: "info" | "docs";
+  ravPercentual: number;
   onFechar: () => void;
 }) {
   return (
@@ -300,15 +392,10 @@ function PainelDetalhe({
                     {voo.familiaTarifaria || "—"} · {voo.classe || "—"} · {voo.provedor || "—"}
                   </div>
                   {(() => {
-                    const tarifa = voo.precoTarifa || 0;
-                    const taxas = voo.taxas || 0;
-                    const total = voo.precoTotal || 0;
-                    const residual = Math.round((total - tarifa - taxas) * 100) / 100;
-                    const rav = voo.ravValor || (residual > 0 ? residual : 0);
-                    const pct =
-                      voo.ravPercentual ||
-                      (tarifa > 0 && rav > 0 ? Math.round((rav / tarifa) * 1000) / 10 : 0);
-                    const outros = Math.round((residual - rav) * 100) / 100;
+                    const { tarifa, taxas, rav, pct, outros, total } = calcularValores(
+                      voo,
+                      ravPercentual,
+                    );
                     const linhas: { rot: string; val: number; forte?: boolean }[] = [
                       { rot: "Tarifa (base)", val: tarifa },
                       { rot: "Taxa de embarque / TAX", val: taxas },
@@ -329,6 +416,7 @@ function PainelDetalhe({
                             <td className="pt-1.5 text-right font-black tabular-nums">{brl(total)}</td>
                           </tr>
                         </tbody>
+
                       </table>
                     );
                   })()}
@@ -386,14 +474,17 @@ function PainelDetalhe({
 function LinhaPerna({
   perna,
   selecionada,
+  ravPercentual,
   onSelecionar,
 }: {
   perna: Perna;
   selecionada: boolean;
+  ravPercentual: number;
   onSelecionar: () => void;
 }) {
   const v = perna.voo;
   const segs = segmentos(v);
+  const valores = calcularValores(v, ravPercentual);
   const [detalhe, setDetalhe] = useState<"info" | "docs" | null>(null);
 
   return (
@@ -491,7 +582,7 @@ function LinhaPerna({
           ) : (
             <div className="cons-box flex items-center justify-between gap-2 px-3 py-2">
               <Briefcase className="h-3.5 w-3.5 cons-muted" />
-              <b className="text-[13px]">{brl(perna.preco)}</b>
+              <b className="text-[13px]">{brl(valores.total || perna.preco)}</b>
             </div>
           )}
         </td>
@@ -500,14 +591,21 @@ function LinhaPerna({
           {v.bagagemDespachada ? (
             <div className="cons-box flex items-center justify-between gap-2 px-3 py-2">
               <Luggage className="h-3.5 w-3.5 cons-muted" />
-              <b className="text-[13px]">{brl(perna.preco)}</b>
+              <b className="text-[13px]">{brl(valores.total || perna.preco)}</b>
             </div>
           ) : (
             <span className="text-[12px] cons-muted">—</span>
           )}
         </td>
       </tr>
-      {detalhe && <PainelDetalhe voo={v} aba={detalhe} onFechar={() => setDetalhe(null)} />}
+      {detalhe && (
+        <PainelDetalhe
+          voo={v}
+          aba={detalhe}
+          ravPercentual={ravPercentual}
+          onFechar={() => setDetalhe(null)}
+        />
+      )}
     </>
   );
 }
@@ -534,6 +632,7 @@ function Etapa({
   statusTom,
   pernas,
   filtros,
+  ravPercentual,
   selecionada,
   onSelecionar,
   bloqueada,
@@ -544,6 +643,7 @@ function Etapa({
   statusTom: "res" | "ok";
   pernas: Perna[];
   filtros: FiltrosMotor;
+  ravPercentual: number;
   selecionada: string | null;
   onSelecionar: (chave: string) => void;
   bloqueada?: boolean;
@@ -642,11 +742,12 @@ function Etapa({
       </div>
 
       {/* sempre visível: companhias + paradas */}
-      <ResumoCias
+      <MatrizFiltro
         pernas={pernas}
-        selecionada={cia}
-        onSelecionar={setCia}
+        ravPercentual={ravPercentual}
+        cia={cia}
         paradasSel={paradasSel}
+        onCia={setCia}
         onParadas={setParadasSel}
       />
 
@@ -781,6 +882,7 @@ function Etapa({
               <LinhaPerna
                 key={p.chave}
                 perna={p}
+                ravPercentual={ravPercentual}
                 selecionada={selecionada === p.chave}
                 onSelecionar={() => onSelecionar(p.chave)}
               />
@@ -799,7 +901,7 @@ function Etapa({
   );
 }
 
-export function ResultadosPassHub({ resultado, filtros, onReservar }: Props) {
+export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onReservar }: Props) {
   const [idaSel, setIdaSel] = useState<string | null>(null);
 
   useEffect(() => {
@@ -856,6 +958,7 @@ export function ResultadosPassHub({ resultado, filtros, onReservar }: Props) {
         statusTom={idaSel ? "ok" : "res"}
         pernas={idas}
         filtros={filtros}
+        ravPercentual={ravPercentual}
         selecionada={idaSel}
         onSelecionar={selecionaIda}
       />
@@ -868,6 +971,7 @@ export function ResultadosPassHub({ resultado, filtros, onReservar }: Props) {
           statusTom={idaSel ? "ok" : "res"}
           pernas={voltas}
           filtros={filtros}
+          ravPercentual={ravPercentual}
           selecionada={null}
           onSelecionar={selecionaVolta}
           bloqueada={!idaSel}
