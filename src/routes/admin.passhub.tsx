@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { AirlineLogo } from "@/components/AirlineLogo";
 import { passhubStatus, passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
 import { ReservaPassHubDialog } from "@/components/passhub/ReservaPassHubDialog";
 import { ResultadosPassHub, type FiltrosMotor } from "@/components/passhub/ResultadosPassHub";
+import { isBrIata } from "@/lib/br-airports";
 import type { PassHubOferta, PassHubResultado } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/passhub")({
