@@ -686,7 +686,7 @@ export async function radarLeadsByCategory(
 }
 
 function isoToday() {
-  return new Date().toISOString().slice(0, 10);
+  return hojeBRT();
 }
 
 /** "15/10" + mês/ano de referência → "2026-10-15" (vira o ano quando precisa). */
