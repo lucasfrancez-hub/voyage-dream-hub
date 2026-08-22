@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Filter, Luggage, Briefcase, Plus, Check, Info, FileText, X } from "lucide-react";
 import type { PassHubOferta, PassHubResultado, PassHubVoo } from "@/lib/passhub/types";
+import { cityLabel } from "@/lib/iata-lookup";
 
 export type FiltrosMotor = {
   ordem: "preco" | "duracao" | "partida" | "chegada";
@@ -630,24 +631,76 @@ function LinhaPerna({
         </td>
 
         {/* Itinerário: uma linha por segmento */}
-        <td className="px-2 py-3">
-          <div className="grid gap-1.5">
+        <td className="px-3 py-3">
+          <div className="flex flex-col">
             {segs.map((s, i) => (
               <div key={i}>
                 {s.esperaAntes && (
-                  <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[#ffc496]">
-                    conexão em {s.de} · espera {s.esperaAntes}
+                  <div className="relative flex items-center py-3">
+                    <div className="absolute left-[5.25rem] top-0 h-full border-l border-dashed border-white/15" />
+                    <div className="absolute left-[5rem] top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[#F26B1F] shadow-[0_0_12px_rgba(242,107,31,0.6)]" />
+                    <div className="ml-[6.5rem] flex items-center gap-2 rounded-lg border border-white/5 bg-[#0a1e29] px-3 py-1.5">
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                        Conexão em {s.de}
+                      </span>
+                      <div className="h-1 w-1 rounded-full bg-slate-600" />
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#F26B1F]">
+                        Espera {s.esperaAntes}
+                      </span>
+                    </div>
                   </div>
                 )}
-                <div className="cons-soft grid grid-cols-[62px_54px_16px_54px_62px_1fr] items-center gap-2 px-3 py-1.5">
-                  <b className="text-[13px]">{hora(s.saida)}</b>
-                  <span className="text-[12px] font-black">{s.de}</span>
-                  <span className="cons-muted">→</span>
-                  <span className="text-[12px] font-black">{s.para}</span>
-                  <b className="text-[13px]">{hora(s.chegada)}</b>
-                  <span className="text-[11px] cons-muted">
-                    {s.voo} · {diaCurto(s.saida)}
-                    {diaCurto(s.chegada) !== diaCurto(s.saida) ? ` → ${diaCurto(s.chegada)}` : ""}
+                <div className="flex items-center gap-5">
+                  <div className="flex min-w-[92px] flex-col">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#F26B1F]">
+                      {diaCurto(s.saida)}
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-[19px] font-bold tracking-tighter text-white">
+                        {hora(s.saida)}
+                      </span>
+                      <span className="text-[12px] font-extrabold tracking-widest text-slate-400">
+                        {s.de}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-medium text-slate-500">{cityLabel(s.de)}</span>
+                  </div>
+
+                  <div className="flex flex-1 items-center justify-center gap-2 px-1">
+                    <div className="h-[1px] w-5 bg-slate-700/50" />
+                    <svg
+                      className="h-3.5 w-3.5 shrink-0 text-slate-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M17 8l4 4m0 0l-4 4m4-4H3"
+                      />
+                    </svg>
+                    <div className="h-[1px] w-5 bg-slate-700/50" />
+                  </div>
+
+                  <div className="flex min-w-[92px] flex-col">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#F26B1F] opacity-0">
+                      {diaCurto(s.saida)}
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[12px] font-extrabold tracking-widest text-slate-400">
+                        {s.para}
+                      </span>
+                      <span className="font-mono text-[19px] font-bold tracking-tighter text-white">
+                        {hora(s.chegada)}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-medium text-slate-500">{cityLabel(s.para)}</span>
+                  </div>
+
+                  <span className="ml-auto rounded-md border border-white/5 bg-white/5 px-2.5 py-1 font-mono text-[10px] font-bold text-slate-500">
+                    {s.voo}
                   </span>
                 </div>
               </div>
