@@ -71,6 +71,10 @@ export const passhubMotorBuscar = createServerFn({ method: "POST" })
     }
   });
 
+/** Campos opcionais chegam como "" quando o usuário não preenche; tratamos como ausentes. */
+const vazioComoIndefinido = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), schema.optional());
+
 const paxSchema = z.object({
   tipo: z.enum(["ADT", "CHD", "INF"]),
   nome: z.string().min(2).max(60),
@@ -79,10 +83,10 @@ const paxSchema = z.object({
   genero: z.enum(["M", "F"]),
   documentoTipo: z.enum(["cpf", "passport"]),
   documento: z.string().min(5).max(30),
-  paisEmissor: z.string().length(2).optional(),
-  paisResidencia: z.string().length(2).optional(),
-  emissao: dataIso.optional(),
-  validade: dataIso.optional(),
+  paisEmissor: vazioComoIndefinido(z.string().length(2)),
+  paisResidencia: vazioComoIndefinido(z.string().length(2)),
+  emissao: vazioComoIndefinido(dataIso),
+  validade: vazioComoIndefinido(dataIso),
   email: z.string().email().max(120).optional().or(z.literal("")),
   ddi: z.string().max(4).optional(),
   ddd: z.string().max(3).optional(),
