@@ -319,10 +319,8 @@ body:has([data-chat-root]),
   --cons-green: #37d39a;
   --cons-shadow: 0 22px 48px rgba(0, 0, 0, 0.4);
 
-  background:
-    radial-gradient(900px 420px at 10% -10%, rgba(242, 107, 31, 0.1), transparent 60%),
-    radial-gradient(760px 380px at 95% 0%, rgba(63, 141, 227, 0.14), transparent 60%),
-    linear-gradient(180deg, var(--cons-bg), #061018);
+  background: var(--cons-bg);
+
   color: var(--cons-text);
   min-height: 100%;
 }
