@@ -907,7 +907,10 @@ function Etapa({
           <h2 className="text-[22px] font-black tracking-tight">{titulo}</h2>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[12px] cons-muted">{visiveis.length} exibidas</span>
+          <span className="text-[12px] cons-muted">
+            {filtradas.length} opções · página {pagAtual}/{totalPags}
+          </span>
+
           <button
             type="button"
             className={`cons-btn h-9 ${painel || filtrosAtivos ? "cons-btn-primary" : ""}`}
