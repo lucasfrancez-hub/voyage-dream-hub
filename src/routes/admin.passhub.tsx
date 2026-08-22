@@ -119,7 +119,15 @@ function VooCard({ voo, titulo }: { voo: PassHubVoo; titulo: string }) {
   );
 }
 
-function OfertaCard({ oferta, maisBarata }: { oferta: PassHubOferta; maisBarata: boolean }) {
+function OfertaCard({
+  oferta,
+  maisBarata,
+  onReservar,
+}: {
+  oferta: PassHubOferta;
+  maisBarata: boolean;
+  onReservar: (o: PassHubOferta) => void;
+}) {
   const [aberto, setAberto] = useState(false);
 
   return (
