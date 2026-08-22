@@ -1080,6 +1080,48 @@ function Etapa({
           </tbody>
         </table>
       </div>
+
+      {totalPags > 1 && (
+        <div className="cons-card flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-[12px]">
+          <span className="cons-muted">
+            Exibindo {(pagAtual - 1) * porPagina + 1}–{Math.min(pagAtual * porPagina, filtradas.length)} de{" "}
+            <b>{filtradas.length}</b> opções
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              className="cons-btn h-8"
+              disabled={pagAtual <= 1}
+              onClick={() => setPag(pagAtual - 1)}
+            >
+              Anterior
+            </button>
+            {Array.from({ length: totalPags }, (_, i) => i + 1)
+              .filter((n) => n === 1 || n === totalPags || Math.abs(n - pagAtual) <= 2)
+              .map((n, i, arr) => (
+                <span key={n} className="flex items-center gap-1.5">
+                  {i > 0 && arr[i - 1] !== n - 1 && <span className="cons-muted">…</span>}
+                  <button
+                    type="button"
+                    className={`cons-btn h-8 min-w-8 px-2.5 ${n === pagAtual ? "cons-btn-primary" : ""}`}
+                    onClick={() => setPag(n)}
+                  >
+                    {n}
+                  </button>
+                </span>
+              ))}
+            <button
+              type="button"
+              className="cons-btn h-8"
+              disabled={pagAtual >= totalPags}
+              onClick={() => setPag(pagAtual + 1)}
+            >
+              Próxima
+            </button>
+          </div>
+        </div>
+      )}
+
     </section>
   );
 }
