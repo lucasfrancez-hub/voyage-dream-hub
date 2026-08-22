@@ -119,6 +119,21 @@ export function ReservaPassHubDialog({
     onError: (e) => toast.error((e as Error).message),
   });
 
+  const buscarLink = useServerFn(passhubLinkPagamento);
+  const linkPagamento = useMutation({
+    mutationFn: async () => buscarLink({ data: { localizador } }),
+    onSuccess: async (res) => {
+      if (!res.ok) {
+        toast.error(res.erro);
+        return;
+      }
+      await navigator.clipboard.writeText(res.link);
+      toast.success("Link de pagamento copiado");
+      window.open(res.link, "_blank", "noopener");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao obter o link"),
+  });
+
   const criacao = useMutation({
     mutationFn: async (tokensAtuais: string[]) =>
       reservarFn({
@@ -366,7 +381,19 @@ export function ReservaPassHubDialog({
               {reserva.status && <Badge variant="secondary">{reserva.status}</Badge>}
               {reserva.total > 0 && <Badge variant="outline">{brl(reserva.total)}</Badge>}
             </div>
-            <div className="flex justify-center gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => linkPagamento.mutate()}
+                disabled={linkPagamento.isPending}
+              >
+                {linkPagamento.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CreditCard className="mr-2 h-4 w-4" />
+                )}
+                Link de pagamento
+              </Button>
               <Button variant="outline" onClick={copiar}>
                 {copiado ? (
                   <Check className="mr-2 h-4 w-4" />
