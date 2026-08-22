@@ -460,12 +460,12 @@ body:has([data-chat-root]),
   background: rgba(242, 107, 31, 0.08);
   white-space: nowrap;
 }
-.cons-table td { padding: 13px 10px; border-bottom: 1px dotted rgba(255, 255, 255, 0.08); }
+.cons-table td { padding: 13px 10px; border-bottom: 1px solid var(--cons-line); }
 .cons-table tbody tr { cursor: pointer; }
 .cons-table tbody tr:hover { background: rgba(242, 107, 31, 0.07); }
 
 .cons-row {
-  border-top: 1px dotted rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--cons-line);
   transition: background 0.16s ease, box-shadow 0.16s ease;
 }
 .cons-row:first-child { border-top: 0; }
@@ -476,7 +476,7 @@ body:has([data-chat-root]),
   width: 30px;
   height: 30px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #ff9244, #e66318);
+  background: var(--cons-orange);
   display: grid;
   place-items: center;
   color: #fff;
