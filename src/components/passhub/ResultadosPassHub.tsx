@@ -905,6 +905,31 @@ function Etapa({
     (av.chegadaIni > 0 || av.chegadaFim < 1439 ? 1 : 0) +
     (av.duracaoMax < maxDur ? 1 : 0);
 
+  if (recolhida && pernaSelecionada) {
+    return (
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="cons-lab">Etapa {numero}</div>
+            <h2 className="text-[22px] font-black tracking-tight">{titulo}</h2>
+          </div>
+          <span className={`cons-status cons-status-${statusTom}`}>{status}</span>
+        </div>
+        <ResumoPerna
+          perna={pernaSelecionada}
+          ravPercentual={ravPercentual}
+          acao={
+            onAlterar ? (
+              <button type="button" className="cons-btn h-9" onClick={onAlterar}>
+                Alterar
+              </button>
+            ) : null
+          }
+        />
+      </section>
+    );
+  }
+
   return (
     <section className={`space-y-3 ${bloqueada ? "opacity-55" : ""}`}>
       <div className="flex flex-wrap items-end justify-between gap-3">
