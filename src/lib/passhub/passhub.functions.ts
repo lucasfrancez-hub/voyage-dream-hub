@@ -70,3 +70,68 @@ export const passhubMotorBuscar = createServerFn({ method: "POST" })
       return { ok: false as const, erro: msg };
     }
   });
+
+const paxSchema = z.object({
+  tipo: z.enum(["ADT", "CHD", "INF"]),
+  nome: z.string().min(2).max(60),
+  sobrenome: z.string().min(2).max(80),
+  nascimento: dataIso,
+  genero: z.enum(["M", "F"]),
+  documentoTipo: z.enum(["cpf", "passport"]),
+  documento: z.string().min(5).max(30),
+  paisEmissor: z.string().length(2).optional(),
+  paisResidencia: z.string().length(2).optional(),
+  emissao: dataIso.optional(),
+  validade: dataIso.optional(),
+  email: z.string().email().max(120).optional().or(z.literal("")),
+  ddi: z.string().max(4).optional(),
+  ddd: z.string().max(3).optional(),
+  telefone: z.string().max(20).optional(),
+});
+
+/** Revalida preço e disponibilidade da oferta escolhida (passo obrigatório antes de reservar). */
+export const passhubTarifarOferta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        rateTokens: z.array(z.string().min(4)).min(1).max(6),
+        provedor: z.string().max(40).default("CVC"),
+        precoEsperado: z.number().min(0),
+        ravPercentual: z.number().min(0).max(100).nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { passhubTarifarOferta: tarifar } = await import("./book.server");
+    try {
+      return { ok: true as const, tarifacao: await tarifar(data) };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao tarifar" };
+    }
+  });
+
+/** Cria a reserva na PassHub e devolve o localizador. */
+export const passhubReservar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        pricedRateTokens: z.array(z.string().min(4)).min(1).max(6),
+        provedor: z.string().max(40).default("CVC"),
+        ravPercentual: z.number().min(0).max(100).nullable().optional(),
+        paxs: z.array(paxSchema).min(1).max(9),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { passhubReservarOferta } = await import("./book.server");
+    try {
+      const reserva = await passhubReservarOferta(data);
+      return { ok: true as const, reserva };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao reservar";
+      console.error("[passhub] reservar falhou:", msg);
+      return { ok: false as const, erro: msg };
+    }
+  });

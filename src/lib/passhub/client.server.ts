@@ -9,6 +9,7 @@
 const AUTH_BASE = "https://emissor-auth.passhub.com.br";
 const VOO_BASE = "https://api-voo.passhub.com.br";
 const MULTI_BASE = "https://busca-multi.passhub.com.br";
+const NEXUS_BASE = "https://nexus.passhub.com.br";
 
 const TIMEOUT_MS = 60_000;
 
@@ -23,7 +24,7 @@ export class PassHubError extends Error {
   }
 }
 
-export const passhubBases = { auth: AUTH_BASE, voo: VOO_BASE, multi: MULTI_BASE };
+export const passhubBases = { auth: AUTH_BASE, voo: VOO_BASE, multi: MULTI_BASE, nexus: NEXUS_BASE };
 
 function credenciais() {
   const email = (process.env["PASSHUB_EMAIL"] ?? "").trim();

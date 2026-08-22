@@ -72,5 +72,5 @@ export async function passhubBuscarVoos(input: PassHubBuscaInput): Promise<Json>
 
 /** Tarifação do voo escolhido (revalida preço/disponibilidade). */
 export async function passhubTarifar(payload: unknown): Promise<Json> {
-  return passhubRequest<Json>(`${passhubBases.voo}/api/v1/tarifar`, { body: payload });
+  return passhubRequest<Json>(`${passhubBases.nexus}/api/v1/tarifar`, { body: payload });
 }

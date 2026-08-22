@@ -15,6 +15,7 @@ import {
   PlugZap,
   Plus,
   Search,
+  Ticket,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { passhubStatus, passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
+import { ReservaPassHubDialog } from "@/components/passhub/ReservaPassHubDialog";
 import type { PassHubOferta, PassHubVoo, PassHubResultado } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/passhub")({
@@ -119,7 +121,15 @@ function VooCard({ voo, titulo }: { voo: PassHubVoo; titulo: string }) {
   );
 }
 
-function OfertaCard({ oferta, maisBarata }: { oferta: PassHubOferta; maisBarata: boolean }) {
+function OfertaCard({
+  oferta,
+  maisBarata,
+  onReservar,
+}: {
+  oferta: PassHubOferta;
+  maisBarata: boolean;
+  onReservar: (o: PassHubOferta) => void;
+}) {
   const [aberto, setAberto] = useState(false);
 
   return (
@@ -143,9 +153,14 @@ function OfertaCard({ oferta, maisBarata }: { oferta: PassHubOferta; maisBarata:
           )}
           <p className="text-2xl font-extrabold">{brl(oferta.precoTotal)}</p>
           <p className="text-xs text-muted-foreground">total da oferta</p>
-          <Button size="sm" variant="outline" className="mt-2" onClick={() => setAberto((a) => !a)}>
-            {aberto ? "Ocultar detalhes" : "Ver detalhes"}
-          </Button>
+          <div className="mt-2 flex flex-col gap-2">
+            <Button size="sm" onClick={() => onReservar(oferta)}>
+              <Ticket className="mr-2 h-4 w-4" /> Reservar
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setAberto((a) => !a)}>
+              {aberto ? "Ocultar detalhes" : "Ver detalhes"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -200,6 +215,7 @@ function PassHubPage() {
   const [soDireto, setSoDireto] = useState(false);
   const [soBagagem, setSoBagagem] = useState(false);
   const [companhia, setCompanhia] = useState<string>("todas");
+  const [ofertaReserva, setOfertaReserva] = useState<PassHubOferta | null>(null);
 
   const status = useMutation({
     mutationFn: async () => statusFn(),
@@ -469,7 +485,12 @@ function PassHubPage() {
 
           <div className="space-y-3">
             {ofertas.map((o) => (
-              <OfertaCard key={o.id} oferta={o} maisBarata={o.precoTotal === menorPreco} />
+              <OfertaCard
+                key={o.id}
+                oferta={o}
+                maisBarata={o.precoTotal === menorPreco}
+                onReservar={setOfertaReserva}
+              />
             ))}
           </div>
 
@@ -502,6 +523,14 @@ function PassHubPage() {
           {bruto}
         </pre>
       )}
+      <ReservaPassHubDialog
+        oferta={ofertaReserva}
+        adultos={adultos}
+        criancas={criancas}
+        bebes={bebes}
+        ravPercentual={rav}
+        onClose={() => setOfertaReserva(null)}
+      />
     </main>
   );
 }
