@@ -546,7 +546,8 @@ function PedidosNav({ pathname }: { pathname: string }) {
             { to: "/admin/pedidos", label: "Meus pedidos" },
             { to: "/admin/orcamentos", label: "Orçamentos" },
             { to: "/admin/pedidos/terceiros", label: "Pedidos de terceiro" },
-            { to: "/admin/reservas", label: "Reservas e emissões" },
+            { to: "/admin/reservas", label: "Reservas" },
+            { to: "/admin/bilhetes", label: "Bilhetes" },
           ],
         },
 
