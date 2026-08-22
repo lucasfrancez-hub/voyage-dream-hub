@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { abrirLinkChat } from "@/lib/chat/device-session.functions";
+import { lembrarTokenApp } from "@/lib/chat/app-token";
 
 export const Route = createFileRoute("/admin/app/$token")({
   ssr: false,
@@ -45,6 +46,11 @@ function AbrirAppAdmin() {
   const [verificando, setVerificando] = useState(true);
 
   // Só entra direto com sessão ativa; sem sessão, o PIN é sempre exigido.
+  // Guarda o token deste aparelho: o app sempre volta pra própria URL do app.
+  useEffect(() => {
+    lembrarTokenApp(token);
+  }, [token]);
+
   useEffect(() => {
     void (async () => {
       try {

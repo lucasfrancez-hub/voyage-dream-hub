@@ -22,6 +22,7 @@ import { NavMegaMenu, type NavMenuGroup } from "@/components/admin/NavMegaMenu";
 import { useServerFn } from "@tanstack/react-start";
 import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
 import { ChatPinUnlock, ChatPinSetup } from "@/components/chat/ChatPinUnlock";
+import { tokenAppLembrado } from "@/lib/chat/app-token";
 
 /** App instalado no celular (PWA em modo standalone). */
 function ehAppInstalado() {
@@ -180,6 +181,12 @@ function AdminLayout() {
           } catch { /* cai no PIN */ }
           setPedirPin(true);
         })();
+        return;
+      }
+      // No app instalado, nunca cair no login do site: volta pra URL do app.
+      const tokenApp = tokenAppLembrado();
+      if (tokenApp) {
+        window.location.replace(`/admin/app/${tokenApp}`);
         return;
       }
       navigate({ to: "/auth" });
