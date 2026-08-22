@@ -113,6 +113,22 @@ export async function passhubReservarOferta(input: ReservarInput): Promise<PassH
     })),
     provider: (input.provedor || "CVC").toUpperCase(),
   };
+
+  /** Contato da reserva: a PassHub também espera o bloco no nível raiz. */
+  const contato = input.paxs[0];
+  if (contato) {
+    body["email"] = contato.email ?? "";
+    body["ddi"] = (contato.ddi ?? "55").replace(/\D/g, "");
+    body["ddd"] = (contato.ddd ?? "").replace(/\D/g, "");
+    body["phone"] = (contato.telefone ?? "").replace(/\D/g, "");
+    body["contact"] = {
+      email: contato.email ?? "",
+      ddi: (contato.ddi ?? "55").replace(/\D/g, ""),
+      ddd: (contato.ddd ?? "").replace(/\D/g, ""),
+      phone: (contato.telefone ?? "").replace(/\D/g, ""),
+    };
+  }
+
   if (input.ravPercentual != null) body["rav_percentage"] = input.ravPercentual;
 
   if (tokens.length > 2) {
