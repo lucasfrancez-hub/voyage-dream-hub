@@ -237,73 +237,77 @@ function PassHubPage() {
             <div className="cons-dot mb-4" />
 
             {trechos.map((t, i) => (
-              <div
-                key={i}
-                className="mb-3 grid grid-cols-1 items-end gap-3 md:grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)_160px_160px]"
-              >
-                <div>
-                  <span className="cons-lab mb-1.5 block">Origem</span>
-                  <AirportAutocomplete
-                    value={t.origem}
-                    onSelect={(iata) => atualiza(i, "origem", iata)}
-                    placeholder="MGF - Maringá"
-                  />
+              <div key={i} className="mb-4 space-y-3">
+                {/* Linha 1: Origem / Destino */}
+                <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)]">
+                  <div>
+                    <span className="cons-lab mb-1.5 block">Origem</span>
+                    <AirportAutocomplete
+                      value={t.origem}
+                      onSelect={(iata) => atualiza(i, "origem", iata)}
+                      placeholder="MGF - Maringá"
+                    />
+                  </div>
+                  <div className="hidden md:block">
+                    {i === 0 && (
+                      <button
+                        type="button"
+                        aria-label="Inverter origem e destino"
+                        className="cons-btn h-10 w-10 !px-0"
+                        onClick={inverter}
+                      >
+                        <ArrowLeftRight className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div>
+                    <span className="cons-lab mb-1.5 block">Destino</span>
+                    <AirportAutocomplete
+                      value={t.destino}
+                      onSelect={(iata) => atualiza(i, "destino", iata)}
+                      placeholder="GRU - Guarulhos"
+                      isDeparture={false}
+                    />
+                  </div>
                 </div>
-                <div className="hidden md:block">
-                  {i === 0 && (
-                    <button
-                      type="button"
-                      aria-label="Inverter origem e destino"
-                      className="cons-btn h-10 w-10 !px-0"
-                      onClick={inverter}
-                    >
-                      <ArrowLeftRight className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-                <div>
-                  <span className="cons-lab mb-1.5 block">Destino</span>
-                  <AirportAutocomplete
-                    value={t.destino}
-                    onSelect={(iata) => atualiza(i, "destino", iata)}
-                    placeholder="GRU - Guarulhos"
-                    isDeparture={false}
-                  />
-                </div>
-                <div>
-                  <span className="cons-lab mb-1.5 block">
-                    {tipo === "multi" ? `Data ${i + 1}` : "Data ida"}
-                  </span>
-                  <input
-                    className="cons-field"
-                    type="date"
-                    min={hoje}
-                    value={t.data}
-                    onChange={(e) => atualiza(i, "data", e.target.value)}
-                  />
-                </div>
-                <div>
-                  {tipo === "ida-volta" && i === 0 ? (
-                    <>
-                      <span className="cons-lab mb-1.5 block">Data volta</span>
-                      <input
-                        className="cons-field"
-                        type="date"
-                        min={trechos[0]?.data || hoje}
-                        value={dataVolta}
-                        onChange={(e) => setDataVolta(e.target.value)}
-                      />
-                    </>
-                  ) : tipo === "multi" && trechos.length > 1 ? (
-                    <button
-                      type="button"
-                      aria-label="Remover trecho"
-                      className="cons-btn h-10 w-10 !px-0"
-                      onClick={() => setTrechos((p) => p.filter((_, idx) => idx !== i))}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  ) : null}
+
+                {/* Linha 2: Datas */}
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div>
+                    <span className="cons-lab mb-1.5 block">
+                      {tipo === "multi" ? `Data ${i + 1}` : "Data ida"}
+                    </span>
+                    <input
+                      className="cons-field"
+                      type="date"
+                      min={hoje}
+                      value={t.data}
+                      onChange={(e) => atualiza(i, "data", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    {tipo === "ida-volta" && i === 0 ? (
+                      <>
+                        <span className="cons-lab mb-1.5 block">Data volta</span>
+                        <input
+                          className="cons-field"
+                          type="date"
+                          min={trechos[0]?.data || hoje}
+                          value={dataVolta}
+                          onChange={(e) => setDataVolta(e.target.value)}
+                        />
+                      </>
+                    ) : tipo === "multi" && trechos.length > 1 ? (
+                      <button
+                        type="button"
+                        aria-label="Remover trecho"
+                        className="cons-btn h-10 w-10 !px-0"
+                        onClick={() => setTrechos((p) => p.filter((_, idx) => idx !== i))}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             ))}
