@@ -7,7 +7,11 @@ import { ArrowLeftRight, Code2, Loader2, Plus, Search, Trash2 } from "lucide-rea
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { passhubStatus, passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
 import { ReservaPassHubDialog } from "@/components/passhub/ReservaPassHubDialog";
-import { ResultadosPassHub, type FiltrosMotor } from "@/components/passhub/ResultadosPassHub";
+import {
+  ResultadosPassHub,
+  BadgeCia,
+  type FiltrosMotor,
+} from "@/components/passhub/ResultadosPassHub";
 import { isBrIata } from "@/lib/br-airports";
 import type { PassHubOferta, PassHubResultado } from "@/lib/passhub/types";
 
