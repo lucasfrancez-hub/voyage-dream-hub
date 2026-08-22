@@ -198,10 +198,11 @@ export type Valores = {
   total: number;
 };
 
-const INCENTIVO_PCT = 1; // comissão de incentivo sobre a tarifa (%)
-
-/** Calcula tarifa/taxas/RAV. Quando a PassHub não devolve a RAV, aplica o % fixado na busca. */
-export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
+/**
+ * Só espelha o que a PassHub devolve: tarifa, taxas, RAV e comissão de
+ * incentivo vêm da API. Nada é arbitrado aqui.
+ */
+export function calcularValores(voo: PassHubVoo, _ravPercentual = 0): Valores {
   const tarifa = voo.precoTarifa || 0;
   const taxas = voo.taxas || 0;
   const totalApi = voo.precoTotal || 0;
@@ -210,7 +211,6 @@ export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
   let rav = voo.ravValor || 0;
   let pct = voo.ravPercentual || 0;
   let outros = 0;
-  let total = totalApi;
 
   if (rav > 0) {
     if (!pct && tarifa > 0) pct = Math.round((rav / tarifa) * 1000) / 10;
@@ -221,25 +221,19 @@ export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
     pct = tarifa > 0 ? Math.round((rav / tarifa) * 1000) / 10 : 0;
   }
 
-  // O percentual fixado na busca (10% nacional / 7% internacional) é um PISO:
-  // se a consolidadora já embutiu uma RAV maior, mantemos o total dela — nunca
-  // devolvemos um preço abaixo do que a PassHub cobra.
-  if (ravPercentual > 0 && tarifa > 0) {
-    const alvo = Math.round(tarifa * (ravPercentual / 100) * 100) / 100;
-    if (alvo > rav) {
-      pct = ravPercentual;
-      rav = alvo;
-      total = Math.round((tarifa + taxas + outros + rav) * 100) / 100;
-    }
-  }
+  const total = totalApi || Math.round((tarifa + taxas + rav) * 100) / 100;
 
-  if (!total) total = Math.round((tarifa + taxas + rav) * 100) / 100;
-
-
-  const comissaoIncentivo = tarifa > 0 ? Math.round(tarifa * (INCENTIVO_PCT / 100) * 100) / 100 : 0;
+  // Comissão de incentivo: apenas o que a consolidadora informar.
+  const comissaoIncentivo =
+    voo.incentivoValor > 0
+      ? voo.incentivoValor
+      : voo.incentivoPercentual > 0 && tarifa > 0
+        ? Math.round(tarifa * (voo.incentivoPercentual / 100) * 100) / 100
+        : 0;
 
   return { tarifa, taxas, rav, pct, outros, comissaoIncentivo, total };
 }
+
 
 /* -------------------- matriz de filtro: cias x paradas -------------------- */
 
