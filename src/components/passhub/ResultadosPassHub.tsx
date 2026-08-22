@@ -287,6 +287,9 @@ function Etapa({
     return ordena(lista, filtros.ordem).slice(0, filtros.mostrar);
   }, [pernas, texto, cia, paradas, filtros]);
 
+  const filtrosAtivos =
+    (texto.trim() ? 1 : 0) + (cia ? 1 : 0) + (paradas !== "todas" ? 1 : 0);
+
   return (
     <section className={`space-y-3 ${bloqueada ? "opacity-55" : ""}`}>
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -294,47 +297,69 @@ function Etapa({
           <div className="cons-lab">Etapa {numero}</div>
           <h2 className="text-[22px] font-black tracking-tight">{titulo}</h2>
         </div>
-        <span className={`cons-status cons-status-${statusTom}`}>{status}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] cons-muted">{visiveis.length} exibidas</span>
+          <button
+            type="button"
+            className={`cons-btn h-9 ${mais || filtrosAtivos ? "cons-btn-primary" : ""}`}
+            onClick={() => setMais((m) => !m)}
+          >
+            <Filter className="h-4 w-4" /> Filtros
+            {filtrosAtivos > 0 && (
+              <span className="rounded-full bg-black/25 px-1.5 text-[11px] font-black">
+                {filtrosAtivos}
+              </span>
+            )}
+          </button>
+          <span className={`cons-status cons-status-${statusTom}`}>{status}</span>
+        </div>
       </div>
 
-      <ResumoCias
-        pernas={pernas}
-        selecionada={cia}
-        onSelecionar={setCia}
-        rotulo={`Filtro ${titulo.includes("volta") ? "volta" : "ida"}`}
-      />
-
-      <div className="cons-card flex flex-wrap items-center gap-3 px-4 py-3">
-        <span className="text-[13px] font-bold">Pesquisar</span>
-        <input
-          className="cons-field h-9 max-w-[260px]"
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          placeholder="Voo, cia, aeroporto"
-        />
-        <button
-          type="button"
-          className={`cons-btn h-9 ${mais ? "cons-btn-primary" : ""}`}
-          onClick={() => setMais((m) => !m)}
-        >
-          <Filter className="h-4 w-4" /> Mais filtros
-        </button>
-        {mais && (
-          <div className="flex items-center gap-2">
-            {(["todas", "0", "1+"] as const).map((p) => (
+      {mais && (
+        <div className="cons-card space-y-3 px-4 py-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              className="cons-field h-9 max-w-[260px]"
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              placeholder="Voo, cia, aeroporto"
+            />
+            <div className="flex items-center gap-2">
+              {(["todas", "0", "1+"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setParadas(p)}
+                  className={`cons-btn h-9 px-3 text-[12px] ${paradas === p ? "cons-btn-blue" : ""}`}
+                >
+                  {p === "todas" ? "Todas" : p === "0" ? "Diretos" : "Com escala"}
+                </button>
+              ))}
+            </div>
+            {filtrosAtivos > 0 && (
               <button
-                key={p}
                 type="button"
-                onClick={() => setParadas(p)}
-                className={`cons-btn h-9 px-3 text-[12px] ${paradas === p ? "cons-btn-blue" : ""}`}
+                className="cons-btn h-9 px-3 text-[12px]"
+                onClick={() => {
+                  setTexto("");
+                  setCia(null);
+                  setParadas("todas");
+                }}
               >
-                {p === "todas" ? "Todas" : p === "0" ? "Diretos" : "Com escala"}
+                Limpar
               </button>
-            ))}
+            )}
           </div>
-        )}
-        <span className="ml-auto text-[12px] cons-muted">{visiveis.length} exibidas</span>
-      </div>
+
+          <ResumoCias
+            pernas={pernas}
+            selecionada={cia}
+            onSelecionar={setCia}
+            rotulo={`Companhias ${titulo.includes("volta") ? "volta" : "ida"}`}
+          />
+        </div>
+      )}
+
 
       <div className="cons-card overflow-x-auto">
         <table className="cons-table min-w-[1180px]">

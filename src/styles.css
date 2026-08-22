@@ -304,25 +304,29 @@ body:has([data-chat-root]),
    busca, resultados, reservas e bilhetes. Tokens escopados.
    ============================================================ */
 .cons {
-  --cons-bg: #07131d;
-  --cons-bg2: #0a1824;
-  --cons-card: #0d2030;
-  --cons-card2: #11283b;
-  --cons-line: #1f3a50;
-  --cons-line2: #2b4b63;
-  --cons-text: #edf6ff;
-  --cons-muted: #8ea9be;
-  --cons-blue: #3f8de3;
-  --cons-blue2: #5aa9ff;
+  --cons-bg: #120b07;
+  --cons-bg2: #1a1009;
+  --cons-card: #1c120b;
+  --cons-card2: #241710;
+  --cons-line: #3a2416;
+  --cons-line2: #4d3120;
+  --cons-text: #fdf6f0;
+  --cons-muted: #bfa595;
+  --cons-blue: #f26b1f;
+  --cons-blue2: #ff9440;
   --cons-orange: #f26b1f;
   --cons-orange2: #ff9440;
   --cons-green: #37d39a;
-  --cons-shadow: 0 22px 48px rgba(0, 0, 0, 0.34);
+  --cons-shadow: 0 22px 48px rgba(0, 0, 0, 0.45);
 
-  background: linear-gradient(180deg, var(--cons-bg), #061018);
+  background:
+    radial-gradient(900px 420px at 12% -8%, rgba(242, 107, 31, 0.16), transparent 62%),
+    radial-gradient(700px 380px at 96% 0%, rgba(55, 211, 154, 0.08), transparent 60%),
+    linear-gradient(180deg, var(--cons-bg), #0b0705);
   color: var(--cons-text);
   min-height: 100%;
 }
+
 
 .cons-shell {
   width: 100%;
@@ -335,13 +339,13 @@ body:has([data-chat-root]),
 }
 
 .cons-card {
-  background: linear-gradient(180deg, var(--cons-card), #0b1b29);
+  background: linear-gradient(180deg, rgba(36, 23, 16, 0.92), rgba(20, 12, 8, 0.94));
   border: 1px solid var(--cons-line);
   border-radius: 18px;
   box-shadow: var(--cons-shadow);
 }
 .cons-box {
-  background: linear-gradient(180deg, #102638, #0d2030);
+  background: linear-gradient(180deg, #2a1a11, #1d120c);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
 }
@@ -365,7 +369,7 @@ body:has([data-chat-root]),
   height: 40px;
   border: 1px solid var(--cons-line2);
   border-radius: 12px;
-  background: linear-gradient(180deg, #102537, #0c1d2c);
+  background: linear-gradient(180deg, #2a1a11, #1a100b);
   color: var(--cons-text);
   padding: 0 12px;
   font-size: 14px;
@@ -384,23 +388,24 @@ body:has([data-chat-root]),
   padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--cons-line2);
-  background: linear-gradient(180deg, #13293b, #0e2131);
+  background: linear-gradient(180deg, #2c1b12, #1e130d);
   color: var(--cons-text);
   font-weight: 700;
   font-size: 13px;
   white-space: nowrap;
 }
-.cons-btn:hover { border-color: var(--cons-blue2); }
+.cons-btn:hover { border-color: var(--cons-orange2); background: linear-gradient(180deg, #3a2317, #241610); }
 .cons-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .cons-btn-primary {
-  background: linear-gradient(180deg, var(--cons-orange), #db5c15);
+  background: linear-gradient(135deg, #ff9440, var(--cons-orange) 55%, #d4550f);
   border-color: transparent;
   color: #fff;
+  box-shadow: 0 8px 22px rgba(242, 107, 31, 0.32);
 }
 .cons-btn-blue {
-  background: linear-gradient(180deg, #2b6dac, #194973);
+  background: linear-gradient(135deg, #37d39a, #0f9a72);
   border-color: transparent;
-  color: #fff;
+  color: #05231a;
 }
 
 .cons-pill {
@@ -411,8 +416,8 @@ body:has([data-chat-root]),
   min-width: 58px;
   padding: 0 10px;
   border-radius: 8px;
-  background: #fff;
-  color: #10283c;
+  background: linear-gradient(180deg, #fff, #ffe6d2);
+  color: #3a1c07;
   font-weight: 900;
   font-size: 11px;
   white-space: nowrap;
@@ -422,10 +427,10 @@ body:has([data-chat-root]),
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border: 1px solid rgba(80, 110, 255, 0.34);
+  border: 1px solid rgba(242, 107, 31, 0.38);
   border-radius: 999px;
-  color: #94a9ff;
-  background: rgba(80, 110, 255, 0.08);
+  color: #ffc496;
+  background: rgba(242, 107, 31, 0.1);
   font-size: 11px;
   font-weight: 800;
 }
@@ -451,21 +456,21 @@ body:has([data-chat-root]),
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: #dbecff;
-  background: rgba(255, 255, 255, 0.02);
+  color: #ffd9bd;
+  background: rgba(242, 107, 31, 0.07);
   white-space: nowrap;
 }
 .cons-table td { padding: 13px 10px; border-bottom: 1px dotted rgba(255, 255, 255, 0.08); }
 .cons-table tbody tr { cursor: pointer; }
-.cons-table tbody tr:hover { background: rgba(90, 169, 255, 0.06); }
+.cons-table tbody tr:hover { background: rgba(242, 107, 31, 0.07); }
 
 .cons-row {
   border-top: 1px dotted rgba(255, 255, 255, 0.08);
   transition: background 0.16s ease, box-shadow 0.16s ease;
 }
 .cons-row:first-child { border-top: 0; }
-.cons-row:hover { background: rgba(90, 169, 255, 0.05); }
-.cons-row-sel { background: rgba(63, 141, 227, 0.08); box-shadow: inset 3px 0 0 var(--cons-blue2); }
+.cons-row:hover { background: rgba(242, 107, 31, 0.06); }
+.cons-row-sel { background: rgba(242, 107, 31, 0.1); box-shadow: inset 3px 0 0 var(--cons-orange2); }
 
 .cons-open {
   width: 30px;
