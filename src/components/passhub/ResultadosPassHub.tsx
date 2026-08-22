@@ -397,46 +397,14 @@ function PainelDetalhe({
     ravPercentual,
   );
 
-  /* Comissão real: perguntamos à PassHub quanto ela devolve com o percentual
-     configurado, sem fazer nenhum cálculo local. */
-  const tarifarFn = useServerFn(passhubTarifarOferta);
-  const [tarifacaoApi, setTarifacaoApi] = useState<{
-    preco: number;
-    comissao: number;
-  } | null>(null);
-  const [ravCarregando, setRavCarregando] = useState(false);
-
-  useEffect(() => {
-    const token = voo.rateToken;
-    setTarifacaoApi(null);
-    if (!token) return;
-    let vivo = true;
-    setRavCarregando(true);
-    tarifarFn({
-      data: {
-        rateTokens: [token],
-        provedor: voo.provedor || "CVC",
-        precoEsperado: voo.precoTotal || 0,
-        ravPercentual,
-      },
-    })
-      .then((r) => {
-        if (vivo && r.ok) {
-          setTarifacaoApi({
-            preco: r.tarifacao.preco,
-            comissao: r.tarifacao.ravValor || 0,
-          });
-        }
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (vivo) setRavCarregando(false);
-      });
-    return () => {
-      vivo = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voo.rateToken, voo.provedor, voo.precoTotal, ravPercentual]);
+  /* Comissão real: cache único compartilhado com a lista, o resumo e a reserva. */
+  const tarifacaoApi = useTarifacaoPassHub(
+    [voo.rateToken],
+    voo.provedor,
+    voo.precoTotal || 0,
+    ravPercentual,
+  );
+  const ravCarregando = !tarifacaoApi;
 
   const comissaoApi = tarifacaoApi?.comissao ?? (rav + comissaoIncentivo);
   const precoLiquido = tarifacaoApi?.preco ?? total;
@@ -1283,6 +1251,7 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
   const refResumo = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    limparFilaTarifacao();
     setIdaSel(null);
     setVoltaSel(null);
   }, [resultado]);
@@ -1327,7 +1296,14 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
   // volta escolhida (ida + volta), nunca a soma dos dois trechos.
   const vooPreco = pernaVolta?.voo ?? pernaIda?.voo ?? null;
   const valoresFinais = vooPreco ? calcularValores(vooPreco, ravPercentual) : null;
-  const totalFinal = valoresFinais?.total ?? 0;
+  const tarifacaoFinal = useTarifacaoPassHub(
+    [pernaIda?.voo.rateToken, pernaVolta?.voo.rateToken],
+    vooPreco?.provedor ?? "",
+    vooPreco?.precoTotal ?? 0,
+    ravPercentual,
+    Boolean(vooPreco),
+  );
+  const totalFinal = tarifacaoFinal?.total ?? valoresFinais?.total ?? 0;
 
   const rolar = (alvo: React.RefObject<HTMLDivElement | null>) =>
     window.setTimeout(() => alvo.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
