@@ -62,3 +62,42 @@ export function ehAppStandalone(): boolean {
     return false;
   }
 }
+
+/**
+ * Marca de que o PIN já foi digitado NESTE aparelho.
+ * Sem essa marca o link do app sempre pede o PIN, mesmo com sessão ativa
+ * (evita instalar o app e entrar direto sem PIN).
+ */
+const CHAVE_PIN = "viaair-admin-app-pin-ok";
+
+export function marcarPinValidado(token: string) {
+  const limpo = String(token || "").replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!limpo) return;
+  try {
+    window.localStorage.setItem(CHAVE_PIN, limpo);
+  } catch {
+    /* noop */
+  }
+  try {
+    document.cookie = `${CHAVE_PIN}=${limpo}; path=/; max-age=31536000; samesite=lax`;
+  } catch {
+    /* noop */
+  }
+}
+
+export function pinJaValidado(token: string): boolean {
+  if (typeof window === "undefined") return false;
+  const limpo = String(token || "").replace(/[^a-zA-Z0-9_-]/g, "");
+  if (!limpo) return false;
+  try {
+    if (window.localStorage.getItem(CHAVE_PIN) === limpo) return true;
+  } catch {
+    /* noop */
+  }
+  try {
+    const m = document.cookie.match(new RegExp(`(?:^|; )${CHAVE_PIN}=([^;]+)`));
+    return !!m && decodeURIComponent(m[1]) === limpo;
+  } catch {
+    return false;
+  }
+}

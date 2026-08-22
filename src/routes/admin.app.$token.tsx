@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { abrirLinkChat } from "@/lib/chat/device-session.functions";
-import { lembrarTokenApp } from "@/lib/chat/app-token";
+import { lembrarTokenApp, marcarPinValidado, pinJaValidado } from "@/lib/chat/app-token";
 
 export const Route = createFileRoute("/admin/app/$token")({
   ssr: false,
@@ -54,17 +54,23 @@ function AbrirAppAdmin() {
   useEffect(() => {
     void (async () => {
       try {
-        const s = await supabase.auth.getSession();
-        if (s.data.session) {
-          await navigate({ to: "/admin" });
-          return;
+        // ?pin=1 força a tela de PIN (usado ao instalar/reinstalar o app).
+        const forcarPin =
+          typeof window !== "undefined" && new URLSearchParams(window.location.search).has("pin");
+        // Só entra direto se o PIN já tiver sido digitado NESTE aparelho.
+        if (!forcarPin && pinJaValidado(token)) {
+          const s = await supabase.auth.getSession();
+          if (s.data.session) {
+            await navigate({ to: "/admin" });
+            return;
+          }
         }
       } catch {
         /* pede o PIN */
       }
       setVerificando(false);
     })();
-  }, [navigate]);
+  }, [navigate, token]);
 
 
   const entrar = async () => {
@@ -77,6 +83,7 @@ function AbrirAppAdmin() {
         redirecionar?: "chat" | "admin";
       };
       if (r.redirecionar === "chat") {
+        marcarPinValidado(token);
         window.location.replace(`/chat/app/${token}`);
         return;
       }
@@ -86,6 +93,7 @@ function AbrirAppAdmin() {
         token_hash: r.tokenHash,
       });
       if (error) throw new Error(error.message);
+      marcarPinValidado(token);
       await navigate({ to: "/admin" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível entrar.");
