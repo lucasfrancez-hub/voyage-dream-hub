@@ -84,6 +84,9 @@ export async function passhubReservarOferta(input: ReservarInput): Promise<PassH
   if (tokens.length === 0) throw new Error("Tarifação expirada — tarifar novamente antes de reservar.");
   if (input.paxs.length === 0) throw new Error("Informe ao menos um passageiro.");
 
+  /** Todas as reservas da consolidadora usam sempre o e-mail oficial da agência. */
+
+
   const body: Rec = {
     paxs: input.paxs.map((p) => ({
       firstName: p.nome.trim().toUpperCase(),
@@ -106,7 +109,7 @@ export async function passhubReservarOferta(input: ReservarInput): Promise<PassH
               issuingCountry: "BR",
             },
       passengerType: p.tipo,
-      email: p.email ?? "",
+      email: EMAIL_CONTATO,
       phone: (p.telefone ?? "").replace(/\D/g, ""),
       ddi: (p.ddi ?? "55").replace(/\D/g, ""),
       ddd: (p.ddd ?? "").replace(/\D/g, ""),
@@ -117,12 +120,12 @@ export async function passhubReservarOferta(input: ReservarInput): Promise<PassH
   /** Contato da reserva: a PassHub também espera o bloco no nível raiz. */
   const contato = input.paxs[0];
   if (contato) {
-    body["email"] = contato.email ?? "";
+    body["email"] = EMAIL_CONTATO;
     body["ddi"] = (contato.ddi ?? "55").replace(/\D/g, "");
     body["ddd"] = (contato.ddd ?? "").replace(/\D/g, "");
     body["phone"] = (contato.telefone ?? "").replace(/\D/g, "");
     body["contact"] = {
-      email: contato.email ?? "",
+      email: EMAIL_CONTATO,
       ddi: (contato.ddi ?? "55").replace(/\D/g, ""),
       ddd: (contato.ddd ?? "").replace(/\D/g, ""),
       phone: (contato.telefone ?? "").replace(/\D/g, ""),
