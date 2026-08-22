@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Check, Copy, Loader2, Ticket } from "lucide-react";
+import { Check, Copy, CreditCard, Loader2, Ticket } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { passhubTarifarOferta, passhubReservar } from "@/lib/passhub/passhub.functions";
+import {
+  passhubTarifarOferta,
+  passhubReservar,
+  passhubLinkPagamento,
+} from "@/lib/passhub/passhub.functions";
 import type { PassHubOferta, PassHubPax, PassHubPaxTipo, PassHubReserva } from "@/lib/passhub/types";
 
 type Props = {

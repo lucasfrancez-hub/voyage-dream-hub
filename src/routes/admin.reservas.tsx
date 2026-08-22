@@ -94,25 +94,6 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant={variante as "default" | "secondary" | "outline"}>{label}</Badge>;
 }
 
-function CopiarBotao({ texto, rotulo }: { texto: string; rotulo: string }) {
-  const [copiado, setCopiado] = useState(false);
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={async () => {
-        await navigator.clipboard.writeText(texto);
-        setCopiado(true);
-        toast.success(`${rotulo} copiado`);
-        setTimeout(() => setCopiado(false), 2000);
-      }}
-    >
-      {copiado ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-      {rotulo}
-    </Button>
-  );
-}
-
 function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
   const buscarLink = useServerFn(passhubLinkPagamento);
   const [link, setLink] = useState(r.linkPagamento);
