@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Filter, Luggage, Briefcase, Plus, Check, Info, FileText, X } from "lucide-react";
-import { AirlineLogo } from "@/components/AirlineLogo";
 import type { PassHubOferta, PassHubResultado, PassHubVoo } from "@/lib/passhub/types";
 
 export type FiltrosMotor = {
@@ -240,7 +239,6 @@ function ResumoCias({
                 ativa ? "ring-2 ring-[var(--cons-orange)]" : "hover:brightness-125"
               }`}
             >
-              <AirlineLogo airline={info.iata || nome} size={26} hideIfUnknown />
               <BadgeCia codigo={info.iata || nome} nome={nome} grande />
               <span className="text-[14px] font-black">
                 {brl(info.preco)}
@@ -389,7 +387,6 @@ function LinhaPerna({
 
         <td className="px-2 py-3">
           <div className="flex items-center gap-2">
-            <AirlineLogo airline={v.companhiaIata || v.companhia} size={26} hideIfUnknown />
             <BadgeCia codigo={v.companhiaIata || v.companhia} nome={v.companhia} />
           </div>
           {v.operadoPor && v.operadoPor !== v.companhia && (
