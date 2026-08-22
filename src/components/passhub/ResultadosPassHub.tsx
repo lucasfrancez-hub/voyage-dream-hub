@@ -1204,6 +1204,11 @@ function ResumoPerna({
         <div className="text-right">
           <div className="cons-lab">Total</div>
           <div className="text-[16px] font-black">{brl(val.total)}</div>
+          {val.comissaoIncentivo > 0 && (
+            <div className="text-[11px] font-bold text-emerald-400">
+              +{brl(val.comissaoIncentivo)} comissão de incentivo
+            </div>
+          )}
         </div>
         {acao}
       </div>
