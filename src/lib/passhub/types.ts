@@ -97,6 +97,9 @@ export type PassHubTarifacao = {
   pricedRateTokens: string[];
   preco: number;
   precoSemTaxa: number;
+  /** RAV efetiva em R$ devolvida pela PassHub na tarifação. */
+  ravValor: number;
+  ravModo: string;
   retarifou: boolean;
 };
 

@@ -67,8 +67,11 @@ export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHub
     pricedRateTokens: pricedTokens.length
       ? pricedTokens
       : [pricedToken, pricedVolta].filter(Boolean),
-    preco: num(r["preco"] ?? r["total_price"], input.precoEsperado),
-    precoSemTaxa: num(r["preco_sem_taxa"]),
+    preco: num(r["preco"] ?? r["total_price"] ?? r["priceWithTax"], input.precoEsperado),
+    precoSemTaxa: num(r["preco_sem_taxa"] ?? r["priceWithoutTax"]),
+    // RAV efetiva calculada pela PassHub com o % que enviamos.
+    ravValor: num(r["rav_amount_brl_efetivo"] ?? r["rav_amount_brl"] ?? r["rav_amount"]),
+    ravModo: str(r["rav_mode"]),
     retarifou: r["retarifou"] === true,
   };
 }
