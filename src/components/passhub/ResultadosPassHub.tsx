@@ -1272,12 +1272,15 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
 
   const pronto = temVolta ? Boolean(pernaIda && pernaVolta) : Boolean(pernaIda);
   const ofertaFinal = pernaVolta?.oferta ?? pernaIda?.oferta ?? null;
-  const totalFinal =
-    (pernaIda ? calcularValores(pernaIda.voo, ravPercentual).total : 0) +
-    (pernaVolta ? calcularValores(pernaVolta.voo, ravPercentual).total : 0);
+  // O preço da PassHub é fechado por viagem: quando há volta, o total é o da
+  // volta escolhida (ida + volta), nunca a soma dos dois trechos.
+  const vooPreco = pernaVolta?.voo ?? pernaIda?.voo ?? null;
+  const valoresFinais = vooPreco ? calcularValores(vooPreco, ravPercentual) : null;
+  const totalFinal = valoresFinais?.total ?? 0;
 
   const rolar = (alvo: React.RefObject<HTMLDivElement | null>) =>
     window.setTimeout(() => alvo.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+
 
   function selecionaIda(chave: string) {
     setIdaSel(chave);
