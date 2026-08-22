@@ -71,6 +71,10 @@ export const passhubMotorBuscar = createServerFn({ method: "POST" })
     }
   });
 
+/** Campos opcionais chegam como "" quando o usuário não preenche; tratamos como ausentes. */
+const vazioComoIndefinido = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), schema.optional());
+
 const paxSchema = z.object({
   tipo: z.enum(["ADT", "CHD", "INF"]),
   nome: z.string().min(2).max(60),
