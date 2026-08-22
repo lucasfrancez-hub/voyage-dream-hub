@@ -519,8 +519,7 @@ function PassHubPage() {
                           })
                         }
                       />
-                      <AirlineLogo airline={c} size={20} hideIfUnknown />
-                      <span className="cons-pill">{c}</span>
+                      <BadgeCia codigo={c} nome={c} />
                     </label>
                   );
                 })}
