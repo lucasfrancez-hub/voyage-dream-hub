@@ -194,3 +194,25 @@ export const passhubLinkPagamento = createServerFn({ method: "POST" })
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao obter link" };
     }
   });
+
+/** Cancela a reserva na consolidadora (PassHub). */
+export const passhubCancelarReserva = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.number().int().positive(),
+        motivo: z.string().max(200).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { passhubCancelarReserva: cancelar } = await import("./reservas.server");
+    try {
+      const r = await cancelar(data.id, data.motivo);
+      if (!r.ok) return { ok: false as const, erro: r.mensagem };
+      return { ok: true as const, mensagem: r.mensagem, rota: r.rota, reserva: r.reserva };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao cancelar" };
+    }
+  });
