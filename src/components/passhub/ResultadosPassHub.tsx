@@ -4,6 +4,12 @@ import type { PassHubOferta, PassHubResultado, PassHubVoo } from "@/lib/passhub/
 import { cityLabel } from "@/lib/iata-lookup";
 import { useServerFn } from "@tanstack/react-start";
 import { passhubTarifarOferta } from "@/lib/passhub/passhub.functions";
+import {
+  useTarifacaoPassHub,
+  chaveTarifacao,
+  lerTarifacao,
+  limparFilaTarifacao,
+} from "@/lib/passhub/tarifacao-cache";
 
 export type FiltrosMotor = {
   ordem: "preco" | "duracao" | "partida" | "chegada";
@@ -656,6 +662,14 @@ function LinhaPerna({
   const segs = segmentos(v);
   const valores = calcularValores(v, ravPercentual);
   const [detalhe, setDetalhe] = useState<"info" | "docs" | null>(null);
+  // Valor de venda real: comissão vem da tarifação da PassHub, nunca de conta local.
+  const tarifado = useTarifacaoPassHub(
+    [v.rateToken],
+    v.provedor,
+    v.precoTotal || 0,
+    ravPercentual,
+  );
+  const totalVenda = tarifado?.total ?? (valores.total || perna.preco);
 
   return (
     <>
@@ -804,7 +818,7 @@ function LinhaPerna({
           ) : (
             <div className="cons-box flex items-center justify-between gap-2 px-3 py-2">
               <Briefcase className="h-3.5 w-3.5 cons-muted" />
-              <b className="text-[13px]">{brl(valores.total || perna.preco)}</b>
+              <b className={`text-[13px] ${tarifado ? "" : "opacity-60"}`}>{brl(totalVenda)}</b>
             </div>
           )}
         </td>
@@ -813,7 +827,7 @@ function LinhaPerna({
           {v.bagagemDespachada ? (
             <div className="cons-box flex items-center justify-between gap-2 px-3 py-2">
               <Luggage className="h-3.5 w-3.5 cons-muted" />
-              <b className="text-[13px]">{brl(valores.total || perna.preco)}</b>
+              <b className={`text-[13px] ${tarifado ? "" : "opacity-60"}`}>{brl(totalVenda)}</b>
             </div>
           ) : (
             <span className="text-[12px] cons-muted">—</span>
