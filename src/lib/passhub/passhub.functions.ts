@@ -139,3 +139,17 @@ export const passhubReservar = createServerFn({ method: "POST" })
       return { ok: false as const, erro: msg };
     }
   });
+
+/** Lista todas as reservas da agência na PassHub (painel + motor interno). */
+export const passhubReservas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { passhubListarReservas } = await import("./reservas.server");
+    try {
+      return { ok: true as const, reservas: await passhubListarReservas() };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao listar reservas";
+      console.error("[passhub] reservas falhou:", msg);
+      return { ok: false as const, erro: msg };
+    }
+  });
