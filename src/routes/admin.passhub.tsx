@@ -158,6 +158,11 @@ function PassHubPage() {
   const atualiza = (i: number, campo: keyof Trecho, valor: string) =>
     setTrechos((prev) => prev.map((t, idx) => (idx === i ? { ...t, [campo]: valor } : t)));
 
+  const hoje = useMemo(
+    () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date()),
+    [],
+  );
+
   const inverter = () =>
     setTrechos((prev) =>
       prev.map((t, i) => (i === 0 ? { ...t, origem: t.destino, destino: t.origem } : t)),
@@ -166,6 +171,14 @@ function PassHubPage() {
   const buscar = (p: number) => {
     if (trechos.some((t) => !t.origem || !t.destino || !t.data)) {
       toast.error("Preencha origem, destino e data de todos os trechos.");
+      return;
+    }
+    if (trechos.some((t) => t.data < hoje)) {
+      toast.error("A data da ida não pode ser anterior a hoje — a consolidadora recusa datas passadas.");
+      return;
+    }
+    if (tipo === "ida-volta" && dataVolta && dataVolta < trechos[0]!.data) {
+      toast.error("A data da volta precisa ser igual ou posterior à ida.");
       return;
     }
     setPagina(p);
@@ -267,6 +280,7 @@ function PassHubPage() {
                   <input
                     className="cons-field"
                     type="date"
+                    min={hoje}
                     value={t.data}
                     onChange={(e) => atualiza(i, "data", e.target.value)}
                   />
@@ -278,6 +292,7 @@ function PassHubPage() {
                       <input
                         className="cons-field"
                         type="date"
+                        min={trechos[0]?.data || hoje}
                         value={dataVolta}
                         onChange={(e) => setDataVolta(e.target.value)}
                       />
