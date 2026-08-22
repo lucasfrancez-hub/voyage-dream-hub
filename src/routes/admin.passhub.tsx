@@ -463,7 +463,7 @@ function PassHubPage() {
                 </select>
               </div>
               <div>
-                <span className="cons-lab mb-1.5 block">RAV (%)</span>
+                <span className="cons-lab mb-1.5 block">Comissão (%)</span>
                 <input
                   className="cons-field"
                   type="number"
@@ -491,7 +491,7 @@ function PassHubPage() {
                 </div>
                 {ravAplicada !== null && ravAplicada !== rav && (
                   <div className="mt-1 text-[11px] font-bold text-[var(--cons-orange2)]">
-                    Valores atualizados com {rav}% de RAV.
+                    A PassHub vai calcular a comissão com {rav}%.
                   </div>
                 )}
               </div>
