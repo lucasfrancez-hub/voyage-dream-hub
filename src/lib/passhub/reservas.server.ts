@@ -126,3 +126,62 @@ export async function passhubLinkPagamentoReserva(alvo: {
   }
   return { link: "", reserva };
 }
+
+/* ------------------------------ cancelamento ------------------------------ */
+
+/**
+ * Cancelamento de reserva. A PassHub não documenta a rota; o painel usa uma
+ * das variantes abaixo (a "palavra-chave" muda conforme a versão da API).
+ * Tentamos todas em ordem e devolvemos a que respondeu, junto do texto/motivo
+ * retornado pela consolidadora.
+ */
+const ROTAS_CANCELAMENTO: { method: string; path: (id: number) => string; body?: unknown }[] = [
+  { method: "POST", path: (id) => `/api/v1/reservas/${id}/cancelar` },
+  { method: "POST", path: (id) => `/api/v1/reservas/${id}/cancelamento` },
+  { method: "POST", path: (id) => `/api/v1/reservas/${id}/cancel` },
+  { method: "PATCH", path: (id) => `/api/v1/reservas/${id}`, body: { status_emissao: "CANCELED" } },
+  { method: "DELETE", path: (id) => `/api/v1/reservas/${id}` },
+];
+
+export async function passhubCancelarReserva(
+  id: number,
+  motivo?: string,
+): Promise<{ ok: boolean; rota?: string; mensagem: string; reserva: PassHubReservaLista | null }> {
+  const erros: string[] = [];
+
+  for (const rota of ROTAS_CANCELAMENTO) {
+    const url = `${GERENCIA}${rota.path(id)}`;
+    try {
+      const resposta = await passhubRequest<unknown>(url, {
+        method: rota.method,
+        body:
+          rota.method === "DELETE"
+            ? undefined
+            : { ...(rec(rota.body) as Rec), ...(motivo ? { motivo, reason: motivo } : {}) },
+      });
+      const r = rec(resposta);
+      const dados = rec(r["data"]);
+      const mensagem =
+        str(r["message"]) || str(dados["message"]) || str(dados["descricao_status_emissao"]) ||
+        "Reserva cancelada na consolidadora.";
+      let reserva: PassHubReservaLista | null = null;
+      try {
+        reserva = await passhubReservaDetalhe(id);
+      } catch {
+        /* detalhe é só confirmação */
+      }
+      return { ok: true, rota: `${rota.method} ${rota.path(id)}`, mensagem, reserva };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      erros.push(`${rota.method} ${rota.path(id)} → ${msg}`);
+      // 4xx de rota inexistente: tenta a próxima. Qualquer outro erro também
+      // segue para a próxima variante, o resumo final mostra tudo.
+    }
+  }
+
+  return {
+    ok: false,
+    mensagem: `Não foi possível cancelar pela consolidadora. Tentativas: ${erros.join(" | ")}`,
+    reserva: null,
+  };
+}
