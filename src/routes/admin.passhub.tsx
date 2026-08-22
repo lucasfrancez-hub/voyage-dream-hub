@@ -15,6 +15,7 @@ import {
   PlugZap,
   Plus,
   Search,
+  Ticket,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { passhubStatus, passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
+import { ReservaPassHubDialog } from "@/components/passhub/ReservaPassHubDialog";
 import type { PassHubOferta, PassHubVoo, PassHubResultado } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/passhub")({
@@ -213,6 +215,7 @@ function PassHubPage() {
   const [soDireto, setSoDireto] = useState(false);
   const [soBagagem, setSoBagagem] = useState(false);
   const [companhia, setCompanhia] = useState<string>("todas");
+  const [ofertaReserva, setOfertaReserva] = useState<PassHubOferta | null>(null);
 
   const status = useMutation({
     mutationFn: async () => statusFn(),
@@ -482,7 +485,12 @@ function PassHubPage() {
 
           <div className="space-y-3">
             {ofertas.map((o) => (
-              <OfertaCard key={o.id} oferta={o} maisBarata={o.precoTotal === menorPreco} />
+              <OfertaCard
+                key={o.id}
+                oferta={o}
+                maisBarata={o.precoTotal === menorPreco}
+                onReservar={setOfertaReserva}
+              />
             ))}
           </div>
 
@@ -515,6 +523,14 @@ function PassHubPage() {
           {bruto}
         </pre>
       )}
+      <ReservaPassHubDialog
+        oferta={ofertaReserva}
+        adultos={adultos}
+        criancas={criancas}
+        bebes={bebes}
+        ravPercentual={rav}
+        onClose={() => setOfertaReserva(null)}
+      />
     </main>
   );
 }
