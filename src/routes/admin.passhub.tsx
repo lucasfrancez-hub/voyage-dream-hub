@@ -151,9 +151,14 @@ function OfertaCard({
           )}
           <p className="text-2xl font-extrabold">{brl(oferta.precoTotal)}</p>
           <p className="text-xs text-muted-foreground">total da oferta</p>
-          <Button size="sm" variant="outline" className="mt-2" onClick={() => setAberto((a) => !a)}>
-            {aberto ? "Ocultar detalhes" : "Ver detalhes"}
-          </Button>
+          <div className="mt-2 flex flex-col gap-2">
+            <Button size="sm" onClick={() => onReservar(oferta)}>
+              <Ticket className="mr-2 h-4 w-4" /> Reservar
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setAberto((a) => !a)}>
+              {aberto ? "Ocultar detalhes" : "Ver detalhes"}
+            </Button>
+          </div>
         </div>
       </div>
 
