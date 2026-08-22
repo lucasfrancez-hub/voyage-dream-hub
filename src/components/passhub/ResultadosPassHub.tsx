@@ -216,11 +216,15 @@ export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
     // a API já embutiu a RAV no total
     rav = residual;
     pct = tarifa > 0 ? Math.round((rav / tarifa) * 1000) / 10 : 0;
-  } else if (ravPercentual > 0 && tarifa > 0) {
-    // total veio sem RAV: aplica o percentual fixado (10% nacional / 7% internacional)
+  }
+
+  // O percentual fixado na busca (10% nacional / 7% internacional) manda:
+  // recalcula a RAV sobre a tarifa e reconstrói o total, evitando divergência
+  // entre o que a consolidadora embutiu e o que a agência cobra.
+  if (ravPercentual > 0 && tarifa > 0) {
     pct = ravPercentual;
     rav = Math.round(tarifa * (ravPercentual / 100) * 100) / 100;
-    total = Math.round((tarifa + taxas + rav) * 100) / 100;
+    total = Math.round((tarifa + taxas + outros + rav) * 100) / 100;
   }
 
   if (!total) total = Math.round((tarifa + taxas + rav) * 100) / 100;
