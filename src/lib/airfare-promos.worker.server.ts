@@ -1955,9 +1955,9 @@ export function curationDayBRT(d: Date = new Date()): string {
 /**
  * Arquiva promoções ativas (todas, ou só as anteriores a `beforeDay`).
  *
- * IMPORTANTE: a fila de trabalho NÃO é descartada. Promoções que ainda não
- * foram publicadas e cuja data de embarque continua no futuro são levadas
- * para o ciclo novo (carry-over) em vez de ir para os Arquivados.
+ * REGRA: tudo que é de um ciclo anterior vai para os Arquivados na virada da
+ * meia-noite (BRT). Não existe carry-over — a tela ativa mostra apenas as
+ * promoções do dia corrente.
  */
 async function archivePromotions(
   client: AnyClient,
@@ -1965,12 +1965,10 @@ async function archivePromotions(
   reason: string,
   beforeDay: string | null,
 ): Promise<number> {
-  let sel = client
+  const { data } = await client
     .from("airfare_promotions")
     .select("id,cycle_day,quoted_at,created_at,status,departure_date")
     .is("archived_at", null);
-  if (beforeDay) sel = sel.or(`cycle_day.is.null,cycle_day.lt.${beforeDay}`);
-  const { data } = await sel;
   const rows = (data ?? []) as Array<{
     id: string;
     cycle_day: string | null;
@@ -1981,21 +1979,24 @@ async function archivePromotions(
   }>;
   if (!rows.length) return 0;
 
-  const hoje = curationDayBRT();
-  const manter = rows.filter(
-    (r) => r.status !== "publicado" && !!r.departure_date && r.departure_date >= hoje,
-  );
-  const arquivar = rows.filter((r) => !manter.includes(r));
+  // dia efetivo do ciclo: o mais antigo entre cycle_day e a data de coleta
+  // (protege de carry-over antigo que empurrou cycle_day para hoje)
+  const diaEfetivo = (r: (typeof rows)[number]) => {
+    const base = r.quoted_at ?? r.created_at;
+    const coleta = base ? curationDayBRT(new Date(base)) : null;
+    if (r.cycle_day && coleta) return r.cycle_day < coleta ? r.cycle_day : coleta;
+    return r.cycle_day ?? coleta;
+  };
 
-  // carry-over: continuam na tela ativa, agora no ciclo de hoje
-  for (let i = 0; i < manter.length; i += 100) {
-    const lote = manter.slice(i, i + 100).map((r) => r.id);
-    const { error } = await client
-      .from("airfare_promotions")
-      .update({ cycle_day: hoje, cycle_state: "unchanged", cycle_changed_fields: [] })
-      .in("id", lote);
-    if (error) console.error("[promos] falha no carry-over do lote", error.message);
-  }
+  const arquivar = beforeDay
+    ? rows.filter((r) => {
+        const d = diaEfetivo(r);
+        return !d || d < beforeDay;
+      })
+    : rows;
+
+
+
 
   if (!arquivar.length) return 0;
 
