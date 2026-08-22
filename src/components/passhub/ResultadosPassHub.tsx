@@ -295,15 +295,44 @@ function PainelDetalhe({
             {aba === "info" ? (
               <>
                 <div>
-                  <div className="cons-lab mb-1">Tarifa</div>
-                  <div className="text-[13px]">
+                  <div className="cons-lab mb-1">Detalhamento do valor</div>
+                  <div className="mb-2 text-[12px] cons-muted">
                     {voo.familiaTarifaria || "—"} · {voo.classe || "—"} · {voo.provedor || "—"}
                   </div>
-                  <div className="mt-1 text-[12px] cons-muted">
-                    Tarifa {brl(voo.precoTarifa)} + taxas {brl(voo.taxas)} ={" "}
-                    <b className="text-[var(--cons-text)]">{brl(voo.precoTotal)}</b>
-                  </div>
-                  <div className="mt-1 text-[12px] cons-muted">
+                  {(() => {
+                    const tarifa = voo.precoTarifa || 0;
+                    const taxas = voo.taxas || 0;
+                    const total = voo.precoTotal || 0;
+                    const residual = Math.round((total - tarifa - taxas) * 100) / 100;
+                    const rav = voo.ravValor || (residual > 0 ? residual : 0);
+                    const pct =
+                      voo.ravPercentual ||
+                      (tarifa > 0 && rav > 0 ? Math.round((rav / tarifa) * 1000) / 10 : 0);
+                    const outros = Math.round((residual - rav) * 100) / 100;
+                    const linhas: { rot: string; val: number; forte?: boolean }[] = [
+                      { rot: "Tarifa (base)", val: tarifa },
+                      { rot: "Taxa de embarque / TAX", val: taxas },
+                      { rot: `RAV${pct ? ` (${pct}%)` : ""}`, val: rav },
+                    ];
+                    if (Math.abs(outros) >= 0.01) linhas.push({ rot: "Outros / ajustes", val: outros });
+                    return (
+                      <table className="w-full text-[12px]">
+                        <tbody>
+                          {linhas.map((l) => (
+                            <tr key={l.rot} className="border-b border-white/5">
+                              <td className="py-1 cons-muted">{l.rot}</td>
+                              <td className="py-1 text-right tabular-nums">{brl(l.val)}</td>
+                            </tr>
+                          ))}
+                          <tr>
+                            <td className="pt-1.5 font-black">Total do trecho</td>
+                            <td className="pt-1.5 text-right font-black tabular-nums">{brl(total)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                  <div className="mt-2 text-[12px] cons-muted">
                     Bagagem despachada: {voo.bagagemDespachada ? `${voo.bagagemDespachadaQtd || 1} peça(s)` : "não inclusa"} ·
                     Mão: {voo.bagagemMao ? "inclusa" : "não inclusa"}
                   </div>

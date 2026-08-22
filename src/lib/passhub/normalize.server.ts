@@ -72,6 +72,8 @@ function normalizaVoo(raw: unknown): PassHubVoo {
     precoTotal: num(v["preco_total"]),
     precoTarifa: num(v["preco_tarifa"]),
     taxas: num(v["TOTAL_TAX"] ?? v["TAX"]),
+    ravValor: num(v["rav_amount_brl"] ?? v["RAV_AMOUNT"] ?? v["rav_amount"] ?? v["RAV"]),
+    ravPercentual: num(v["rav_percentage"] ?? v["RAV_PERCENTAGE"]),
     provedor: str(v["provider"] ?? melhor["provider"]),
     canal: str(melhor["channel"]),
     rateToken: str(v["rateToken"] ?? melhor["rateToken"]),

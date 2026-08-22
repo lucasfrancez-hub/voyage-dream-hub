@@ -36,6 +36,10 @@ export type PassHubVoo = {
   precoTotal: number;
   precoTarifa: number;
   taxas: number;
+  /** Valor de RAV informado pela PassHub, quando disponível. */
+  ravValor: number;
+  /** Percentual de RAV informado pela PassHub, quando disponível. */
+  ravPercentual: number;
   provedor: string;
   canal: string;
   rateToken: string;
