@@ -417,8 +417,10 @@ function ProdutosNav({ pathname }: { pathname: string }) {
             { to: "/admin/cruzeiros", label: "Cruzeiros" },
             { to: "/admin/promocoes-aereo", label: "Promoções de Aéreo" },
             { to: "/admin/buscar", label: "Motor de busca" },
+            { to: "/admin/passhub", label: "Consolidadora" },
           ],
         },
+
       ]}
     />
   );
