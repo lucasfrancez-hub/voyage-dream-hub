@@ -37,6 +37,12 @@ export function lerTarifacao(chave: string): TarifacaoCache | null {
   return cache.get(chave) ?? null;
 }
 
+/** Re-renderiza quando qualquer tarifação nova chega ao cache. */
+export function useVersaoTarifacao(): number {
+  const snap = useCallback(() => versao, []);
+  return useSyncExternalStore(assinar, snap, snap);
+}
+
 /* ------------------------------- fila (2 por vez) ------------------------------- */
 
 type Tarefa = () => Promise<void>;

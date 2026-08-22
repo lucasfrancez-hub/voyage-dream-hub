@@ -9,6 +9,7 @@ import {
   chaveTarifacao,
   lerTarifacao,
   limparFilaTarifacao,
+  useVersaoTarifacao,
 } from "@/lib/passhub/tarifacao-cache";
 
 export type FiltrosMotor = {
@@ -252,8 +253,11 @@ function MatrizFiltro({
   onCia: (cia: string | null) => void;
   onParadas: (p: number | null) => void;
 }) {
+  const versaoTarifacao = useVersaoTarifacao();
   const { cias, paradas, celulas, menorGeral } = useMemo(() => {
-    const precoDe = (p: Perna) => calcularValores(p.voo, ravPercentual).total || p.preco;
+    const precoDe = (p: Perna) =>
+      lerTarifacao(chaveTarifacao([p.voo.rateToken], ravPercentual))?.total ??
+      (calcularValores(p.voo, ravPercentual).total || p.preco);
     const cs = new Map<string, { preco: number; iata: string }>();
     const ps = new Map<number, number>();
     const cel = new Map<string, number>();
@@ -277,7 +281,7 @@ function MatrizFiltro({
       celulas: cel,
       menorGeral: menor,
     };
-  }, [pernas, ravPercentual]);
+  }, [pernas, ravPercentual, versaoTarifacao]);
 
   if (!cias.length) return null;
 
