@@ -5,7 +5,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   ArrowRight,
-  Baggage,
   BadgePercent,
   Briefcase,
   Clock,
@@ -24,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { passhubStatus, passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
-import type { PassHubOferta, PassHubVoo, PassHubResultado } from "@/lib/passhub/normalize.server";
+import type { PassHubOferta, PassHubVoo, PassHubResultado } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/passhub")({
   head: () => ({
@@ -457,7 +456,7 @@ function PassHubPage() {
                 variant={soBagagem ? "default" : "outline"}
                 onClick={() => setSoBagagem((v) => !v)}
               >
-                <Baggage className="mr-1 h-3 w-3" /> Com despachada
+                <Luggage className="mr-1 h-3 w-3" /> Com despachada
               </Button>
             </div>
           </div>
