@@ -370,10 +370,12 @@ function MatrizFiltro({
 function PainelDetalhe({
   voo,
   aba,
+  ravPercentual,
   onFechar,
 }: {
   voo: PassHubVoo;
   aba: "info" | "docs";
+  ravPercentual: number;
   onFechar: () => void;
 }) {
   return (
@@ -389,15 +391,10 @@ function PainelDetalhe({
                     {voo.familiaTarifaria || "—"} · {voo.classe || "—"} · {voo.provedor || "—"}
                   </div>
                   {(() => {
-                    const tarifa = voo.precoTarifa || 0;
-                    const taxas = voo.taxas || 0;
-                    const total = voo.precoTotal || 0;
-                    const residual = Math.round((total - tarifa - taxas) * 100) / 100;
-                    const rav = voo.ravValor || (residual > 0 ? residual : 0);
-                    const pct =
-                      voo.ravPercentual ||
-                      (tarifa > 0 && rav > 0 ? Math.round((rav / tarifa) * 1000) / 10 : 0);
-                    const outros = Math.round((residual - rav) * 100) / 100;
+                    const { tarifa, taxas, rav, pct, outros, total } = calcularValores(
+                      voo,
+                      ravPercentual,
+                    );
                     const linhas: { rot: string; val: number; forte?: boolean }[] = [
                       { rot: "Tarifa (base)", val: tarifa },
                       { rot: "Taxa de embarque / TAX", val: taxas },
@@ -418,6 +415,7 @@ function PainelDetalhe({
                             <td className="pt-1.5 text-right font-black tabular-nums">{brl(total)}</td>
                           </tr>
                         </tbody>
+
                       </table>
                     );
                   })()}
