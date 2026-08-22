@@ -90,7 +90,9 @@ export const listInstagramConversations = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const rows = data ?? [];
     // @username da conta que recebeu a DM (identifica @viaairs x @lucasfrancez na lista)
-    const { data: contas } = await context.supabase.from("instagram_accounts").select("id, username, metadata");
+    // `metadata` não é legível pelo papel authenticated (grant por coluna) — usa admin só para esse campo.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: contas } = await supabaseAdmin.from("instagram_accounts").select("id, username, metadata");
     const nomes = new Map((contas ?? []).map((a) => [a.id as string, (a.username as string | null) ?? null]));
     const personal = new Set((contas ?? []).filter((a) => ((a.metadata as { ai_enabled?: boolean } | null)?.ai_enabled === false)).map((a) => a.id as string));
     return rows.map((r) => ({
