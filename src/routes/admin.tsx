@@ -22,6 +22,7 @@ import { NavMegaMenu, type NavMenuGroup } from "@/components/admin/NavMegaMenu";
 import { useServerFn } from "@tanstack/react-start";
 import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
 import { ChatPinUnlock, ChatPinSetup } from "@/components/chat/ChatPinUnlock";
+import { tokenAppLembrado } from "@/lib/chat/app-token";
 
 /** App instalado no celular (PWA em modo standalone). */
 function ehAppInstalado() {
@@ -129,6 +130,21 @@ function AdminLayout() {
   const [oferecerPin, setOferecerPin] = useState(false);
   const appInstalado = ehAppInstalado();
 
+  // Mantém o manifest do app em qualquer página do painel: a URL do app
+  // (/admin/app/<token>) continua sendo a de origem do aplicativo instalado.
+  useEffect(() => {
+    const t = tokenAppLembrado();
+    if (!t) return;
+    const href = `/api/public/admin-manifest/${t}`;
+    let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "manifest";
+      document.head.appendChild(link);
+    }
+    if (link.getAttribute("href") !== href) link.setAttribute("href", href);
+  }, []);
+
   useEffect(() => {
     if (session === undefined) return;
     void (async () => {
@@ -180,6 +196,12 @@ function AdminLayout() {
           } catch { /* cai no PIN */ }
           setPedirPin(true);
         })();
+        return;
+      }
+      // No app instalado, nunca cair no login do site: volta pra URL do app.
+      const tokenApp = tokenAppLembrado();
+      if (tokenApp) {
+        window.location.replace(`/admin/app/${tokenApp}`);
         return;
       }
       navigate({ to: "/auth" });
