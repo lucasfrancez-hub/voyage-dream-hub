@@ -840,12 +840,13 @@ function Etapa({
   const [cia, setCia] = useState<string | null>(null);
   const [paradasSel, setParadasSel] = useState<number | null>(null);
   const [painel, setPainel] = useState(false);
+  const [pag, setPag] = useState(1);
 
   useEffect(() => {
     setAv((a) => ({ ...a, duracaoMax: maxDur }));
   }, [maxDur]);
 
-  const visiveis = useMemo(() => {
+  const filtradas = useMemo(() => {
     const q = av.texto.trim().toLowerCase();
     const lista = pernas.filter((p) => {
       const v = p.voo;
@@ -872,8 +873,22 @@ function Etapa({
         return false;
       return true;
     });
-    return ordena(lista, filtros.ordem).slice(0, filtros.mostrar);
+    return ordena(lista, filtros.ordem);
   }, [pernas, av, cia, paradasSel, filtros]);
+
+  const porPagina = Math.max(5, filtros.mostrar || 10);
+  const totalPags = Math.max(1, Math.ceil(filtradas.length / porPagina));
+  const pagAtual = Math.min(pag, totalPags);
+
+  useEffect(() => {
+    setPag(1);
+  }, [filtradas.length, porPagina]);
+
+  const visiveis = useMemo(
+    () => filtradas.slice((pagAtual - 1) * porPagina, pagAtual * porPagina),
+    [filtradas, pagAtual, porPagina],
+  );
+
 
   const filtrosAtivos =
     (av.texto.trim() ? 1 : 0) +
