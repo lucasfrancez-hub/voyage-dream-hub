@@ -1,26 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight,
-  BadgePercent,
   Briefcase,
-  CheckCircle2,
-  ChevronDown,
+  ChevronRight,
   Clock,
   CreditCard,
   Filter,
+  Info,
   Luggage,
   Plane,
+  Plus,
   Search,
-  Ticket,
   X,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Separator } from "@/components/ui/separator";
 import type { PassHubOferta, PassHubResultado, PassHubVoo } from "@/lib/passhub/types";
 
 type Props = {
@@ -47,69 +40,44 @@ const faixas = [
   { id: "noite", rotulo: "18h–24h", de: 1080, ate: 1440 },
 ] as const;
 
-function LinhaVoo({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
-  const trechos = voo.conexoes.length
-    ? [voo.origem, ...voo.conexoes.map((c) => c.aeroporto), voo.destino]
-    : [voo.origem, voo.destino];
+const COLUNAS =
+  "grid grid-cols-1 items-center gap-3 xl:grid-cols-[44px_110px_minmax(0,1.15fr)_minmax(0,1.15fr)_96px_120px_minmax(0,1fr)_minmax(0,0.9fr)_96px_40px]";
 
+/** Botão-pílula usado nos filtros, no padrão da consolidadora. */
+function Pilula({
+  ativo,
+  onClick,
+  children,
+}: {
+  ativo: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="grid grid-cols-[64px_1fr] items-start gap-3 md:grid-cols-[74px_1fr]">
-      <Badge variant="outline" className="justify-center font-normal">
-        {rotulo}
-      </Badge>
-      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_150px]">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <div>
-            <p className="text-lg font-bold leading-none">{hora(voo.partida)}</p>
-            <p className="text-[11px] text-muted-foreground">
-              {voo.origem} · {dia(voo.partida)}
-            </p>
-          </div>
-          <div className="flex min-w-28 flex-1 flex-col items-center">
-            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Clock className="h-3 w-3" /> {voo.duracao}
-            </span>
-            <div className="my-1 h-px w-full bg-border" />
-            <span className="text-[11px] text-muted-foreground">
-              {voo.paradas === 0 ? "Voo direto" : `${voo.paradas} parada(s)`} ·{" "}
-              {trechos.join(" → ")}
-            </span>
-          </div>
-          <div className="text-right">
-            <p className="text-lg font-bold leading-none">{hora(voo.chegada)}</p>
-            <p className="text-[11px] text-muted-foreground">
-              {voo.destino} · {dia(voo.chegada)}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-1 md:justify-end">
-          <Badge variant="secondary" className="font-normal">
-            {voo.companhiaIata || voo.companhia}
-          </Badge>
-          <Badge variant="outline" className="font-normal">
-            {voo.numeroVoo}
-          </Badge>
-          {voo.familiaTarifaria && (
-            <Badge variant="outline" className="font-normal">
-              {voo.familiaTarifaria}
-            </Badge>
-          )}
-          <Badge
-            variant={voo.bagagemDespachada ? "secondary" : "outline"}
-            className="gap-1 font-normal"
-          >
-            {voo.bagagemDespachada ? (
-              <>
-                <Luggage className="h-3 w-3" /> {voo.bagagemDespachadaQtd || 1}
-              </>
-            ) : (
-              <>
-                <Briefcase className="h-3 w-3" /> mão
-              </>
-            )}
-          </Badge>
-          {voo.mudancaAeroporto && <Badge variant="destructive">troca aeroporto</Badge>}
-        </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className="cons-btn h-8 px-3 text-[12px]"
+      style={
+        ativo
+          ? { background: "linear-gradient(180deg,#f26b1f,#db5c15)", borderColor: "transparent", color: "#fff" }
+          : undefined
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+function BlocoVoo({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
+  return (
+    <div className="cons-soft grid grid-cols-[auto_auto_1fr] items-center gap-3 px-3 py-2">
+      <div className="text-sm font-black">{hora(voo.partida)}</div>
+      <div className="text-[11px] cons-muted">{dia(voo.partida)}</div>
+      <div className="truncate text-[12px] font-bold">
+        {rotulo === "chegada"
+          ? `${voo.origem} → ${voo.destino}`
+          : `${voo.companhiaIata || voo.companhia} ${voo.numeroVoo}`}
       </div>
     </div>
   );
@@ -125,78 +93,124 @@ function LinhaOferta({
   onReservar: (o: PassHubOferta) => void;
 }) {
   const [aberto, setAberto] = useState(false);
+  const voos = [oferta.ida, ...oferta.voltas];
   const maxParcelas = oferta.ida.parcelamento.reduce((m, p) => Math.max(m, p.maxParcelas), 0);
+  const rota = [
+    oferta.ida.origem,
+    ...oferta.ida.conexoes.map((c) => c.aeroporto),
+    oferta.ida.destino,
+  ];
+  const conexao = oferta.ida.conexoes[0]?.duracao ?? "—";
 
   return (
-    <article
-      className={`rounded-xl border p-3 transition md:p-4 ${
-        maisBarata
-          ? "border-emerald-500/60 bg-emerald-500/5"
-          : "border-border bg-card hover:border-primary/50"
-      }`}
-    >
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_190px]">
-        <div className="space-y-3">
-          <LinhaVoo voo={oferta.ida} rotulo="Ida" />
-          {oferta.voltas.map((v, i) => (
-            <LinhaVoo key={i} voo={v} rotulo="Volta" />
+    <div className={`cons-row px-3 py-3 md:px-4 ${maisBarata ? "cons-row-sel" : ""}`}>
+      <div className={COLUNAS}>
+        <div>
+          <button
+            type="button"
+            aria-label="Reservar esta opção"
+            onClick={() => onReservar(oferta)}
+            className="grid h-9 w-9 place-items-center rounded-full border border-[rgba(255,148,64,.5)] text-[#ff9440] transition hover:bg-[rgba(255,148,64,.14)]"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid gap-2">
+          {voos.map((v, i) => (
+            <span key={i} className="cons-pill">
+              {v.companhiaIata || v.companhia}
+            </span>
           ))}
         </div>
 
-        <div className="flex flex-col items-stretch gap-2 border-t border-border pt-3 md:items-end md:border-l md:border-t-0 md:pl-4 md:pt-0">
-          {maisBarata && (
-            <Badge className="w-fit gap-1 self-end bg-emerald-600 text-white hover:bg-emerald-600">
-              <BadgePercent className="h-3 w-3" /> Mais barato
-            </Badge>
+        <div className="grid gap-2">
+          {voos.map((v, i) => (
+            <BlocoVoo key={i} voo={v} rotulo="saida" />
+          ))}
+        </div>
+
+        <div className="grid gap-2">
+          {voos.map((v, i) => (
+            <BlocoVoo key={i} voo={{ ...v, partida: v.chegada }} rotulo="chegada" />
+          ))}
+        </div>
+
+        <div>
+          <b className="text-[13px]">{oferta.ida.duracao}</b>
+          <div className="text-[11px] cons-muted">
+            {oferta.ida.paradas === 0 ? "voo direto" : `${oferta.ida.paradas} parada(s)`}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          {oferta.ida.familiaTarifaria && (
+            <span className="cons-chip">{oferta.ida.familiaTarifaria}</span>
           )}
-          <div className="md:text-right">
-            <p className="text-2xl font-extrabold leading-none">{brl(oferta.precoTotal)}</p>
-            <p className="text-[11px] text-muted-foreground">
-              tarifa {brl(oferta.ida.precoTarifa)} + taxas {brl(oferta.ida.taxas)}
-            </p>
-            {maxParcelas > 0 && (
-              <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground md:justify-end">
-                <CreditCard className="h-3 w-3" /> até {maxParcelas}x no cartão
-              </p>
-            )}
-            {oferta.ida.provedor && (
-              <p className="text-[11px] text-muted-foreground">
-                {oferta.ida.provedor}
-                {oferta.ida.canal ? ` · ${oferta.ida.canal}` : ""}
-              </p>
-            )}
+          {oferta.ida.bagagemDespachada ? (
+            <span className="cons-chip" title="Com bagagem despachada">
+              <Luggage className="h-3 w-3" /> {oferta.ida.bagagemDespachadaQtd || 1}
+            </span>
+          ) : (
+            <span className="cons-chip" title="Somente bagagem de mão">
+              <Briefcase className="h-3 w-3" /> mão
+            </span>
+          )}
+        </div>
+
+        <div className="cons-box px-3 py-2">
+          <div className="text-[15px] font-black leading-none">{brl(oferta.precoTotal)}</div>
+          <div className="mt-1 text-[10px] cons-muted">
+            tarifa {brl(oferta.ida.precoTarifa)} + taxas {brl(oferta.ida.taxas)}
           </div>
-          <div className="flex gap-2 md:flex-col">
-            <Button className="flex-1" onClick={() => onReservar(oferta)}>
-              <Ticket className="mr-2 h-4 w-4" /> Reservar
-            </Button>
-            <Button variant="outline" className="flex-1" onClick={() => setAberto((a) => !a)}>
-              <ChevronDown
-                className={`mr-2 h-4 w-4 transition ${aberto ? "rotate-180" : ""}`}
-              />
-              Detalhes
-            </Button>
+          {maxParcelas > 0 && (
+            <div className="mt-1 flex items-center gap-1 text-[10px] cons-muted">
+              <CreditCard className="h-3 w-3" /> até {maxParcelas}x
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 text-[12px]">
+          <b>{rota[0]}</b>
+          <div className="truncate cons-muted">{rota.slice(1).join(" · ")}</div>
+        </div>
+
+        <div className="text-[12px]">
+          <b>{conexao}</b>
+          <div className="cons-muted">
+            {oferta.ida.paradas === 0 ? "sem parada" : `${oferta.ida.paradas} parada(s)`}
           </div>
+        </div>
+
+        <div className="flex justify-end xl:justify-center">
+          <button
+            type="button"
+            aria-label="Ver detalhes"
+            onClick={() => setAberto((a) => !a)}
+            className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-[#102334] text-[#dcecff]"
+          >
+            <ChevronRight className={`h-4 w-4 transition ${aberto ? "rotate-90" : ""}`} />
+          </button>
         </div>
       </div>
 
       {aberto && (
-        <div className="mt-3 grid gap-3 rounded-lg bg-muted/40 p-3 text-xs md:grid-cols-3">
+        <div className="cons-soft mt-3 grid gap-3 p-3 text-[12px] md:grid-cols-3">
           <div>
             <p className="mb-1 font-semibold">Serviços da tarifa</p>
             <ul className="space-y-1">
               {oferta.ida.servicos.map((s, i) => (
-                <li key={i} className={s.incluso ? "text-foreground" : "text-muted-foreground"}>
+                <li key={i} className={s.incluso ? "" : "cons-muted"}>
                   {s.incluso ? "✔" : "✖"} {s.descricao || s.tipo}
                 </li>
               ))}
-              {oferta.ida.servicos.length === 0 && <li>Não informado</li>}
+              {oferta.ida.servicos.length === 0 && <li className="cons-muted">Não informado</li>}
             </ul>
           </div>
           <div>
             <p className="mb-1 font-semibold">Conexões</p>
-            <ul className="space-y-1 text-muted-foreground">
-              {[oferta.ida, ...oferta.voltas].flatMap((v, vi) =>
+            <ul className="space-y-1 cons-muted">
+              {voos.flatMap((v, vi) =>
                 v.conexoes.map((c, ci) => (
                   <li key={`${vi}-${ci}`}>
                     {c.aeroporto} · espera {c.duracao}
@@ -204,25 +218,23 @@ function LinhaOferta({
                   </li>
                 )),
               )}
-              {[oferta.ida, ...oferta.voltas].every((v) => v.conexoes.length === 0) && (
-                <li>Sem conexões</li>
-              )}
+              {voos.every((v) => v.conexoes.length === 0) && <li>Sem conexões</li>}
             </ul>
           </div>
           <div>
             <p className="mb-1 font-semibold">Parcelamento por bandeira</p>
-            <ul className="space-y-1 text-muted-foreground">
+            <ul className="space-y-1 cons-muted">
               {oferta.ida.parcelamento.map((p) => (
                 <li key={p.bandeira}>
-                  <span className="text-foreground">{p.bandeira}</span>: até {p.maxParcelas}x
+                  {p.bandeira}: até {p.maxParcelas}x
                 </li>
               ))}
-              {oferta.ida.parcelamento.length === 0 && <li>Não informado pela consolidadora</li>}
+              {oferta.ida.parcelamento.length === 0 && <li>Não informado</li>}
             </ul>
           </div>
         </div>
       )}
-    </article>
+    </div>
   );
 }
 
@@ -250,7 +262,6 @@ export function ResultadosPassHub({ resultado, onReservar }: Props) {
   const alterna = (lista: string[], set: (v: string[]) => void, valor: string) =>
     set(lista.includes(valor) ? lista.filter((v) => v !== valor) : [...lista, valor]);
 
-  /** Menor preço por companhia — alimenta o resumo do topo e o filtro. */
   const precoPorCompanhia = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const o of resultado.ofertas) {
@@ -274,9 +285,7 @@ export function ResultadosPassHub({ resultado, onReservar }: Props) {
       if (paradas === "2+" && !voos.some((v) => v.paradas >= 2)) return false;
       if (periodos.length) {
         const m = minutosDaPartida(o.ida.partida);
-        const bate = faixas.some(
-          (f) => periodos.includes(f.id) && m >= f.de && m <= f.ate,
-        );
+        const bate = faixas.some((f) => periodos.includes(f.id) && m >= f.de && m <= f.ate);
         if (!bate) return false;
       }
       if (q) {
@@ -299,8 +308,7 @@ export function ResultadosPassHub({ resultado, onReservar }: Props) {
 
     const chave = (o: PassHubOferta) => {
       if (ordem === "preco") return o.precoTotal;
-      if (ordem === "duracao")
-        return [o.ida, ...o.voltas].reduce((s, v) => s + v.duracaoMinutos, 0);
+      if (ordem === "duracao") return [o.ida, ...o.voltas].reduce((s, v) => s + v.duracaoMinutos, 0);
       if (ordem === "chegada") return minutosDaPartida(o.ida.chegada);
       return minutosDaPartida(o.ida.partida);
     };
@@ -329,15 +337,10 @@ export function ResultadosPassHub({ resultado, onReservar }: Props) {
   const painelFiltros = (
     <div className="space-y-5">
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Companhia aérea
-        </p>
+        <p className="cons-lab mb-2">Companhia aérea</p>
         <div className="space-y-2">
           {precoPorCompanhia.map(([cia, preco]) => (
-            <label
-              key={cia}
-              className="flex cursor-pointer items-center justify-between gap-2 text-sm"
-            >
+            <label key={cia} className="flex cursor-pointer items-center justify-between gap-2 text-[13px]">
               <span className="flex items-center gap-2">
                 <Checkbox
                   checked={companhias.includes(cia)}
@@ -345,21 +348,19 @@ export function ResultadosPassHub({ resultado, onReservar }: Props) {
                 />
                 {cia}
               </span>
-              <span className="text-xs text-muted-foreground">{brl(preco)}</span>
+              <span className="text-[11px] cons-muted">{brl(preco)}</span>
             </label>
           ))}
           {precoPorCompanhia.length === 0 && (
-            <p className="text-xs text-muted-foreground">Sem companhias nesta busca.</p>
+            <p className="text-[12px] cons-muted">Sem companhias nesta busca.</p>
           )}
         </div>
       </div>
 
-      <Separator />
+      <div className="cons-dot" />
 
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Paradas
-        </p>
+        <p className="cons-lab mb-2">Paradas</p>
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -369,69 +370,54 @@ export function ResultadosPassHub({ resultado, onReservar }: Props) {
               ["2+", "2 ou mais"],
             ] as const
           ).map(([v, rotulo]) => (
-            <Button
-              key={v}
-              size="sm"
-              variant={paradas === v ? "default" : "outline"}
-              onClick={() => setParadas(v)}
-            >
+            <Pilula key={v} ativo={paradas === v} onClick={() => setParadas(v)}>
               {rotulo}
-            </Button>
+            </Pilula>
           ))}
         </div>
       </div>
 
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Horário de partida (ida)
-        </p>
+        <p className="cons-lab mb-2">Horário de partida (ida)</p>
         <div className="flex flex-wrap gap-2">
           {faixas.map((f) => (
-            <Button
+            <Pilula
               key={f.id}
-              size="sm"
-              variant={periodos.includes(f.id) ? "default" : "outline"}
+              ativo={periodos.includes(f.id)}
               onClick={() => alterna(periodos, setPeriodos, f.id)}
             >
               {f.rotulo}
-            </Button>
+            </Pilula>
           ))}
         </div>
       </div>
 
       {resultado.familias.length > 0 && (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Família tarifária
-          </p>
+          <p className="cons-lab mb-2">Família tarifária</p>
           <div className="flex flex-wrap gap-2">
             {resultado.familias.map((f) => (
-              <Button
+              <Pilula
                 key={f}
-                size="sm"
-                variant={familias.includes(f) ? "default" : "outline"}
+                ativo={familias.includes(f)}
                 onClick={() => alterna(familias, setFamilias, f)}
               >
                 {f}
-              </Button>
+              </Pilula>
             ))}
           </div>
         </div>
       )}
 
-      <div>
-        <label className="flex cursor-pointer items-center gap-2 text-sm">
-          <Checkbox checked={soBagagem} onCheckedChange={(v) => setSoBagagem(v === true)} />
-          Só com bagagem despachada
-        </label>
-      </div>
+      <label className="flex cursor-pointer items-center gap-2 text-[13px]">
+        <Checkbox checked={soBagagem} onCheckedChange={(v) => setSoBagagem(v === true)} />
+        Só com bagagem despachada
+      </label>
 
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Preço até
-          </p>
-          <span className="text-sm font-semibold">{brl(tetoPreco)}</span>
+          <p className="cons-lab">Preço até</p>
+          <span className="text-[13px] font-bold">{brl(tetoPreco)}</span>
         </div>
         <Slider
           min={Math.floor(resultado.precoMin)}
@@ -442,122 +428,125 @@ export function ResultadosPassHub({ resultado, onReservar }: Props) {
         />
       </div>
 
-      <Button variant="ghost" className="w-full" onClick={limpar}>
-        <X className="mr-2 h-4 w-4" /> Limpar filtros
-      </Button>
+      <button type="button" className="cons-btn w-full" onClick={limpar}>
+        <X className="h-4 w-4" /> Limpar filtros
+      </button>
     </div>
   );
 
   return (
     <section className="space-y-4">
-      {/* Resumo: menor preço por companhia (clicável = filtro) */}
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {precoPorCompanhia.slice(0, 4).map(([cia, preco], i) => {
-          const ativo = companhias.includes(cia);
-          return (
-            <button
-              key={cia}
-              type="button"
-              onClick={() => alterna(companhias, setCompanhias, cia)}
-              className={`rounded-xl border p-3 text-left transition ${
-                ativo ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/50"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm font-semibold">
-                  <Plane className="h-4 w-4 text-primary" /> {cia}
-                </span>
-                {i === 0 && (
-                  <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">menor</Badge>
-                )}
-                {ativo && <CheckCircle2 className="h-4 w-4 text-primary" />}
-              </div>
-              <p className="mt-1 text-lg font-extrabold">{brl(preco)}</p>
-            </button>
-          );
-        })}
+      {/* Resumo por companhia — clicável, vira filtro */}
+      <div className="cons-card overflow-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+          {precoPorCompanhia.slice(0, 4).map(([cia, preco], i) => {
+            const ativo = companhias.includes(cia);
+            return (
+              <button
+                key={cia}
+                type="button"
+                onClick={() => alterna(companhias, setCompanhias, cia)}
+                className="border-b border-[var(--cons-line)] p-4 text-center transition last:border-b-0 sm:border-r sm:last:border-r-0 xl:border-b-0"
+                style={ativo ? { background: "rgba(63,141,227,.12)" } : undefined}
+              >
+                <div className="mb-2 flex items-center justify-center gap-2">
+                  <span className="cons-pill">{cia}</span>
+                  {i === 0 && (
+                    <span className="cons-status cons-status-ok">menor preço</span>
+                  )}
+                </div>
+                <div className="text-[16px] font-black">{brl(preco)}</div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="hidden h-fit rounded-xl border border-border bg-card p-4 lg:block">
-          <p className="mb-3 flex items-center gap-2 font-semibold">
-            <Filter className="h-4 w-4 text-primary" /> Filtros
-            {filtrosAtivos > 0 && <Badge variant="secondary">{filtrosAtivos}</Badge>}
+      <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="cons-card hidden h-fit p-4 xl:block">
+          <p className="mb-3 flex items-center gap-2 font-bold">
+            <Filter className="h-4 w-4 text-[var(--cons-orange2)]" /> Filtros
+            {filtrosAtivos > 0 && <span className="cons-status cons-status-ok">{filtrosAtivos}</span>}
           </p>
           {painelFiltros}
         </aside>
 
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
-            <div className="relative min-w-52 flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-8"
+        <div className="min-w-0 space-y-3">
+          <div className="cons-card flex flex-wrap items-center gap-3 p-3">
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 cons-muted" />
+              <input
+                className="cons-field pl-9"
                 placeholder="Cia, voo, aeroporto ou família tarifária"
                 value={texto}
                 onChange={(e) => setTexto(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Ordenar</Label>
-              <select
-                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                value={ordem}
-                onChange={(e) => setOrdem(e.target.value as Ordem)}
-              >
-                <option value="preco">Menor preço</option>
-                <option value="duracao">Menor duração</option>
-                <option value="partida">Partida mais cedo</option>
-                <option value="chegada">Chegada mais cedo</option>
-              </select>
-            </div>
-            <Button
-              variant="outline"
-              className="lg:hidden"
+            <select
+              className="cons-field w-auto"
+              value={ordem}
+              onChange={(e) => setOrdem(e.target.value as Ordem)}
+            >
+              <option value="preco">Menor preço</option>
+              <option value="duracao">Menor duração</option>
+              <option value="partida">Partida mais cedo</option>
+              <option value="chegada">Chegada mais cedo</option>
+            </select>
+            <button
+              type="button"
+              className="cons-btn cons-btn-primary xl:hidden"
               onClick={() => setFiltrosAbertos((v) => !v)}
             >
-              <Filter className="mr-2 h-4 w-4" /> Filtros
-              {filtrosAtivos > 0 && <Badge className="ml-2">{filtrosAtivos}</Badge>}
-            </Button>
-            <span className="text-xs text-muted-foreground">
+              <Filter className="h-4 w-4" /> Mais filtros{filtrosAtivos ? ` (${filtrosAtivos})` : ""}
+            </button>
+            <span className="text-[12px] cons-muted">
               {ofertas.length} de {resultado.ofertas.length} ofertas
             </span>
           </div>
 
-          {filtrosAbertos && (
-            <div className="rounded-xl border border-border bg-card p-4 lg:hidden">
-              {painelFiltros}
+          {filtrosAbertos && <div className="cons-card p-4 xl:hidden">{painelFiltros}</div>}
+
+          <div className="cons-card overflow-hidden">
+            <div
+              className={`${COLUNAS} hidden px-4 py-3 text-[11px] font-extrabold uppercase tracking-wide text-[#dcedff] xl:grid`}
+              style={{ background: "rgba(255,255,255,.02)" }}
+            >
+              <div />
+              <div>Cia</div>
+              <div>Saída</div>
+              <div>Chegada</div>
+              <div>Duração</div>
+              <div>Info</div>
+              <div>Total</div>
+              <div>Origem / Destino</div>
+              <div>Conexão</div>
+              <div />
             </div>
-          )}
 
-          <div className="hidden grid-cols-[minmax(0,1fr)_190px] gap-3 px-4 text-[11px] uppercase tracking-wide text-muted-foreground md:grid">
-            <span>Itinerário · companhia · bagagem</span>
-            <span className="md:text-right">Total e reserva</span>
-          </div>
-
-          {ofertas.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Nenhuma oferta com os filtros atuais.{" "}
-              <button type="button" className="underline" onClick={limpar}>
-                Limpar filtros
-              </button>
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {ofertas.map((o) => (
+            {ofertas.length === 0 ? (
+              <p className="p-8 text-center text-[13px] cons-muted">
+                Nenhuma oferta com os filtros atuais.{" "}
+                <button type="button" className="underline" onClick={limpar}>
+                  Limpar filtros
+                </button>
+              </p>
+            ) : (
+              ofertas.map((o) => (
                 <LinhaOferta
                   key={o.id}
                   oferta={o}
                   maisBarata={o.precoTotal === menorPreco}
                   onReservar={onReservar}
                 />
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
 
-          <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            <ArrowRight className="h-3 w-3" /> A reserva é feita aqui mesmo: revalidamos a tarifa e
-            emitimos o localizador sem sair do sistema.
+          <p className="flex items-center gap-2 text-[11px] cons-muted">
+            <Info className="h-3.5 w-3.5" /> Clique no <Plus className="h-3 w-3" /> para reservar: a
+            tarifa é revalidada e o localizador sai sem sair do sistema.
+            <Plane className="h-3.5 w-3.5" />
+            <Clock className="h-3.5 w-3.5" />
           </p>
         </div>
       </div>

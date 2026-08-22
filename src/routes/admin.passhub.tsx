@@ -4,9 +4,6 @@ import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Code2, Loader2, PlugZap, Plus, Search, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { passhubStatus, passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
 import { ReservaPassHubDialog } from "@/components/passhub/ReservaPassHubDialog";
@@ -107,201 +104,266 @@ function PassHubPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Motor PassHub</h1>
-          <p className="text-sm text-muted-foreground">
-            Busca aérea interna via PassHub — ida, ida e volta e multitrecho, com bagagem,
-            conexões e parcelamento por bandeira.
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => status.mutate()} disabled={status.isPending}>
-          {status.isPending ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <PlugZap className="mr-2 h-4 w-4" />
-          )}
-          Testar conexão
-        </Button>
-      </header>
+    <div className="cons">
+      <div className="cons-shell space-y-4">
+        <header className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-[28px] font-black tracking-tight">Busca aérea</h1>
+            <p className="text-[13px] cons-muted">
+              Motor interno da consolidadora — ida, ida e volta e multitrecho, com bagagem,
+              conexões e parcelamento por bandeira.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="cons-status cons-status-ok">● Consolidadora conectada</span>
+            <button
+              type="button"
+              className="cons-btn"
+              onClick={() => status.mutate()}
+              disabled={status.isPending}
+            >
+              {status.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <PlugZap className="h-4 w-4" />
+              )}
+              Testar conexão
+            </button>
+          </div>
+        </header>
 
-      <section className="space-y-4 rounded-xl border border-border bg-card p-4">
-        {trechos.map((t, i) => (
-          <div key={i} className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_180px_44px]">
-            <div>
-              <Label>Origem</Label>
-              <AirportAutocomplete
-                value={t.origem}
-                onSelect={(iata) => atualiza(i, "origem", iata)}
-                placeholder="Cidade ou IATA"
-              />
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,0.75fr)]">
+          <section className="cons-card p-4 md:p-5">
+            <h3 className="mb-3 text-[14px] font-bold">Pesquisa</h3>
+
+            {trechos.map((t, i) => (
+              <div
+                key={i}
+                className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px_44px]"
+              >
+                <div>
+                  <span className="cons-lab mb-1.5 block">Origem</span>
+                  <AirportAutocomplete
+                    value={t.origem}
+                    onSelect={(iata) => atualiza(i, "origem", iata)}
+                    placeholder="Cidade ou IATA"
+                  />
+                </div>
+                <div>
+                  <span className="cons-lab mb-1.5 block">Destino</span>
+                  <AirportAutocomplete
+                    value={t.destino}
+                    onSelect={(iata) => atualiza(i, "destino", iata)}
+                    placeholder="Cidade ou IATA"
+                    isDeparture={false}
+                  />
+                </div>
+                <div>
+                  <span className="cons-lab mb-1.5 block">
+                    {trechos.length > 1 ? `Data ${i + 1}` : "Data ida"}
+                  </span>
+                  <input
+                    className="cons-field"
+                    type="date"
+                    value={t.data}
+                    onChange={(e) => atualiza(i, "data", e.target.value)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  {trechos.length > 1 && (
+                    <button
+                      type="button"
+                      aria-label="Remover trecho"
+                      className="cons-btn h-10 w-10 !px-0"
+                      onClick={() => setTrechos((p) => p.filter((_, idx) => idx !== i))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            <div className="cons-dot my-4" />
+
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+              {trechos.length === 1 && (
+                <div>
+                  <span className="cons-lab mb-1.5 block">Data volta</span>
+                  <input
+                    className="cons-field"
+                    type="date"
+                    value={dataVolta}
+                    onChange={(e) => setDataVolta(e.target.value)}
+                  />
+                </div>
+              )}
+              <div>
+                <span className="cons-lab mb-1.5 block">Adultos</span>
+                <input
+                  className="cons-field"
+                  type="number"
+                  min={1}
+                  max={9}
+                  value={adultos}
+                  onChange={(e) => setAdultos(Math.max(1, Number(e.target.value) || 1))}
+                />
+              </div>
+              <div>
+                <span className="cons-lab mb-1.5 block">Crianças</span>
+                <input
+                  className="cons-field"
+                  type="number"
+                  min={0}
+                  max={8}
+                  value={criancas}
+                  onChange={(e) => setCriancas(Math.max(0, Number(e.target.value) || 0))}
+                />
+              </div>
+              <div>
+                <span className="cons-lab mb-1.5 block">Bebês</span>
+                <input
+                  className="cons-field"
+                  type="number"
+                  min={0}
+                  max={8}
+                  value={bebes}
+                  onChange={(e) => setBebes(Math.max(0, Number(e.target.value) || 0))}
+                />
+              </div>
+              <div>
+                <span className="cons-lab mb-1.5 block">RAV (%)</span>
+                <input
+                  className="cons-field"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={rav}
+                  onChange={(e) => setRav(Math.max(0, Number(e.target.value) || 0))}
+                />
+              </div>
             </div>
-            <div>
-              <Label>Destino</Label>
-              <AirportAutocomplete
-                value={t.destino}
-                onSelect={(iata) => atualiza(i, "destino", iata)}
-                placeholder="Cidade ou IATA"
-                isDeparture={false}
-              />
+
+            <div className="cons-dot my-4" />
+
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                className="cons-btn"
+                onClick={() =>
+                  setTrechos((p) => [...p, { origem: "", destino: "", data: "" }].slice(0, 6))
+                }
+              >
+                <Plus className="h-4 w-4" /> Adicionar trecho
+              </button>
+              {bruto && (
+                <button type="button" className="cons-btn" onClick={() => setVerBruto((v) => !v)}>
+                  <Code2 className="h-4 w-4" /> {verBruto ? "Ocultar JSON" : "Ver JSON bruto"}
+                </button>
+              )}
+              <button
+                type="button"
+                className="cons-btn cons-btn-primary"
+                onClick={() => buscar(1)}
+                disabled={busca.isPending}
+              >
+                {busca.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                Pesquisar
+              </button>
             </div>
-            <div>
-              <Label>{trechos.length > 1 ? `Data ${i + 1}` : "Ida"}</Label>
-              <Input
-                type="date"
-                value={t.data}
-                onChange={(e) => atualiza(i, "data", e.target.value)}
-              />
-            </div>
-            <div className="flex items-end">
-              {trechos.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setTrechos((p) => p.filter((_, idx) => idx !== i))}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+          </section>
+
+          <section className="cons-card p-4 md:p-5">
+            <h3 className="mb-3 text-[14px] font-bold">Exibição</h3>
+            <div className="space-y-3">
+              <div>
+                <span className="cons-lab mb-1.5 block">Ofertas por página</span>
+                <input
+                  className="cons-field"
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={porPagina}
+                  onChange={(e) =>
+                    setPorPagina(Math.min(50, Math.max(1, Number(e.target.value) || 12)))
+                  }
+                />
+              </div>
+              <div className="cons-box p-3 text-[12px] cons-muted">
+                A ida e a volta vêm combinadas na mesma linha do resultado. Clique no{" "}
+                <b className="text-[var(--cons-orange2)]">+</b> para reservar direto no sistema.
+              </div>
+              {resultado && (
+                <div className="cons-box p-3 text-[12px]">
+                  <div className="cons-lab mb-1">Resumo da busca</div>
+                  <div>{resultado.total} ofertas</div>
+                  <div className="cons-muted">
+                    faixa {brl(resultado.precoMin)} – {brl(resultado.precoMax)}
+                  </div>
+                </div>
               )}
             </div>
-          </div>
-        ))}
-
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
-          {trechos.length === 1 && (
-            <div>
-              <Label>Volta (opcional)</Label>
-              <Input type="date" value={dataVolta} onChange={(e) => setDataVolta(e.target.value)} />
-            </div>
-          )}
-          <div>
-            <Label>Adultos</Label>
-            <Input
-              type="number"
-              min={1}
-              max={9}
-              value={adultos}
-              onChange={(e) => setAdultos(Math.max(1, Number(e.target.value) || 1))}
-            />
-          </div>
-          <div>
-            <Label>Crianças</Label>
-            <Input
-              type="number"
-              min={0}
-              max={8}
-              value={criancas}
-              onChange={(e) => setCriancas(Math.max(0, Number(e.target.value) || 0))}
-            />
-          </div>
-          <div>
-            <Label>Bebês</Label>
-            <Input
-              type="number"
-              min={0}
-              max={8}
-              value={bebes}
-              onChange={(e) => setBebes(Math.max(0, Number(e.target.value) || 0))}
-            />
-          </div>
-          <div>
-            <Label>RAV (%)</Label>
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              value={rav}
-              onChange={(e) => setRav(Math.max(0, Number(e.target.value) || 0))}
-            />
-          </div>
-          <div>
-            <Label>Por página</Label>
-            <Input
-              type="number"
-              min={1}
-              max={50}
-              value={porPagina}
-              onChange={(e) =>
-                setPorPagina(Math.min(50, Math.max(1, Number(e.target.value) || 12)))
-              }
-            />
-          </div>
+          </section>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() =>
-              setTrechos((p) => [...p, { origem: "", destino: "", data: "" }].slice(0, 6))
-            }
-          >
-            <Plus className="mr-2 h-4 w-4" /> Adicionar trecho
-          </Button>
-          <Button onClick={() => buscar(1)} disabled={busca.isPending}>
-            {busca.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="mr-2 h-4 w-4" />
-            )}
-            Buscar
-          </Button>
-          {bruto && (
-            <Button variant="ghost" onClick={() => setVerBruto((v) => !v)}>
-              <Code2 className="mr-2 h-4 w-4" /> {verBruto ? "Ocultar JSON" : "Ver JSON bruto"}
-            </Button>
-          )}
-        </div>
-      </section>
-
-      {resultado && (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3 text-sm">
-            <span className="text-muted-foreground">
-              {resultado.total} ofertas · página {resultado.pagina}/{resultado.totalPaginas} ·
-              faixa {brl(resultado.precoMin)} – {brl(resultado.precoMax)}
-            </span>
-          </div>
-
-          <ResultadosPassHub resultado={resultado} onReservar={setOfertaReserva} />
-
-          {resultado.totalPaginas > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                disabled={pagina <= 1 || busca.isPending}
-                onClick={() => buscar(pagina - 1)}
-              >
-                Anterior
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {pagina} / {resultado.totalPaginas}
+        {resultado && (
+          <section className="space-y-4">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <div className="cons-lab">Etapa 2</div>
+                <h2 className="text-[20px] font-black">Disponibilidade aérea</h2>
+              </div>
+              <span className="cons-status cons-status-res">
+                página {resultado.pagina}/{resultado.totalPaginas}
               </span>
-              <Button
-                variant="outline"
-                disabled={pagina >= resultado.totalPaginas || busca.isPending}
-                onClick={() => buscar(pagina + 1)}
-              >
-                Próxima
-              </Button>
             </div>
-          )}
-        </section>
-      )}
 
-      {verBruto && bruto && (
-        <pre className="max-h-[520px] overflow-auto rounded-xl border border-border bg-muted/40 p-4 text-xs">
-          {bruto}
-        </pre>
-      )}
-      <ReservaPassHubDialog
-        oferta={ofertaReserva}
-        adultos={adultos}
-        criancas={criancas}
-        bebes={bebes}
-        ravPercentual={rav}
-        onClose={() => setOfertaReserva(null)}
-      />
-    </main>
+            <ResultadosPassHub resultado={resultado} onReservar={setOfertaReserva} />
+
+            {resultado.totalPaginas > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="cons-btn"
+                  disabled={pagina <= 1 || busca.isPending}
+                  onClick={() => buscar(pagina - 1)}
+                >
+                  Anterior
+                </button>
+                <span className="text-[12px] cons-muted">
+                  {pagina} / {resultado.totalPaginas}
+                </span>
+                <button
+                  type="button"
+                  className="cons-btn"
+                  disabled={pagina >= resultado.totalPaginas || busca.isPending}
+                  onClick={() => buscar(pagina + 1)}
+                >
+                  Próxima
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {verBruto && bruto && (
+          <pre className="cons-card max-h-[520px] overflow-auto p-4 text-[11px]">{bruto}</pre>
+        )}
+
+        <ReservaPassHubDialog
+          oferta={ofertaReserva}
+          adultos={adultos}
+          criancas={criancas}
+          bebes={bebes}
+          ravPercentual={rav}
+          onClose={() => setOfertaReserva(null)}
+        />
+      </div>
+    </div>
   );
 }
+
