@@ -195,8 +195,19 @@ function PassHubPage() {
     setTrechos([{ origem: "", destino: "", data: "" }]);
     setDataVolta("");
     setResultado(null);
+    setRavAplicada(null);
     setBruto(null);
   };
+
+  // A RAV é calculada pela PassHub: ao mudar o %, refazemos a busca para que
+  // a consolidadora devolva os preços já com o novo percentual.
+  const ravDivergente = resultado !== null && ravAplicada !== null && ravAplicada !== rav;
+  useEffect(() => {
+    if (!ravDivergente || busca.isPending) return;
+    const t = window.setTimeout(() => buscar(1), 700);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rav, ravDivergente]);
 
   const filtros: FiltrosMotor = { ordem, mostrar, bagagem, direto, companhias: ciasSel };
 
