@@ -60,3 +60,46 @@ export type PassHubResultado = {
   precoMax: number;
   ofertas: PassHubOferta[];
 };
+
+/* ------------------------- reserva (tarifar/reservar) ------------------------- */
+
+export type PassHubPaxTipo = "ADT" | "CHD" | "INF";
+
+export type PassHubPax = {
+  tipo: PassHubPaxTipo;
+  nome: string;
+  sobrenome: string;
+  /** aaaa-mm-dd */
+  nascimento: string;
+  genero: "M" | "F";
+  documentoTipo: "cpf" | "passport";
+  documento: string;
+  paisEmissor?: string;
+  paisResidencia?: string;
+  /** Passaporte: aaaa-mm-dd */
+  emissao?: string;
+  validade?: string;
+  email?: string;
+  ddi?: string;
+  ddd?: string;
+  telefone?: string;
+};
+
+export type PassHubTarifacao = {
+  pricedRateTokens: string[];
+  preco: number;
+  precoSemTaxa: number;
+  retarifou: boolean;
+  bruto: unknown;
+};
+
+export type PassHubReserva = {
+  localizador: string;
+  localizadorCompanhia: string;
+  bookingId: string;
+  bookingToken: string;
+  status: string;
+  total: number;
+  totalSemTaxa: number;
+  bruto: unknown;
+};
