@@ -392,6 +392,8 @@ function PainelDetalhe({
 }) {
   const { tarifa, taxas, rav, pct, outros, comissaoIncentivo, total } = calcularValores(voo, ravPercentual);
 
+  const totalComissao = Math.round((rav + comissaoIncentivo) * 100) / 100;
+
   const linhas: { rot: string; val: number; destaque?: boolean; positivo?: boolean }[] = [
     { rot: "Tarifa (base)", val: tarifa },
     { rot: "Taxa de embarque / TAX", val: taxas },
@@ -400,6 +402,9 @@ function PainelDetalhe({
   if (Math.abs(outros) >= 0.01) linhas.push({ rot: "Outros / ajustes", val: outros });
   if (comissaoIncentivo > 0) {
     linhas.push({ rot: `Comissão de incentivo (${INCENTIVO_PCT}% da tarifa)`, val: comissaoIncentivo, positivo: true });
+  }
+  if (totalComissao > 0) {
+    linhas.push({ rot: "Total de comissão (RAV + incentivo)", val: totalComissao, destaque: true, positivo: true });
   }
 
   return (
