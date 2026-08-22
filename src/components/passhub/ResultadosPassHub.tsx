@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Filter, Luggage, Briefcase, Plus, Check, Info, FileText, X } from "lucide-react";
 import type { PassHubOferta, PassHubResultado, PassHubVoo } from "@/lib/passhub/types";
 import { cityLabel } from "@/lib/iata-lookup";
@@ -804,6 +804,9 @@ function Etapa({
   selecionada,
   onSelecionar,
   bloqueada,
+  recolhida,
+  pernaSelecionada,
+  onAlterar,
 }: {
   numero: number;
   titulo: string;
@@ -815,6 +818,9 @@ function Etapa({
   selecionada: string | null;
   onSelecionar: (chave: string) => void;
   bloqueada?: boolean;
+  recolhida?: boolean;
+  pernaSelecionada?: Perna | null;
+  onAlterar?: () => void;
 }) {
   const maxDur = useMemo(
     () => Math.max(120, ...pernas.map((p) => p.voo.duracaoMinutos || 0)),
@@ -898,6 +904,31 @@ function Etapa({
     (av.saidaIni > 0 || av.saidaFim < 1439 ? 1 : 0) +
     (av.chegadaIni > 0 || av.chegadaFim < 1439 ? 1 : 0) +
     (av.duracaoMax < maxDur ? 1 : 0);
+
+  if (recolhida && pernaSelecionada) {
+    return (
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="cons-lab">Etapa {numero}</div>
+            <h2 className="text-[22px] font-black tracking-tight">{titulo}</h2>
+          </div>
+          <span className={`cons-status cons-status-${statusTom}`}>{status}</span>
+        </div>
+        <ResumoPerna
+          perna={pernaSelecionada}
+          ravPercentual={ravPercentual}
+          acao={
+            onAlterar ? (
+              <button type="button" className="cons-btn h-9" onClick={onAlterar}>
+                Alterar
+              </button>
+            ) : null
+          }
+        />
+      </section>
+    );
+  }
 
   return (
     <section className={`space-y-3 ${bloqueada ? "opacity-55" : ""}`}>
@@ -1129,11 +1160,53 @@ function Etapa({
   );
 }
 
+/** Card compacto de um trecho já escolhido (usado nas etapas recolhidas e no resumo final). */
+function ResumoPerna({
+  perna,
+  ravPercentual,
+  acao,
+  rotulo,
+}: {
+  perna: Perna;
+  ravPercentual: number;
+  acao?: React.ReactNode;
+  rotulo?: string;
+}) {
+  const v = perna.voo;
+  const val = calcularValores(v, ravPercentual);
+  return (
+    <div className="cons-card flex flex-wrap items-center justify-between gap-4 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3">
+        {rotulo && <span className="cons-lab">{rotulo}</span>}
+        <BadgeCia codigo={v.companhiaIata} nome={v.companhia} />
+        <div className="text-[14px] font-black tracking-tight">
+          {v.origem} <span className="cons-muted">→</span> {v.destino}
+        </div>
+        <div className="text-[13px] cons-muted">
+          {diaCurto(v.partida)} · {hora(v.partida)} — {hora(v.chegada)} ·{" "}
+          {v.paradas === 0 ? "Direto" : `${v.paradas} parada${v.paradas > 1 ? "s" : ""}`}
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="text-right">
+          <div className="cons-lab">Total</div>
+          <div className="text-[16px] font-black">{brl(val.total)}</div>
+        </div>
+        {acao}
+      </div>
+    </div>
+  );
+}
+
 export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onReservar }: Props) {
   const [idaSel, setIdaSel] = useState<string | null>(null);
+  const [voltaSel, setVoltaSel] = useState<string | null>(null);
+  const refVolta = useRef<HTMLDivElement | null>(null);
+  const refResumo = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setIdaSel(null);
+    setVoltaSel(null);
   }, [resultado]);
 
   const idas = useMemo(() => {
@@ -1164,17 +1237,30 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
     return [...mapa.values()];
   }, [resultado, idaSel]);
 
+  const pernaIda = useMemo(() => idas.find((i) => i.chave === idaSel) ?? null, [idas, idaSel]);
+  const pernaVolta = useMemo(
+    () => voltas.find((v) => v.chave === voltaSel) ?? null,
+    [voltas, voltaSel],
+  );
+
+  const pronto = temVolta ? Boolean(pernaIda && pernaVolta) : Boolean(pernaIda);
+  const ofertaFinal = pernaVolta?.oferta ?? pernaIda?.oferta ?? null;
+  const totalFinal =
+    (pernaIda ? calcularValores(pernaIda.voo, ravPercentual).total : 0) +
+    (pernaVolta ? calcularValores(pernaVolta.voo, ravPercentual).total : 0);
+
+  const rolar = (alvo: React.RefObject<HTMLDivElement | null>) =>
+    window.setTimeout(() => alvo.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+
   function selecionaIda(chave: string) {
     setIdaSel(chave);
-    if (!temVolta) {
-      const p = idas.find((i) => i.chave === chave);
-      if (p) onReservar(p.oferta);
-    }
+    setVoltaSel(null);
+    rolar(temVolta ? refVolta : refResumo);
   }
 
   function selecionaVolta(chave: string) {
-    const p = voltas.find((v) => v.chave === chave);
-    if (p) onReservar(p.oferta);
+    setVoltaSel(chave);
+    rolar(refResumo);
   }
 
   return (
@@ -1189,22 +1275,70 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
         ravPercentual={ravPercentual}
         selecionada={idaSel}
         onSelecionar={selecionaIda}
+        recolhida={Boolean(pernaIda)}
+        pernaSelecionada={pernaIda}
+        onAlterar={() => {
+          setIdaSel(null);
+          setVoltaSel(null);
+        }}
       />
 
       {temVolta && (
-        <Etapa
-          numero={2}
-          titulo="Trecho volta"
-          status={idaSel ? "Escolha a volta" : "Selecione primeiro a ida"}
-          statusTom={idaSel ? "ok" : "res"}
-          pernas={voltas}
-          filtros={filtros}
-          ravPercentual={ravPercentual}
-          selecionada={null}
-          onSelecionar={selecionaVolta}
-          bloqueada={!idaSel}
-        />
+        <div ref={refVolta} className="scroll-mt-24">
+          <Etapa
+            numero={2}
+            titulo="Trecho volta"
+            status={
+              pernaVolta ? "Volta selecionada" : idaSel ? "Escolha a volta" : "Selecione primeiro a ida"
+            }
+            statusTom={idaSel ? "ok" : "res"}
+            pernas={voltas}
+            filtros={filtros}
+            ravPercentual={ravPercentual}
+            selecionada={voltaSel}
+            onSelecionar={selecionaVolta}
+            bloqueada={!idaSel}
+            recolhida={Boolean(pernaVolta)}
+            pernaSelecionada={pernaVolta}
+            onAlterar={() => setVoltaSel(null)}
+          />
+        </div>
       )}
+
+      <div ref={refResumo} className="scroll-mt-24">
+        {pronto && ofertaFinal && (
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <div className="cons-lab">Etapa {temVolta ? 3 : 2}</div>
+                <h2 className="text-[22px] font-black tracking-tight">Resumo da seleção</h2>
+              </div>
+              <span className="cons-status cons-status-ok">Pronto para reservar</span>
+            </div>
+
+            {pernaIda && (
+              <ResumoPerna perna={pernaIda} ravPercentual={ravPercentual} rotulo="Ida" />
+            )}
+            {pernaVolta && (
+              <ResumoPerna perna={pernaVolta} ravPercentual={ravPercentual} rotulo="Volta" />
+            )}
+
+            <div className="cons-card flex flex-wrap items-center justify-between gap-4 px-4 py-4">
+              <div>
+                <div className="cons-lab">Total da seleção</div>
+                <div className="text-[24px] font-black tracking-tight">{brl(totalFinal)}</div>
+              </div>
+              <button
+                type="button"
+                className="cons-btn cons-btn-primary h-11 px-6 text-[14px] font-black"
+                onClick={() => onReservar(ofertaFinal)}
+              >
+                Reservar
+              </button>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
