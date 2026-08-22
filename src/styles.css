@@ -304,12 +304,13 @@ body:has([data-chat-root]),
    busca, resultados, reservas e bilhetes. Tokens escopados.
    ============================================================ */
 .cons {
-  --cons-bg: #0b0f17;
-  --cons-bg2: #111722;
-  --cons-card: #151d2a;
-  --cons-card2: #1e2736;
-  --cons-line: #1e293b;
-  --cons-line2: #334155;
+  --cons-bg: rgb(3, 16, 23);
+  --cons-bg2: rgb(9, 24, 32);
+  --cons-card: rgb(7, 21, 29);
+  --cons-card2: rgb(13, 30, 39);
+  --cons-line: rgba(255, 255, 255, 0.07);
+  --cons-line2: rgba(255, 255, 255, 0.12);
+
   --cons-text: #f8fafc;
   --cons-muted: #94a3b8;
   --cons-blue: #3b82f6;
