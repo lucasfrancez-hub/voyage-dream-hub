@@ -130,6 +130,21 @@ function AdminLayout() {
   const [oferecerPin, setOferecerPin] = useState(false);
   const appInstalado = ehAppInstalado();
 
+  // Mantém o manifest do app em qualquer página do painel: a URL do app
+  // (/admin/app/<token>) continua sendo a de origem do aplicativo instalado.
+  useEffect(() => {
+    const t = tokenAppLembrado();
+    if (!t) return;
+    const href = `/api/public/admin-manifest/${t}`;
+    let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "manifest";
+      document.head.appendChild(link);
+    }
+    if (link.getAttribute("href") !== href) link.setAttribute("href", href);
+  }, []);
+
   useEffect(() => {
     if (session === undefined) return;
     void (async () => {
