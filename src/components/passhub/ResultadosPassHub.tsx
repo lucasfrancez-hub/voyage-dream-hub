@@ -221,16 +221,20 @@ export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
     pct = tarifa > 0 ? Math.round((rav / tarifa) * 1000) / 10 : 0;
   }
 
-  // O percentual fixado na busca (10% nacional / 7% internacional) manda:
-  // recalcula a RAV sobre a tarifa e reconstrói o total, evitando divergência
-  // entre o que a consolidadora embutiu e o que a agência cobra.
+  // O percentual fixado na busca (10% nacional / 7% internacional) é um PISO:
+  // se a consolidadora já embutiu uma RAV maior, mantemos o total dela — nunca
+  // devolvemos um preço abaixo do que a PassHub cobra.
   if (ravPercentual > 0 && tarifa > 0) {
-    pct = ravPercentual;
-    rav = Math.round(tarifa * (ravPercentual / 100) * 100) / 100;
-    total = Math.round((tarifa + taxas + outros + rav) * 100) / 100;
+    const alvo = Math.round(tarifa * (ravPercentual / 100) * 100) / 100;
+    if (alvo > rav) {
+      pct = ravPercentual;
+      rav = alvo;
+      total = Math.round((tarifa + taxas + outros + rav) * 100) / 100;
+    }
   }
 
   if (!total) total = Math.round((tarifa + taxas + rav) * 100) / 100;
+
 
   const comissaoIncentivo = tarifa > 0 ? Math.round(tarifa * (INCENTIVO_PCT / 100) * 100) / 100 : 0;
 
@@ -1184,11 +1188,14 @@ function ResumoPerna({
   ravPercentual,
   acao,
   rotulo,
+  semPreco,
 }: {
   perna: Perna;
   ravPercentual: number;
   acao?: React.ReactNode;
   rotulo?: string;
+  /** No resumo final o preço é da viagem inteira, então o trecho não repete valor. */
+  semPreco?: boolean;
 }) {
   const v = perna.voo;
   const val = calcularValores(v, ravPercentual);
@@ -1206,20 +1213,23 @@ function ResumoPerna({
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <div className="text-right">
-          <div className="cons-lab">Total</div>
-          <div className="text-[16px] font-black">{brl(val.total)}</div>
-          {val.comissaoIncentivo > 0 && (
-            <div className="text-[11px] font-bold text-emerald-400">
-              +{brl(val.comissaoIncentivo)} comissão de incentivo
-            </div>
-          )}
-        </div>
+        {!semPreco && (
+          <div className="text-right">
+            <div className="cons-lab">Total</div>
+            <div className="text-[16px] font-black">{brl(val.total)}</div>
+            {val.comissaoIncentivo > 0 && (
+              <div className="text-[11px] font-bold text-emerald-400">
+                +{brl(val.comissaoIncentivo)} comissão de incentivo
+              </div>
+            )}
+          </div>
+        )}
         {acao}
       </div>
     </div>
   );
 }
+
 
 export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onReservar }: Props) {
   const [idaSel, setIdaSel] = useState<string | null>(null);
@@ -1268,12 +1278,15 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
 
   const pronto = temVolta ? Boolean(pernaIda && pernaVolta) : Boolean(pernaIda);
   const ofertaFinal = pernaVolta?.oferta ?? pernaIda?.oferta ?? null;
-  const totalFinal =
-    (pernaIda ? calcularValores(pernaIda.voo, ravPercentual).total : 0) +
-    (pernaVolta ? calcularValores(pernaVolta.voo, ravPercentual).total : 0);
+  // O preço da PassHub é fechado por viagem: quando há volta, o total é o da
+  // volta escolhida (ida + volta), nunca a soma dos dois trechos.
+  const vooPreco = pernaVolta?.voo ?? pernaIda?.voo ?? null;
+  const valoresFinais = vooPreco ? calcularValores(vooPreco, ravPercentual) : null;
+  const totalFinal = valoresFinais?.total ?? 0;
 
   const rolar = (alvo: React.RefObject<HTMLDivElement | null>) =>
     window.setTimeout(() => alvo.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+
 
   function selecionaIda(chave: string) {
     setIdaSel(chave);
@@ -1288,25 +1301,28 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
 
   return (
     <div className="space-y-6">
-      <Etapa
-        numero={1}
-        titulo="Trecho ida"
-        status={idaSel ? "Ida selecionada" : "Aguardando seleção"}
-        statusTom={idaSel ? "ok" : "res"}
-        pernas={idas}
-        filtros={filtros}
-        ravPercentual={ravPercentual}
-        selecionada={idaSel}
-        onSelecionar={selecionaIda}
-        recolhida={Boolean(pernaIda)}
-        pernaSelecionada={pernaIda}
-        onAlterar={() => {
-          setIdaSel(null);
-          setVoltaSel(null);
-        }}
-      />
+      {/* Com tudo escolhido some a lista de etapas: fica só o resumo. */}
+      {!pronto && (
+        <Etapa
+          numero={1}
+          titulo="Trecho ida"
+          status={idaSel ? "Ida selecionada" : "Aguardando seleção"}
+          statusTom={idaSel ? "ok" : "res"}
+          pernas={idas}
+          filtros={filtros}
+          ravPercentual={ravPercentual}
+          selecionada={idaSel}
+          onSelecionar={selecionaIda}
+          recolhida={Boolean(pernaIda)}
+          pernaSelecionada={pernaIda}
+          onAlterar={() => {
+            setIdaSel(null);
+            setVoltaSel(null);
+          }}
+        />
+      )}
 
-      {temVolta && (
+      {!pronto && temVolta && (
         <div ref={refVolta} className="scroll-mt-24">
           <Etapa
             numero={2}
@@ -1329,27 +1345,63 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
       )}
 
       <div ref={refResumo} className="scroll-mt-24">
-        {pronto && ofertaFinal && (
+        {pronto && ofertaFinal && valoresFinais && (
           <section className="space-y-3">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <div className="cons-lab">Etapa {temVolta ? 3 : 2}</div>
+                <div className="cons-lab">Resumo</div>
                 <h2 className="text-[22px] font-black tracking-tight">Resumo da seleção</h2>
               </div>
               <span className="cons-status cons-status-ok">Pronto para reservar</span>
             </div>
 
             {pernaIda && (
-              <ResumoPerna perna={pernaIda} ravPercentual={ravPercentual} rotulo="Ida" />
+              <ResumoPerna
+                perna={pernaIda}
+                ravPercentual={ravPercentual}
+                rotulo="Ida"
+                semPreco
+                acao={
+                  <button
+                    type="button"
+                    className="cons-btn h-9 px-4 text-[12px] font-bold"
+                    onClick={() => {
+                      setIdaSel(null);
+                      setVoltaSel(null);
+                    }}
+                  >
+                    Alterar
+                  </button>
+                }
+              />
             )}
             {pernaVolta && (
-              <ResumoPerna perna={pernaVolta} ravPercentual={ravPercentual} rotulo="Volta" />
+              <ResumoPerna
+                perna={pernaVolta}
+                ravPercentual={ravPercentual}
+                rotulo="Volta"
+                semPreco
+                acao={
+                  <button
+                    type="button"
+                    className="cons-btn h-9 px-4 text-[12px] font-bold"
+                    onClick={() => setVoltaSel(null)}
+                  >
+                    Alterar
+                  </button>
+                }
+              />
             )}
 
             <div className="cons-card flex flex-wrap items-center justify-between gap-4 px-4 py-4">
               <div>
-                <div className="cons-lab">Total da seleção</div>
+                <div className="cons-lab">Total da viagem (ida e volta)</div>
                 <div className="text-[24px] font-black tracking-tight">{brl(totalFinal)}</div>
+                {valoresFinais.comissaoIncentivo > 0 && (
+                  <div className="text-[11px] font-bold text-emerald-400">
+                    +{brl(valoresFinais.comissaoIncentivo)} comissão de incentivo
+                  </div>
+                )}
               </div>
               <button
                 type="button"
@@ -1358,14 +1410,14 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
                   // Envia só o par escolhido (ida + a volta selecionada),
                   // nunca a lista inteira de voltas combináveis da oferta.
                   const ida = pernaIda?.voo ?? ofertaFinal.ida;
-                  const voltas = pernaVolta ? [pernaVolta.voo] : [];
+                  const voltasSel = pernaVolta ? [pernaVolta.voo] : [];
                   onReservar({
                     ...ofertaFinal,
                     ida,
-                    voltas,
+                    voltas: voltasSel,
+                    // Preço fechado da viagem (não é soma de trechos).
                     precoTotal:
-                      (ida.precoTotal || 0) + voltas.reduce((s, v) => s + (v.precoTotal || 0), 0) ||
-                      ofertaFinal.precoTotal,
+                      (pernaVolta?.voo.precoTotal || ida.precoTotal) || ofertaFinal.precoTotal,
                   });
                 }}
               >
@@ -1373,6 +1425,7 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
               </button>
             </div>
           </section>
+
         )}
       </div>
     </div>
