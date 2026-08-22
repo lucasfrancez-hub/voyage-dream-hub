@@ -304,25 +304,25 @@ body:has([data-chat-root]),
    busca, resultados, reservas e bilhetes. Tokens escopados.
    ============================================================ */
 .cons {
-  --cons-bg: #120b07;
-  --cons-bg2: #1a1009;
-  --cons-card: #1c120b;
-  --cons-card2: #241710;
-  --cons-line: #3a2416;
-  --cons-line2: #4d3120;
-  --cons-text: #fdf6f0;
-  --cons-muted: #bfa595;
-  --cons-blue: #f26b1f;
-  --cons-blue2: #ff9440;
+  --cons-bg: #07131d;
+  --cons-bg2: #0a1824;
+  --cons-card: #0d2030;
+  --cons-card2: #11283b;
+  --cons-line: #1f3a50;
+  --cons-line2: #2b4b63;
+  --cons-text: #edf6ff;
+  --cons-muted: #8ea9be;
+  --cons-blue: #3f8de3;
+  --cons-blue2: #5aa9ff;
   --cons-orange: #f26b1f;
   --cons-orange2: #ff9440;
   --cons-green: #37d39a;
-  --cons-shadow: 0 22px 48px rgba(0, 0, 0, 0.45);
+  --cons-shadow: 0 22px 48px rgba(0, 0, 0, 0.4);
 
   background:
-    radial-gradient(900px 420px at 12% -8%, rgba(242, 107, 31, 0.16), transparent 62%),
-    radial-gradient(700px 380px at 96% 0%, rgba(55, 211, 154, 0.08), transparent 60%),
-    linear-gradient(180deg, var(--cons-bg), #0b0705);
+    radial-gradient(900px 420px at 10% -10%, rgba(242, 107, 31, 0.1), transparent 60%),
+    radial-gradient(760px 380px at 95% 0%, rgba(63, 141, 227, 0.14), transparent 60%),
+    linear-gradient(180deg, var(--cons-bg), #061018);
   color: var(--cons-text);
   min-height: 100%;
 }
@@ -339,13 +339,13 @@ body:has([data-chat-root]),
 }
 
 .cons-card {
-  background: linear-gradient(180deg, rgba(36, 23, 16, 0.92), rgba(20, 12, 8, 0.94));
+  background: linear-gradient(180deg, rgba(15, 36, 53, 0.95), rgba(9, 24, 36, 0.96));
   border: 1px solid var(--cons-line);
   border-radius: 18px;
   box-shadow: var(--cons-shadow);
 }
 .cons-box {
-  background: linear-gradient(180deg, #2a1a11, #1d120c);
+  background: linear-gradient(180deg, #102638, #0d2030);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
 }
@@ -369,7 +369,7 @@ body:has([data-chat-root]),
   height: 40px;
   border: 1px solid var(--cons-line2);
   border-radius: 12px;
-  background: linear-gradient(180deg, #2a1a11, #1a100b);
+  background: linear-gradient(180deg, #102537, #0c1d2c);
   color: var(--cons-text);
   padding: 0 12px;
   font-size: 14px;
@@ -388,13 +388,13 @@ body:has([data-chat-root]),
   padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--cons-line2);
-  background: linear-gradient(180deg, #2c1b12, #1e130d);
+  background: linear-gradient(180deg, #13293b, #0e2131);
   color: var(--cons-text);
   font-weight: 700;
   font-size: 13px;
   white-space: nowrap;
 }
-.cons-btn:hover { border-color: var(--cons-orange2); background: linear-gradient(180deg, #3a2317, #241610); }
+.cons-btn:hover { border-color: var(--cons-orange2); background: linear-gradient(180deg, #17324a, #102435); }
 .cons-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .cons-btn-primary {
   background: linear-gradient(135deg, #ff9440, var(--cons-orange) 55%, #d4550f);
@@ -416,8 +416,8 @@ body:has([data-chat-root]),
   min-width: 58px;
   padding: 0 10px;
   border-radius: 8px;
-  background: linear-gradient(180deg, #fff, #ffe6d2);
-  color: #3a1c07;
+  background: #fff;
+  color: #10283c;
   font-weight: 900;
   font-size: 11px;
   white-space: nowrap;
@@ -456,8 +456,8 @@ body:has([data-chat-root]),
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: #ffd9bd;
-  background: rgba(242, 107, 31, 0.07);
+  color: #dbecff;
+  background: rgba(242, 107, 31, 0.08);
   white-space: nowrap;
 }
 .cons-table td { padding: 13px 10px; border-bottom: 1px dotted rgba(255, 255, 255, 0.08); }
