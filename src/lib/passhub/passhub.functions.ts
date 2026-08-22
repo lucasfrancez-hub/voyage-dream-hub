@@ -53,3 +53,20 @@ export const passhubTarifarVoo = createServerFn({ method: "POST" })
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao tarifar" };
     }
   });
+
+/** Busca já normalizada para o motor interno (cards, filtros e ordenação). */
+export const passhubMotorBuscar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => buscaSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { passhubBuscarVoos } = await import("./search.server");
+    const { normalizaBuscaPassHub } = await import("./normalize.server");
+    try {
+      const bruto = await passhubBuscarVoos(data);
+      return { ok: true as const, resultado: normalizaBuscaPassHub(bruto), bruto };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha na busca PassHub";
+      console.error("[passhub] motor falhou:", msg);
+      return { ok: false as const, erro: msg };
+    }
+  });
