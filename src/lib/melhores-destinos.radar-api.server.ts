@@ -16,6 +16,7 @@
  * Nada aqui é usado pelo site público nem pelo motor de busca do cliente.
  */
 import { scopeOfRoute } from "@/lib/br-airports";
+import { hojeBRT } from "@/lib/datetime-brt";
 import { nomeCompanhia } from "@/lib/melhores-destinos.parse";
 
 const API = "https://passagensaereas.melhoresdestinos.com.br/api/v1";
