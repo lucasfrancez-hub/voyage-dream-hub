@@ -1,0 +1,89 @@
+/**
+ * Reservas da agência na PassHub. SERVER-ONLY.
+ *
+ * Contrato do painel: GET {gerencia}/api/v1/reservas → todas as reservas da
+ * agência (inclusive as criadas direto no site da PassHub).
+ */
+import { passhubRequest } from "./client.server";
+import type { PassHubReservaLista } from "./types";
+
+const GERENCIA = "https://emissor-gerencia.passhub.com.br";
+
+type Rec = Record<string, unknown>;
+const rec = (v: unknown): Rec => (v && typeof v === "object" && !Array.isArray(v) ? (v as Rec) : {});
+const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+const str = (v: unknown, fb = ""): string => (typeof v === "string" ? v : v == null ? fb : String(v));
+const num = (v: unknown, fb = 0): number => {
+  const n = typeof v === "number" ? v : Number(String(v ?? "").replace(",", "."));
+  return Number.isFinite(n) ? n : fb;
+};
+
+function normalizaSegmento(v: unknown) {
+  const s = rec(v);
+  return {
+    origem: str(s["origem"]),
+    destino: str(s["destino"]),
+    partida: str(s["data_partida"]),
+    chegada: str(s["data_chegada"]),
+    duracao: str(s["duracao"]),
+    bagagemMao: s["bagagem_mao"] === true,
+    bagagemDespachada: s["bagagem_despachada"] === true,
+    bagagemDespachadaQtd: num(s["bagagem_despachada_quantidade"]),
+    conexoes: arr(s["conexoes"]).map((c) => {
+      const x = rec(c);
+      return {
+        origem: str(x["origem"]),
+        destino: str(x["destino"]),
+        partida: str(x["data_partida"]),
+        chegada: str(x["data_chegada"]),
+        duracao: str(x["duracao"]),
+        numeroVoo: str(x["numero_voo"]),
+        familiaTarifaria: str(x["familia_tarifaria"]),
+        classe: str(x["cabin_class"]),
+        companhia: str(x["airline_iata_operating"]),
+      };
+    }),
+  };
+}
+
+function normalizaReserva(v: unknown): PassHubReservaLista {
+  const r = rec(v);
+  return {
+    idPassagem: num(r["id_passagem"]),
+    localizador: str(r["localizador"]),
+    localizadorCompanhia: str(r["localizador_companhia"]),
+    status: str(r["status_emissao"]),
+    statusDescricao: str(r["descricao_status_emissao"]),
+    origem: str(r["origem"]),
+    destino: str(r["destino"]),
+    dataIda: str(r["data_ida"]),
+    dataVolta: str(r["data_volta"]),
+    criadaEm: str(r["data_criacao_reserva"]),
+    limiteEmissao: str(r["data_limite_emissao"]),
+    emitidaEm: str(r["data_emissao"]),
+    preco: num(r["preco"]),
+    precoSemTaxa: num(r["preco_sem_taxa"]),
+    taxas: num(r["tax"]),
+    ravPercentual: num(r["rav_percentage"]),
+    ravValor: num(r["rav_amount_brl"]),
+    comissao: num(r["valor_comissao"]),
+    companhia: str(r["companhia_aerea_iata"] ?? r["companhia_aerea"]),
+    provedor: str(r["provider"]),
+    emissor: str(r["nome_usuario"]),
+    whatsapp: str(r["numero_whatsapp"]),
+    linkPagamento: str(r["link_pagamento"]),
+    multitrecho: r["is_multitrecho"] === true,
+    passageiros: arr(r["nomes_passageiros"]).map((p) => str(p)).filter(Boolean),
+    segmentos: arr(r["segmentos"]).map(normalizaSegmento),
+  };
+}
+
+/** Todas as reservas da agência na PassHub, mais recentes primeiro. */
+export async function passhubListarReservas(): Promise<PassHubReservaLista[]> {
+  const bruto = await passhubRequest<unknown>(`${GERENCIA}/api/v1/reservas`, { method: "GET" });
+  const dados = rec(rec(bruto)["data"]);
+  const lista = arr(dados["reservas"] ?? rec(bruto)["reservas"]);
+  return lista
+    .map(normalizaReserva)
+    .sort((a, b) => (a.criadaEm < b.criadaEm ? 1 : a.criadaEm > b.criadaEm ? -1 : 0));
+}
