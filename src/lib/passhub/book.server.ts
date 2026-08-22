@@ -10,6 +10,9 @@ import type { PassHubPax, PassHubReserva, PassHubTarifacao } from "./types";
 
 type Rec = Record<string, unknown>;
 
+/** E-mail oficial de contato usado em todas as reservas da consolidadora. */
+const EMAIL_CONTATO = "lucas@voeair.com";
+
 const rec = (v: unknown): Rec => (v && typeof v === "object" && !Array.isArray(v) ? (v as Rec) : {});
 const str = (v: unknown, fb = ""): string => (typeof v === "string" ? v : v == null ? fb : String(v));
 const num = (v: unknown, fb = 0): number => {
