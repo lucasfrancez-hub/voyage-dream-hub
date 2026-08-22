@@ -131,7 +131,7 @@ function LinhaPerna({
         <span
           className={`grid h-9 w-9 place-items-center rounded-full border transition ${
             selecionada
-              ? "border-transparent bg-[linear-gradient(180deg,#ff9244,#e66318)] text-white"
+              ? "border-transparent bg-[#f26b1f] text-white"
               : "border-[rgba(255,148,64,.45)] text-[#ff9440]"
           }`}
         >
