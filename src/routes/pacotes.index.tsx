@@ -58,12 +58,16 @@ export const Route = createFileRoute("/pacotes/")({
 
 function PacotesList() {
   const { data: packages, isLoading } = useQuery({
-    queryKey: ["packages", "active"],
+    queryKey: ["packages", "active", "list"],
+    // Só as colunas usadas nos cards/filtros: roteiro, inclusos e voos ficam
+    // para a página do pacote (evita baixar ~2 MB só para listar).
     queryFn: async () => {
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("packages")
-        .select("id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,summary,itinerary,includes,hotel_name,hotel_stars,meal_plan,is_active,sort_order,base_occupancy,outbound_flight,return_flight,supplier_name,created_at,updated_at")
+        .select(
+          "id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,hotel_name,sort_order,base_occupancy,supplier_name",
+        )
         .eq("is_active", true)
         .or("kind.is.null,kind.eq.package")
         .or(`going_date.is.null,going_date.gte.${today}`)
@@ -71,7 +75,10 @@ function PacotesList() {
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
   });
+
 
   const [originFilter, setOriginFilter] = useState<string>("all");
   const [destinationFilter, setDestinationFilter] = useState<string>("all");
