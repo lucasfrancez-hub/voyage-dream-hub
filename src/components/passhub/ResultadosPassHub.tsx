@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Filter, Luggage, Briefcase, Plus, Check, Info, FileText, X } from "lucide-react";
 import type { PassHubOferta, PassHubResultado, PassHubVoo } from "@/lib/passhub/types";
 import { cityLabel } from "@/lib/iata-lookup";
+import { useServerFn } from "@tanstack/react-start";
+import { passhubTarifarOferta } from "@/lib/passhub/passhub.functions";
 
 export type FiltrosMotor = {
   ordem: "preco" | "duracao" | "partida" | "chegada";
@@ -411,12 +413,51 @@ function PainelDetalhe({
   const { tarifa, taxas, rav, pct, outros, comissaoIncentivo, incentivoPct, total } =
     calcularValores(voo, ravPercentual);
 
-  const totalComissao = Math.round((rav + comissaoIncentivo) * 100) / 100;
+  /* RAV real: a busca vem líquida, então perguntamos à PassHub (tarifação)
+     quanto de comissão ela devolve com o % que a agência configurou. */
+  const tarifarFn = useServerFn(passhubTarifarOferta);
+  const [ravApi, setRavApi] = useState<number | null>(null);
+  const [ravCarregando, setRavCarregando] = useState(false);
+
+  useEffect(() => {
+    const token = voo.rateToken;
+    setRavApi(null);
+    if (!token || !ravPercentual) return;
+    let vivo = true;
+    setRavCarregando(true);
+    tarifarFn({
+      data: {
+        rateTokens: [token],
+        provedor: voo.provedor || "CVC",
+        precoEsperado: voo.precoTotal || 0,
+        ravPercentual,
+      },
+    })
+      .then((r) => {
+        if (vivo && r.ok) setRavApi(r.tarifacao.ravValor || 0);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (vivo) setRavCarregando(false);
+      });
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voo.rateToken, voo.provedor, voo.precoTotal, ravPercentual]);
+
+  const ravFinal = ravApi ?? rav;
+  const totalFinal = Math.round((total - rav + ravFinal) * 100) / 100;
+  const totalComissao = Math.round((ravFinal + comissaoIncentivo) * 100) / 100;
 
   const linhas: { rot: string; val: number; destaque?: boolean; positivo?: boolean }[] = [
     { rot: "Tarifa (base)", val: tarifa },
     { rot: "Taxa de embarque / TAX", val: taxas },
-    { rot: `RAV (${pct ? `${pct}%` : "0%"})`, val: rav, destaque: true },
+    {
+      rot: `RAV (${pct ? `${pct}%` : "0%"})${ravApi != null ? " · PassHub" : ravCarregando ? " · consultando…" : ""}`,
+      val: ravFinal,
+      destaque: true,
+    },
   ];
   if (Math.abs(outros) >= 0.01) linhas.push({ rot: "Outros / ajustes", val: outros });
   if (comissaoIncentivo > 0) {
@@ -454,7 +495,7 @@ function PainelDetalhe({
                     : `${voo.paradas} paradas`}
               </span>
             </div>
-            <span className="ml-auto text-[17px] font-black tabular-nums">{brl(total)}</span>
+            <span className="ml-auto text-[17px] font-black tabular-nums">{brl(totalFinal)}</span>
           </div>
 
           {aba === "info" ? (
