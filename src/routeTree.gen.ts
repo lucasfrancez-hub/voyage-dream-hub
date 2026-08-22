@@ -70,6 +70,7 @@ import { Route as AdminPromocoesAereoRouteImport } from './routes/admin.promocoe
 import { Route as AdminRecebimentosRouteImport } from './routes/admin.recebimentos'
 import { Route as AdminRedesSociaisRouteImport } from './routes/admin.redes-sociais'
 import { Route as AdminRegrasParcelamentoRouteImport } from './routes/admin.regras-parcelamento'
+import { Route as AdminReservasRouteImport } from './routes/admin.reservas'
 import { Route as AdminReservasPreviewRouteImport } from './routes/admin.reservas-preview'
 import { Route as AdminSabreRouteImport } from './routes/admin.sabre'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
@@ -483,6 +484,11 @@ const AdminRedesSociaisRoute = AdminRedesSociaisRouteImport.update({
 const AdminRegrasParcelamentoRoute = AdminRegrasParcelamentoRouteImport.update({
   id: '/regras-parcelamento',
   path: '/regras-parcelamento',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReservasRoute = AdminReservasRouteImport.update({
+  id: '/reservas',
+  path: '/reservas',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminReservasPreviewRoute = AdminReservasPreviewRouteImport.update({
@@ -1134,6 +1140,7 @@ export interface FileRoutesByFullPath {
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/regras-parcelamento': typeof AdminRegrasParcelamentoRoute
+  '/admin/reservas': typeof AdminReservasRoute
   '/admin/reservas-preview': typeof AdminReservasPreviewRoute
   '/admin/sabre': typeof AdminSabreRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -1304,6 +1311,7 @@ export interface FileRoutesByTo {
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/regras-parcelamento': typeof AdminRegrasParcelamentoRoute
+  '/admin/reservas': typeof AdminReservasRoute
   '/admin/reservas-preview': typeof AdminReservasPreviewRoute
   '/admin/sabre': typeof AdminSabreRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -1477,6 +1485,7 @@ export interface FileRoutesById {
   '/admin/recebimentos': typeof AdminRecebimentosRoute
   '/admin/redes-sociais': typeof AdminRedesSociaisRoute
   '/admin/regras-parcelamento': typeof AdminRegrasParcelamentoRoute
+  '/admin/reservas': typeof AdminReservasRoute
   '/admin/reservas-preview': typeof AdminReservasPreviewRoute
   '/admin/sabre': typeof AdminSabreRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
@@ -1651,6 +1660,7 @@ export interface FileRouteTypes {
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
     | '/admin/regras-parcelamento'
+    | '/admin/reservas'
     | '/admin/reservas-preview'
     | '/admin/sabre'
     | '/admin/seguranca'
@@ -1821,6 +1831,7 @@ export interface FileRouteTypes {
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
     | '/admin/regras-parcelamento'
+    | '/admin/reservas'
     | '/admin/reservas-preview'
     | '/admin/sabre'
     | '/admin/seguranca'
@@ -1993,6 +2004,7 @@ export interface FileRouteTypes {
     | '/admin/recebimentos'
     | '/admin/redes-sociais'
     | '/admin/regras-parcelamento'
+    | '/admin/reservas'
     | '/admin/reservas-preview'
     | '/admin/sabre'
     | '/admin/seguranca'
@@ -2626,6 +2638,13 @@ declare module '@tanstack/react-router' {
       path: '/regras-parcelamento'
       fullPath: '/admin/regras-parcelamento'
       preLoaderRoute: typeof AdminRegrasParcelamentoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reservas': {
+      id: '/admin/reservas'
+      path: '/reservas'
+      fullPath: '/admin/reservas'
+      preLoaderRoute: typeof AdminReservasRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/reservas-preview': {
@@ -3446,6 +3465,7 @@ interface AdminRouteChildren {
   AdminRecebimentosRoute: typeof AdminRecebimentosRoute
   AdminRedesSociaisRoute: typeof AdminRedesSociaisRoute
   AdminRegrasParcelamentoRoute: typeof AdminRegrasParcelamentoRoute
+  AdminReservasRoute: typeof AdminReservasRoute
   AdminReservasPreviewRoute: typeof AdminReservasPreviewRoute
   AdminSabreRoute: typeof AdminSabreRoute
   AdminSegurancaRoute: typeof AdminSegurancaRoute
@@ -3505,6 +3525,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRecebimentosRoute: AdminRecebimentosRoute,
   AdminRedesSociaisRoute: AdminRedesSociaisRoute,
   AdminRegrasParcelamentoRoute: AdminRegrasParcelamentoRoute,
+  AdminReservasRoute: AdminReservasRoute,
   AdminReservasPreviewRoute: AdminReservasPreviewRoute,
   AdminSabreRoute: AdminSabreRoute,
   AdminSegurancaRoute: AdminSegurancaRoute,
