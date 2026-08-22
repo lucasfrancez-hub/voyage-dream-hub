@@ -103,7 +103,7 @@ function nomeCia(codigo: string, nome?: string) {
   return NOMES_CIA[cod] ?? n ?? cod;
 }
 
-function BadgeCia({
+export function BadgeCia({
   codigo,
   nome,
   grande,
