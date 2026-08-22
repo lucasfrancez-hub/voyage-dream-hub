@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { AirlineLogo } from "@/components/AirlineLogo";
 import { passhubStatus, passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
 import { ReservaPassHubDialog } from "@/components/passhub/ReservaPassHubDialog";
 import { ResultadosPassHub, type FiltrosMotor } from "@/components/passhub/ResultadosPassHub";
+import { isBrIata } from "@/lib/br-airports";
 import type { PassHubOferta, PassHubResultado } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/passhub")({
@@ -72,8 +73,26 @@ function PassHubPage() {
   const [criancas, setCriancas] = useState(0);
   const [bebes, setBebes] = useState(0);
   const [classe, setClasse] = useState(1);
-  const [rav, setRav] = useState(0);
+  const [rav, setRav] = useState(10);
+  const [ravManual, setRavManual] = useState(false);
   const [pagina, setPagina] = useState(1);
+
+  // RAV prefixada: nacional 10%, internacional 7% (até o usuário editar na mão)
+  const escopoRota = useMemo<"nacional" | "internacional">(() => {
+    const codigos = [
+      ...trechos.map((t) => t.origem),
+      ...trechos.map((t) => t.destino),
+    ]
+      .map((c) => (c || "").trim().toUpperCase())
+      .filter((c) => c.length === 3);
+    if (!codigos.length) return "nacional";
+    return codigos.every((c) => isBrIata(c)) ? "nacional" : "internacional";
+  }, [trechos]);
+
+  useEffect(() => {
+    if (ravManual) return;
+    setRav(escopoRota === "nacional" ? 10 : 7);
+  }, [escopoRota, ravManual]);
 
   const [ordem, setOrdem] = useState<FiltrosMotor["ordem"]>("preco");
   const [mostrar, setMostrar] = useState(10);
@@ -425,8 +444,25 @@ function PassHubPage() {
                   min={0}
                   max={100}
                   value={rav}
-                  onChange={(e) => setRav(Math.max(0, Number(e.target.value) || 0))}
+                  onChange={(e) => {
+                    setRavManual(true);
+                    setRav(Math.max(0, Number(e.target.value) || 0));
+                  }}
                 />
+                <div className="mt-1 flex items-center gap-2 text-[11px] cons-muted">
+                  <span>
+                    {escopoRota === "nacional" ? "Nacional · padrão 10%" : "Internacional · padrão 7%"}
+                  </span>
+                  {ravManual && (
+                    <button
+                      type="button"
+                      className="font-bold text-[var(--cons-orange2)]"
+                      onClick={() => setRavManual(false)}
+                    >
+                      usar padrão
+                    </button>
+                  )}
+                </div>
               </div>
               <label className="flex items-center gap-2 text-[13px]">
                 <input
