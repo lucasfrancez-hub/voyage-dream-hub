@@ -399,7 +399,7 @@ function PainelDetalhe({
   useEffect(() => {
     const token = voo.rateToken;
     setTarifacaoApi(null);
-    if (!token || !ravPercentual) return;
+    if (!token) return;
     let vivo = true;
     setRavCarregando(true);
     tarifarFn({
@@ -436,9 +436,8 @@ function PainelDetalhe({
     { rot: "Tarifa (base)", val: tarifa },
     { rot: "Taxa de embarque / TAX", val: taxas },
   ];
-  if (Math.abs(outros) >= 0.01) linhas.push({ rot: "Outros / ajustes", val: outros });
   linhas.push({
-    rot: `Comissão${tarifacaoApi ? " · PassHub" : ravCarregando ? " · consultando…" : ""}`,
+    rot: `Comissão (${ravPercentual}%)${tarifacaoApi ? " · PassHub" : ravCarregando ? " · consultando…" : ""}`,
     val: comissaoApi,
     destaque: true,
     positivo: true,
