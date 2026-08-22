@@ -28,7 +28,6 @@ import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
-import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as VoarRouteImport } from './routes/voar'
 import { Route as AdminAppCelularRouteImport } from './routes/admin.app-celular'
@@ -96,7 +95,6 @@ import { Route as ChatProtocolosRouteImport } from './routes/chat.protocolos'
 import { Route as ChatSugestoesRouteImport } from './routes/chat.sugestoes'
 import { Route as EditairIndexRouteImport } from './routes/editair.index'
 import { Route as EditairIdRouteImport } from './routes/editair.$id'
-import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as EmbedIngressosDestaqueRouteImport } from './routes/embed.ingressos-destaque'
 import { Route as EmbedMotorBuscaRouteImport } from './routes/embed.motor-busca'
 import { Route as EmbedPacotesDestaqueRouteImport } from './routes/embed.pacotes-destaque'
@@ -137,7 +135,7 @@ import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
 import { Route as ChatAppTokenRouteImport } from './routes/chat.app.$token'
 import { Route as CruzeirosUiPreviewIndexRouteImport } from './routes/cruzeiros_.ui-preview.index'
-import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as MultitrechoCotacaoTokenRouteImport } from './routes/multitrecho.cotacao.$token'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
@@ -178,9 +176,7 @@ import { Route as ApiPublicV1QuoteImportsRouteImport } from './routes/api/public
 import { Route as CruzeirosUiPreviewScreenModelRouteImport } from './routes/cruzeiros_.ui-preview.$screen.$model'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
-import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
-import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -275,11 +271,6 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
   id: '/termos-de-uso',
   path: '/termos-de-uso',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UnsubscribeRoute = UnsubscribeRouteImport.update({
-  id: '/unsubscribe',
-  path: '/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ValidacaoRoute = ValidacaoRouteImport.update({
@@ -617,11 +608,6 @@ const EditairIdRoute = EditairIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => EditairRoute,
 } as any)
-const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
-  id: '/email/unsubscribe',
-  path: '/email/unsubscribe',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const EmbedIngressosDestaqueRoute = EmbedIngressosDestaqueRouteImport.update({
   id: '/embed/ingressos-destaque',
   path: '/embed/ingressos-destaque',
@@ -830,9 +816,9 @@ const CruzeirosUiPreviewIndexRoute = CruzeirosUiPreviewIndexRouteImport.update({
   path: '/cruzeiros/ui-preview/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
-  id: '/lovable/email/suppression',
-  path: '/lovable/email/suppression',
+const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
+  id: '/lovable/email/events',
+  path: '/lovable/email/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MultitrechoCotacaoTokenRoute = MultitrechoCotacaoTokenRouteImport.update({
@@ -1065,22 +1051,10 @@ const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
   path: '/lovable/email/auth/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LovableEmailQueueProcessRoute =
-  LovableEmailQueueProcessRouteImport.update({
-    id: '/lovable/email/queue/process',
-    path: '/lovable/email/queue/process',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const LovableEmailTransactionalPreviewRoute =
   LovableEmailTransactionalPreviewRouteImport.update({
     id: '/lovable/email/transactional/preview',
     path: '/lovable/email/transactional/preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LovableEmailTransactionalSendRoute =
-  LovableEmailTransactionalSendRouteImport.update({
-    id: '/lovable/email/transactional/send',
-    path: '/lovable/email/transactional/send',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -1104,7 +1078,6 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
-  '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
@@ -1171,7 +1144,6 @@ export interface FileRoutesByFullPath {
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/editair/$id': typeof EditairIdRoute
-  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
   '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
@@ -1208,7 +1180,7 @@ export interface FileRoutesByFullPath {
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
-  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
@@ -1254,9 +1226,7 @@ export interface FileRoutesByFullPath {
   '/cruzeiros/ui-preview/$screen/$model': typeof CruzeirosUiPreviewScreenModelRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1276,7 +1246,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
-  '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
@@ -1343,7 +1312,6 @@ export interface FileRoutesByTo {
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/editair/$id': typeof EditairIdRoute
-  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
   '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
@@ -1380,7 +1348,7 @@ export interface FileRoutesByTo {
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
-  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/cobranca-cartao': typeof AdminCobrancaCartaoIndexRoute
@@ -1426,9 +1394,7 @@ export interface FileRoutesByTo {
   '/cruzeiros/ui-preview/$screen/$model': typeof CruzeirosUiPreviewScreenModelRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1451,7 +1417,6 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
-  '/unsubscribe': typeof UnsubscribeRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
@@ -1518,7 +1483,6 @@ export interface FileRoutesById {
   '/chat/protocolos': typeof ChatProtocolosRoute
   '/chat/sugestoes': typeof ChatSugestoesRoute
   '/editair/$id': typeof EditairIdRoute
-  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/embed/ingressos-destaque': typeof EmbedIngressosDestaqueRoute
   '/embed/motor-busca': typeof EmbedMotorBuscaRoute
   '/embed/pacotes-destaque': typeof EmbedPacotesDestaqueRoute
@@ -1555,7 +1519,7 @@ export interface FileRoutesById {
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
-  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
@@ -1601,9 +1565,7 @@ export interface FileRoutesById {
   '/cruzeiros_/ui-preview/$screen/$model': typeof CruzeirosUiPreviewScreenModelRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1627,7 +1589,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
-    | '/unsubscribe'
     | '/validacao'
     | '/voar'
     | '/admin/app-celular'
@@ -1694,7 +1655,6 @@ export interface FileRouteTypes {
     | '/chat/protocolos'
     | '/chat/sugestoes'
     | '/editair/$id'
-    | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
     | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
@@ -1731,7 +1691,7 @@ export interface FileRouteTypes {
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
-    | '/lovable/email/suppression'
+    | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/admin/cobranca-cartao/'
@@ -1777,9 +1737,7 @@ export interface FileRouteTypes {
     | '/cruzeiros/ui-preview/$screen/$model'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
-    | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
-    | '/lovable/email/transactional/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1799,7 +1757,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
-    | '/unsubscribe'
     | '/validacao'
     | '/voar'
     | '/admin/app-celular'
@@ -1866,7 +1823,6 @@ export interface FileRouteTypes {
     | '/chat/protocolos'
     | '/chat/sugestoes'
     | '/editair/$id'
-    | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
     | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
@@ -1903,7 +1859,7 @@ export interface FileRouteTypes {
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
-    | '/lovable/email/suppression'
+    | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/admin/cobranca-cartao'
@@ -1949,9 +1905,7 @@ export interface FileRouteTypes {
     | '/cruzeiros/ui-preview/$screen/$model'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
-    | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
-    | '/lovable/email/transactional/send'
   id:
     | '__root__'
     | '/'
@@ -1973,7 +1927,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
-    | '/unsubscribe'
     | '/validacao'
     | '/voar'
     | '/admin/app-celular'
@@ -2040,7 +1993,6 @@ export interface FileRouteTypes {
     | '/chat/protocolos'
     | '/chat/sugestoes'
     | '/editair/$id'
-    | '/email/unsubscribe'
     | '/embed/ingressos-destaque'
     | '/embed/motor-busca'
     | '/embed/pacotes-destaque'
@@ -2077,7 +2029,7 @@ export interface FileRouteTypes {
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
-    | '/lovable/email/suppression'
+    | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/admin/cobranca-cartao/'
@@ -2123,9 +2075,7 @@ export interface FileRouteTypes {
     | '/cruzeiros_/ui-preview/$screen/$model'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
-    | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
-    | '/lovable/email/transactional/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2148,11 +2098,9 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosDeUsoRoute: typeof TermosDeUsoRoute
-  UnsubscribeRoute: typeof UnsubscribeRoute
   ValidacaoRoute: typeof ValidacaoRoute
   VoarRoute: typeof VoarRoute
   AgendaTokenRoute: typeof AgendaTokenRoute
-  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EmbedIngressosDestaqueRoute: typeof EmbedIngressosDestaqueRoute
   EmbedMotorBuscaRoute: typeof EmbedMotorBuscaRoute
   EmbedPacotesDestaqueRoute: typeof EmbedPacotesDestaqueRoute
@@ -2179,7 +2127,7 @@ export interface RootRouteChildren {
   ApiPublicTestFlightAlertRoute: typeof ApiPublicTestFlightAlertRoute
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
-  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   MultitrechoCotacaoTokenRoute: typeof MultitrechoCotacaoTokenRoute
   CruzeirosUiPreviewIndexRoute: typeof CruzeirosUiPreviewIndexRoute
   ApiPublicAdminManifestTokenRoute: typeof ApiPublicAdminManifestTokenRoute
@@ -2218,9 +2166,7 @@ export interface RootRouteChildren {
   CruzeirosUiPreviewScreenModelRoute: typeof CruzeirosUiPreviewScreenModelRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
-  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
-  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2356,13 +2302,6 @@ declare module '@tanstack/react-router' {
       path: '/termos-de-uso'
       fullPath: '/termos-de-uso'
       preLoaderRoute: typeof TermosDeUsoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/unsubscribe': {
-      id: '/unsubscribe'
-      path: '/unsubscribe'
-      fullPath: '/unsubscribe'
-      preLoaderRoute: typeof UnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/validacao': {
@@ -2834,13 +2773,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EditairIdRouteImport
       parentRoute: typeof EditairRoute
     }
-    '/email/unsubscribe': {
-      id: '/email/unsubscribe'
-      path: '/email/unsubscribe'
-      fullPath: '/email/unsubscribe'
-      preLoaderRoute: typeof EmailUnsubscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/embed/ingressos-destaque': {
       id: '/embed/ingressos-destaque'
       path: '/embed/ingressos-destaque'
@@ -3121,11 +3053,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CruzeirosUiPreviewIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/suppression': {
-      id: '/lovable/email/suppression'
-      path: '/lovable/email/suppression'
-      fullPath: '/lovable/email/suppression'
-      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+    '/lovable/email/events': {
+      id: '/lovable/email/events'
+      path: '/lovable/email/events'
+      fullPath: '/lovable/email/events'
+      preLoaderRoute: typeof LovableEmailEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/multitrecho/cotacao/$token': {
@@ -3408,25 +3340,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/queue/process': {
-      id: '/lovable/email/queue/process'
-      path: '/lovable/email/queue/process'
-      fullPath: '/lovable/email/queue/process'
-      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/lovable/email/transactional/preview': {
       id: '/lovable/email/transactional/preview'
       path: '/lovable/email/transactional/preview'
       fullPath: '/lovable/email/transactional/preview'
       preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/transactional/send': {
-      id: '/lovable/email/transactional/send'
-      path: '/lovable/email/transactional/send'
-      fullPath: '/lovable/email/transactional/send'
-      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -3656,11 +3574,9 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosDeUsoRoute: TermosDeUsoRoute,
-  UnsubscribeRoute: UnsubscribeRoute,
   ValidacaoRoute: ValidacaoRoute,
   VoarRoute: VoarRoute,
   AgendaTokenRoute: AgendaTokenRoute,
-  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EmbedIngressosDestaqueRoute: EmbedIngressosDestaqueRoute,
   EmbedMotorBuscaRoute: EmbedMotorBuscaRoute,
   EmbedPacotesDestaqueRoute: EmbedPacotesDestaqueRoute,
@@ -3687,7 +3603,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicTestFlightAlertRoute: ApiPublicTestFlightAlertRoute,
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
-  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  LovableEmailEventsRoute: LovableEmailEventsRoute,
   MultitrechoCotacaoTokenRoute: MultitrechoCotacaoTokenRoute,
   CruzeirosUiPreviewIndexRoute: CruzeirosUiPreviewIndexRoute,
   ApiPublicAdminManifestTokenRoute: ApiPublicAdminManifestTokenRoute,
@@ -3733,9 +3649,7 @@ const rootRouteChildren: RootRouteChildren = {
   CruzeirosUiPreviewScreenModelRoute: CruzeirosUiPreviewScreenModelRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
-  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
-  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
