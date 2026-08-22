@@ -496,6 +496,11 @@ function PassHubPage() {
                     </button>
                   )}
                 </div>
+                {ravDivergente && (
+                  <div className="mt-1 text-[11px] font-bold text-[var(--cons-orange2)]">
+                    Recalculando na PassHub com {rav}%…
+                  </div>
+                )}
               </div>
               <label className="flex items-center gap-2 text-[13px]">
                 <input
