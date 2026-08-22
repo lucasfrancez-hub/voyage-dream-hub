@@ -221,16 +221,20 @@ export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
     pct = tarifa > 0 ? Math.round((rav / tarifa) * 1000) / 10 : 0;
   }
 
-  // O percentual fixado na busca (10% nacional / 7% internacional) manda:
-  // recalcula a RAV sobre a tarifa e reconstrói o total, evitando divergência
-  // entre o que a consolidadora embutiu e o que a agência cobra.
+  // O percentual fixado na busca (10% nacional / 7% internacional) é um PISO:
+  // se a consolidadora já embutiu uma RAV maior, mantemos o total dela — nunca
+  // devolvemos um preço abaixo do que a PassHub cobra.
   if (ravPercentual > 0 && tarifa > 0) {
-    pct = ravPercentual;
-    rav = Math.round(tarifa * (ravPercentual / 100) * 100) / 100;
-    total = Math.round((tarifa + taxas + outros + rav) * 100) / 100;
+    const alvo = Math.round(tarifa * (ravPercentual / 100) * 100) / 100;
+    if (alvo > rav) {
+      pct = ravPercentual;
+      rav = alvo;
+      total = Math.round((tarifa + taxas + outros + rav) * 100) / 100;
+    }
   }
 
   if (!total) total = Math.round((tarifa + taxas + rav) * 100) / 100;
+
 
   const comissaoIncentivo = tarifa > 0 ? Math.round(tarifa * (INCENTIVO_PCT / 100) * 100) / 100 : 0;
 
