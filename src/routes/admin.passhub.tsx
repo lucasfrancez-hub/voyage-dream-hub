@@ -142,6 +142,7 @@ function PassHubPage() {
         return;
       }
       setResultado(r.resultado);
+      setRavAplicada(rav);
       setCiasSel([]);
       setBruto(JSON.stringify(r.bruto, null, 2));
       toast.success(`${r.resultado.total} ofertas encontradas`);
