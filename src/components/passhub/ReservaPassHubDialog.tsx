@@ -27,6 +27,7 @@ import {
   passhubLinkPagamento,
 } from "@/lib/passhub/passhub.functions";
 import { BuscarCadastroPax, LeitorIAPax, type PaxPreenchido } from "@/components/passhub/PaxAssist";
+import { chaveTarifacao, lerTarifacao, salvarTarifacao } from "@/lib/passhub/tarifacao-cache";
 import type {
   PassHubOferta,
   PassHubPax,
