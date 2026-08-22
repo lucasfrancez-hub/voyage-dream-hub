@@ -114,8 +114,10 @@ export function normalizaBuscaPassHub(bruto: unknown): PassHubResultado {
     totalPaginas: num(meta["total_pages"], 1),
     companhias: arr(global["airlines"]).map((a) => str(a)),
     familias: arr(global["fare_families"]).map((a) => str(a)),
-    precoMin: num(global["price_min"], precos.length ? Math.min(...precos) : 0),
-    precoMax: num(global["price_max"], precos.length ? Math.max(...precos) : 0),
+    // Preços vêm somados (ida + volta), então a faixa é derivada das ofertas
+    // para não filtrar tudo com o price_max de trecho único da PassHub.
+    precoMin: precos.length ? Math.min(...precos) : num(global["price_min"]),
+    precoMax: precos.length ? Math.max(...precos) : num(global["price_max"]),
     ofertas,
   };
 }

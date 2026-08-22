@@ -326,7 +326,7 @@ body:has([data-chat-root]),
 
 .cons-shell {
   width: 100%;
-  max-width: 1760px;
+  max-width: 80rem;
   margin: 0 auto;
   padding: 18px 16px 40px;
 }
