@@ -106,8 +106,6 @@ function PassHubPage() {
   const [resultado, setResultado] = useState<PassHubResultado | null>(null);
   /** % de RAV que a PassHub usou para precificar o resultado exibido. */
   const [ravAplicada, setRavAplicada] = useState<number | null>(null);
-  const [bruto, setBruto] = useState<string | null>(null);
-  const [verBruto, setVerBruto] = useState(false);
   const [ofertaReserva, setOfertaReserva] = useState<PassHubOferta | null>(null);
 
   const status = useMutation({
@@ -139,14 +137,12 @@ function PassHubPage() {
     onSuccess: (r) => {
       if (!r.ok) {
         setResultado(null);
-        setBruto(null);
         toast.error(r.erro);
         return;
       }
       setResultado(r.resultado);
       setRavAplicada(rav);
       setCiasSel([]);
-      setBruto(JSON.stringify(r.bruto, null, 2));
       toast.success(`${r.resultado.total} ofertas encontradas`);
     },
     onError: (e) => toast.error((e as Error).message),
@@ -382,11 +378,6 @@ function PassHubPage() {
             <div className="cons-dot my-4" />
 
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {bruto && (
-                <button type="button" className="cons-btn" onClick={() => setVerBruto((v) => !v)}>
-                  <Code2 className="h-4 w-4" /> {verBruto ? "Ocultar JSON" : "Ver JSON"}
-                </button>
-              )}
               <button type="button" className="cons-btn" onClick={limpar}>
                 Limpar
               </button>
@@ -591,10 +582,6 @@ function PassHubPage() {
               onReservar={setOfertaReserva}
             />
           </>
-        )}
-
-        {verBruto && bruto && (
-          <pre className="cons-card max-h-[520px] overflow-auto p-4 text-[11px]">{bruto}</pre>
         )}
 
         <ReservaPassHubDialog

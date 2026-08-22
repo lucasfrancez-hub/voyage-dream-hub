@@ -174,13 +174,9 @@ export function AdminNotificationBell() {
   const q = useQuery({
     queryKey: ["admin-flight-alerts"],
     queryFn: () => listFn(),
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    refetchInterval: open ? 60_000 : false,
+    staleTime: 60_000,
   });
-
-  useEffect(() => {
-    if (open) q.refetch();
-  }, [open]);
 
   const rows: AlertRow[] = (q.data?.rows ?? []) as AlertRow[];
   const unseen = q.data?.unseen ?? 0;

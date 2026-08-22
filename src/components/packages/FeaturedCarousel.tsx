@@ -76,6 +76,23 @@ function coordsFor(origin: string | null | undefined): [number, number] | null {
   return null;
 }
 
+/** Wikimedia entrega o arquivo original por padrão; usa a miniatura oficial. */
+function optimizedPackageImage(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== "upload.wikimedia.org" || !parsed.pathname.startsWith("/wikipedia/commons/")) return url;
+    if (parsed.pathname.includes("/thumb/")) return url;
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length < 5) return url;
+    const fileName = parts.at(-1);
+    if (!fileName) return url;
+    const prefix = parts.slice(0, -1).join("/");
+    return `${parsed.origin}/${prefix.replace("wikipedia/commons", "wikipedia/commons/thumb")}/${fileName}/960px-${fileName}`;
+  } catch {
+    return url;
+  }
+}
+
 function haversineKm(a: [number, number], b: [number, number]) {
   const R = 6371;
   const toRad = (v: number) => (v * Math.PI) / 180;
@@ -334,7 +351,7 @@ export function FeaturedCarousel({
 
                   {p.image_url ? (
                     <img
-                      src={p.image_url}
+                      src={optimizedPackageImage(p.image_url)}
                       alt={p.title}
                       loading="lazy"
                       decoding="async"
