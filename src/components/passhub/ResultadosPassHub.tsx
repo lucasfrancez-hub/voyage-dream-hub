@@ -1331,7 +1331,20 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
               <button
                 type="button"
                 className="cons-btn cons-btn-primary h-11 px-6 text-[14px] font-black"
-                onClick={() => onReservar(ofertaFinal)}
+                onClick={() => {
+                  // Envia só o par escolhido (ida + a volta selecionada),
+                  // nunca a lista inteira de voltas combináveis da oferta.
+                  const ida = pernaIda?.voo ?? ofertaFinal.ida;
+                  const voltas = pernaVolta ? [pernaVolta.voo] : [];
+                  onReservar({
+                    ...ofertaFinal,
+                    ida,
+                    voltas,
+                    precoTotal:
+                      (ida.precoTotal || 0) + voltas.reduce((s, v) => s + (v.precoTotal || 0), 0) ||
+                      ofertaFinal.precoTotal,
+                  });
+                }}
               >
                 Reservar
               </button>
