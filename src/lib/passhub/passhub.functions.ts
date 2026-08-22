@@ -153,3 +153,16 @@ export const passhubReservas = createServerFn({ method: "POST" })
       return { ok: false as const, erro: msg };
     }
   });
+
+/** Detalhe de uma reserva/bilhete específico. */
+export const passhubReservaDetalhe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.number().int().positive() }).parse(input))
+  .handler(async ({ data }) => {
+    const { passhubReservaDetalhe: detalhe } = await import("./reservas.server");
+    try {
+      return { ok: true as const, reserva: await detalhe(data.id) };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao carregar" };
+    }
+  });

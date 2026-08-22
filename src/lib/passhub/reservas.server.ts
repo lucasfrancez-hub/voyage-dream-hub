@@ -87,3 +87,13 @@ export async function passhubListarReservas(): Promise<PassHubReservaLista[]> {
     .map(normalizaReserva)
     .sort((a, b) => (a.criadaEm < b.criadaEm ? 1 : a.criadaEm > b.criadaEm ? -1 : 0));
 }
+
+/** Detalhe de uma reserva específica (mesmo contrato do painel). */
+export async function passhubReservaDetalhe(id: number): Promise<PassHubReservaLista | null> {
+  const bruto = await passhubRequest<unknown>(`${GERENCIA}/api/v1/reservas/${id}`, {
+    method: "GET",
+  });
+  const dados = rec(bruto)["data"];
+  if (!dados || typeof dados !== "object") return null;
+  return normalizaReserva(dados);
+}
