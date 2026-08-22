@@ -304,25 +304,29 @@ body:has([data-chat-root]),
    busca, resultados, reservas e bilhetes. Tokens escopados.
    ============================================================ */
 .cons {
-  --cons-bg: #07131d;
-  --cons-bg2: #0a1824;
-  --cons-card: #0d2030;
-  --cons-card2: #11283b;
-  --cons-line: #1f3a50;
-  --cons-line2: #2b4b63;
-  --cons-text: #edf6ff;
-  --cons-muted: #8ea9be;
-  --cons-blue: #3f8de3;
-  --cons-blue2: #5aa9ff;
+  --cons-bg: #120b07;
+  --cons-bg2: #1a1009;
+  --cons-card: #1c120b;
+  --cons-card2: #241710;
+  --cons-line: #3a2416;
+  --cons-line2: #4d3120;
+  --cons-text: #fdf6f0;
+  --cons-muted: #bfa595;
+  --cons-blue: #f26b1f;
+  --cons-blue2: #ff9440;
   --cons-orange: #f26b1f;
   --cons-orange2: #ff9440;
   --cons-green: #37d39a;
-  --cons-shadow: 0 22px 48px rgba(0, 0, 0, 0.34);
+  --cons-shadow: 0 22px 48px rgba(0, 0, 0, 0.45);
 
-  background: linear-gradient(180deg, var(--cons-bg), #061018);
+  background:
+    radial-gradient(900px 420px at 12% -8%, rgba(242, 107, 31, 0.16), transparent 62%),
+    radial-gradient(700px 380px at 96% 0%, rgba(55, 211, 154, 0.08), transparent 60%),
+    linear-gradient(180deg, var(--cons-bg), #0b0705);
   color: var(--cons-text);
   min-height: 100%;
 }
+
 
 .cons-shell {
   width: 100%;
