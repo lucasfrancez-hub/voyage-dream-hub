@@ -33,6 +33,7 @@ import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as VoarRouteImport } from './routes/voar'
 import { Route as AdminAppCelularRouteImport } from './routes/admin.app-celular'
 import { Route as AdminArteModelosRouteImport } from './routes/admin.arte-modelos'
+import { Route as AdminBilhetesRouteImport } from './routes/admin.bilhetes'
 import { Route as AdminBuscarRouteImport } from './routes/admin.buscar'
 import { Route as AdminCarrosRouteImport } from './routes/admin.carros'
 import { Route as AdminCheckinTreinoRouteImport } from './routes/admin.checkin-treino'
@@ -299,6 +300,11 @@ const AdminAppCelularRoute = AdminAppCelularRouteImport.update({
 const AdminArteModelosRoute = AdminArteModelosRouteImport.update({
   id: '/arte-modelos',
   path: '/arte-modelos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBilhetesRoute = AdminBilhetesRouteImport.update({
+  id: '/bilhetes',
+  path: '/bilhetes',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminBuscarRoute = AdminBuscarRouteImport.update({
@@ -1103,6 +1109,7 @@ export interface FileRoutesByFullPath {
   '/voar': typeof VoarRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
+  '/admin/bilhetes': typeof AdminBilhetesRoute
   '/admin/buscar': typeof AdminBuscarRoute
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
@@ -1274,6 +1281,7 @@ export interface FileRoutesByTo {
   '/voar': typeof VoarRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
+  '/admin/bilhetes': typeof AdminBilhetesRoute
   '/admin/buscar': typeof AdminBuscarRoute
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
@@ -1448,6 +1456,7 @@ export interface FileRoutesById {
   '/voar': typeof VoarRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
+  '/admin/bilhetes': typeof AdminBilhetesRoute
   '/admin/buscar': typeof AdminBuscarRoute
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
@@ -1623,6 +1632,7 @@ export interface FileRouteTypes {
     | '/voar'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
+    | '/admin/bilhetes'
     | '/admin/buscar'
     | '/admin/carros'
     | '/admin/checkin-treino'
@@ -1794,6 +1804,7 @@ export interface FileRouteTypes {
     | '/voar'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
+    | '/admin/bilhetes'
     | '/admin/buscar'
     | '/admin/carros'
     | '/admin/checkin-treino'
@@ -1967,6 +1978,7 @@ export interface FileRouteTypes {
     | '/voar'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
+    | '/admin/bilhetes'
     | '/admin/buscar'
     | '/admin/carros'
     | '/admin/checkin-treino'
@@ -2379,6 +2391,13 @@ declare module '@tanstack/react-router' {
       path: '/arte-modelos'
       fullPath: '/admin/arte-modelos'
       preLoaderRoute: typeof AdminArteModelosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/bilhetes': {
+      id: '/admin/bilhetes'
+      path: '/bilhetes'
+      fullPath: '/admin/bilhetes'
+      preLoaderRoute: typeof AdminBilhetesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/buscar': {
@@ -3428,6 +3447,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 interface AdminRouteChildren {
   AdminAppCelularRoute: typeof AdminAppCelularRoute
   AdminArteModelosRoute: typeof AdminArteModelosRoute
+  AdminBilhetesRoute: typeof AdminBilhetesRoute
   AdminBuscarRoute: typeof AdminBuscarRoute
   AdminCarrosRoute: typeof AdminCarrosRoute
   AdminCheckinTreinoRoute: typeof AdminCheckinTreinoRoute
@@ -3488,6 +3508,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAppCelularRoute: AdminAppCelularRoute,
   AdminArteModelosRoute: AdminArteModelosRoute,
+  AdminBilhetesRoute: AdminBilhetesRoute,
   AdminBuscarRoute: AdminBuscarRoute,
   AdminCarrosRoute: AdminCarrosRoute,
   AdminCheckinTreinoRoute: AdminCheckinTreinoRoute,

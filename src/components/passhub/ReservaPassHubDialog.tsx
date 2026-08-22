@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -55,10 +55,10 @@ function paxVazio(tipo: PassHubPaxTipo): PassHubPax {
     paisResidencia: "BR",
     emissao: "",
     validade: "",
-    email: "",
+    email: "reservas@viaair.tur.br",
     ddi: "55",
-    ddd: "",
-    telefone: "",
+    ddd: "44",
+    telefone: "999093642",
   };
 }
 
@@ -120,10 +120,10 @@ export function ReservaPassHubDialog({
   });
 
   const criacao = useMutation({
-    mutationFn: async () =>
+    mutationFn: async (tokensAtuais: string[]) =>
       reservarFn({
         data: {
-          pricedRateTokens: tokens ?? [],
+          pricedRateTokens: tokensAtuais,
           provedor,
           ravPercentual: ravPercentual || null,
           paxs,
@@ -140,6 +140,17 @@ export function ReservaPassHubDialog({
     onError: (e) => toast.error((e as Error).message),
   });
 
+  /** Ao abrir, já retarifamos a oferta: o operador não precisa clicar em "tarifar". */
+  useEffect(() => {
+    if (!oferta) return;
+    setPaxs(listaInicial);
+    setTokens(null);
+    setPrecoTarifado(null);
+    setReserva(null);
+    tarifacao.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oferta?.id]);
+
   const paxCompleto = (p: PassHubPax) =>
     p.nome.trim().length > 1 &&
     p.sobrenome.trim().length > 1 &&
@@ -147,7 +158,6 @@ export function ReservaPassHubDialog({
     p.documento.trim().length > 4 &&
     (p.documentoTipo === "cpf" || (!!p.emissao && !!p.validade));
 
-  const podeReservar = !!tokens && paxs.every(paxCompleto);
 
   const localizador = reserva?.localizador || reserva?.bookingId || "";
 
@@ -308,32 +318,35 @@ export function ReservaPassHubDialog({
               </div>
             ))}
 
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => tarifacao.mutate()}
                 disabled={tarifacao.isPending}
               >
                 {tarifacao.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {tokens ? "Tarifar novamente" : "1. Tarifar oferta"}
+                Retarifar
               </Button>
               <Button
-                onClick={() => criacao.mutate()}
-                disabled={!podeReservar || criacao.isPending}
+                onClick={async () => {
+                  const r = await tarifacao.mutateAsync();
+                  if (!r.ok) return;
+                  await criacao.mutateAsync(r.tarifacao.pricedRateTokens);
+                }}
+                disabled={!paxs.every(paxCompleto) || tarifacao.isPending || criacao.isPending}
               >
-                {criacao.isPending ? (
+                {tarifacao.isPending || criacao.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Ticket className="mr-2 h-4 w-4" />
                 )}
-                2. Confirmar reserva
+                Reservar agora
               </Button>
             </div>
-            {!tokens && (
-              <p className="text-right text-xs text-muted-foreground">
-                Tarifar é obrigatório: revalida preço e disponibilidade antes de reservar.
-              </p>
-            )}
+            <p className="text-right text-xs text-muted-foreground">
+              Ao clicar em reservar, a tarifa é revalidada automaticamente na consolidadora antes
+              de gerar o localizador.
+            </p>
           </div>
         )}
 
