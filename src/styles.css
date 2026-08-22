@@ -406,6 +406,14 @@ body:has([data-chat-root]),
   border: none;
   color: #05231a;
 }
+.cons-btn-danger {
+  background: #b3271e;
+  border: none;
+  color: #fff;
+}
+.cons-btn-danger:hover { background: #cc2f24; }
+
+
 
 
 .cons-pill {
