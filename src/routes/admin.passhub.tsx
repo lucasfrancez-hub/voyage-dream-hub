@@ -104,6 +104,8 @@ function PassHubPage() {
   const [ciasSel, setCiasSel] = useState<string[]>([]);
 
   const [resultado, setResultado] = useState<PassHubResultado | null>(null);
+  /** % de RAV que a PassHub usou para precificar o resultado exibido. */
+  const [ravAplicada, setRavAplicada] = useState<number | null>(null);
   const [bruto, setBruto] = useState<string | null>(null);
   const [verBruto, setVerBruto] = useState(false);
   const [ofertaReserva, setOfertaReserva] = useState<PassHubOferta | null>(null);
@@ -142,6 +144,7 @@ function PassHubPage() {
         return;
       }
       setResultado(r.resultado);
+      setRavAplicada(rav);
       setCiasSel([]);
       setBruto(JSON.stringify(r.bruto, null, 2));
       toast.success(`${r.resultado.total} ofertas encontradas`);
@@ -192,8 +195,19 @@ function PassHubPage() {
     setTrechos([{ origem: "", destino: "", data: "" }]);
     setDataVolta("");
     setResultado(null);
+    setRavAplicada(null);
     setBruto(null);
   };
+
+  // A RAV é calculada pela PassHub: ao mudar o %, refazemos a busca para que
+  // a consolidadora devolva os preços já com o novo percentual.
+  const ravDivergente = resultado !== null && ravAplicada !== null && ravAplicada !== rav;
+  useEffect(() => {
+    if (!ravDivergente || busca.isPending) return;
+    const t = window.setTimeout(() => buscar(1), 700);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rav, ravDivergente]);
 
   const filtros: FiltrosMotor = { ordem, mostrar, bagagem, direto, companhias: ciasSel };
 
@@ -482,6 +496,11 @@ function PassHubPage() {
                     </button>
                   )}
                 </div>
+                {ravDivergente && (
+                  <div className="mt-1 text-[11px] font-bold text-[var(--cons-orange2)]">
+                    Recalculando na PassHub com {rav}%…
+                  </div>
+                )}
               </div>
               <label className="flex items-center gap-2 text-[13px]">
                 <input
