@@ -13,8 +13,14 @@ import {
   Plane,
   RefreshCw,
   Search,
+  XCircle,
 } from "lucide-react";
-import { passhubLinkPagamento, passhubReservas } from "@/lib/passhub/passhub.functions";
+import {
+  passhubCancelarReserva,
+  passhubLinkPagamento,
+  passhubReservas,
+} from "@/lib/passhub/passhub.functions";
+import { confirm } from "@/lib/confirm";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/reservas")({
@@ -374,7 +380,14 @@ function ReservasPage() {
     <div className="cons">
       <div className="cons-shell space-y-4">
         {aberta ? (
-          <DetalheReserva r={aberta} onVoltar={() => setAberta(null)} />
+          <DetalheReserva
+            r={aberta}
+            onVoltar={() => setAberta(null)}
+            onAtualizar={() => {
+              setAberta(null);
+              void refetch();
+            }}
+          />
         ) : (
           <>
             <header className="flex flex-wrap items-end justify-between gap-3">
