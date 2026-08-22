@@ -804,6 +804,9 @@ function Etapa({
   selecionada,
   onSelecionar,
   bloqueada,
+  recolhida,
+  pernaSelecionada,
+  onAlterar,
 }: {
   numero: number;
   titulo: string;
@@ -815,6 +818,9 @@ function Etapa({
   selecionada: string | null;
   onSelecionar: (chave: string) => void;
   bloqueada?: boolean;
+  recolhida?: boolean;
+  pernaSelecionada?: Perna | null;
+  onAlterar?: () => void;
 }) {
   const maxDur = useMemo(
     () => Math.max(120, ...pernas.map((p) => p.voo.duracaoMinutos || 0)),
