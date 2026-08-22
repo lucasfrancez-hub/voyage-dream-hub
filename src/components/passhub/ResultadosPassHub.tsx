@@ -379,95 +379,210 @@ function PainelDetalhe({
   ravPercentual: number;
   onFechar: () => void;
 }) {
+  const { tarifa, taxas, rav, pct, outros, total } = calcularValores(voo, ravPercentual);
+
+  const linhas: { rot: string; val: number; destaque?: boolean }[] = [
+    { rot: "Tarifa (base)", val: tarifa },
+    { rot: "Taxa de embarque / TAX", val: taxas },
+    { rot: `RAV (${pct ? `${pct}%` : "0%"})`, val: rav, destaque: true },
+  ];
+  if (Math.abs(outros) >= 0.01) linhas.push({ rot: "Outros / ajustes", val: outros });
+
   return (
     <tr>
-      <td colSpan={7} className="bg-[rgba(255,255,255,.03)] px-4 py-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="grid flex-1 gap-3 md:grid-cols-2">
-            {aba === "info" ? (
-              <>
-                <div>
-                  <div className="cons-lab mb-1">Detalhamento do valor</div>
-                  <div className="mb-2 text-[12px] cons-muted">
-                    {voo.familiaTarifaria || "—"} · {voo.classe || "—"} · {voo.provedor || "—"}
-                  </div>
-                  {(() => {
-                    const { tarifa, taxas, rav, pct, outros, total } = calcularValores(
-                      voo,
-                      ravPercentual,
-                    );
-                    const linhas: { rot: string; val: number; forte?: boolean }[] = [
-                      { rot: "Tarifa (base)", val: tarifa },
-                      { rot: "Taxa de embarque / TAX", val: taxas },
-                      { rot: `RAV${pct ? ` (${pct}%)` : ""}`, val: rav },
-                    ];
-                    if (Math.abs(outros) >= 0.01) linhas.push({ rot: "Outros / ajustes", val: outros });
-                    return (
-                      <table className="w-full text-[12px]">
-                        <tbody>
-                          {linhas.map((l) => (
-                            <tr key={l.rot} className="border-b border-white/5">
-                              <td className="py-1 cons-muted">{l.rot}</td>
-                              <td className="py-1 text-right tabular-nums">{brl(l.val)}</td>
-                            </tr>
-                          ))}
-                          <tr>
-                            <td className="pt-1.5 font-black">Total do trecho</td>
-                            <td className="pt-1.5 text-right font-black tabular-nums">{brl(total)}</td>
-                          </tr>
-                        </tbody>
+      <td colSpan={7} className="p-0">
+        <div className="overflow-hidden border-y border-white/10 bg-[#051722]">
+          {/* contexto do voo */}
+          <div className="flex items-center gap-4 border-b border-white/10 bg-black/25 px-6 py-3">
+            <BadgeCia codigo={voo.companhiaIata || voo.companhia} nome={voo.companhia} />
+            <div className="flex items-center gap-5 text-[13px] text-white/80">
+              <span className="text-[17px] font-black tabular-nums">{hora(voo.partida)}</span>
+              <span className="flex items-center gap-2 font-bold text-white/45">
+                {voo.origem}
+                <span className="text-[11px] text-[#f26b1f]">→</span>
+                {voo.destino}
+              </span>
+              <span className="text-[17px] font-black tabular-nums">{hora(voo.chegada)}</span>
+              <span className="text-[11px] cons-muted">
+                {voo.duracao} ·{" "}
+                {voo.paradas === 0
+                  ? "voo direto"
+                  : voo.paradas === 1
+                    ? "1 parada"
+                    : `${voo.paradas} paradas`}
+              </span>
+            </div>
+            <span className="ml-auto text-[17px] font-black tabular-nums">{brl(total)}</span>
+          </div>
 
-                      </table>
-                    );
-                  })()}
-                  <div className="mt-2 text-[12px] cons-muted">
-                    Bagagem despachada: {voo.bagagemDespachada ? `${voo.bagagemDespachadaQtd || 1} peça(s)` : "não inclusa"} ·
-                    Mão: {voo.bagagemMao ? "inclusa" : "não inclusa"}
-                  </div>
-                </div>
-                <div>
-                  <div className="cons-lab mb-1">Parcelamento</div>
-                  {voo.parcelamento?.length ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {voo.parcelamento.map((p) => (
-                        <span key={p.bandeira} className="cons-chip">
-                          {p.bandeira}: {p.maxParcelas}x
+          {aba === "info" ? (
+            <div className="flex flex-col md:flex-row">
+              {/* valores */}
+              <div className="flex-1 border-b border-white/10 p-6 md:border-b-0 md:border-r">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <h3 className="text-[10px] font-black uppercase tracking-[.2em] text-[#f26b1f]">
+                    Detalhamento do valor
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[voo.familiaTarifaria, voo.classe, voo.provedor]
+                      .filter(Boolean)
+                      .map((t) => (
+                        <span
+                          key={t as string}
+                          className="rounded bg-white/[.06] px-2 py-0.5 text-[10px] font-bold text-white/65"
+                        >
+                          {t}
                         </span>
                       ))}
-                    </div>
-                  ) : (
-                    <div className="text-[12px] cons-muted">Sem informação de parcelamento.</div>
-                  )}
+                  </div>
                 </div>
-              </>
-            ) : (
-              <div className="md:col-span-2">
-                <div className="cons-lab mb-1">Serviços da tarifa</div>
-                {voo.servicos?.length ? (
-                  <ul className="grid gap-1 md:grid-cols-2">
-                    {voo.servicos.map((s, i) => (
-                      <li key={i} className="text-[12px]">
-                        <span className={s.incluso ? "text-[#8effd2]" : "cons-muted"}>
-                          {s.incluso ? "✓" : "✕"}
-                        </span>{" "}
-                        {s.descricao || s.tipo}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-[12px] cons-muted">Sem detalhamento de serviços.</div>
-                )}
+
+                <div className="space-y-2.5">
+                  {linhas.map((l) => (
+                    <div key={l.rot} className="flex items-center justify-between text-[13px]">
+                      <span className={l.destaque ? "font-bold text-[#ffc496]" : "text-white/50"}>
+                        {l.rot}
+                      </span>
+                      <span
+                        className={`tabular-nums font-semibold ${
+                          l.destaque ? "text-[#ffc496]" : "text-white/90"
+                        }`}
+                      >
+                        {brl(l.val)}
+                      </span>
+                    </div>
+                  ))}
+
+                  <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-4">
+                    <span className="text-[13px] font-bold text-white/80">Total do trecho</span>
+                    <span className="text-[26px] font-black leading-none tracking-tight tabular-nums">
+                      {brl(total)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-7 flex flex-wrap gap-6">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`grid h-5 w-5 place-items-center rounded ${
+                        voo.bagagemDespachada ? "bg-emerald-500/15" : "bg-red-500/15"
+                      }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          voo.bagagemDespachada ? "bg-emerald-400" : "bg-red-400"
+                        }`}
+                      />
+                    </span>
+                    <span className="text-[11px] font-black uppercase tracking-tight text-white/45">
+                      Despachada:{" "}
+                      {voo.bagagemDespachada ? `${voo.bagagemDespachadaQtd || 1} peça(s)` : "não"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`grid h-5 w-5 place-items-center rounded ${
+                        voo.bagagemMao ? "bg-emerald-500/15" : "bg-red-500/15"
+                      }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          voo.bagagemMao ? "bg-emerald-400" : "bg-red-400"
+                        }`}
+                      />
+                    </span>
+                    <span className="text-[11px] font-black uppercase tracking-tight text-white/45">
+                      Mão: {voo.bagagemMao ? "inclusa" : "não inclusa"}
+                    </span>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-          <button type="button" className="cons-btn h-8 px-2" onClick={onFechar}>
-            <X className="h-4 w-4" />
-          </button>
+
+              {/* parcelamento */}
+              <div className="flex-1 bg-black/15 p-6">
+                <div className="mb-5 flex items-center justify-between">
+                  <h3 className="text-[10px] font-black uppercase tracking-[.2em] text-emerald-400">
+                    Parcelamento
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={onFechar}
+                    aria-label="Fechar detalhes"
+                    className="rounded-full p-1.5 text-white/35 transition hover:bg-white/5 hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {voo.parcelamento?.length ? (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {voo.parcelamento.map((p) => (
+                      <div
+                        key={p.bandeira}
+                        className="flex items-center justify-between rounded-lg border border-white/[.07] bg-white/[.02] px-3 py-2.5 transition hover:border-[#f26b1f]/40"
+                      >
+                        <span className="text-[10px] font-black uppercase text-white/45">
+                          {p.bandeira}
+                        </span>
+                        <span className="text-[12px] font-bold text-white/85 tabular-nums">
+                          {p.maxParcelas}x {brl(total / Math.max(1, p.maxParcelas))}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[12px] cons-muted">Sem informação de parcelamento.</div>
+                )}
+
+                <div className="mt-6 flex items-center gap-3 rounded-lg border border-emerald-500/15 bg-emerald-500/[.06] px-3 py-2.5">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                  <p className="text-[10px] font-semibold text-emerald-400/85">
+                    Valores por passageiro adulto, com RAV já aplicada
+                    {voo.provedor ? ` · provedor ${voo.provedor}` : ""}.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-[10px] font-black uppercase tracking-[.2em] text-[#f26b1f]">
+                  Serviços da tarifa
+                </h3>
+                <button
+                  type="button"
+                  onClick={onFechar}
+                  aria-label="Fechar detalhes"
+                  className="rounded-full p-1.5 text-white/35 transition hover:bg-white/5 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              {voo.servicos?.length ? (
+                <ul className="grid gap-2 md:grid-cols-2">
+                  {voo.servicos.map((s, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center gap-2 rounded-lg border border-white/[.07] bg-white/[.02] px-3 py-2 text-[12px]"
+                    >
+                      <span className={s.incluso ? "text-emerald-400" : "text-red-400/80"}>
+                        {s.incluso ? "✓" : "✕"}
+                      </span>
+                      <span className="text-white/80">{s.descricao || s.tipo}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-[12px] cons-muted">Sem detalhamento de serviços.</div>
+              )}
+            </div>
+          )}
         </div>
       </td>
     </tr>
   );
 }
+
 
 /* ---------------------------------- linha ---------------------------------- */
 
