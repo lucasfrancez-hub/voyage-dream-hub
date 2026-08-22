@@ -4,6 +4,13 @@ import type { PassHubOferta, PassHubResultado, PassHubVoo } from "@/lib/passhub/
 import { cityLabel } from "@/lib/iata-lookup";
 import { useServerFn } from "@tanstack/react-start";
 import { passhubTarifarOferta } from "@/lib/passhub/passhub.functions";
+import {
+  useTarifacaoPassHub,
+  chaveTarifacao,
+  lerTarifacao,
+  limparFilaTarifacao,
+  useVersaoTarifacao,
+} from "@/lib/passhub/tarifacao-cache";
 
 export type FiltrosMotor = {
   ordem: "preco" | "duracao" | "partida" | "chegada";
@@ -246,8 +253,11 @@ function MatrizFiltro({
   onCia: (cia: string | null) => void;
   onParadas: (p: number | null) => void;
 }) {
+  const versaoTarifacao = useVersaoTarifacao();
   const { cias, paradas, celulas, menorGeral } = useMemo(() => {
-    const precoDe = (p: Perna) => calcularValores(p.voo, ravPercentual).total || p.preco;
+    const precoDe = (p: Perna) =>
+      lerTarifacao(chaveTarifacao([p.voo.rateToken], ravPercentual))?.total ??
+      (calcularValores(p.voo, ravPercentual).total || p.preco);
     const cs = new Map<string, { preco: number; iata: string }>();
     const ps = new Map<number, number>();
     const cel = new Map<string, number>();
@@ -271,7 +281,7 @@ function MatrizFiltro({
       celulas: cel,
       menorGeral: menor,
     };
-  }, [pernas, ravPercentual]);
+  }, [pernas, ravPercentual, versaoTarifacao]);
 
   if (!cias.length) return null;
 
@@ -387,46 +397,14 @@ function PainelDetalhe({
     ravPercentual,
   );
 
-  /* Comissão real: perguntamos à PassHub quanto ela devolve com o percentual
-     configurado, sem fazer nenhum cálculo local. */
-  const tarifarFn = useServerFn(passhubTarifarOferta);
-  const [tarifacaoApi, setTarifacaoApi] = useState<{
-    preco: number;
-    comissao: number;
-  } | null>(null);
-  const [ravCarregando, setRavCarregando] = useState(false);
-
-  useEffect(() => {
-    const token = voo.rateToken;
-    setTarifacaoApi(null);
-    if (!token) return;
-    let vivo = true;
-    setRavCarregando(true);
-    tarifarFn({
-      data: {
-        rateTokens: [token],
-        provedor: voo.provedor || "CVC",
-        precoEsperado: voo.precoTotal || 0,
-        ravPercentual,
-      },
-    })
-      .then((r) => {
-        if (vivo && r.ok) {
-          setTarifacaoApi({
-            preco: r.tarifacao.preco,
-            comissao: r.tarifacao.ravValor || 0,
-          });
-        }
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (vivo) setRavCarregando(false);
-      });
-    return () => {
-      vivo = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voo.rateToken, voo.provedor, voo.precoTotal, ravPercentual]);
+  /* Comissão real: cache único compartilhado com a lista, o resumo e a reserva. */
+  const tarifacaoApi = useTarifacaoPassHub(
+    [voo.rateToken],
+    voo.provedor,
+    voo.precoTotal || 0,
+    ravPercentual,
+  );
+  const ravCarregando = !tarifacaoApi;
 
   const comissaoApi = tarifacaoApi?.comissao ?? (rav + comissaoIncentivo);
   const precoLiquido = tarifacaoApi?.preco ?? total;
@@ -656,6 +634,14 @@ function LinhaPerna({
   const segs = segmentos(v);
   const valores = calcularValores(v, ravPercentual);
   const [detalhe, setDetalhe] = useState<"info" | "docs" | null>(null);
+  // Valor de venda real: comissão vem da tarifação da PassHub, nunca de conta local.
+  const tarifado = useTarifacaoPassHub(
+    [v.rateToken],
+    v.provedor,
+    v.precoTotal || 0,
+    ravPercentual,
+  );
+  const totalVenda = tarifado?.total ?? (valores.total || perna.preco);
 
   return (
     <>
@@ -804,7 +790,7 @@ function LinhaPerna({
           ) : (
             <div className="cons-box flex items-center justify-between gap-2 px-3 py-2">
               <Briefcase className="h-3.5 w-3.5 cons-muted" />
-              <b className="text-[13px]">{brl(valores.total || perna.preco)}</b>
+              <b className={`text-[13px] ${tarifado ? "" : "opacity-60"}`}>{brl(totalVenda)}</b>
             </div>
           )}
         </td>
@@ -813,7 +799,7 @@ function LinhaPerna({
           {v.bagagemDespachada ? (
             <div className="cons-box flex items-center justify-between gap-2 px-3 py-2">
               <Luggage className="h-3.5 w-3.5 cons-muted" />
-              <b className="text-[13px]">{brl(valores.total || perna.preco)}</b>
+              <b className={`text-[13px] ${tarifado ? "" : "opacity-60"}`}>{brl(totalVenda)}</b>
             </div>
           ) : (
             <span className="text-[12px] cons-muted">—</span>
@@ -1265,6 +1251,7 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
   const refResumo = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    limparFilaTarifacao();
     setIdaSel(null);
     setVoltaSel(null);
   }, [resultado]);
@@ -1309,7 +1296,14 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
   // volta escolhida (ida + volta), nunca a soma dos dois trechos.
   const vooPreco = pernaVolta?.voo ?? pernaIda?.voo ?? null;
   const valoresFinais = vooPreco ? calcularValores(vooPreco, ravPercentual) : null;
-  const totalFinal = valoresFinais?.total ?? 0;
+  const tarifacaoFinal = useTarifacaoPassHub(
+    [pernaIda?.voo.rateToken, pernaVolta?.voo.rateToken],
+    vooPreco?.provedor ?? "",
+    vooPreco?.precoTotal ?? 0,
+    ravPercentual,
+    Boolean(vooPreco),
+  );
+  const totalFinal = tarifacaoFinal?.total ?? valoresFinais?.total ?? 0;
 
   const rolar = (alvo: React.RefObject<HTMLDivElement | null>) =>
     window.setTimeout(() => alvo.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
