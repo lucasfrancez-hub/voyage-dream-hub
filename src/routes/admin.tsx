@@ -19,6 +19,22 @@ import { GlobalSearchButton } from "@/components/admin/GlobalSearch";
 import { PublishQueueButton } from "@/components/admin/PublishQueueButton";
 import { APP_VERSION, APP_BUILD_DATE } from "@/lib/version";
 import { NavMegaMenu, type NavMenuGroup } from "@/components/admin/NavMegaMenu";
+import { useServerFn } from "@tanstack/react-start";
+import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
+import { ChatPinUnlock, ChatPinSetup } from "@/components/chat/ChatPinUnlock";
+
+/** App instalado no celular (PWA em modo standalone). */
+function ehAppInstalado() {
+  if (typeof window === "undefined") return false;
+  try {
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true
+    );
+  } catch {
+    return false;
+  }
+}
 
 
 
@@ -87,15 +103,15 @@ function AdminLayout() {
       .then(async ({ data, error }) => {
         clearTimeout(failsafe);
         if (error || !data.session) {
-          try { await supabase.auth.signOut(); } catch { /* noop */ }
+          // Não faz signOut aqui: se o aparelho tiver PIN, a sessão é
+          // restaurada silenciosamente (30 dias) ou pelo PIN.
           setSession(null);
           return;
         }
         setSession(data.session);
       })
-      .catch(async () => {
+      .catch(() => {
         clearTimeout(failsafe);
-        try { await supabase.auth.signOut(); } catch { /* noop */ }
         setSession(null);
       });
 
@@ -105,9 +121,67 @@ function AdminLayout() {
     };
   }, []);
 
+  // ---- Sessão de aparelho (PIN, 30 dias) ----------------------------------
+  const statusAparelho = useServerFn(statusAparelhoChat);
+  const renovarAparelho = useServerFn(renovarSessaoAparelhoChat);
+  const [aparelho, setAparelho] = useState<{ registrado: boolean; email: string | null } | undefined>(undefined);
+  const [pedirPin, setPedirPin] = useState(false);
+  const [oferecerPin, setOferecerPin] = useState(false);
+  const appInstalado = ehAppInstalado();
+
   useEffect(() => {
     if (session === undefined) return;
+    void (async () => {
+      try {
+        const r = (await statusAparelho()) as { registrado: boolean; email?: string | null };
+        setAparelho({ registrado: r.registrado, email: r.email ?? null });
+      } catch {
+        setAparelho({ registrado: false, email: null });
+      }
+    })();
+  }, [session, statusAparelho]);
+
+  // Mantém o token fresco enquanto o app estiver aberto / volta do segundo plano.
+  useEffect(() => {
+    if (!session) return;
+    const revalidar = () => {
+      if (document.visibilityState !== "visible") return;
+      void supabase.auth.refreshSession().catch(() => {});
+    };
+    const t = setInterval(revalidar, 30 * 60_000);
+    document.addEventListener("visibilitychange", revalidar);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", revalidar);
+    };
+  }, [session]);
+
+  // No app instalado, convida a criar o PIN logo depois do login.
+  useEffect(() => {
+    if (!session || !appInstalado || !aparelho || aparelho.registrado) return;
+    let marcado = "";
+    try { marcado = localStorage.getItem("viaair-admin-pin-ok") ?? ""; } catch { /* noop */ }
+    if (marcado) return;
+    setOferecerPin(true);
+  }, [session, appInstalado, aparelho]);
+
+  useEffect(() => {
+    if (session === undefined) return;
+    if (aparelho === undefined) return;
     if (!session) {
+      if (aparelho.registrado) {
+        void (async () => {
+          try {
+            const r = (await renovarAparelho()) as { ok: boolean; email?: string; tokenHash?: string };
+            if (r.ok && r.email && r.tokenHash) {
+              const { error } = await supabase.auth.verifyOtp({ type: "magiclink", token_hash: r.tokenHash });
+              if (!error) return;
+            }
+          } catch { /* cai no PIN */ }
+          setPedirPin(true);
+        })();
+        return;
+      }
       navigate({ to: "/auth" });
       return;
     }
@@ -157,6 +231,12 @@ function AdminLayout() {
     const TIMEOUT_MS = 30 * 60 * 1000;
     let timer: ReturnType<typeof setTimeout>;
     const doLogout = async () => {
+      if (appInstalado && aparelho?.registrado) {
+        // App do celular: não desloga — só pede o PIN de novo.
+        await supabase.auth.signOut();
+        setPedirPin(true);
+        return;
+      }
       await supabase.auth.signOut();
       toast.info("Sessão encerrada por inatividade (30 min).");
       navigate({ to: "/auth" });
@@ -177,7 +257,21 @@ function AdminLayout() {
   }, [session, isAdmin, isPartner, navigate]);
 
 
-  if (session === undefined || (session && role === undefined)) {
+  if (pedirPin && !session) {
+    return (
+      <ChatPinUnlock
+        email={aparelho?.email ?? null}
+        redirect={pathname?.startsWith("/admin") ? pathname : "/admin"}
+        titulo="Entrar no Admin"
+        onEntrar={() => {
+          setPedirPin(false);
+          window.location.reload();
+        }}
+      />
+    );
+  }
+
+  if (session === undefined || aparelho === undefined || (session && role === undefined)) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
