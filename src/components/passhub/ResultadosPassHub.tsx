@@ -454,15 +454,15 @@ function PainelDetalhe({
                 <div className="space-y-2.5">
                   {linhas.map((l) => (
                     <div key={l.rot} className="flex items-center justify-between text-[13px]">
-                      <span className={l.destaque ? "font-bold text-[#ffc496]" : "text-white/50"}>
+                      <span className={l.destaque ? "font-bold text-[#ffc496]" : l.positivo ? "font-bold text-emerald-400" : "text-white/50"}>
                         {l.rot}
                       </span>
                       <span
                         className={`tabular-nums font-semibold ${
-                          l.destaque ? "text-[#ffc496]" : "text-white/90"
+                          l.destaque ? "text-[#ffc496]" : l.positivo ? "text-emerald-400" : "text-white/90"
                         }`}
                       >
-                        {brl(l.val)}
+                        {l.positivo ? `+${brl(l.val)}` : brl(l.val)}
                       </span>
                     </div>
                   ))}
