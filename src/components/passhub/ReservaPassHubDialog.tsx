@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Check, Copy, Loader2, Ticket } from "lucide-react";
+import { Check, Copy, CreditCard, Loader2, Ticket } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { passhubTarifarOferta, passhubReservar } from "@/lib/passhub/passhub.functions";
+import {
+  passhubTarifarOferta,
+  passhubReservar,
+  passhubLinkPagamento,
+} from "@/lib/passhub/passhub.functions";
 import type { PassHubOferta, PassHubPax, PassHubPaxTipo, PassHubReserva } from "@/lib/passhub/types";
 
 type Props = {
@@ -117,6 +121,21 @@ export function ReservaPassHubDialog({
       );
     },
     onError: (e) => toast.error((e as Error).message),
+  });
+
+  const buscarLink = useServerFn(passhubLinkPagamento);
+  const linkPagamento = useMutation({
+    mutationFn: async () => buscarLink({ data: { localizador } }),
+    onSuccess: async (res) => {
+      if (!res.ok) {
+        toast.error(res.erro);
+        return;
+      }
+      await navigator.clipboard.writeText(res.link);
+      toast.success("Link de pagamento copiado");
+      window.open(res.link, "_blank", "noopener");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao obter o link"),
   });
 
   const criacao = useMutation({
@@ -366,7 +385,19 @@ export function ReservaPassHubDialog({
               {reserva.status && <Badge variant="secondary">{reserva.status}</Badge>}
               {reserva.total > 0 && <Badge variant="outline">{brl(reserva.total)}</Badge>}
             </div>
-            <div className="flex justify-center gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => linkPagamento.mutate()}
+                disabled={linkPagamento.isPending}
+              >
+                {linkPagamento.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CreditCard className="mr-2 h-4 w-4" />
+                )}
+                Link de pagamento
+              </Button>
               <Button variant="outline" onClick={copiar}>
                 {copiado ? (
                   <Check className="mr-2 h-4 w-4" />

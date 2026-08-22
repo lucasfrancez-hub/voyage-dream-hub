@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -28,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { passhubReservas } from "@/lib/passhub/passhub.functions";
+import { passhubLinkPagamento, passhubReservas } from "@/lib/passhub/passhub.functions";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/reservas")({
@@ -94,22 +94,65 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant={variante as "default" | "secondary" | "outline"}>{label}</Badge>;
 }
 
-function CopiarBotao({ texto, rotulo }: { texto: string; rotulo: string }) {
+function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
+  const buscarLink = useServerFn(passhubLinkPagamento);
+  const [link, setLink] = useState(r.linkPagamento);
   const [copiado, setCopiado] = useState(false);
+
+  const copiar = async (valor: string) => {
+    await navigator.clipboard.writeText(valor);
+    setCopiado(true);
+    toast.success("Link de pagamento copiado");
+    setTimeout(() => setCopiado(false), 2000);
+  };
+
+  const gerar = useMutation({
+    mutationFn: () => buscarLink({ data: { id: r.idPassagem, localizador: r.localizador } }),
+    onSuccess: async (res) => {
+      if (!res.ok) {
+        toast.error(res.erro);
+        return;
+      }
+      setLink(res.link);
+      await copiar(res.link);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao obter o link"),
+  });
+
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={async () => {
-        await navigator.clipboard.writeText(texto);
-        setCopiado(true);
-        toast.success(`${rotulo} copiado`);
-        setTimeout(() => setCopiado(false), 2000);
-      }}
-    >
-      {copiado ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-      {rotulo}
-    </Button>
+    <div className="rounded-lg border border-border p-3">
+      <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
+        <CreditCard className="h-4 w-4" /> Link de pagamento
+      </p>
+      {link ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="break-all rounded bg-muted px-2 py-1 text-xs">{link}</code>
+          <Button variant="outline" size="sm" onClick={() => copiar(link)}>
+            {copiado ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+            Copiar link
+          </Button>
+          <Button size="sm" asChild>
+            <a href={link} target="_blank" rel="noreferrer">
+              Abrir checkout
+            </a>
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted-foreground">
+            Esta reserva ainda não tem link de pagamento carregado.
+          </p>
+          <Button size="sm" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
+            {gerar.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <CreditCard className="mr-2 h-4 w-4" />
+            )}
+            Gerar link e copiar
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -212,26 +255,7 @@ function DetalheReserva({ r }: { r: PassHubReservaLista }) {
         )}
       </div>
 
-      <div className="rounded-lg border border-border p-3">
-        <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <CreditCard className="h-4 w-4" /> Link de pagamento
-        </p>
-        {r.linkPagamento ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <code className="break-all rounded bg-muted px-2 py-1 text-xs">{r.linkPagamento}</code>
-            <CopiarBotao texto={r.linkPagamento} rotulo="Copiar link" />
-            <Button size="sm" asChild>
-              <a href={r.linkPagamento} target="_blank" rel="noreferrer">
-                Abrir checkout
-              </a>
-            </Button>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Esta reserva ainda não tem link de pagamento gerado.
-          </p>
-        )}
-      </div>
+      <BlocoPagamento r={r} />
     </div>
   );
 }

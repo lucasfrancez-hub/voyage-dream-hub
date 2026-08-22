@@ -166,3 +166,31 @@ export const passhubReservaDetalhe = createServerFn({ method: "POST" })
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao carregar" };
     }
   });
+
+/** Busca (e devolve) o link de pagamento do checkout PassHub de uma reserva. */
+export const passhubLinkPagamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.number().int().positive().optional(),
+        localizador: z.string().min(4).max(12).optional(),
+      })
+      .refine((v) => !!v.id || !!v.localizador, "Informe a reserva")
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { passhubLinkPagamentoReserva } = await import("./reservas.server");
+    try {
+      const { link } = await passhubLinkPagamentoReserva(data);
+      if (!link) {
+        return {
+          ok: false as const,
+          erro: "A consolidadora ainda não gerou o link desta reserva. Tente de novo em instantes.",
+        };
+      }
+      return { ok: true as const, link };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao obter link" };
+    }
+  });

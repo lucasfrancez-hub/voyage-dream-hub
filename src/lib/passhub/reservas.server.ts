@@ -97,3 +97,32 @@ export async function passhubReservaDetalhe(id: number): Promise<PassHubReservaL
   if (!dados || typeof dados !== "object") return null;
   return normalizaReserva(dados);
 }
+
+/**
+ * Link de pagamento da reserva. A PassHub gera o link do checkout logo após a
+ * reserva, então aqui consultamos (com algumas tentativas) até ele aparecer.
+ */
+export async function passhubLinkPagamentoReserva(alvo: {
+  id?: number;
+  localizador?: string;
+}): Promise<{ link: string; reserva: PassHubReservaLista | null }> {
+  const localizador = (alvo.localizador ?? "").trim().toUpperCase();
+
+  const buscar = async (): Promise<PassHubReservaLista | null> => {
+    if (alvo.id) {
+      const r = await passhubReservaDetalhe(alvo.id);
+      if (r) return r;
+    }
+    if (!localizador) return null;
+    const lista = await passhubListarReservas();
+    return lista.find((r) => r.localizador.toUpperCase() === localizador) ?? null;
+  };
+
+  let reserva: PassHubReservaLista | null = null;
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    reserva = await buscar();
+    if (reserva?.linkPagamento) return { link: reserva.linkPagamento, reserva };
+    if (tentativa < 2) await new Promise((r) => setTimeout(r, 2000));
+  }
+  return { link: "", reserva };
+}
