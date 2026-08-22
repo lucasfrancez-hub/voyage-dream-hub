@@ -194,8 +194,11 @@ export type Valores = {
   rav: number;
   pct: number;
   outros: number;
+  comissaoIncentivo: number;
   total: number;
 };
+
+const INCENTIVO_PCT = 1; // comissão de incentivo sobre a tarifa (%)
 
 /** Calcula tarifa/taxas/RAV. Quando a PassHub não devolve a RAV, aplica o % fixado na busca. */
 export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
@@ -228,7 +231,10 @@ export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
   }
 
   if (!total) total = Math.round((tarifa + taxas + rav) * 100) / 100;
-  return { tarifa, taxas, rav, pct, outros, total };
+
+  const comissaoIncentivo = tarifa > 0 ? Math.round(tarifa * (INCENTIVO_PCT / 100) * 100) / 100 : 0;
+
+  return { tarifa, taxas, rav, pct, outros, comissaoIncentivo, total };
 }
 
 /* -------------------- matriz de filtro: cias x paradas -------------------- */
