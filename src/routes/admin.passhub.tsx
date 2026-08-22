@@ -104,6 +104,8 @@ function PassHubPage() {
   const [ciasSel, setCiasSel] = useState<string[]>([]);
 
   const [resultado, setResultado] = useState<PassHubResultado | null>(null);
+  /** % de RAV que a PassHub usou para precificar o resultado exibido. */
+  const [ravAplicada, setRavAplicada] = useState<number | null>(null);
   const [bruto, setBruto] = useState<string | null>(null);
   const [verBruto, setVerBruto] = useState(false);
   const [ofertaReserva, setOfertaReserva] = useState<PassHubOferta | null>(null);
