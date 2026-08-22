@@ -539,7 +539,7 @@ function PainelDetalhe({
                   <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-4">
                     <span className="text-[13px] font-bold text-white/80">Total do trecho</span>
                     <span className="text-[26px] font-black leading-none tracking-tight tabular-nums">
-                      {brl(total)}
+                      {brl(totalFinal)}
                     </span>
                   </div>
                 </div>
