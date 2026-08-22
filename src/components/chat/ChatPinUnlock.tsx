@@ -25,7 +25,17 @@ function guardarLocal(chave: string, valor: string) {
   }
 }
 
-export function ChatPinUnlock({ email, onEntrar }: { email: string | null; onEntrar: () => void }) {
+export function ChatPinUnlock({
+  email,
+  onEntrar,
+  redirect = "/chat/inbox",
+  titulo = "Entrar no Chat",
+}: {
+  email: string | null;
+  onEntrar: () => void;
+  redirect?: string;
+  titulo?: string;
+}) {
   const desbloquear = useServerFn(desbloquearAparelhoChat);
   const esquecer = useServerFn(esquecerAparelhoChat);
   const [pin, setPin] = useState("");
@@ -61,7 +71,7 @@ export function ChatPinUnlock({ email, onEntrar }: { email: string | null; onEnt
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Lock className="h-5 w-5" />
         </div>
-        <h1 className="text-xl font-semibold text-foreground">Entrar no Chat</h1>
+        <h1 className="text-xl font-semibold text-foreground">{titulo}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {email ? `Conta ${email}` : "Digite o PIN deste aparelho"}
         </p>
@@ -84,7 +94,7 @@ export function ChatPinUnlock({ email, onEntrar }: { email: string | null; onEnt
           className="mt-4 text-xs text-muted-foreground underline"
           onClick={async () => {
             await esquecer();
-            window.location.replace("/auth?redirect=/chat/inbox");
+            window.location.replace(`/auth?redirect=${encodeURIComponent(redirect)}`);
           }}
         >
           Entrar com outra conta
