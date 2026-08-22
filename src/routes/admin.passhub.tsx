@@ -200,10 +200,7 @@ function PassHubPage() {
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-[28px] font-black tracking-tight">Busca aérea</h1>
-            <p className="text-[13px] cons-muted">
-              Motor interno da consolidadora — ida, ida e volta e multitrecho, com bagagem, conexões
-              e parcelamento.
-            </p>
+
           </div>
           <button
             type="button"
