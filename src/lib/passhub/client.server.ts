@@ -135,10 +135,10 @@ export async function passhubRequest<T>(
 }
 
 /** Diagnóstico: valida credenciais fazendo login + /auth/me. */
-export async function passhubPing(): Promise<{ ok: boolean; conta?: unknown; erro?: string }> {
+export async function passhubPing(): Promise<{ ok: boolean; conta?: string; erro?: string }> {
   try {
-    const conta = await passhubRequest<unknown>(`${AUTH_BASE}/auth/me`, { method: "GET" });
-    return { ok: true, conta };
+    const conta = await passhubRequest<Record<string, unknown>>(`${AUTH_BASE}/auth/me`, { method: "GET" });
+    return { ok: true, conta: JSON.stringify(conta).slice(0, 2000) };
   } catch (e) {
     return { ok: false, erro: e instanceof Error ? e.message : String(e) };
   }

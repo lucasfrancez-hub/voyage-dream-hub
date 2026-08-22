@@ -7,6 +7,8 @@
  */
 import { passhubBases, passhubRequest } from "./client.server";
 
+export type Json = string | number | boolean | null | Json[] | { [k: string]: Json };
+
 export type PassHubTrecho = { origem: string; destino: string; data: string };
 
 export type PassHubBuscaInput = {
@@ -27,7 +29,7 @@ export type PassHubBuscaInput = {
 
 const up = (s: string) => s.trim().toUpperCase();
 
-export async function passhubBuscarVoos(input: PassHubBuscaInput): Promise<unknown> {
+export async function passhubBuscarVoos(input: PassHubBuscaInput): Promise<Json> {
   const base = {
     adults: input.adultos,
     children: input.criancas ?? 0,
@@ -44,7 +46,7 @@ export async function passhubBuscarVoos(input: PassHubBuscaInput): Promise<unkno
   const multitrecho = input.trechos.length > 1;
 
   if (multitrecho) {
-    return passhubRequest(`${passhubBases.multi}/api/v1/search`, {
+    return passhubRequest<Json>(`${passhubBases.multi}/api/v1/search`, {
       body: {
         ...base,
         routes: input.trechos.map((t) => ({
@@ -58,7 +60,7 @@ export async function passhubBuscarVoos(input: PassHubBuscaInput): Promise<unkno
   }
 
   const t = input.trechos[0]!;
-  return passhubRequest(`${passhubBases.voo}/api/v1/search`, {
+  return passhubRequest<Json>(`${passhubBases.voo}/api/v1/search`, {
     body: {
       ...base,
       iata_from: up(t.origem),
@@ -69,6 +71,6 @@ export async function passhubBuscarVoos(input: PassHubBuscaInput): Promise<unkno
 }
 
 /** Tarifação do voo escolhido (revalida preço/disponibilidade). */
-export async function passhubTarifar(payload: unknown): Promise<unknown> {
-  return passhubRequest(`${passhubBases.voo}/api/v1/tarifar`, { body: payload });
+export async function passhubTarifar(payload: unknown): Promise<Json> {
+  return passhubRequest<Json>(`${passhubBases.voo}/api/v1/tarifar`, { body: payload });
 }
