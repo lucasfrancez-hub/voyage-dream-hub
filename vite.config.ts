@@ -63,6 +63,10 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // Com 118 rotas, o route tree importava TODAS as telas de uma vez (dev e prod),
+    // deixando o primeiro carregamento lento. Com o code splitting automático cada
+    // rota vira um chunk carregado sob demanda.
+    router: { autoCodeSplitting: true },
   },
   vite: {
     define: {
