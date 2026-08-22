@@ -280,6 +280,7 @@ function PassHubPage() {
                   <input
                     className="cons-field"
                     type="date"
+                    min={hoje}
                     value={t.data}
                     onChange={(e) => atualiza(i, "data", e.target.value)}
                   />
@@ -291,6 +292,7 @@ function PassHubPage() {
                       <input
                         className="cons-field"
                         type="date"
+                        min={trechos[0]?.data || hoje}
                         value={dataVolta}
                         onChange={(e) => setDataVolta(e.target.value)}
                       />
