@@ -13,6 +13,7 @@ export type FiltrosMotor = {
 type Props = {
   resultado: PassHubResultado;
   filtros: FiltrosMotor;
+  ravPercentual?: number;
   onReservar: (oferta: PassHubOferta) => void;
 };
 
@@ -473,14 +474,17 @@ function PainelDetalhe({
 function LinhaPerna({
   perna,
   selecionada,
+  ravPercentual,
   onSelecionar,
 }: {
   perna: Perna;
   selecionada: boolean;
+  ravPercentual: number;
   onSelecionar: () => void;
 }) {
   const v = perna.voo;
   const segs = segmentos(v);
+  const valores = calcularValores(v, ravPercentual);
   const [detalhe, setDetalhe] = useState<"info" | "docs" | null>(null);
 
   return (
@@ -578,7 +582,7 @@ function LinhaPerna({
           ) : (
             <div className="cons-box flex items-center justify-between gap-2 px-3 py-2">
               <Briefcase className="h-3.5 w-3.5 cons-muted" />
-              <b className="text-[13px]">{brl(perna.preco)}</b>
+              <b className="text-[13px]">{brl(valores.total || perna.preco)}</b>
             </div>
           )}
         </td>
@@ -587,14 +591,21 @@ function LinhaPerna({
           {v.bagagemDespachada ? (
             <div className="cons-box flex items-center justify-between gap-2 px-3 py-2">
               <Luggage className="h-3.5 w-3.5 cons-muted" />
-              <b className="text-[13px]">{brl(perna.preco)}</b>
+              <b className="text-[13px]">{brl(valores.total || perna.preco)}</b>
             </div>
           ) : (
             <span className="text-[12px] cons-muted">—</span>
           )}
         </td>
       </tr>
-      {detalhe && <PainelDetalhe voo={v} aba={detalhe} onFechar={() => setDetalhe(null)} />}
+      {detalhe && (
+        <PainelDetalhe
+          voo={v}
+          aba={detalhe}
+          ravPercentual={ravPercentual}
+          onFechar={() => setDetalhe(null)}
+        />
+      )}
     </>
   );
 }
@@ -621,6 +632,7 @@ function Etapa({
   statusTom,
   pernas,
   filtros,
+  ravPercentual,
   selecionada,
   onSelecionar,
   bloqueada,
@@ -631,6 +643,7 @@ function Etapa({
   statusTom: "res" | "ok";
   pernas: Perna[];
   filtros: FiltrosMotor;
+  ravPercentual: number;
   selecionada: string | null;
   onSelecionar: (chave: string) => void;
   bloqueada?: boolean;
@@ -729,11 +742,12 @@ function Etapa({
       </div>
 
       {/* sempre visível: companhias + paradas */}
-      <ResumoCias
+      <MatrizFiltro
         pernas={pernas}
-        selecionada={cia}
-        onSelecionar={setCia}
+        ravPercentual={ravPercentual}
+        cia={cia}
         paradasSel={paradasSel}
+        onCia={setCia}
         onParadas={setParadasSel}
       />
 
@@ -868,6 +882,7 @@ function Etapa({
               <LinhaPerna
                 key={p.chave}
                 perna={p}
+                ravPercentual={ravPercentual}
                 selecionada={selecionada === p.chave}
                 onSelecionar={() => onSelecionar(p.chave)}
               />
@@ -886,7 +901,7 @@ function Etapa({
   );
 }
 
-export function ResultadosPassHub({ resultado, filtros, onReservar }: Props) {
+export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onReservar }: Props) {
   const [idaSel, setIdaSel] = useState<string | null>(null);
 
   useEffect(() => {
@@ -943,6 +958,7 @@ export function ResultadosPassHub({ resultado, filtros, onReservar }: Props) {
         statusTom={idaSel ? "ok" : "res"}
         pernas={idas}
         filtros={filtros}
+        ravPercentual={ravPercentual}
         selecionada={idaSel}
         onSelecionar={selecionaIda}
       />
@@ -955,6 +971,7 @@ export function ResultadosPassHub({ resultado, filtros, onReservar }: Props) {
           statusTom={idaSel ? "ok" : "res"}
           pernas={voltas}
           filtros={filtros}
+          ravPercentual={ravPercentual}
           selecionada={null}
           onSelecionar={selecionaVolta}
           bloqueada={!idaSel}
