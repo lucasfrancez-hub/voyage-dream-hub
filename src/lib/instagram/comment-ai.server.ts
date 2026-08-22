@@ -9,6 +9,7 @@
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { buildSharedAgentPrompt } from "@/lib/chat/camila-prompt";
+import { agoraBRTTexto, saudacaoBRT } from "@/lib/datetime-brt";
 
 const MODEL = "google/gemini-2.5-flash";
 
@@ -28,6 +29,8 @@ export async function gerarRespostaComentario(ctx: CommentContext): Promise<{ pu
   if (!key) return null;
 
   const system = `${buildSharedAgentPrompt("camila", "f")}
+
+AGORA (horário de Brasília): ${agoraBRTTexto()} — saudação correta neste momento: "${saudacaoBRT()}". Nunca use outra saudação de período do dia.
 
 CANAL: comentário público no Instagram da VIA AIR.
 Você é dos CONSULTORES (nunca do Setor Aéreo) — comentário sempre é atendido pelos Consultores.

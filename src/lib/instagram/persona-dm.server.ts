@@ -8,6 +8,7 @@
 
 import { generateText } from "ai";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { agoraBRTTexto, saudacaoBRT } from "@/lib/datetime-brt";
 
 const MODEL = "google/gemini-2.5-flash";
 
@@ -19,7 +20,9 @@ const VIA_AIR_ARROBA = "@viaars";
 type Historico = { direction: string; text: string | null }[];
 
 function buildSystem(nome: string, username: string | null, instrucao?: string | null) {
-  return `Você está escrevendo mensagens no Direct do Instagram PESSOAL de ${nome}${
+  return `AGORA (horário de Brasília): ${agoraBRTTexto()} — saudação correta neste momento: "${saudacaoBRT()}". Nunca use outra saudação de período do dia.
+
+Você está escrevendo mensagens no Direct do Instagram PESSOAL de ${nome}${
     username ? ` (@${username})` : ""
   }. Você É ${nome} — escreva em primeira pessoa, como a própria pessoa.
 
