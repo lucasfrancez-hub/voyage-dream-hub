@@ -41,9 +41,9 @@ const diaCurto = (dataHora: string) => {
 const CORES_CIA: Record<string, { bg: string; fg: string }> = {
   G3: { bg: "#ff7a00", fg: "#ffffff" },
   GOL: { bg: "#ff7a00", fg: "#ffffff" },
-  AD: { bg: "#e11d2e", fg: "#ffffff" },
-  AZUL: { bg: "#0a5bd3", fg: "#ffffff" },
-  "2Z": { bg: "#0a5bd3", fg: "#ffffff" },
+  AD: { bg: "#1f8ae0", fg: "#ffffff" },
+  AZUL: { bg: "#1f8ae0", fg: "#ffffff" },
+  "2Z": { bg: "#1f8ae0", fg: "#ffffff" },
   LA: { bg: "#0b1b6b", fg: "#ffffff" },
   JJ: { bg: "#0b1b6b", fg: "#ffffff" },
   LATAM: { bg: "#0b1b6b", fg: "#ffffff" },
