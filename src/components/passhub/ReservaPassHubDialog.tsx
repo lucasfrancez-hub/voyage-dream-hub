@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Check, Copy, CreditCard, Info, Loader2, PlaneTakeoff, PlaneLanding, Ticket } from "lucide-react";
+import { Check, Copy, CreditCard, Info, Loader2, PlaneTakeoff, PlaneLanding, Sparkles, Ticket } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,7 @@ import {
   passhubReservar,
   passhubLinkPagamento,
 } from "@/lib/passhub/passhub.functions";
+import { BuscarCadastroPax, LeitorIAPax, type PaxPreenchido } from "@/components/passhub/PaxAssist";
 import type {
   PassHubOferta,
   PassHubPax,
@@ -173,6 +174,41 @@ export function ReservaPassHubDialog({
   const [precoTarifado, setPrecoTarifado] = useState<number | null>(null);
   const [reserva, setReserva] = useState<PassHubReserva | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [leitorIA, setLeitorIA] = useState(false);
+
+  /** Aplica os dados vindos do cadastro ou da IA em um passageiro. */
+  const preencherPax = (i: number, d: PaxPreenchido) =>
+    setPaxs((prev) =>
+      prev.map((p, idx) =>
+        idx === i
+          ? {
+              ...p,
+              nome: d.nome || p.nome,
+              sobrenome: d.sobrenome || p.sobrenome,
+              nascimento: d.nascimento || p.nascimento,
+              genero: d.genero ?? p.genero,
+              documentoTipo: d.documentoTipo || p.documentoTipo,
+              documento: d.documento || p.documento,
+              emissao: d.emissao || p.emissao,
+              validade: d.validade || p.validade,
+            }
+          : p,
+      ),
+    );
+
+  /** A IA pode devolver vários passageiros de uma vez — preenche na ordem. */
+  const preencherLista = (lista: PaxPreenchido[]) => {
+    lista.forEach((d, i) => preencherPax(i, d));
+    const c = lista.find((d) => d.email || d.telefone);
+    if (c) {
+      setContato((prev) => ({
+        email: c.email || prev.email,
+        ddi: c.ddi || prev.ddi,
+        ddd: c.ddd || prev.ddd,
+        telefone: c.telefone || prev.telefone,
+      }));
+    }
+  };
 
   const rateTokens = oferta ? [oferta.ida, ...oferta.voltas].map((v) => v.rateToken) : [];
   const provedor = oferta?.ida.provedor || "CVC";
@@ -320,6 +356,8 @@ export function ReservaPassHubDialog({
           </div>
         </DialogHeader>
 
+        <LeitorIAPax aberto={leitorIA} onFechar={() => setLeitorIA(false)} onPreencher={preencherLista} />
+
         {oferta && !reserva && (
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
             {/* ---------------- coluna esquerda ---------------- */}
@@ -363,13 +401,29 @@ export function ReservaPassHubDialog({
               </section>
 
               <section>
-                <h3 className="mb-3 text-xl font-bold">Passageiro{paxs.length > 1 ? "s" : ""}</h3>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-xl font-bold">Passageiro{paxs.length > 1 ? "s" : ""}</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+                    onClick={() => setLeitorIA(true)}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" /> Preencher com IA (foto ou texto)
+                  </Button>
+                </div>
                 <div className="space-y-4">
                   {paxs.map((p, i) => (
                     <div key={i} className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
-                      <Badge variant="outline" className="border-white/20 text-white/70">
-                        {rotuloTipo[p.tipo]} {i + 1}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Badge variant="outline" className="border-white/20 text-white/70">
+                          {rotuloTipo[p.tipo]} {i + 1}
+                        </Badge>
+                        <div className="min-w-[240px] flex-1">
+                          <BuscarCadastroPax onEscolher={(d) => preencherPax(i, d)} />
+                        </div>
+                      </div>
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                         <div>
                           <Label className="text-white/60">Sobrenome</Label>
