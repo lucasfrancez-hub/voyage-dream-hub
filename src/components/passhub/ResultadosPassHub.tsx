@@ -197,61 +197,33 @@ export type Valores = {
   pct: number;
   outros: number;
   comissaoIncentivo: number;
-  /** % de incentivo usado no cálculo (API ou padrão de contrato). */
+  /** % de incentivo informado pela consolidadora. */
   incentivoPct: number;
   total: number;
 };
 
-/** Incentivo de contrato da consolidadora: 1% da tarifa. */
-export const INCENTIVO_PADRAO_PCT = 1;
-
 /**
- * Só espelha o que a PassHub devolve: tarifa, taxas, RAV e comissão de
- * incentivo vêm da API. Nada é arbitrado aqui.
+ * Espelha somente os valores devolvidos pela PassHub. A porcentagem digitada
+ * nunca é usada para calcular comissão localmente: ela é enviada à tarifação.
  */
-/**
- * Valores do trecho.
- *
- * A busca da PassHub devolve o preço LÍQUIDO (tarifa + taxas) e ignora o
- * `rav_percentage` — a RAV só é aplicada por eles na tarifação/reserva, com o
- * mesmo % que enviamos. Então: se vier RAV no retorno, espelhamos; se não
- * vier, aplicamos o % informado na tela sobre a tarifa.
- */
-export function calcularValores(voo: PassHubVoo, ravPercentual = 0): Valores {
+export function calcularValores(voo: PassHubVoo, _ravPercentual = 0): Valores {
   const tarifa = voo.precoTarifa || 0;
   const taxas = voo.taxas || 0;
   const totalApi = voo.precoTotal || 0;
   const residual = Math.round((totalApi - tarifa - taxas) * 100) / 100;
 
-  let rav = voo.ravValor || 0;
+  const rav = voo.ravValor || 0;
   let pct = voo.ravPercentual || 0;
-  let outros = 0;
-  let total = totalApi || Math.round((tarifa + taxas) * 100) / 100;
+  let outros = residual;
+  const total = totalApi || Math.round((tarifa + taxas + rav) * 100) / 100;
 
   if (rav > 0) {
     if (!pct && tarifa > 0) pct = Math.round((rav / tarifa) * 1000) / 10;
     outros = Math.round((residual - rav) * 100) / 100;
-  } else if (residual >= 0.01) {
-    // a API já embutiu a RAV no total
-    rav = residual;
-    pct = tarifa > 0 ? Math.round((rav / tarifa) * 1000) / 10 : 0;
-  } else if (ravPercentual > 0 && tarifa > 0) {
-    // busca veio líquida: aplicamos a RAV da agência sobre a tarifa
-    pct = ravPercentual;
-    rav = Math.round(tarifa * (ravPercentual / 100) * 100) / 100;
-    total = Math.round((tarifa + taxas + rav) * 100) / 100;
   }
 
-  // Comissão de incentivo: o que a consolidadora informar; quando a busca vem
-  // líquida (sem esse campo), vale o incentivo de contrato de 1% da tarifa.
-  const incentivoPct =
-    voo.incentivoPercentual > 0 ? voo.incentivoPercentual : INCENTIVO_PADRAO_PCT;
-  const comissaoIncentivo =
-    voo.incentivoValor > 0
-      ? voo.incentivoValor
-      : tarifa > 0
-        ? Math.round(tarifa * (incentivoPct / 100) * 100) / 100
-        : 0;
+  const incentivoPct = voo.incentivoPercentual || 0;
+  const comissaoIncentivo = voo.incentivoValor || 0;
 
   return { tarifa, taxas, rav, pct, outros, comissaoIncentivo, incentivoPct, total };
 }
@@ -410,18 +382,23 @@ function PainelDetalhe({
   ravPercentual: number;
   onFechar: () => void;
 }) {
-  const { tarifa, taxas, rav, pct, outros, comissaoIncentivo, incentivoPct, total } =
-    calcularValores(voo, ravPercentual);
+  const { tarifa, taxas, rav, outros, comissaoIncentivo, total } = calcularValores(
+    voo,
+    ravPercentual,
+  );
 
-  /* RAV real: a busca vem líquida, então perguntamos à PassHub (tarifação)
-     quanto de comissão ela devolve com o % que a agência configurou. */
+  /* Comissão real: perguntamos à PassHub quanto ela devolve com o percentual
+     configurado, sem fazer nenhum cálculo local. */
   const tarifarFn = useServerFn(passhubTarifarOferta);
-  const [ravApi, setRavApi] = useState<number | null>(null);
+  const [tarifacaoApi, setTarifacaoApi] = useState<{
+    preco: number;
+    comissao: number;
+  } | null>(null);
   const [ravCarregando, setRavCarregando] = useState(false);
 
   useEffect(() => {
     const token = voo.rateToken;
-    setRavApi(null);
+    setTarifacaoApi(null);
     if (!token || !ravPercentual) return;
     let vivo = true;
     setRavCarregando(true);
@@ -434,7 +411,12 @@ function PainelDetalhe({
       },
     })
       .then((r) => {
-        if (vivo && r.ok) setRavApi(r.tarifacao.ravValor || 0);
+        if (vivo && r.ok) {
+          setTarifacaoApi({
+            preco: r.tarifacao.preco,
+            comissao: r.tarifacao.ravValor || 0,
+          });
+        }
       })
       .catch(() => undefined)
       .finally(() => {
@@ -446,30 +428,21 @@ function PainelDetalhe({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voo.rateToken, voo.provedor, voo.precoTotal, ravPercentual]);
 
-  const ravFinal = ravApi ?? rav;
-  const totalFinal = Math.round((total - rav + ravFinal) * 100) / 100;
-  const totalComissao = Math.round((ravFinal + comissaoIncentivo) * 100) / 100;
+  const comissaoApi = tarifacaoApi?.comissao ?? (rav + comissaoIncentivo);
+  const precoLiquido = tarifacaoApi?.preco ?? total;
+  const totalFinal = Math.round((precoLiquido + comissaoApi) * 100) / 100;
 
   const linhas: { rot: string; val: number; destaque?: boolean; positivo?: boolean }[] = [
     { rot: "Tarifa (base)", val: tarifa },
     { rot: "Taxa de embarque / TAX", val: taxas },
-    {
-      rot: `RAV (${pct ? `${pct}%` : "0%"})${ravApi != null ? " · PassHub" : ravCarregando ? " · consultando…" : ""}`,
-      val: ravFinal,
-      destaque: true,
-    },
   ];
   if (Math.abs(outros) >= 0.01) linhas.push({ rot: "Outros / ajustes", val: outros });
-  if (comissaoIncentivo > 0) {
-    linhas.push({
-      rot: `Comissão de incentivo (${incentivoPct}% da tarifa)`,
-      val: comissaoIncentivo,
-      positivo: true,
-    });
-  }
-  if (totalComissao > 0) {
-    linhas.push({ rot: "Total de comissão (RAV + incentivo)", val: totalComissao, destaque: true, positivo: true });
-  }
+  linhas.push({
+    rot: `Comissão${tarifacaoApi ? " · PassHub" : ravCarregando ? " · consultando…" : ""}`,
+    val: comissaoApi,
+    destaque: true,
+    positivo: true,
+  });
 
   return (
     <tr>
@@ -608,7 +581,7 @@ function PainelDetalhe({
                           {p.bandeira}
                         </span>
                         <span className="text-[12px] font-bold text-white/85 tabular-nums">
-                          {p.maxParcelas}x {brl(total / Math.max(1, p.maxParcelas))}
+                          {p.maxParcelas}x {brl(totalFinal / Math.max(1, p.maxParcelas))}
                         </span>
                       </div>
                     ))}
@@ -620,7 +593,7 @@ function PainelDetalhe({
                 <div className="mt-6 flex items-center gap-3 rounded-lg border border-emerald-500/15 bg-emerald-500/[.06] px-3 py-2.5">
                   <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
                   <p className="text-[10px] font-semibold text-emerald-400/85">
-                    Valores por passageiro adulto, com RAV já aplicada
+                    Valor final após confirmação da comissão pela PassHub
                     {voo.provedor ? ` · provedor ${voo.provedor}` : ""}.
                   </p>
                 </div>
@@ -1277,11 +1250,6 @@ function ResumoPerna({
           <div className="text-right">
             <div className="cons-lab">Total</div>
             <div className="text-[16px] font-black">{brl(val.total)}</div>
-            {val.comissaoIncentivo > 0 && (
-              <div className="text-[11px] font-bold text-emerald-400">
-                +{brl(val.comissaoIncentivo)} comissão de incentivo
-              </div>
-            )}
           </div>
         )}
         {acao}
@@ -1457,11 +1425,6 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
               <div>
                 <div className="cons-lab">Total da viagem (ida e volta)</div>
                 <div className="text-[24px] font-black tracking-tight">{brl(totalFinal)}</div>
-                {valoresFinais.comissaoIncentivo > 0 && (
-                  <div className="text-[11px] font-bold text-emerald-400">
-                    +{brl(valoresFinais.comissaoIncentivo)} comissão de incentivo
-                  </div>
-                )}
               </div>
               <button
                 type="button"

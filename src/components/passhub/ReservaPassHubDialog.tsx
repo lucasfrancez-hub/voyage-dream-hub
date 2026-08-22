@@ -80,16 +80,13 @@ function paxVazio(tipo: PassHubPaxTipo): PassHubPax {
   };
 }
 
-/** Soma tarifa + taxas do itinerário e aplica a RAV fixada quando a API não devolve valor. */
-function valoresDaOferta(oferta: PassHubOferta, ravPercentual: number) {
-  const voos = [oferta.ida, ...oferta.voltas];
-  const base = voos.reduce((s, v) => s + (v.precoTarifa || 0), 0);
-  const taxas = voos.reduce((s, v) => s + (v.taxas || 0), 0);
-  const ravApi = voos.reduce((s, v) => s + (v.ravValor || 0), 0);
-  const rav = ravApi > 0 ? ravApi : base * ((ravPercentual || 0) / 100);
-  const soma = base + taxas + rav;
-  const total = soma > 0 ? soma : oferta.precoTotal;
-  return { base, taxas, rav, total };
+/** A volta já contém o preço fechado da viagem; nunca somamos ida e volta. */
+function valoresDaOferta(oferta: PassHubOferta) {
+  const vooComPrecoFechado = oferta.voltas[0] ?? oferta.ida;
+  const base = vooComPrecoFechado.precoTarifa || 0;
+  const taxas = vooComPrecoFechado.taxas || 0;
+  const total = vooComPrecoFechado.precoTotal || oferta.precoTotal;
+  return { base, taxas, total };
 }
 
 function CardTrecho({ voo, rotulo }: { voo: PassHubVoo | undefined; rotulo: string }) {
@@ -172,6 +169,8 @@ export function ReservaPassHubDialog({
   const [contato, setContato] = useState(CONTATO_PADRAO);
   const [tokens, setTokens] = useState<string[] | null>(null);
   const [precoTarifado, setPrecoTarifado] = useState<number | null>(null);
+  const [precoSemTaxaTarifado, setPrecoSemTaxaTarifado] = useState<number | null>(null);
+  const [comissaoTarifada, setComissaoTarifada] = useState<number | null>(null);
   const [reserva, setReserva] = useState<PassHubReserva | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [leitorIA, setLeitorIA] = useState(false);
@@ -210,7 +209,9 @@ export function ReservaPassHubDialog({
     }
   };
 
-  const rateTokens = oferta ? [oferta.ida, ...oferta.voltas].map((v) => v.rateToken) : [];
+  const rateTokens = oferta
+    ? [...new Set([oferta.ida, ...oferta.voltas].map((v) => v.rateToken).filter(Boolean))]
+    : [];
   const provedor = oferta?.ida.provedor || "CVC";
 
   const atualiza = (i: number, campo: keyof PassHubPax, valor: string) =>
@@ -243,10 +244,13 @@ export function ReservaPassHubDialog({
       }
       setTokens(r.tarifacao.pricedRateTokens);
       setPrecoTarifado(r.tarifacao.preco);
+      setPrecoSemTaxaTarifado(r.tarifacao.precoSemTaxa);
+      setComissaoTarifada(r.tarifacao.ravValor || 0);
+      const totalConfirmado = r.tarifacao.preco + (r.tarifacao.ravValor || 0);
       toast[r.tarifacao.retarifou ? "warning" : "success"](
         r.tarifacao.retarifou
-          ? `Tarifa mudou: agora ${brl(r.tarifacao.preco)}`
-          : `Tarifa confirmada em ${brl(r.tarifacao.preco)}`,
+          ? `Tarifa mudou: agora ${brl(totalConfirmado)}`
+          : `Tarifa confirmada em ${brl(totalConfirmado)}`,
       );
     },
     onError: (e) => toast.error((e as Error).message),
@@ -295,6 +299,8 @@ export function ReservaPassHubDialog({
     setContato(CONTATO_PADRAO);
     setTokens(null);
     setPrecoTarifado(null);
+    setPrecoSemTaxaTarifado(null);
+    setComissaoTarifada(null);
     setReserva(null);
     tarifacao.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -320,8 +326,21 @@ export function ReservaPassHubDialog({
     setTimeout(() => setCopiado(false), 2000);
   };
 
-  const valores = oferta ? valoresDaOferta(oferta, ravPercentual) : null;
-  const totalReserva = precoTarifado ?? valores?.total ?? 0;
+  const valoresBusca = oferta ? valoresDaOferta(oferta) : null;
+  const valores = valoresBusca
+    ? {
+        base: precoSemTaxaTarifado ?? valoresBusca.base,
+        taxas:
+          precoTarifado != null && precoSemTaxaTarifado != null
+            ? Math.max(0, precoTarifado - precoSemTaxaTarifado)
+            : valoresBusca.taxas,
+        total: precoTarifado ?? valoresBusca.total,
+      }
+    : null;
+  const totalReserva =
+    precoTarifado != null
+      ? Math.round((precoTarifado + (comissaoTarifada ?? 0)) * 100) / 100
+      : valores?.total ?? 0;
   const qtdPax = paxs.length || 1;
 
   const linhasTarifa = (["ADT", "CHD", "INF"] as PassHubPaxTipo[])
@@ -368,7 +387,7 @@ export function ReservaPassHubDialog({
                   <table className="w-full text-sm">
                     <thead className="bg-white/[0.04] text-[10px] uppercase tracking-wider text-white/55">
                       <tr>
-                        {["Tipo", "Qtd.", "Tarifa unitária", "Tx emb.", "RAV", "Total tarifa", "Total taxa", "Total"].map(
+                        {["Tipo", "Qtd.", "Tarifa unitária", "Tx emb.", "Comissão", "Total tarifa", "Total taxa", "Total"].map(
                           (c) => (
                             <th key={c} className="px-3 py-2 text-left font-semibold">
                               {c}
@@ -381,17 +400,17 @@ export function ReservaPassHubDialog({
                       {linhasTarifa.map((l) => {
                         const base = ((valores?.base ?? 0) / qtdPax) * l.qtd;
                         const tx = ((valores?.taxas ?? 0) / qtdPax) * l.qtd;
-                        const rav = ((valores?.rav ?? 0) / qtdPax) * l.qtd;
+                        const comissao = ((comissaoTarifada ?? 0) / qtdPax) * l.qtd;
                         return (
                           <tr key={l.tipo} className="border-t border-white/10">
                             <td className="px-3 py-2 font-semibold">{l.tipo}</td>
                             <td className="px-3 py-2">{l.qtd}</td>
                             <td className="px-3 py-2">{brl(base / l.qtd)}</td>
                             <td className="px-3 py-2">{brl(tx / l.qtd)}</td>
-                            <td className="px-3 py-2 text-primary">{brl(rav)}</td>
+                            <td className="px-3 py-2 text-primary">{brl(comissao)}</td>
                             <td className="px-3 py-2">{brl(base)}</td>
                             <td className="px-3 py-2">{brl(tx)}</td>
-                            <td className="px-3 py-2 font-bold">{brl(base + tx + rav)}</td>
+                            <td className="px-3 py-2 font-bold">{brl(base + tx + comissao)}</td>
                           </tr>
                         );
                       })}
