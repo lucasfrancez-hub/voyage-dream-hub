@@ -98,6 +98,17 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
         const paymentId: string | undefined = payment?.id
         if (!paymentId) return Response.json({ ok: true, skipped: 'no payment id' })
 
+        // ----- Reservas da consolidadora (Pix nosso com RAV por fora) -----
+        try {
+          const { processarWebhookPagamentoReserva } = await import(
+            '@/lib/passhub/pagamento-interno.server'
+          )
+          const res = await processarWebhookPagamentoReserva(body)
+          if (res.handled) return Response.json({ ok: true, event, passhub: res.info })
+        } catch (e) {
+          console.error('[asaas-webhook] passhub error', (e as Error).message)
+        }
+
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
 
         let { data: cob } = await supabaseAdmin

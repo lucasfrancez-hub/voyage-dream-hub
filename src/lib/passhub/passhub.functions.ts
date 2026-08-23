@@ -274,3 +274,103 @@ export const passhubPixPublico = createServerFn({ method: "POST" })
       };
     }
   });
+
+/* ============================================================
+ * Pagamento interno da reserva (RAV por fora + pagar agora)
+ * ============================================================ */
+
+/** Cria a cobrança Pix NOSSA (valor da consolidadora + RAV por fora). */
+export const passhubCobrarComRav = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.number().int().positive(),
+        localizador: z.string().max(20).optional(),
+        link: z.string().url().optional(),
+        markup: z.number().min(0).max(100000).default(0),
+        valorCobradoManual: z.number().min(0).max(1000000).optional(),
+        clienteNome: z.string().max(120).optional(),
+        clienteDocumento: z.string().max(20).optional(),
+        clienteEmail: z.string().email().optional(),
+        clienteTelefone: z.string().max(20).optional(),
+        expiraEmMinutos: z.number().int().min(5).max(60 * 24 * 7).optional(),
+        autoRepasse: z.boolean().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { criarCobrancaComRav } = await import("./pagamento-interno.server");
+    try {
+      const pagamento = await criarCobrancaComRav({
+        idPassagem: data.id,
+        localizador: data.localizador ?? null,
+        link: data.link ?? null,
+        markup: data.markup,
+        valorCobradoManual: data.valorCobradoManual ?? null,
+        clienteNome: data.clienteNome ?? null,
+        clienteDocumento: data.clienteDocumento ?? null,
+        clienteEmail: data.clienteEmail ?? null,
+        clienteTelefone: data.clienteTelefone ?? null,
+        expiraEmMinutos: data.expiraEmMinutos ?? null,
+        autoRepasse: data.autoRepasse,
+        criadoPor: context.userId ?? null,
+      });
+      return { ok: true as const, pagamento };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao criar a cobrança" };
+    }
+  });
+
+/** Paga agora o Pix da consolidadora debitando o saldo ASAAS. */
+export const passhubPagarAgora = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.number().int().positive(),
+        localizador: z.string().max(20).optional(),
+        link: z.string().url().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { pagarReservaAgora } = await import("./pagamento-interno.server");
+    try {
+      const pagamento = await pagarReservaAgora({
+        idPassagem: data.id,
+        localizador: data.localizador ?? null,
+        link: data.link ?? null,
+        criadoPor: context.userId ?? null,
+      });
+      return { ok: true as const, pagamento };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao pagar a reserva" };
+    }
+  });
+
+/** Repassa manualmente (paga a consolidadora) uma cobrança já recebida. */
+export const passhubRepassarPagamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ pagamentoId: z.string().uuid() }).parse(input))
+  .handler(async ({ data }) => {
+    const { repassarPagamento } = await import("./pagamento-interno.server");
+    try {
+      return { ok: true as const, pagamento: await repassarPagamento(data.pagamentoId) };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao repassar" };
+    }
+  });
+
+/** Histórico de pagamentos internos de uma reserva. */
+export const passhubPagamentosReserva = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.number().int().positive() }).parse(input))
+  .handler(async ({ data }) => {
+    const { listarPagamentosReserva } = await import("./pagamento-interno.server");
+    try {
+      return { ok: true as const, pagamentos: await listarPagamentosReserva(data.id) };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao listar" };
+    }
+  });
