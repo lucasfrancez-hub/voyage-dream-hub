@@ -488,7 +488,7 @@ function OrderDetailPage() {
                     toast.success("Voucher ready", { id: tId });
                   } catch (e) { toast.error(e instanceof Error ? e.message : "Error generating voucher", { id: tId }); }
                 }}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher (EN)</DropdownMenuItem>
-                {detail.items.some((i) => i.kind === "flight" && i.status !== "cancelled") && (
+                {detail.items.some((i) => i.status !== "cancelled") && (
                   <>
                     <DropdownMenuItem onClick={() => window.open(`/admin/pedidos/${order.id}/plano-viagem`, "_blank")}>
                       <Plane className="h-3.5 w-3.5 mr-2" /> Plano de viagem (com valor)

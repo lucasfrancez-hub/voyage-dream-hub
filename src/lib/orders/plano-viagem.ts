@@ -72,6 +72,50 @@ export function pedidoTemAereo(detail: OrderDetail): boolean {
   return detail.items.some((i) => i.kind === "flight" && i.status !== "cancelled");
 }
 
+function dataCurta(v: unknown): string {
+  const t = s(v);
+  if (!t) return "";
+  const d = new Date(t.length <= 10 ? `${t}T00:00:00` : t);
+  return Number.isNaN(d.getTime()) ? t : d.toLocaleDateString("pt-BR");
+}
+
+/** Hospedagens, transfers, passeios e demais serviços do pedido. */
+function outrasReservasDo(detail: OrderDetail) {
+  return detail.items
+    .filter((i) => i.kind !== "flight" && i.status !== "cancelled")
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((it) => {
+      const d = det(it);
+      const hotel = it.kind === "hotel";
+      const inicio = dataCurta(d.check_in ?? d.checkin ?? d.date_from);
+      const fim = dataCurta(d.check_out ?? d.checkout ?? d.date_to);
+      const detalhes: string[] = [];
+      if (hotel) {
+        if (s(d.city) || s(d.address)) detalhes.push([s(d.city), s(d.address)].filter(Boolean).join(" • "));
+        if (s(d.room)) detalhes.push(`Acomodação: ${s(d.room)}`);
+        if (s(d.board)) detalhes.push(`Regime: ${s(d.board)}`);
+        if (s(d.nights)) detalhes.push(`${s(d.nights)} noite(s)`);
+        if (s(d.guests)) detalhes.push(`${s(d.guests)} hóspede(s)`);
+      } else {
+        if (s(d.category)) detalhes.push(s(d.category));
+        if (s(d.quantity)) detalhes.push(`Quantidade: ${s(d.quantity)}`);
+        if (s(d.time_from)) detalhes.push(`Início: ${s(d.time_from)}`);
+        if (s(d.description)) detalhes.push(s(d.description));
+      }
+      if (s(d.supplier_name)) detalhes.push(`Fornecedor: ${s(d.supplier_name)}`);
+      if (s(d.notes)) detalhes.push(s(d.notes));
+
+      return {
+        tipo: hotel ? "HOSPEDAGEM" : "SERVIÇO",
+        titulo: it.title || (hotel ? s(d.hotel_name) : "Serviço"),
+        localizador: s(it.supplier_locator) || undefined,
+        periodo: [inicio, fim].filter(Boolean).join(" – "),
+        detalhes: detalhes.filter(Boolean),
+      };
+    });
+}
+
+
 export function pedidoParaComprovante(
   detail: OrderDetail,
   opts?: { ocultarValores?: boolean },
@@ -140,5 +184,7 @@ export function pedidoParaComprovante(
     ocultarValores: opts?.ocultarValores,
     passageiros,
     grupos,
+    outrasReservas: outrasReservasDo(detail),
+
   };
 }

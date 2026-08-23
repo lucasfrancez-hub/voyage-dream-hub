@@ -49,7 +49,16 @@ export type ComprovanteReservaDados = {
   passageiros: ComprovantePax[];
   /** Cada grupo é um sentido/trecho: IDA, VOLTA ou TRECHO 3, 4... */
   grupos: Array<{ titulo: string; voos: ComprovanteVoo[] }>;
+  /** Hospedagens, transfers, passeios e demais serviços do mesmo pedido. */
+  outrasReservas?: Array<{
+    tipo: string;
+    titulo: string;
+    localizador?: string;
+    periodo?: string;
+    detalhes?: string[];
+  }>;
 };
+
 
 /* ------------------------------- formatação ------------------------------- */
 
@@ -453,6 +462,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
           </section>
         ) : null}
 
+        {dados.grupos.length ? (
         <section>
           <div className="section-head">
             <h2>Itinerário</h2>
@@ -562,6 +572,40 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             );
           })}
         </section>
+        ) : null}
+
+        {dados.outrasReservas?.length ? (
+          <section>
+            <div className="section-head">
+              <h2>Demais reservas</h2>
+              <div className="hint">Hospedagens, transfers e serviços do mesmo pedido</div>
+            </div>
+            {dados.outrasReservas.map((r, i) => (
+              <div className="journey" key={`${r.titulo}-${i}`}>
+                <div className="journey-title">
+                  <strong>
+                    {r.tipo} • {r.titulo}
+                  </strong>
+                  <span>{r.periodo || ""}</span>
+                </div>
+                <div className="flight" style={{ gridTemplateColumns: "1fr" }}>
+                  <div className="flight-info" style={{ borderLeft: 0, paddingLeft: 0 }}>
+                    {r.localizador ? (
+                      <div>
+                        Localizador: <b>{r.localizador}</b>
+                      </div>
+                    ) : null}
+                    {(r.detalhes ?? []).map((d, di) => (
+                      <div key={di}>{d}</div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </section>
+        ) : null}
+
+
 
         {!dados.emitido ? (
           <div className="notice">
