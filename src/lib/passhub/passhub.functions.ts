@@ -252,3 +252,25 @@ export const passhubPixReserva = createServerFn({ method: "POST" })
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao gerar o Pix" };
     }
   });
+
+/**
+ * Pix público do checkout da consolidadora — usado pela micro-tela que enviamos
+ * ao cliente (/pagar/reserva/<codigo>). O código curto do link já é o segredo.
+ */
+export const passhubPixPublico = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ codigo: z.string().min(6).max(64) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { passhubPixDoLink } = await import("./pix.server");
+    const link = `https://checkout.passhub.com.br/payment/${data.codigo}`;
+    try {
+      return { ok: true as const, pix: await passhubPixDoLink(link), link };
+    } catch (e) {
+      return {
+        ok: false as const,
+        link,
+        erro: e instanceof Error ? e.message : "Falha ao gerar o Pix",
+      };
+    }
+  });
