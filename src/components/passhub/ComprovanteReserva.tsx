@@ -301,7 +301,7 @@ const CSS = `
 .crdoc[data-density="compact"] .checks{margin-top:12px;padding-top:12px}
 .crdoc[data-density="compact"] footer{margin-top:12px;padding:12px 28px 16px}
 
-@media (max-width:720px){
+@media screen and (max-width:720px){
   .crdoc{overflow-x:hidden}
   .crdoc .sheet{width:100%;max-width:calc(100% - 16px);border-radius:14px}
   .crdoc header{grid-template-columns:1fr;padding:18px 16px 14px;gap:14px}
