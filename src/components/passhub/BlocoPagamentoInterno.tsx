@@ -68,7 +68,7 @@ const rotuloStatus: Record<string, { texto: string; cor: string }> = {
   recebido: { texto: "Recebido — repassando", cor: "cons-status-res" },
   repassado: { texto: "Pago à consolidadora", cor: "cons-status-ok" },
   repassando: { texto: "Enviando à consolidadora", cor: "cons-status-res" },
-  falha_repasse: { texto: "Erro no pagamento", cor: "cons-status-pay" },
+  falha_repasse: { texto: "Cancelado", cor: "cons-status-pay" },
   cancelado: { texto: "Cancelado", cor: "cons-status-pay" },
   estornado: { texto: "Estornado", cor: "cons-status-pay" },
 };
@@ -587,7 +587,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
                       {p.status === "repassado"
                         ? "Pago à consolidadora"
                         : p.status === "falha_repasse"
-                          ? "Não foi pago à consolidadora"
+                          ? "Cancelado — não foi pago à consolidadora"
                           : "Enviando à consolidadora"}{" "}
                       <b>{brl(p.repasseValor ?? p.valorPasshub)}</b>
                       {p.repasseEm ? ` em ${new Date(p.repasseEm).toLocaleString("pt-BR")}` : ""}
