@@ -118,6 +118,15 @@ function cidadeDe(iata: string): string {
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Evita "JJ JJ 3215": remove o código da cia repetido no número do voo. */
+function numeroVooLimpo(companhia: string, numeroVoo: string): string {
+  const cia = (companhia || "").trim().toUpperCase();
+  let num = (numeroVoo || "").trim().toUpperCase();
+  if (cia && num.startsWith(cia)) num = num.slice(cia.length).trim();
+  num = num.replace(/^[-•]/, "").trim();
+  return [cia, num].filter(Boolean).join(" ");
+}
+
 function tipoPax(t: string): string {
   const up = (t || "").toUpperCase();
   if (up.startsWith("CHD") || up.includes("CRIAN")) return "Criança";
@@ -190,6 +199,7 @@ const CSS = `
 .crdoc .flight{display:grid;grid-template-columns:96px 1fr 122px;gap:14px;align-items:center;padding:16px;break-inside:avoid}
 .crdoc .flight + .flight{border-top:1px solid var(--line)}
 .crdoc .airline{display:flex;flex-direction:column;gap:4px}
+.crdoc .airline img{height:22px;width:auto;max-width:96px;object-fit:contain;object-position:left}
 .crdoc .airline-code{font-size:16px;font-weight:900;color:var(--blue);letter-spacing:.3px}
 .crdoc .airline span{color:var(--muted);font-size:9px}
 .crdoc .route{display:grid;grid-template-columns:1fr 90px 1fr;align-items:center;gap:10px}
@@ -448,11 +458,18 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
                     ) : null}
                     <div className="flight">
                       <div className="airline">
-                        <div className="airline-code">
-                          {findAirline(v.companhia)?.name ?? v.companhia}
-                        </div>
+                        {findAirline(v.companhia)?.logo ? (
+                          <img
+                            src={findAirline(v.companhia)!.logo}
+                            alt={findAirline(v.companhia)!.name}
+                          />
+                        ) : (
+                          <div className="airline-code">
+                            {findAirline(v.companhia)?.name ?? v.companhia}
+                          </div>
+                        )}
                         <span>
-                          {[v.companhia, v.numeroVoo].filter(Boolean).join(" ")}
+                          {`Voo ${numeroVooLimpo(v.companhia, v.numeroVoo)}`}
                           {v.classe ? " • Econômica" : ""}
                         </span>
                       </div>
