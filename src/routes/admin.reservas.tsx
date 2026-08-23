@@ -570,10 +570,11 @@ function DetalheReserva({
           </div>
 
 
-          <SecaoRecolhivel titulo="Link de pagamento" icone={<CreditCard className="h-4 w-4" />}>
-            <BlocoPagamento r={r} />
-          </SecaoRecolhivel>
-          <SecaoRecolhivel titulo="Pagamento interno" icone={<QrCode className="h-4 w-4" />}>
+          <SecaoRecolhivel
+            titulo="Pagamento da reserva"
+            icone={<CreditCard className="h-4 w-4" />}
+            aberto
+          >
             <BlocoPagamentoInterno r={r} />
           </SecaoRecolhivel>
         </div>
