@@ -6392,6 +6392,36 @@ export type Database = {
         }
         Relationships: []
       }
+      passhub_reserva_bilhete: {
+        Row: {
+          created_at: string
+          encontrado: boolean
+          id_passagem: number
+          localizador: string | null
+          numeros: Json
+          updated_at: string
+          verificado_em: string
+        }
+        Insert: {
+          created_at?: string
+          encontrado?: boolean
+          id_passagem: number
+          localizador?: string | null
+          numeros?: Json
+          updated_at?: string
+          verificado_em?: string
+        }
+        Update: {
+          created_at?: string
+          encontrado?: boolean
+          id_passagem?: number
+          localizador?: string | null
+          numeros?: Json
+          updated_at?: string
+          verificado_em?: string
+        }
+        Relationships: []
+      }
       passhub_reserva_cancelada: {
         Row: {
           cancelado_por: string | null
