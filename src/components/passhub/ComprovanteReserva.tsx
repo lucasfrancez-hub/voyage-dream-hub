@@ -464,7 +464,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
               <div className="hint">Confira a grafia exatamente como no documento de viagem</div>
             </div>
             {dados.passageiros.map((p, i) => (
-              <div className="passenger" key={`${p.nome}-${i}`}>
+              <div className={`passenger${eBilhete ? " nostatus" : ""}`} key={`${p.nome}-${i}`}>
                 <div>
                   <div className="small-label">Nome completo</div>
                   <div className="name">{p.nome.toUpperCase()}</div>
@@ -485,10 +485,12 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
                     {p.nascimento ? dataBR(p.nascimento) : "—"}
                   </div>
                 </div>
-                <div>
-                  <div className="small-label">Status</div>
-                  <div className="small-value">{dados.emitido ? "Emitido" : "Reservado"}</div>
-                </div>
+                {eBilhete ? null : (
+                  <div>
+                    <div className="small-label">Status</div>
+                    <div className="small-value">{dados.emitido ? "Emitido" : "Reservado"}</div>
+                  </div>
+                )}
               </div>
             ))}
           </section>
