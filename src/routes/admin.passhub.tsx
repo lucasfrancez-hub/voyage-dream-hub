@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeftRight, Code2, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { passhubStatus, passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
 import { ReservaPassHubDialog } from "@/components/passhub/ReservaPassHubDialog";
@@ -192,7 +192,6 @@ function PassHubPage() {
     setDataVolta("");
     setResultado(null);
     setRavAplicada(null);
-    setBruto(null);
   };
 
   // A busca da PassHub devolve o preço líquido e ignora o rav_percentage —
