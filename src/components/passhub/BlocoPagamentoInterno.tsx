@@ -68,7 +68,7 @@ const rotuloStatus: Record<string, { texto: string; cor: string }> = {
   recebido: { texto: "Recebido — repassando", cor: "cons-status-res" },
   repassado: { texto: "Pago à consolidadora", cor: "cons-status-ok" },
   repassando: { texto: "Enviando à consolidadora", cor: "cons-status-res" },
-  falha_repasse: { texto: "Erro no pagamento", cor: "cons-status-pay" },
+  falha_repasse: { texto: "Cancelado", cor: "cons-status-pay" },
   cancelado: { texto: "Cancelado", cor: "cons-status-pay" },
   estornado: { texto: "Estornado", cor: "cons-status-pay" },
 };
