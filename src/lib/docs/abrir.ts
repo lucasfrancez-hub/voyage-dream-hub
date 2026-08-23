@@ -68,11 +68,12 @@ function gerarPdf(){
     var pw=pdf.internal.pageSize.getWidth();
     var ph=pdf.internal.pageSize.getHeight();
     var ih=canvas.height*pw/canvas.width;
-    var y=0;
     var img=canvas.toDataURL('image/jpeg',0.92);
-    pdf.addImage(img,'JPEG',0,0,pw,ih);
-    y=ih-ph;
-    while(y>1){pdf.addPage();pdf.addImage(img,'JPEG',0,-(ih-y-ph)-ph+ (ih-y) - (ih-y),pw,ih);y-=ph;}
+    var paginas=Math.max(1,Math.ceil(ih/ph-0.01));
+    for(var i=0;i<paginas;i++){
+      if(i>0)pdf.addPage();
+      pdf.addImage(img,'JPEG',0,-i*ph,pw,ih);
+    }
     return pdf.output('blob');
   });
 }
