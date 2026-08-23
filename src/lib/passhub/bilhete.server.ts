@@ -6,9 +6,10 @@
  * Aqui baixamos esse PDF, pedimos para a IA extrair os números por passageiro e
  * guardamos o resultado, para não reprocessar a cada abertura da tela.
  */
-import { passhubToken, passhubInvalidarToken, PassHubError } from "./client.server";
+import { passhubToken, passhubInvalidarToken, PassHubError, passhubRequest } from "./client.server";
 
 const GERENCIA = "https://emissor-gerencia.passhub.com.br";
+const DOCS_BUCKET = "https://storage.googleapis.com/passabot-bucket/tickets";
 
 export type BilheteNumero = { passageiro: string; numero: string };
 
@@ -19,8 +20,36 @@ export type BilheteInfo = {
   verificadoEm: string;
 };
 
-/** Baixa o PDF da reserva na consolidadora. */
+/**
+ * PDF oficial do bilhete emitido. A consolidadora guarda esse documento no
+ * bucket público (tickets/{id_agencia}/airplane/{confirmation_ticket_id}.pdf) e
+ * só ele traz o número do e-ticket — o PDF do painel não tem esse bloco.
+ */
+async function passhubPdfDocumentoBilhete(id: number): Promise<Buffer | null> {
+  try {
+    const bruto = (await passhubRequest<any>(`${GERENCIA}/api/v1/reservas/${id}`, {
+      method: "GET",
+    })) as any;
+    const dados = bruto?.data ?? bruto;
+    const ct = dados?.confirmation_ticket_id;
+    const agencia = dados?.id_agencia;
+    if (!ct || !agencia) return null;
+    const res = await fetch(`${DOCS_BUCKET}/${agencia}/airplane/${ct}.pdf`, {
+      headers: { Accept: "application/pdf" },
+    });
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer());
+  } catch (e) {
+    console.error("[passhub] documento do bilhete indisponível:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+/** Baixa o PDF da reserva na consolidadora (fallback do painel). */
 export async function passhubPdfReserva(id: number): Promise<Buffer> {
+  const documento = await passhubPdfDocumentoBilhete(id);
+  if (documento) return documento;
+
   const buscar = async (token: string) =>
     fetch(`${GERENCIA}/api/v1/reservas/${id}/pdf`, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/pdf" },
