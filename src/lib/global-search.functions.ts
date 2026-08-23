@@ -17,6 +17,7 @@ export type GlobalSearchResult = {
   badge?: string | null;
   to: string;
   params?: Record<string, string>;
+  search?: Record<string, string>;
 };
 
 const STATIC_PAGES: Array<{ title: string; subtitle: string; to: string; keywords: string[] }> = [
