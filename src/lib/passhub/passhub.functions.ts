@@ -374,3 +374,32 @@ export const passhubPagamentosReserva = createServerFn({ method: "POST" })
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao listar" };
     }
   });
+
+/** Define/edita a comissão extra (RAV por fora) da reserva. */
+export const passhubComissaoExtra = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.number().int().positive(),
+        localizador: z.string().max(20).optional(),
+        comissaoExtra: z.number().min(0).max(1000000),
+        observacao: z.string().max(280).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { passhubSalvarComissaoExtra } = await import("./reservas.server");
+    try {
+      const salvo = await passhubSalvarComissaoExtra({
+        idPassagem: data.id,
+        localizador: data.localizador ?? null,
+        comissaoExtra: data.comissaoExtra,
+        observacao: data.observacao ?? null,
+        userId: context.userId ?? null,
+      });
+      return { ok: true as const, ...salvo };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao salvar" };
+    }
+  });

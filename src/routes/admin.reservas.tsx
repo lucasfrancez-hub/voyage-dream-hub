@@ -1,3 +1,4 @@
+import { ComissaoExtraEditor } from "@/components/passhub/ComissaoExtraEditor";
 import { BlocoPagamentoInterno } from "@/components/passhub/BlocoPagamentoInterno";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -320,6 +321,9 @@ function DetalheReserva({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao cancelar"),
   });
 
+  const [extra, setExtra] = useState({ valor: r.comissaoExtra, obs: r.comissaoExtraObs });
+  const totalComExtra = r.totalVenda - r.comissaoExtra + extra.valor;
+
   const pedirCancelamento = async () => {
     const ok = await confirm({
       title: "Cancelar reserva na consolidadora?",
@@ -571,13 +575,23 @@ function DetalheReserva({
               <span className="cons-muted">Líquido consolidadora</span>
               <b>{brl(r.preco)}</b>
             </div>
-            <div className="flex justify-between py-2 text-[13px]">
+            <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
               <span className="cons-muted">Comissão ({r.ravPercentual}%)</span>
               <b>{brl(r.comissao || r.ravValor)}</b>
             </div>
+            <ComissaoExtraEditor
+              idPassagem={r.idPassagem}
+              localizador={r.localizador}
+              valor={extra.valor}
+              observacao={extra.obs}
+              onSalvo={(valor, obs) => {
+                setExtra({ valor, obs });
+                onAtualizar();
+              }}
+            />
             <div className="cons-dot my-2" />
             <div className="cons-lab">Total da reserva</div>
-            <div className="text-[28px] font-black">{brl(r.totalVenda)}</div>
+            <div className="text-[28px] font-black">{brl(totalComExtra)}</div>
           </div>
 
 
