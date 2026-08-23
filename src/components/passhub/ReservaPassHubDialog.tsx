@@ -350,9 +350,10 @@ export function ReservaPassHubDialog({
         total: precoTarifado ?? valoresBusca.total,
       }
     : null;
+  // O incentivo/comissão já vem embutido no preço da PassHub — nunca somar.
   const totalReserva =
     precoTarifado != null
-      ? Math.round((precoTarifado + (comissaoTarifada ?? 0)) * 100) / 100
+      ? Math.round(precoTarifado * 100) / 100
       : valores?.total ?? 0;
   const qtdPax = paxs.length || 1;
 
