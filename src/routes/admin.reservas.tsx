@@ -112,6 +112,7 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
   const [link, setLink] = useState(r.linkPagamento);
   const [copiado, setCopiado] = useState(false);
   const [pixCopiado, setPixCopiado] = useState(false);
+  const [clienteCopiado, setClienteCopiado] = useState(false);
   const [pix, setPix] = useState<{
     copiaECola: string;
     qrCodeBase64: string;
