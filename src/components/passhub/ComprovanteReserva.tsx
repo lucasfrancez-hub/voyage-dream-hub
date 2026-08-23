@@ -44,6 +44,8 @@ export type ComprovanteReservaDados = {
   destino: string;
   limiteEmissao?: string;
   total: number;
+  /** Quando true, o plano de viagem sai sem nenhum valor. */
+  ocultarValores?: boolean;
   passageiros: ComprovantePax[];
   /** Cada grupo é um sentido/trecho: IDA, VOLTA ou TRECHO 3, 4... */
   grupos: Array<{ titulo: string; voos: ComprovanteVoo[] }>;
@@ -52,6 +54,22 @@ export type ComprovanteReservaDados = {
 /* ------------------------------- formatação ------------------------------- */
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** Nome próprio sempre em Caixa Alta Inicial: "lucas rocha francez" -> "Lucas Rocha Francez". */
+const MINUSCULAS_NOME = new Set(["de", "da", "do", "das", "dos", "e"]);
+export function nomeProprio(v?: string): string {
+  if (!v) return "";
+  return v
+    .trim()
+    .toLocaleLowerCase("pt-BR")
+    .split(/\s+/)
+    .map((p, i) =>
+      i > 0 && MINUSCULAS_NOME.has(p)
+        ? p
+        : p.charAt(0).toLocaleUpperCase("pt-BR") + p.slice(1),
+    )
+    .join(" ");
+}
 
 function parseData(v?: string): Date | null {
   if (!v) return null;
@@ -339,7 +357,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
               ) : null}
               <div>
                 <span>Consultor</span>
-                <b>{dados.consultor || "VIA AIR"}</b>
+                <b>{nomeProprio(dados.consultor) || "VIA AIR"}</b>
               </div>
               <div>
                 <span>Origem</span>
@@ -361,15 +379,17 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
               </div>
             </div>
 
-            <div className="total-price">
-              <div>
-                <div className="price-label">Valor total da passagem</div>
-                <div className="price-note">
-                  Valor total da reserva aérea para os passageiros informados.
+            {dados.ocultarValores ? null : (
+              <div className="total-price">
+                <div>
+                  <div className="price-label">Valor total da passagem</div>
+                  <div className="price-note">
+                    Valor total da reserva aérea para os passageiros informados.
+                  </div>
                 </div>
+                <div className="price">{brl(dados.total)}</div>
               </div>
-              <div className="price">{brl(dados.total)}</div>
-            </div>
+            )}
           </div>
 
           {temPrazo ? (

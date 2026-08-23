@@ -1,6 +1,7 @@
 import { ComissaoExtraEditor } from "@/components/passhub/ComissaoExtraEditor";
 import { BlocoPagamentoInterno } from "@/components/passhub/BlocoPagamentoInterno";
 import { PassageirosEditor } from "@/components/passhub/PassageirosEditor";
+import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 import { useMemo, useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -199,14 +200,26 @@ function DetalheReserva({
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={r.status} />
-          <a
-            className="cons-btn"
-            href={`/admin/reservas/${r.idPassagem}/plano-viagem`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <FileText className="h-4 w-4" /> Plano de viagem
-          </a>
+          <div className="flex items-center gap-1 rounded-full border border-white/10 p-1">
+            <a
+              className="cons-btn !border-0 !px-3 !py-1.5"
+              href={`/admin/reservas/${r.idPassagem}/plano-viagem`}
+              target="_blank"
+              rel="noreferrer"
+              title="Plano de viagem com o valor total"
+            >
+              <FileText className="h-4 w-4" /> Plano com valor
+            </a>
+            <a
+              className="cons-btn !border-0 !px-3 !py-1.5"
+              href={`/admin/reservas/${r.idPassagem}/plano-viagem?valores=0`}
+              target="_blank"
+              rel="noreferrer"
+              title="Plano de viagem sem nenhum valor"
+            >
+              <FileText className="h-4 w-4" /> Sem valor
+            </a>
+          </div>
           {!cancelada && (
             <button
               type="button"
@@ -254,7 +267,7 @@ function DetalheReserva({
             <div className="cons-box p-4">
               <div className="cons-lab mb-2">Criação</div>
               <div className="text-[16px] font-black">{dataHora(r.criadaEm)}</div>
-              <div className="text-[12px] cons-muted">{r.emissor || "VIA AIR"}</div>
+              <div className="text-[12px] cons-muted">{nomeProprio(r.emissor) || "VIA AIR"}</div>
             </div>
           </div>
 
