@@ -13,6 +13,9 @@ import {
   type FiltrosMotor,
 } from "@/components/passhub/ResultadosPassHub";
 import { isBrIata } from "@/lib/br-airports";
+import { QuoteBasketBar } from "@/components/quote/QuoteBasketBar";
+import { addToQuoteBasket } from "@/lib/quote-basket";
+import { passhubResumoLinhas, passhubToQuoteFlight } from "@/lib/passhub/quote";
 import type { PassHubOferta, PassHubResultado } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/passhub")({
