@@ -276,3 +276,53 @@ export const atualizarValorItemOrcamento = createServerFn({ method: "POST" })
       item.total = data.total;
     });
   });
+
+/** Define (ou limpa) as condições de pagamento MANUAIS de uma opção. */
+export const definirPagamentoOpcao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => {
+    const money = z.number().min(0).max(10_000_000).nullable();
+    const data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable();
+    return z
+      .object({
+        quoteId: z.string().uuid(),
+        optionNumber: z.number().int().min(1).max(20),
+        override: z
+          .object({
+            enabled: z.boolean(),
+            card: z.object({
+              enabled: z.boolean(),
+              installments: z.number().int().min(1).max(24).nullable(),
+              amount: money,
+              interestFree: z.boolean(),
+            }),
+            boleto: z.object({
+              enabled: z.boolean(),
+              entrada: money,
+              installments: z.number().int().min(1).max(24).nullable(),
+              amount: money,
+              dueDate: data,
+              note: z.string().trim().max(300).nullable(),
+            }),
+            pix: z.object({
+              enabled: z.boolean(),
+              total: money,
+              discountPercent: z.number().min(0).max(50).nullable(),
+            }),
+            dueDate: data,
+            note: z.string().trim().max(300).nullable(),
+          })
+          .nullable(),
+      })
+      .parse(i);
+  })
+  .handler(async ({ data, context }) => {
+    await assertQuoteStaff(context.supabase as never, context.userId);
+    const { mutateQuoteNormalized } = await import("./items.server");
+    await mutateQuoteNormalized(data.quoteId, (normalized) => {
+      const opt = normalized.options.find((o) => o.optionNumber === data.optionNumber);
+      if (!opt) throw new Error("Opção não encontrada");
+      opt.paymentOverride = data.override;
+    });
+    return { ok: true };
+  });
