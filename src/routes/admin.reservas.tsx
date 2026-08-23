@@ -562,7 +562,10 @@ function ReservasPage() {
                         {r.dataVolta ? ` / ${dataCurta(r.dataVolta)}` : ""}
                       </td>
                       <td>{dataHora(r.criadaEm)}</td>
-                      <td>{dataHora(r.limiteEmissao)}</td>
+                      <td>
+                        {(r.status || "").toUpperCase() === "ISSUED" ? "—" : dataHora(r.limiteEmissao)}
+                      </td>
+
                       <td>
                         <StatusBadge status={r.status} />
                       </td>
