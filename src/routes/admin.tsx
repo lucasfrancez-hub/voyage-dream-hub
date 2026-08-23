@@ -200,8 +200,10 @@ function AdminLayout() {
 
   useEffect(() => {
     if (session === undefined) return;
-    if (aparelho === undefined) return;
-    if (!session) {
+    // Com sessão, o papel é consultado na hora: não espera o status do
+    // aparelho (esse round-trip só decide PIN x login quando NÃO há sessão).
+    if (!session && aparelho === undefined) return;
+    if (!session && aparelho) {
       if (aparelho.registrado) {
         void (async () => {
           try {
