@@ -347,8 +347,7 @@ const CSS = `
   .crdoc .sheet{width:100%;max-width:none;box-shadow:none;border-radius:0;margin:0;overflow:visible}
   .crdoc *{print-color-adjust:exact;-webkit-print-color-adjust:exact}
   .crdoc header{padding:12px 20px 10px}
-  .crdoc .brand img{height:34px;width:34px}
-  .crdoc .brand-name{font-size:19px}
+  .crdoc .brand img{height:34px;width:auto}
   .crdoc .doc-title h1{font-size:17px}
   .crdoc .hero{padding:10px 20px 4px;gap:10px}
   .crdoc .hero-card,.crdoc .value-card{padding:12px}
