@@ -114,7 +114,13 @@ function paraComprovante(r: PassHubReservaLista): ComprovanteReservaDados {
 
 function PlanoViagemPage() {
   const { id } = Route.useParams();
+  const [semValores, setSemValores] = useState(false);
   const detalheFn = useServerFn(passhubReservaDetalhe);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    setSemValores(p.get("valores") === "0");
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["passhub-reserva-plano", id],
