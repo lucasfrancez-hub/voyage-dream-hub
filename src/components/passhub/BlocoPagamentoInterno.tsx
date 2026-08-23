@@ -93,6 +93,8 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
     valor: number;
     expiraEm: string;
   } | null>(null);
+  const [previa, setPrevia] = useState<PreviaPix | null>(null);
+
 
   const pagamentos = useQuery({
     queryKey: ["passhub-pagamentos", r.idPassagem],
