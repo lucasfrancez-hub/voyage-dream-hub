@@ -5,7 +5,7 @@
  * agência (inclusive as criadas direto no site da PassHub).
  */
 import { passhubRequest } from "./client.server";
-import type { PassHubReservaLista } from "./types";
+import type { PassHubReservaLista, PassHubReservaPax } from "./types";
 
 const GERENCIA = "https://emissor-gerencia.passhub.com.br";
 
@@ -340,4 +340,47 @@ export async function passhubSalvarComissaoExtra(input: {
     comissaoExtra: Number(data?.comissao_extra ?? valor),
     observacao: data?.observacao ?? "",
   };
+}
+
+/** Grava os dados completos dos passageiros de uma reserva (substitui os atuais). */
+export async function passhubSalvarPassageirosReserva(
+  localizador: string,
+  passageiros: Array<{
+    nome: string;
+    documentoTipo: string;
+    documento?: string;
+    nascimento?: string | null;
+    tipo?: string;
+  }>,
+): Promise<PassHubReservaPax[]> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin.from("passhub_reserva_pax").delete().eq("localizador", localizador);
+  if (passageiros.length === 0) return [];
+  const linhas = passageiros.map((p, i) => {
+    const partes = p.nome.trim().toUpperCase().split(/\s+/);
+    return {
+      localizador,
+      ordem: i,
+      nome: partes.slice(0, -1).join(" ") || partes[0] || "",
+      sobrenome: partes.length > 1 ? partes[partes.length - 1] : "",
+      documento_tipo: p.documentoTipo === "passport" ? "passport" : "cpf",
+      documento:
+        p.documentoTipo === "passport"
+          ? (p.documento ?? "").trim().toUpperCase()
+          : (p.documento ?? "").replace(/\D/g, ""),
+      nascimento: p.nascimento || null,
+      tipo: p.tipo || "ADT",
+    };
+  });
+  const { error } = await supabaseAdmin.from("passhub_reserva_pax").insert(linhas);
+  if (error) throw new Error(`Falha ao salvar passageiros: ${error.message}`);
+  return linhas.map((l) => ({
+    nome: `${l.nome} ${l.sobrenome}`.trim(),
+    documentoTipo: l.documento_tipo,
+    documento: l.documento,
+    nascimento: l.nascimento ?? "",
+    genero: "",
+    tipo: l.tipo,
+    telefone: "",
+  }));
 }

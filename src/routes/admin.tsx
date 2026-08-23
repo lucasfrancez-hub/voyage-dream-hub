@@ -57,6 +57,8 @@ type Role = "admin" | "partner" | "marketing" | null;
 function AdminRoute() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (pathname.startsWith("/admin/app/")) return <Outlet />;
+  // Documentos para impressão abrem sem o painel (menu/topo) em volta.
+  if (pathname.endsWith("/plano-viagem")) return <Outlet />;
   return <AdminLayout />;
 }
 

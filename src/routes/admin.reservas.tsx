@@ -1,6 +1,7 @@
 import { ComissaoExtraEditor } from "@/components/passhub/ComissaoExtraEditor";
 import { BlocoPagamentoInterno } from "@/components/passhub/BlocoPagamentoInterno";
-import { useMemo, useState } from "react";
+import { PassageirosEditor } from "@/components/passhub/PassageirosEditor";
+import { useMemo, useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -8,6 +9,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
   Copy,
   CreditCard,
   FileText,
@@ -19,7 +21,6 @@ import {
   Search,
   Send,
 
-  Users,
   XCircle,
 } from "lucide-react";
 import {
@@ -30,7 +31,7 @@ import {
 } from "@/lib/passhub/passhub.functions";
 import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
 import { confirm } from "@/lib/confirm";
-import type { PassHubReservaLista } from "@/lib/passhub/types";
+import type { PassHubReservaLista, PassHubReservaPax } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/reservas")({
   component: ReservasPage,
@@ -76,16 +77,6 @@ const dataCurta = (iso: string) => {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 };
 
-const iniciais = (nome: string) =>
-  nome
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase() || "--";
-
 const hora = (iso: string) => {
   if (!iso) return "";
   const d = new Date(iso);
@@ -109,6 +100,37 @@ function StatusBadge({ status }: { status: string }) {
   const classe =
     s === "ISSUED" ? "cons-status-ok" : s === "CREATED" ? "cons-status-res" : "cons-status-pay";
   return <span className={`cons-status ${classe}`}>{label}</span>;
+}
+
+function SecaoRecolhivel({
+  titulo,
+  icone,
+  children,
+  aberta,
+}: {
+  titulo: string;
+  icone: ReactNode;
+  children: ReactNode;
+  aberta?: boolean;
+}) {
+  const [open, setOpen] = useState(Boolean(aberta));
+  return (
+    <div className="cons-card overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-[15px] font-bold">
+          {icone} {titulo}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open ? <div className="border-t border-white/5 p-4">{children}</div> : null}
+    </div>
+  );
 }
 
 function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
@@ -187,10 +209,7 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
 
 
   return (
-    <div className="cons-card p-4">
-      <h3 className="mb-3 flex items-center gap-2 text-[15px] font-bold">
-        <CreditCard className="h-4 w-4" /> Link de pagamento
-      </h3>
+    <div>
       {link ? (
         <div className="space-y-2">
           <code className="block break-all rounded-lg bg-white/5 px-2 py-1 text-[11px]">{link}</code>
@@ -322,6 +341,19 @@ function DetalheReserva({
   });
 
   const [extra, setExtra] = useState({ valor: r.comissaoExtra, obs: r.comissaoExtraObs });
+  const [pax, setPax] = useState<PassHubReservaPax[]>(
+    r.passageirosDetalhe.length
+      ? r.passageirosDetalhe
+      : r.passageiros.map((nome) => ({
+          nome,
+          documentoTipo: "cpf",
+          documento: "",
+          nascimento: "",
+          genero: "",
+          tipo: "",
+          telefone: "",
+        })),
+  );
   const totalComExtra = r.totalVenda - r.comissaoExtra + extra.valor;
 
   const pedirCancelamento = async () => {
@@ -444,18 +476,20 @@ function DetalheReserva({
                       </div>
                     </div>
 
-                    <div className="relative flex items-center justify-between px-1">
-                      <div className="relative z-10 bg-[#0b1a24] pr-4">
+                    <div className="flex items-center gap-4 px-1">
+                      <div className="min-w-0">
                         <div className="text-[26px] font-black leading-none">{hora(s.partida)}</div>
                         <div className="mt-1 text-[13px] font-bold cons-muted">{s.origem}</div>
                         <div className="text-[11px] cons-muted">{dataCurta(s.partida)}</div>
                       </div>
-                      <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center border-t border-dashed border-white/10">
-                        <span className="-mt-3 rounded-full bg-white/10 p-1.5">
+                      <div className="flex flex-1 items-center gap-2">
+                        <span className="h-px flex-1 border-t border-dashed border-white/10" />
+                        <span className="rounded-full bg-white/10 p-1.5">
                           <Plane className="h-3 w-3 rotate-90 text-[#77b8ff]" />
                         </span>
+                        <span className="h-px flex-1 border-t border-dashed border-white/10" />
                       </div>
-                      <div className="relative z-10 bg-[#0b1a24] pl-4 text-right">
+                      <div className="min-w-0 text-right">
                         <div className="text-[26px] font-black leading-none">{hora(s.chegada)}</div>
                         <div className="mt-1 text-[13px] font-bold cons-muted">{s.destino}</div>
                         <div className="text-[11px] cons-muted">{dataCurta(s.chegada)}</div>
@@ -492,71 +526,12 @@ function DetalheReserva({
 
           <div className="cons-dot my-5" />
 
-          <h3 className="mb-3 flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.14em] text-[#9fb4c6]">
-            <Users className="h-4 w-4 text-[#8ce0b6]" /> Passageiros
-          </h3>
-          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.04]">
-            <table className="w-full min-w-[560px] text-left">
-              <thead className="border-b border-white/5 bg-white/[0.04]">
-                <tr>
-                  <th className="px-5 py-3 cons-lab">Nome completo</th>
-                  <th className="px-5 py-3 text-center cons-lab">Documento</th>
-                  <th className="px-5 py-3 text-center cons-lab">Nascimento</th>
-                  <th className="px-5 py-3 text-right cons-lab">Tipo</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {(r.passageirosDetalhe.length
-                  ? r.passageirosDetalhe
-                  : r.passageiros.map((nome) => ({
-                      nome,
-                      documento: "",
-                      documentoTipo: "cpf",
-                      nascimento: "",
-                      tipo: "",
-                      genero: "",
-                      telefone: "",
-                    }))
-                ).map((p, i) => (
-                  <tr key={i}>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="grid h-8 w-8 place-items-center rounded-full bg-[#8ce0b6]/10 text-[11px] font-black text-[#8ce0b6]">
-                          {iniciais(p.nome)}
-                        </span>
-                        <span className="text-[13px] font-bold uppercase">{p.nome}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-center text-[13px]">
-                      {p.documento ? (
-                        <>
-                          <span className="cons-muted mr-1 text-[11px] uppercase">
-                            {p.documentoTipo === "passport" ? "Pass." : "CPF"}
-                          </span>
-                          <b>{p.documento}</b>
-                        </>
-                      ) : (
-                        <span className="cons-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-center text-[13px] font-bold">
-                      {p.nascimento ? dataCurta(p.nascimento) : <span className="cons-muted font-normal">—</span>}
-                    </td>
-                    <td className="px-5 py-4 text-right text-[12px] cons-muted uppercase">
-                      {p.tipo || "ADT"}
-                    </td>
-                  </tr>
-                ))}
-                {r.passageirosDetalhe.length === 0 && r.passageiros.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-5 py-6 text-center text-[13px] cons-muted">
-                      Sem passageiros informados
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <PassageirosEditor
+            localizador={r.localizador || String(r.idPassagem)}
+            passageiros={pax}
+            onSalvo={(lista) => setPax(lista)}
+          />
+
 
         </div>
 
@@ -595,8 +570,12 @@ function DetalheReserva({
           </div>
 
 
-          <BlocoPagamento r={r} />
-          <BlocoPagamentoInterno r={r} />
+          <SecaoRecolhivel titulo="Link de pagamento" icone={<CreditCard className="h-4 w-4" />}>
+            <BlocoPagamento r={r} />
+          </SecaoRecolhivel>
+          <SecaoRecolhivel titulo="Pagamento interno" icone={<QrCode className="h-4 w-4" />}>
+            <BlocoPagamentoInterno r={r} />
+          </SecaoRecolhivel>
         </div>
       </div>
     </div>

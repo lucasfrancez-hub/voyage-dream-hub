@@ -281,7 +281,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
   const heroSimples = !temPrazo && !dados.emitido;
 
   return (
-    <div className="crdoc" data-density={densidade}>
+    <div className="crdoc" id="comprovante-print" data-density={densidade}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       <main className="sheet">
