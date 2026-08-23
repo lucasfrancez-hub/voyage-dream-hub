@@ -160,16 +160,40 @@ export function OpcaoPagamentoDialog({
   quoteId,
   optionNumber,
   optionLabel,
+  optionTotal,
   atual,
   open,
   onOpenChange,
   onSaved,
 }: Props) {
-  const [ov, setOv] = useState<OptionPaymentOverride>(atual ?? emptyPaymentOverride());
+  const total = optionTotal ?? 0;
+
+  /** Base pré-preenchida com as regras automáticas (só edita se quiser). */
+  const preenchido = (base: OptionPaymentOverride): OptionPaymentOverride => ({
+    ...base,
+    card: {
+      ...base.card,
+      rows: base.card.rows?.length ? base.card.rows : faixasAutomaticas(total, 12),
+    },
+    boleto: {
+      ...base.boleto,
+      rows: base.boleto.rows?.length ? base.boleto.rows : faixasAutomaticas(total, 10),
+    },
+    pix: {
+      ...base.pix,
+      total: base.pix.total ?? (total > 0 ? Math.round(total * 0.95 * 100) / 100 : null),
+      discountPercent: base.pix.discountPercent ?? (total > 0 ? 5 : null),
+    },
+  });
+
+  const [ov, setOv] = useState<OptionPaymentOverride>(() =>
+    preenchido(atual ?? emptyPaymentOverride()),
+  );
 
   useEffect(() => {
-    if (open) setOv(atual ?? emptyPaymentOverride());
-  }, [open, atual]);
+    if (open) setOv(preenchido(atual ?? emptyPaymentOverride()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, atual, total]);
 
   const salvar = useServerFn(definirPagamentoOpcao);
   const mutation = useMutation({
@@ -184,6 +208,7 @@ export function OpcaoPagamentoDialog({
   });
 
   const set = (patch: Partial<OptionPaymentOverride>) => setOv((o) => ({ ...o, ...patch }));
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
