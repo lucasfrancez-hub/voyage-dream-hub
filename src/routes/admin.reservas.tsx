@@ -223,7 +223,7 @@ function DetalheReserva({
                 <ChevronDown className="h-3.5 w-3.5 opacity-70" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[180px]">
+            <DropdownMenuContent align="end" className="z-[120] min-w-[180px]">
               <DropdownMenuItem
                 className="flex w-full cursor-pointer items-center gap-2"
                 onClick={() => void abrirDocumento("reserva", r.idPassagem)}
@@ -451,7 +451,7 @@ function ReservasPage() {
   const listarPedidos = useServerFn(pedidosReservasAereas);
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
-  const [fonte, setFonte] = useState<FonteReserva>("todas");
+  const [fonte, setFonte] = useState<FonteReserva>("consolidadora");
   const [aberta, setAberta] = useState<PassHubReservaLista | null>(null);
 
   const { data, isFetching, refetch } = useQuery({

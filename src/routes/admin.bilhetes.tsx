@@ -113,7 +113,7 @@ function BotaoImprimir({ id }: { id: number }) {
           <Printer className="h-4 w-4" /> Baixar bilhete
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="z-[120]">
         <DropdownMenuItem onClick={() => void abrirDocumento("bilhete", id)}>
           Com valor total
         </DropdownMenuItem>
@@ -441,7 +441,7 @@ function BilhetesPage() {
   const listarPedidos = useServerFn(pedidosReservasAereas);
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
-  const [fonte, setFonte] = useState<FonteReserva>("todas");
+  const [fonte, setFonte] = useState<FonteReserva>("consolidadora");
   const [aberto, setAberto] = useState<PassHubReservaLista | null>(null);
 
   const { data, isFetching, refetch } = useQuery({

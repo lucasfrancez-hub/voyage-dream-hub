@@ -28,18 +28,26 @@ export async function abrirDocumento(
   id: string | number,
   opcoes: { semValores?: boolean } = {},
 ): Promise<void> {
+  // A aba precisa ser aberta ANTES do await: Safari/iOS (e o app instalado)
+  // bloqueiam window.open chamado depois de uma requisição.
+  const aba = window.open("about:blank", "_blank", "noopener,noreferrer");
   const url = await linkDocumento(tipo, id, opcoes);
   if (!url) {
+    aba?.close();
     toast.error("Não foi possível gerar o link do documento.");
     return;
   }
-  const aba = window.open(url, "_blank", "noopener,noreferrer");
-  if (!aba) {
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link do documento copiado — cole no navegador.");
-    } catch {
-      toast.error("Permita abrir novas abas para ver o documento.");
-    }
+  if (aba && !aba.closed) {
+    aba.location.replace(url);
+    return;
+  }
+  const nova = window.open(url, "_blank", "noopener,noreferrer");
+  if (nova) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast.success("Link do documento copiado — cole no navegador.");
+  } catch {
+    toast.error("Permita abrir novas abas para ver o documento.");
   }
 }
+
