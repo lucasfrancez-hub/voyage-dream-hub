@@ -7,6 +7,8 @@ import {
 import { ComissaoExtraEditor } from "@/components/passhub/ComissaoExtraEditor";
 import { BlocoPagamentoInterno } from "@/components/passhub/BlocoPagamentoInterno";
 import { PassageirosEditor } from "@/components/passhub/PassageirosEditor";
+import { BlocoBilhete } from "@/components/passhub/BlocoBilhete";
+
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 import { useMemo, useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
