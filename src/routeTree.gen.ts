@@ -37,6 +37,7 @@ import { Route as AdminBuscarRouteImport } from './routes/admin.buscar'
 import { Route as AdminCarrosRouteImport } from './routes/admin.carros'
 import { Route as AdminCheckinTreinoRouteImport } from './routes/admin.checkin-treino'
 import { Route as AdminCheckinsRouteImport } from './routes/admin.checkins'
+import { Route as AdminCodigosAuthRouteImport } from './routes/admin.codigos-auth'
 import { Route as AdminCofreRouteImport } from './routes/admin.cofre'
 import { Route as AdminComprovantesRouteImport } from './routes/admin.comprovantes'
 import { Route as AdminContaBancariaRouteImport } from './routes/admin.conta-bancaria'
@@ -322,6 +323,11 @@ const AdminCheckinTreinoRoute = AdminCheckinTreinoRouteImport.update({
 const AdminCheckinsRoute = AdminCheckinsRouteImport.update({
   id: '/checkins',
   path: '/checkins',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCodigosAuthRoute = AdminCodigosAuthRouteImport.update({
+  id: '/codigos-auth',
+  path: '/codigos-auth',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCofreRoute = AdminCofreRouteImport.update({
@@ -1125,6 +1131,7 @@ export interface FileRoutesByFullPath {
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
+  '/admin/codigos-auth': typeof AdminCodigosAuthRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/comprovantes': typeof AdminComprovantesRoute
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
@@ -1299,6 +1306,7 @@ export interface FileRoutesByTo {
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
+  '/admin/codigos-auth': typeof AdminCodigosAuthRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/comprovantes': typeof AdminComprovantesRoute
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
@@ -1476,6 +1484,7 @@ export interface FileRoutesById {
   '/admin/carros': typeof AdminCarrosRoute
   '/admin/checkin-treino': typeof AdminCheckinTreinoRoute
   '/admin/checkins': typeof AdminCheckinsRoute
+  '/admin/codigos-auth': typeof AdminCodigosAuthRoute
   '/admin/cofre': typeof AdminCofreRoute
   '/admin/comprovantes': typeof AdminComprovantesRoute
   '/admin/conta-bancaria': typeof AdminContaBancariaRoute
@@ -1654,6 +1663,7 @@ export interface FileRouteTypes {
     | '/admin/carros'
     | '/admin/checkin-treino'
     | '/admin/checkins'
+    | '/admin/codigos-auth'
     | '/admin/cofre'
     | '/admin/comprovantes'
     | '/admin/conta-bancaria'
@@ -1828,6 +1838,7 @@ export interface FileRouteTypes {
     | '/admin/carros'
     | '/admin/checkin-treino'
     | '/admin/checkins'
+    | '/admin/codigos-auth'
     | '/admin/cofre'
     | '/admin/comprovantes'
     | '/admin/conta-bancaria'
@@ -2004,6 +2015,7 @@ export interface FileRouteTypes {
     | '/admin/carros'
     | '/admin/checkin-treino'
     | '/admin/checkins'
+    | '/admin/codigos-auth'
     | '/admin/cofre'
     | '/admin/comprovantes'
     | '/admin/conta-bancaria'
@@ -2442,6 +2454,13 @@ declare module '@tanstack/react-router' {
       path: '/checkins'
       fullPath: '/admin/checkins'
       preLoaderRoute: typeof AdminCheckinsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/codigos-auth': {
+      id: '/admin/codigos-auth'
+      path: '/codigos-auth'
+      fullPath: '/admin/codigos-auth'
+      preLoaderRoute: typeof AdminCodigosAuthRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/cofre': {
@@ -3489,6 +3508,7 @@ interface AdminRouteChildren {
   AdminCarrosRoute: typeof AdminCarrosRoute
   AdminCheckinTreinoRoute: typeof AdminCheckinTreinoRoute
   AdminCheckinsRoute: typeof AdminCheckinsRoute
+  AdminCodigosAuthRoute: typeof AdminCodigosAuthRoute
   AdminCofreRoute: typeof AdminCofreRoute
   AdminComprovantesRoute: typeof AdminComprovantesRoute
   AdminContaBancariaRoute: typeof AdminContaBancariaRoute
@@ -3553,6 +3573,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCarrosRoute: AdminCarrosRoute,
   AdminCheckinTreinoRoute: AdminCheckinTreinoRoute,
   AdminCheckinsRoute: AdminCheckinsRoute,
+  AdminCodigosAuthRoute: AdminCodigosAuthRoute,
   AdminCofreRoute: AdminCofreRoute,
   AdminComprovantesRoute: AdminComprovantesRoute,
   AdminContaBancariaRoute: AdminContaBancariaRoute,
