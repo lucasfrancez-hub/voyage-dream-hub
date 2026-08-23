@@ -552,19 +552,45 @@ export async function processarWebhookPagamentoReserva(body: any): Promise<{ han
  * grava falhas/recusas no pagamento. Chamado pelo botão "Atualizar".
  */
 async function sincronizarRepasses(rows: Record<string, any>[]) {
-  const pendentes = rows.filter(
-    (r) => r.repasse_transfer_id && ["repassando", "repassado"].includes(String(r.status)),
-  );
+  const pendentes = rows.filter((r) => ["repassando", "repassado"].includes(String(r.status)));
   for (const r of pendentes) {
     try {
-      const t: any = await getAsaasTransfer(String(r.repasse_transfer_id));
-      const bruto = String(t?.status ?? "").toUpperCase();
+      let bruto = "";
+      let falha: string | null = null;
+      if (r.repasse_transfer_id) {
+        const t: any = await getAsaasTransfer(String(r.repasse_transfer_id));
+        bruto = String(t?.status ?? "").toUpperCase();
+        falha = t?.failReason ?? null;
+      }
+      if (!bruto) {
+        // Sem id de transferência (ou id inválido): confere o registro local
+        // criado antes do pagamento, atualizado pelo webhook TRANSFER_*.
+        const criado = new Date(r.created_at ?? Date.now()).getTime();
+        const { data: cand } = await supabaseAdmin
+          .from("asaas_transfers")
+          .select("asaas_status, status, fail_reason, created_at, value")
+          .gte("created_at", new Date(criado - 15 * 60_000).toISOString())
+          .lte("created_at", new Date(criado + 15 * 60_000).toISOString())
+          .order("created_at", { ascending: false });
+        const alvo = (cand ?? []).find(
+          (t: any) => Math.abs(Number(t.value ?? 0) - Number(r.repasse_valor ?? r.valor_passhub ?? 0)) < 0.01,
+        ) as any;
+        if (alvo) {
+          bruto =
+            String(alvo.asaas_status ?? "").toUpperCase() ||
+            ({ concluido: "DONE", falhou: "FAILED", cancelado: "CANCELLED" } as Record<string, string>)[
+              String(alvo.status ?? "")
+            ] ||
+            "";
+          falha = alvo.fail_reason ?? null;
+        }
+      }
       if (!bruto || bruto === String(r.repasse_status ?? "").toUpperCase()) continue;
       const resultado = statusRepasse(bruto);
       const patch = {
         status: resultado.status,
         repasse_status: bruto,
-        repasse_erro: resultado.erro ?? t?.failReason ?? null,
+        repasse_erro: resultado.erro ?? falha ?? null,
         repasse_em: resultado.status === "repassado" ? r.repasse_em ?? new Date().toISOString() : null,
       };
       await supabaseAdmin.from("passhub_pagamentos").update(patch).eq("id", r.id);
@@ -572,12 +598,27 @@ async function sincronizarRepasses(rows: Record<string, any>[]) {
       if (r.repasse_transfer_id) {
         await supabaseAdmin
           .from("asaas_transfers")
-          .update({ asaas_status: bruto, fail_reason: t?.failReason ?? null })
+          .update({ asaas_status: bruto, fail_reason: falha ?? null })
           .eq("asaas_transfer_id", String(r.repasse_transfer_id));
       }
     } catch (e) {
       console.error("[passhub-pagamento] sync transferência falhou:", (e as Error).message);
     }
+  }
+}
+
+/** Cancela cobranças Pix ao cliente que já passaram do prazo (30 min por padrão). */
+async function expirarCobrancas(rows: Record<string, any>[]) {
+  const agora = Date.now();
+  for (const r of rows) {
+    if (String(r.status) !== "aguardando") continue;
+    const limite = r.pix_expira_em
+      ? new Date(r.pix_expira_em).getTime()
+      : new Date(r.created_at ?? agora).getTime() + 30 * 60_000;
+    if (!Number.isFinite(limite) || agora <= limite) continue;
+    const patch = { status: "cancelado", repasse_erro: "Cobrança Pix expirada sem pagamento." };
+    await supabaseAdmin.from("passhub_pagamentos").update(patch).eq("id", r.id);
+    Object.assign(r, patch);
   }
 }
 
