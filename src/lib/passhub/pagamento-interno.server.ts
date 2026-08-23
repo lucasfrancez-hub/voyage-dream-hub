@@ -542,12 +542,48 @@ export async function processarWebhookPagamentoReserva(body: any): Promise<{ han
   }
 }
 
-/** Pagamentos registrados de uma reserva. */
+/**
+ * Reconfere no ASAAS o status real das transferências ainda em andamento e
+ * grava falhas/recusas no pagamento. Chamado pelo botão "Atualizar".
+ */
+async function sincronizarRepasses(rows: Record<string, any>[]) {
+  const pendentes = rows.filter(
+    (r) => r.repasse_transfer_id && ["repassando", "repassado"].includes(String(r.status)),
+  );
+  for (const r of pendentes) {
+    try {
+      const t: any = await getAsaasTransfer(String(r.repasse_transfer_id));
+      const bruto = String(t?.status ?? "").toUpperCase();
+      if (!bruto || bruto === String(r.repasse_status ?? "").toUpperCase()) continue;
+      const resultado = statusRepasse(bruto);
+      const patch: Record<string, any> = {
+        status: resultado.status,
+        repasse_status: bruto,
+        repasse_erro: resultado.erro ?? t?.failReason ?? null,
+        repasse_em: resultado.status === "repassado" ? r.repasse_em ?? new Date().toISOString() : null,
+      };
+      await supabaseAdmin.from("passhub_pagamentos").update(patch).eq("id", r.id);
+      Object.assign(r, patch);
+      if (r.repasse_transfer_id) {
+        await supabaseAdmin
+          .from("asaas_transfers")
+          .update({ asaas_status: bruto, fail_reason: t?.failReason ?? null })
+          .eq("asaas_transfer_id", String(r.repasse_transfer_id));
+      }
+    } catch (e) {
+      console.error("[passhub-pagamento] sync transferência falhou:", (e as Error).message);
+    }
+  }
+}
+
+/** Pagamentos registrados de uma reserva (com status do repasse atualizado). */
 export async function listarPagamentosReserva(idPassagem: number): Promise<PagamentoReserva[]> {
   const { data } = await supabaseAdmin
     .from("passhub_pagamentos")
     .select("*")
     .eq("id_passagem", idPassagem)
     .order("created_at", { ascending: false });
-  return (data ?? []).map((r) => mapear(r as Record<string, any>));
+  const rows = (data ?? []) as Record<string, any>[];
+  await sincronizarRepasses(rows);
+  return rows.map((r) => mapear(r));
 }
