@@ -122,8 +122,32 @@ async function anexaPassageiros(reservas: PassHubReservaLista[]): Promise<PassHu
   } catch (e) {
     console.error("[passhub] passageiros locais indisponíveis:", e);
   }
+  await marcaCanceladasLocais(reservas);
   return reservas;
 }
+
+/** Reservas que cancelamos por aqui aparecem como canceladas mesmo que a PassHub demore a refletir. */
+async function marcaCanceladasLocais(reservas: PassHubReservaLista[]): Promise<void> {
+  const locs = reservas.map((r) => r.localizador).filter(Boolean);
+  if (locs.length === 0) return;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("passhub_reserva_cancelada")
+      .select("localizador, motivo")
+      .in("localizador", locs);
+    const canceladas = new Map((data ?? []).map((c) => [c.localizador, c.motivo ?? ""]));
+    for (const r of reservas) {
+      const motivo = canceladas.get(r.localizador);
+      if (motivo === undefined) continue;
+      r.status = "CANCELED";
+      r.statusDescricao = motivo || "Cancelada pela agência";
+    }
+  } catch (e) {
+    console.error("[passhub] cancelamentos locais indisponíveis:", e);
+  }
+}
+
 
 /** Todas as reservas da agência na PassHub, mais recentes primeiro. */
 export async function passhubListarReservas(): Promise<PassHubReservaLista[]> {
