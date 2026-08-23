@@ -180,7 +180,53 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
             <a className="cons-btn cons-btn-blue" href={link} target="_blank" rel="noreferrer">
               Abrir checkout
             </a>
+            <button
+              type="button"
+              className="cons-btn cons-btn-primary"
+              onClick={() => gerarPix.mutate()}
+              disabled={gerarPix.isPending}
+            >
+              {gerarPix.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <QrCode className="h-4 w-4" />
+              )}
+              {pix ? "Gerar Pix novamente" : "Gerar QR Code Pix"}
+            </button>
           </div>
+
+          {pix ? (
+            <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-3 sm:flex-row sm:items-center">
+              {pix.qrCodeBase64 ? (
+                <img
+                  src={pix.qrCodeBase64}
+                  alt="QR Code Pix da reserva"
+                  className="h-40 w-40 shrink-0 rounded-lg bg-white p-2"
+                />
+              ) : null}
+              <div className="min-w-0 flex-1 space-y-2">
+                {pix.valor ? (
+                  <p className="text-[13px] font-semibold">
+                    {pix.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </p>
+                ) : null}
+                {pix.expiraEm ? (
+                  <p className="text-[11px] cons-muted">Válido até {pix.expiraEm}</p>
+                ) : null}
+                <code className="block max-h-24 overflow-auto break-all rounded-lg bg-black/30 px-2 py-1 text-[10px]">
+                  {pix.copiaECola}
+                </code>
+                <button
+                  type="button"
+                  className="cons-btn"
+                  onClick={() => copiarPix(pix.copiaECola)}
+                >
+                  {pixCopiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} Copia e
+                  cola
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-2">
