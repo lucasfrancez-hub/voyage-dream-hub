@@ -612,9 +612,9 @@ async function expirarCobrancas(rows: Record<string, any>[]) {
   const agora = Date.now();
   for (const r of rows) {
     if (String(r.status) !== "aguardando") continue;
-    const limite = r.pix_expira_em
-      ? new Date(r.pix_expira_em).getTime()
-      : new Date(r.created_at ?? agora).getTime() + 30 * 60_000;
+    const padrao = new Date(r.created_at ?? agora).getTime() + 30 * 60_000;
+    const declarado = r.pix_expira_em ? new Date(r.pix_expira_em).getTime() : NaN;
+    const limite = Number.isFinite(declarado) ? Math.min(declarado, padrao) : padrao;
     if (!Number.isFinite(limite) || agora <= limite) continue;
     const patch = { status: "cancelado", repasse_erro: "Cobrança Pix expirada sem pagamento." };
     await supabaseAdmin.from("passhub_pagamentos").update(patch).eq("id", r.id);
@@ -631,5 +631,6 @@ export async function listarPagamentosReserva(idPassagem: number): Promise<Pagam
     .order("created_at", { ascending: false });
   const rows = (data ?? []) as Record<string, any>[];
   await sincronizarRepasses(rows);
+  await expirarCobrancas(rows);
   return rows.map((r) => mapear(r));
 }
