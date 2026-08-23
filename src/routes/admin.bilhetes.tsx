@@ -497,12 +497,13 @@ function BilhetesPage() {
             )}
 
             <div className="cons-card overflow-x-auto">
-              <table className="cons-table min-w-[1080px]">
+              <table className="cons-table min-w-[1180px]">
                 <thead>
                   <tr>
                     <th>Companhia</th>
                     <th>Localizador</th>
                     <th>Loc. cia</th>
+                    <th>Bilhete</th>
                     <th>Emissão</th>
                     <th>Embarque</th>
                     <th>Passageiro</th>
@@ -513,39 +514,53 @@ function BilhetesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {bilhetes.map((r) => (
-                    <tr key={r.idPassagem} onClick={() => setAberto(r)}>
-                      <td>
-                        <BadgeCia codigo={r.companhia} nome={r.companhia || r.provedor} />
-                      </td>
-                      <td className="font-mono font-black tracking-widest">
-                        {r.localizador || "—"}
-                      </td>
-                      <td className="font-mono">{r.localizadorCompanhia || "—"}</td>
-                      <td>{dataHora(r.emitidaEm)}</td>
-                      <td>{dataCurta(r.dataIda)}</td>
-                      <td className="max-w-[220px] truncate">
-                        {r.passageiros.map(nomeProprio).join(" · ") || "—"}
-                      </td>
-                      <td>
-                        {r.origem}-{r.destino}
-                      </td>
-                      <td>
-                        <span className="cons-status cons-status-ok">
-                          {r.emitidaEm ? "EMITIDA" : "EM EMISSÃO"}
-                        </span>
-                      </td>
-                      <td className="font-bold">{brl(r.totalVenda || r.preco)}</td>
-                      <td>
-                        <div className="cons-open">
-                          <Search className="h-3.5 w-3.5" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {bilhetes.map((r) => {
+                    const numeroBilhete = numerosPorReserva[r.idPassagem];
+                    return (
+                      <tr key={r.idPassagem} onClick={() => setAberto(r)}>
+                        <td>
+                          <BadgeCia codigo={r.companhia} nome={r.companhia || r.provedor} />
+                        </td>
+                        <td className="font-mono font-black tracking-widest">
+                          {r.localizador || "—"}
+                        </td>
+                        <td className="font-mono">{r.localizadorCompanhia || "—"}</td>
+                        <td>
+                          {numeroBilhete ? (
+                            <span className="font-mono text-[13px] font-black">{numeroBilhete}</span>
+                          ) : bilhetesFetching ? (
+                            <span className="flex items-center gap-1.5 text-[12px] cons-muted">
+                              <Loader2 className="h-3 w-3 animate-spin" /> buscando…
+                            </span>
+                          ) : (
+                            <span className="text-[12px] cons-muted">—</span>
+                          )}
+                        </td>
+                        <td>{dataHora(r.emitidaEm)}</td>
+                        <td>{dataCurta(r.dataIda)}</td>
+                        <td className="max-w-[220px] truncate">
+                          {r.passageiros.map(nomeProprio).join(" · ") || "—"}
+                        </td>
+                        <td>
+                          {r.origem}-{r.destino}
+                        </td>
+                        <td>
+                          <span className="cons-status cons-status-ok">
+                            {r.emitidaEm ? "EMITIDA" : "EM EMISSÃO"}
+                          </span>
+                        </td>
+                        <td className="font-bold">{brl(r.totalVenda || r.preco)}</td>
+                        <td>
+                          <div className="cons-open">
+                            <Search className="h-3.5 w-3.5" />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {!isFetching && bilhetes.length === 0 && !erro && (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center cons-muted">
+                      <td colSpan={11} className="py-8 text-center cons-muted">
                         Nenhum bilhete emitido até agora.
                       </td>
                     </tr>
