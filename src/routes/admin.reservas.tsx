@@ -11,6 +11,7 @@ import {
   Loader2,
   Luggage,
   Plane,
+  QrCode,
   RefreshCw,
   Search,
   Users,
@@ -19,6 +20,7 @@ import {
 import {
   passhubCancelarReserva,
   passhubLinkPagamento,
+  passhubPixReserva,
   passhubReservas,
 } from "@/lib/passhub/passhub.functions";
 import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
