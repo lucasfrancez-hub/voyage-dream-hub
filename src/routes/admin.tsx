@@ -223,10 +223,12 @@ function AdminLayout() {
       navigate({ to: "/auth" });
       return;
     }
+    if (!session) return;
+    const sessaoAtual = session;
     let cancelled = false;
     // Papel em cache (por usuário): pinta o painel na hora, sem esperar a
     // Data API. A consulta real continua rodando e corrige se mudou.
-    const chaveCache = `viaair-admin-role:${session.user.id}`;
+    const chaveCache = `viaair-admin-role:${sessaoAtual.user.id}`;
     let temCache = false;
     try {
       const salvo = localStorage.getItem(chaveCache);
