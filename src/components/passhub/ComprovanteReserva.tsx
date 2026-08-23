@@ -49,7 +49,16 @@ export type ComprovanteReservaDados = {
   passageiros: ComprovantePax[];
   /** Cada grupo é um sentido/trecho: IDA, VOLTA ou TRECHO 3, 4... */
   grupos: Array<{ titulo: string; voos: ComprovanteVoo[] }>;
+  /** Hospedagens, transfers, passeios e demais serviços do mesmo pedido. */
+  outrasReservas?: Array<{
+    tipo: string;
+    titulo: string;
+    localizador?: string;
+    periodo?: string;
+    detalhes?: string[];
+  }>;
 };
+
 
 /* ------------------------------- formatação ------------------------------- */
 
