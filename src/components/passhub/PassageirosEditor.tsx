@@ -160,16 +160,29 @@ export function PassageirosEditor({
                 <option value="CHD">CHD</option>
                 <option value="INF">INF</option>
               </select>
-              <button
-                type="button"
-                className="cons-btn !px-2"
-                onClick={() => setLinhas((a) => a.filter((_, idx) => idx !== i))}
-                title="Remover passageiro"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {l.travado ? (
+                <span
+                  className="grid h-full min-h-[38px] w-9 place-items-center rounded-xl border border-white/5 text-[#5f7484]"
+                  title="Passageiro já reservado — não pode ser removido"
+                >
+                  <Lock className="h-4 w-4" />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="cons-btn !px-2"
+                  onClick={() => setLinhas((a) => a.filter((_, idx) => idx !== i))}
+                  title="Remover passageiro"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ))}
+          <p className="text-[11px] cons-muted">
+            O nome do passageiro fica bloqueado após a reserva — só documento, nascimento e tipo
+            podem ser ajustados.
+          </p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -177,7 +190,14 @@ export function PassageirosEditor({
               onClick={() =>
                 setLinhas((a) => [
                   ...a,
-                  { nome: "", documentoTipo: "cpf", documento: "", nascimento: "", tipo: "ADT" },
+                  {
+                    nome: "",
+                    documentoTipo: "cpf",
+                    documento: "",
+                    nascimento: "",
+                    tipo: "ADT",
+                    travado: false,
+                  },
                 ])
               }
             >
