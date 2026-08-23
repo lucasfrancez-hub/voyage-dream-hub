@@ -81,6 +81,7 @@ export const Route = createFileRoute('/api/public/asaas-transfer-webhook')({
             .from('asaas_transfers')
             .select('*')
             .eq('authorized', false)
+            .is('asaas_transfer_id', null)
             .in('status', ['pendente', 'agendado', 'processando'])
             .eq('value', value)
             .gte('created_at', desde)
