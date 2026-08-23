@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
-  ArrowRight,
+  
   Copy,
   Loader2,
   Luggage,
@@ -145,235 +145,289 @@ function DetalheBilhete({ r, onVoltar }: { r: PassHubReservaLista; onVoltar: () 
         telefone: "",
       }));
 
-  return (
-    <div className="space-y-4">
-      {/* Hero */}
-      <div className="cons-card relative overflow-hidden p-5 md:p-6">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-20 blur-2xl"
-          style={{ background: "radial-gradient(circle,#37d39a,transparent 70%)" }}
-        />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-[260px]">
-            <div className="mb-2 flex items-center gap-2">
-              <BadgeCia codigo={r.companhia} nome={r.companhia || r.provedor} />
-              <span className="cons-status cons-status-ok">
-                {r.emitidaEm ? "EMITIDO" : "EM EMISSÃO"}
-              </span>
-            </div>
-            <div className="cons-lab">Bilhete eletrônico</div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-mono text-[30px] font-black tracking-tight md:text-[36px]">
-                {principal || (isFetching ? "buscando…" : "—")}
-              </h1>
-              {principal && (
-                <button
-                  type="button"
-                  className="cons-btn !px-2 !py-1"
-                  onClick={() => copiar(principal, "Bilhete")}
-                  aria-label="Copiar número do bilhete"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-            <p className="mt-1 text-[13px] cons-muted">
-              {r.origem} → {r.destino} · emitido em {dataHora(r.emitidaEm)}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <BotaoImprimir id={r.idPassagem} />
-            <button type="button" className="cons-btn" onClick={onVoltar}>
-              <ArrowLeft className="h-4 w-4" /> Voltar
-            </button>
-          </div>
-        </div>
+  const iniciais = (nome: string) =>
+    nomeProprio(nome)
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("");
 
-        <div className="relative mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            { l: "Localizador", v: r.localizador || "—", mono: true },
-            { l: "Loc. companhia", v: r.localizadorCompanhia || "—", mono: true },
-            { l: "Sistema", v: r.companhia || r.provedor || "—" },
-            { l: "Total da venda", v: brl(r.totalVenda || r.preco) },
-          ].map((c) => (
-            <div key={c.l} className="cons-box p-4">
-              <div className="cons-lab mb-1.5">{c.l}</div>
-              <div
-                className={`text-[17px] font-black ${c.mono ? "font-mono tracking-widest" : ""}`}
-              >
-                {c.v}
-              </div>
-            </div>
-          ))}
+  return (
+    <div className="mx-auto w-full max-w-5xl space-y-5">
+      {/* Ações */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          className="group flex items-center text-[14px] text-white/50 transition-colors hover:text-white"
+          onClick={onVoltar}
+        >
+          <ArrowLeft className="mr-2 h-5 w-5 transition-transform group-hover:-translate-x-1" />
+          Voltar
+        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            className="flex items-center rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[13px] text-white transition-all hover:bg-white/10"
+            onClick={() => copiar(principal || r.localizador, "Bilhete")}
+          >
+            <Copy className="mr-2 h-4 w-4 text-white/50" /> Compartilhar
+          </button>
+          <BotaoImprimir id={r.idPassagem} />
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-4">
-          {/* Voos */}
-          <div className="cons-card p-4 md:p-5">
-            <h3 className="mb-3 flex items-center gap-2 text-[15px] font-bold">
-              <Plane className="h-4 w-4 text-[#77b8ff]" /> Itinerário emitido
+      {/* Documento */}
+      <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0c0d12] shadow-[0_20px_60px_rgba(0,0,0,.8)]">
+        <div className="flex h-1.5 w-full">
+          <div className="w-2/3 bg-[#F26B1F]" />
+          <div className="w-1/3 bg-white/10" />
+        </div>
+
+        <div
+          className="p-6 md:p-10"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at top right, rgba(242,107,31,.07), transparent 55%)",
+          }}
+        >
+          {/* Cabeçalho */}
+          <div className="mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-white/5 pb-8">
+            <div>
+              <div className="mb-2 flex items-center gap-3">
+                <span className="text-[22px] font-bold tracking-tight text-white">VIA AIR</span>
+                <span className="mt-1 rounded border border-[#F26B1F]/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#F26B1F]">
+                  Premium
+                </span>
+              </div>
+              <div className="space-y-1 text-[13px] text-white/50">
+                <p>
+                  Agência: <span className="font-medium text-white/85">VIA AIR</span>
+                </p>
+                <p>
+                  Emissor:{" "}
+                  <span className="font-medium text-white/85">{nomeProprio(r.emissor) || "—"}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <div className="mb-3 inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white/70">
+                <span className="mr-2 h-2 w-2 animate-pulse rounded-full bg-[#F26B1F] shadow-[0_0_8px_rgba(242,107,31,.6)]" />
+                {r.emitidaEm ? "Emitido" : "Em emissão"}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <p className="font-mono text-[26px] font-black tracking-tight text-white md:text-[30px]">
+                  {principal || (isFetching ? "buscando…" : "—")}
+                </p>
+                {principal && (
+                  <button
+                    type="button"
+                    className="rounded-md border border-white/10 bg-white/5 p-1.5 text-white/60 hover:text-white"
+                    onClick={() => copiar(principal, "Bilhete")}
+                    aria-label="Copiar número do bilhete"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-white/35">
+                Bilhete eletrônico · {r.origem} → {r.destino}
+              </p>
+            </div>
+          </div>
+
+          {/* Localizadores */}
+          <div className="mb-8 grid gap-6 rounded-xl border border-white/5 bg-white/[0.03] p-6 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { l: "Loc. VIA AIR", v: r.localizador || "—", cor: "text-[#F26B1F]", mono: true },
+              { l: "Loc. companhia", v: r.localizadorCompanhia || "—", cor: "text-white", mono: true },
+              { l: "Sistema", v: r.companhia || r.provedor || "—", cor: "text-white/60" },
+              { l: "Total da venda", v: brl(r.totalVenda || r.preco), cor: "text-white" },
+            ].map((c) => (
+              <div key={c.l}>
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                  {c.l}
+                </p>
+                <p
+                  className={`text-[17px] font-bold ${c.cor} ${c.mono ? "font-mono tracking-widest" : ""}`}
+                >
+                  {c.v}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Itinerário */}
+          <div className="mb-10">
+            <h3 className="mb-6 flex items-center text-[11px] font-bold uppercase tracking-[0.2em] text-white/45">
+              <Plane className="mr-2 h-4 w-4 text-[#F26B1F]" /> Itinerário de voo
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {r.segmentos.map((s, i) => (
-                <div key={i} className="cons-box p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-[16px] font-black">
-                      {s.origem} <ArrowRight className="h-4 w-4 cons-muted" /> {s.destino}
-                    </div>
-                    <span className="cons-chip">{s.duracao}</span>
-                  </div>
-                  <div className="mt-3 grid items-center gap-2 sm:grid-cols-[1fr_44px_1fr]">
-                    <div className="cons-soft p-3">
-                      <div className="text-[20px] font-black">{hora(s.partida)}</div>
-                      <div className="text-[12px] cons-muted">
-                        {s.origem} · {dataCurta(s.partida)}
-                      </div>
-                    </div>
-                    <div className="grid place-items-center text-[#77b8ff]">
-                      <Plane className="h-5 w-5" />
-                    </div>
-                    <div className="cons-soft p-3">
-                      <div className="text-[20px] font-black">{hora(s.chegada)}</div>
-                      <div className="text-[12px] cons-muted">
-                        {s.destino} · {dataCurta(s.chegada)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {s.conexoes.map((c, j) => (
-                      <span key={j} className="cons-chip">
-                        {c.numeroVoo} · {c.origem}→{c.destino} · {c.familiaTarifaria || c.classe}
-                      </span>
-                    ))}
-                    <span className="cons-chip">
-                      <Luggage className="h-3 w-3" />
-                      {s.bagagemDespachada
-                        ? `${s.bagagemDespachadaQtd || 1} despachada(s)`
-                        : "só bagagem de mão"}
+                <div
+                  key={i}
+                  className="group flex flex-wrap items-center gap-5 rounded-xl border border-white/5 bg-white/[0.03] p-5 transition-all hover:bg-white/[0.07]"
+                >
+                  <div className="z-10 flex h-16 w-16 flex-col items-center justify-center rounded-full border border-white/10 bg-[#181920] shadow-2xl transition-transform group-hover:scale-105">
+                    <span className="text-[9px] font-bold uppercase text-white/40">
+                      {i === 0 ? "Ida" : "Volta"}
                     </span>
+                    <span className="text-[13px] font-bold text-[#F26B1F]">
+                      {dataCurta(s.partida)}
+                    </span>
+                  </div>
+                  <div className="grid flex-1 gap-4 sm:grid-cols-4">
+                    <div>
+                      <p className="mb-1 text-[11px] font-medium text-white/40">{s.origem}</p>
+                      <p className="text-[22px] font-bold text-white">{hora(s.partida)}</p>
+                    </div>
+                    <div className="flex flex-col items-center justify-center px-2">
+                      <div className="flex w-full items-center gap-3">
+                        <div className="h-px flex-1 bg-white/10" />
+                        <Plane className="h-4 w-4 rotate-90 text-[#F26B1F]/50" />
+                        <div className="h-px flex-1 bg-white/10" />
+                      </div>
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-white/40">
+                        {s.duracao}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-[11px] font-medium text-white/40">{s.destino}</p>
+                      <p className="text-[22px] font-bold text-white">{hora(s.chegada)}</p>
+                    </div>
+                    <div className="flex flex-col justify-center gap-2 border-white/10 sm:border-l sm:pl-5">
+                      {s.conexoes.map((c, j) => (
+                        <p key={j} className="text-[11px] font-bold text-white/70">
+                          {c.numeroVoo} · {c.origem}→{c.destino}
+                          {c.familiaTarifaria || c.classe ? ` · ${c.familiaTarifaria || c.classe}` : ""}
+                        </p>
+                      ))}
+                      <span className="inline-flex w-fit items-center gap-1 rounded border border-[#F26B1F]/20 bg-[#F26B1F]/10 px-1.5 py-0.5 text-[9px] font-black uppercase text-[#F26B1F]">
+                        <Luggage className="h-3 w-3" />
+                        {s.bagagemDespachada
+                          ? `${s.bagagemDespachadaQtd || 1} despachada(s)`
+                          : "só bagagem de mão"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Passageiros */}
-          <div className="cons-card p-4 md:p-5">
-            <h3 className="mb-3 flex items-center gap-2 text-[15px] font-bold">
-              <User className="h-4 w-4 text-[#77b8ff]" /> Passageiros
-            </h3>
-            <div className="space-y-2">
-              {paxDetalhe.map((p, i) => {
-                const num = numeros.find(
-                  (n) =>
-                    (n.passageiro || "").trim().toUpperCase() === (p.nome || "").trim().toUpperCase(),
-                );
-                return (
-                  <div
-                    key={`${p.nome}-${i}`}
-                    className="cons-box grid gap-2 p-3 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]"
-                  >
-                    <div>
-                      <div className="cons-lab mb-1">Passageiro</div>
-                      <div className="text-[14px] font-black">{nomeProprio(p.nome)}</div>
-                    </div>
-                    <div>
-                      <div className="cons-lab mb-1">
-                        {(p.documentoTipo || "cpf").toLowerCase().includes("pass")
-                          ? "Passaporte"
-                          : "CPF"}
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Passageiros */}
+            <div>
+              <h3 className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white/45">
+                Passageiros
+              </h3>
+              <div className="space-y-3">
+                {paxDetalhe.map((p, i) => {
+                  const num = numeros.find(
+                    (n) =>
+                      (n.passageiro || "").trim().toUpperCase() ===
+                      (p.nome || "").trim().toUpperCase(),
+                  );
+                  const tkne = num?.numero || principal;
+                  return (
+                    <div
+                      key={`${p.nome}-${i}`}
+                      className="flex items-center gap-4 rounded-lg border border-white/5 bg-white/[0.03] p-4"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#F26B1F]/20 bg-[#F26B1F]/10 text-[13px] font-bold text-[#F26B1F]">
+                        {iniciais(p.nome)}
                       </div>
-                      <div className="font-mono text-[13px]">
-                        {docFmt(p.documentoTipo, p.documento)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="cons-lab mb-1">Nascimento</div>
-                      <div className="text-[13px]">
-                        {p.nascimento ? dataCurta(p.nascimento) : "—"}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="cons-lab mb-1">Bilhete</div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-[13px] font-bold">
-                          {num?.numero || principal || "—"}
-                        </span>
-                        {(num?.numero || principal) && (
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-bold uppercase text-white">
+                          {nomeProprio(p.nome)}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-white/45">
+                          {(p.documentoTipo || "cpf").toLowerCase().includes("pass")
+                            ? "Passaporte"
+                            : "CPF"}
+                          : {docFmt(p.documentoTipo, p.documento)} · Nasc:{" "}
+                          {p.nascimento ? dataCurta(p.nascimento) : "—"}
+                        </p>
+                        {tkne && (
                           <button
                             type="button"
-                            className="cons-btn !px-1.5 !py-1"
-                            onClick={() => copiar(num?.numero || principal, "Bilhete")}
-                            aria-label="Copiar bilhete do passageiro"
+                            className="mt-1 flex items-center gap-1 text-[10px] font-bold text-[#F26B1F]/80 hover:text-[#F26B1F]"
+                            onClick={() => copiar(tkne, "Bilhete")}
                           >
-                            <Copy className="h-3 w-3" />
+                            TKNE: {tkne} <Copy className="h-3 w-3" />
                           </button>
                         )}
                       </div>
                     </div>
+                  );
+                })}
+                {!paxDetalhe.length && (
+                  <div className="text-[13px] text-white/45">Sem passageiros informados</div>
+                )}
+              </div>
+            </div>
+
+            {/* Financeiro */}
+            <div className="relative overflow-hidden rounded-xl border border-white/5 bg-white/[0.03] p-6">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-[#F26B1F]/10 blur-3xl"
+              />
+              <h3 className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-white/45">
+                Detalhamento financeiro
+              </h3>
+              <div className="space-y-3 text-[13px]">
+                <div className="flex justify-between text-white/55">
+                  <span>Tarifa base</span>
+                  <b className="font-medium text-white/85">{brl(r.precoSemTaxa)}</b>
+                </div>
+                <div className="flex justify-between text-white/55">
+                  <span>Taxas aeroportuárias</span>
+                  <b className="font-medium text-white/85">{brl(r.taxas)}</b>
+                </div>
+                <div className="flex justify-between text-white/55">
+                  <span>Líquido consolidadora</span>
+                  <b className="font-medium text-white/85">{brl(r.preco)}</b>
+                </div>
+                <div className="flex justify-between text-white/55">
+                  <span>Comissão (inclusa)</span>
+                  <b className="font-medium text-[#F26B1F]">{brl(r.comissao)}</b>
+                </div>
+                {r.comissaoExtra > 0 && (
+                  <div className="flex justify-between text-white/55">
+                    <span>Comissão extra</span>
+                    <b className="font-medium text-[#F26B1F]">{brl(r.comissaoExtra)}</b>
                   </div>
-                );
-              })}
-              {!paxDetalhe.length && (
-                <div className="text-[13px] cons-muted">Sem passageiros informados</div>
-              )}
+                )}
+                <div className="my-2 h-px bg-white/10" />
+                <div className="flex flex-wrap items-end justify-between gap-3 pt-2">
+                  <div>
+                    <span className="mb-1 block text-[10px] font-bold uppercase leading-none text-white/40">
+                      Total da venda
+                    </span>
+                    <span className="text-[28px] font-black tracking-tight text-white">
+                      {brl(r.totalVenda || r.preco)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-[9px] font-bold uppercase text-white/40">
+                      Embarque
+                    </span>
+                    <span className="text-[11px] font-bold text-white/80">
+                      {dataCurta(r.dataIda)}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="cons-card p-4">
-            <h3 className="mb-2 text-[15px] font-bold">Financeiro</h3>
-            <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
-              <span className="cons-muted">Tarifa</span>
-              <b>{brl(r.precoSemTaxa)}</b>
-            </div>
-            <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
-              <span className="cons-muted">Taxas</span>
-              <b>{brl(r.taxas)}</b>
-            </div>
-            <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
-              <span className="cons-muted">Líquido consolidadora</span>
-              <b>{brl(r.preco)}</b>
-            </div>
-            <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
-              <span className="cons-muted">Comissão (inclusa)</span>
-              <b>{brl(r.comissao)}</b>
-            </div>
-            {r.comissaoExtra > 0 && (
-              <div className="flex justify-between py-2 text-[13px]">
-                <span className="cons-muted">Comissão extra</span>
-                <b>{brl(r.comissaoExtra)}</b>
-              </div>
-            )}
-            <div className="cons-dot my-2" />
-            <div className="cons-lab">Total da venda</div>
-            <div className="text-[26px] font-black">{brl(r.totalVenda || r.preco)}</div>
-          </div>
-
-          <div className="cons-card p-4">
-            <h3 className="mb-2 text-[15px] font-bold">Contexto</h3>
-            {[
-              ["Agência", "VIA AIR"],
-              ["Emissor", nomeProprio(r.emissor) || "—"],
-              ["Fornecedor", r.provedor || "—"],
-              ["Rota", `${r.origem}-${r.destino}`],
-              ["Embarque", dataCurta(r.dataIda)],
-            ].map(([l, v], i, arr) => (
-              <div
-                key={l}
-                className={`flex justify-between py-2 text-[13px] ${
-                  i < arr.length - 1 ? "border-b border-dotted border-white/10" : ""
-                }`}
-              >
-                <span className="cons-muted">{l}</span>
-                <b>{v}</b>
-              </div>
-            ))}
-          </div>
+        <div className="border-t border-white/5 bg-[#08090d] p-4 text-center">
+          <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-white/25">
+            Documento de viagem oficial · VIA AIR Premium Travel
+          </p>
         </div>
       </div>
     </div>
