@@ -81,12 +81,9 @@ export async function iniciarTentativa(input: {
   return { authAttemptId, provedor, requestedAt: requestedAt.toISOString() };
 }
 
-async function marcar(
-  id: string,
-  patch: Record<string, unknown>,
-) {
+async function marcar(id: string, patch: Record<string, unknown>) {
   const db = await admin();
-  await db.from("auth_code_attempts").update(patch).eq("id", id);
+  await (db.from("auth_code_attempts") as any).update(patch).eq("id", id);
 }
 
 /** Mensagens já consumidas por outra tentativa (evita duplicidade). */
