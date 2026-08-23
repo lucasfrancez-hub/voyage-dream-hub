@@ -185,9 +185,14 @@ const CSS = `
 .crdoc .sheet{width:900px;max-width:calc(100% - 24px);margin:0 auto 32px;background:#fff;box-shadow:0 12px 35px rgba(22,44,66,.11);border-radius:18px;overflow:hidden}
 .crdoc .brandbar{height:7px;background:linear-gradient(90deg,var(--orange) 0 28%,var(--blue) 28% 100%)}
 .crdoc header{padding:24px 34px 20px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;border-bottom:1px solid var(--line)}
-.crdoc .brand{display:flex;flex-direction:column;gap:2px}
-.crdoc .brand img{height:36px;width:auto;display:block}
-.crdoc .brand-sub{font-size:9px;margin-top:2px;letter-spacing:.22em;color:#9fb0bf;font-weight:900;text-transform:uppercase;padding-left:2px}
+.crdoc .brand{display:flex;align-items:center;gap:12px}
+.crdoc .brand img{height:44px;width:44px;object-fit:contain;display:block;flex:none}
+.crdoc .brand-txt{display:flex;flex-direction:column;line-height:1}
+.crdoc .brand-name{font-size:23px;font-weight:900;color:var(--blue);letter-spacing:.5px}
+.crdoc .brand-sub{font-size:10px;margin-top:4px;letter-spacing:.24em;color:var(--orange);font-weight:900;text-transform:uppercase}
+.crdoc .value-card{border:1px solid #cfe8dc;background:var(--green-soft);border-radius:15px;padding:18px;display:flex;flex-direction:column;justify-content:center}
+.crdoc .value-card .price{color:var(--green);font-size:28px}
+.crdoc .value-card .price-note{margin-top:6px}
 .crdoc .doc-title{text-align:right}
 .crdoc .doc-title h1{margin:0;font-size:21px;color:var(--ink);letter-spacing:-.2px}
 .crdoc .doc-title p{margin:6px 0 0;color:var(--muted);font-size:12px}
