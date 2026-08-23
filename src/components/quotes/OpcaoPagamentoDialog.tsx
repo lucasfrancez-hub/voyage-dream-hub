@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { definirPagamentoOpcao } from "@/lib/quotes/items.functions";
 import {
   emptyPaymentOverride,
+  type ManualRow,
   type OptionPaymentOverride,
 } from "@/lib/public-quote/payment-override";
 
@@ -42,6 +43,64 @@ const num = (v: string): number | null => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 const txt = (v: number | null | undefined) => (v == null ? "" : String(v));
+
+/** Tabela de faixas: para cada quantidade de parcelas, 1ª parcela e demais. */
+function FaixasEditor({
+  rows,
+  onChange,
+  max = 12,
+}: {
+  rows: ManualRow[];
+  onChange: (rows: ManualRow[]) => void;
+  max?: number;
+}) {
+  const get = (n: number) => rows.find((r) => r.parcelas === n) ?? null;
+  const setCampo = (n: number, campo: "entrada" | "demais", valor: number | null) => {
+    const atual = get(n);
+    const nova: ManualRow = { parcelas: n, entrada: null, demais: null, ...(atual ?? {}) };
+    nova[campo] = valor;
+    const resto = rows.filter((r) => r.parcelas !== n);
+    const manter = (nova.entrada ?? 0) > 0 || (nova.demais ?? 0) > 0;
+    onChange([...resto, ...(manter ? [nova] : [])].sort((a, b) => a.parcelas - b.parcelas));
+  };
+
+  return (
+    <div className="rounded-lg border border-border">
+      <div className="grid grid-cols-[52px_1fr_1fr] gap-2 border-b border-border px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span>Parc.</span>
+        <span>1ª parcela</span>
+        <span>Demais</span>
+      </div>
+      <div className="max-h-56 overflow-y-auto">
+        {Array.from({ length: max - 1 }, (_, i) => i + 2).map((n) => {
+          const r = get(n);
+          return (
+            <div key={n} className="grid grid-cols-[52px_1fr_1fr] items-center gap-2 px-2 py-1">
+              <span className="text-xs font-semibold">{n}x</span>
+              <Input
+                className="h-8"
+                inputMode="decimal"
+                placeholder="—"
+                value={txt(r?.entrada ?? null)}
+                onChange={(e) => setCampo(n, "entrada", num(e.target.value))}
+              />
+              <Input
+                className="h-8"
+                inputMode="decimal"
+                placeholder="—"
+                value={txt(r?.demais ?? null)}
+                onChange={(e) => setCampo(n, "demais", num(e.target.value))}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <p className="border-t border-border px-2 py-1.5 text-[11px] text-muted-foreground">
+        Preencha só as faixas que quer oferecer. Em branco = não aparece.
+      </p>
+    </div>
+  );
+}
 
 export function OpcaoPagamentoDialog({
   quoteId,
@@ -102,29 +161,12 @@ export function OpcaoPagamentoDialog({
             </label>
             {ov.card.enabled && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Parcelas</Label>
-                  <Input
-                    inputMode="numeric"
-                    placeholder="ex.: 10"
-                    value={txt(ov.card.installments)}
-                    onChange={(e) =>
-                      set({
-                        card: {
-                          ...ov.card,
-                          installments: e.target.value ? Math.trunc(Number(e.target.value)) || null : null,
-                        },
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Valor de cada parcela (R$)</Label>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="automático"
-                    value={txt(ov.card.amount)}
-                    onChange={(e) => set({ card: { ...ov.card, amount: num(e.target.value) } })}
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">Faixas de parcelamento (R$)</Label>
+                  <FaixasEditor
+                    rows={ov.card.rows ?? []}
+                    max={12}
+                    onChange={(rows) => set({ card: { ...ov.card, rows } })}
                   />
                 </div>
                 <label className="col-span-2 flex items-center justify-between text-xs text-muted-foreground">
@@ -151,38 +193,12 @@ export function OpcaoPagamentoDialog({
             </label>
             {ov.boleto.enabled && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Entrada (R$)</Label>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="sem entrada"
-                    value={txt(ov.boleto.entrada)}
-                    onChange={(e) => set({ boleto: { ...ov.boleto, entrada: num(e.target.value) } })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Parcelas</Label>
-                  <Input
-                    inputMode="numeric"
-                    placeholder="ex.: 6"
-                    value={txt(ov.boleto.installments)}
-                    onChange={(e) =>
-                      set({
-                        boleto: {
-                          ...ov.boleto,
-                          installments: e.target.value ? Math.trunc(Number(e.target.value)) || null : null,
-                        },
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Valor de cada parcela (R$)</Label>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="automático"
-                    value={txt(ov.boleto.amount)}
-                    onChange={(e) => set({ boleto: { ...ov.boleto, amount: num(e.target.value) } })}
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">Faixas de parcelamento (R$)</Label>
+                  <FaixasEditor
+                    rows={ov.boleto.rows ?? []}
+                    max={10}
+                    onChange={(rows) => set({ boleto: { ...ov.boleto, rows } })}
                   />
                 </div>
                 <div className="space-y-1">
