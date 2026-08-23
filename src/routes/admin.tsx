@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { DocumentoViewer } from "@/components/docs/DocumentoViewer";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Smartphone,
@@ -514,6 +515,7 @@ function AdminLayout() {
       </header>
 
       <Outlet />
+      <DocumentoViewer />
 
       <footer className="mt-12 border-t border-border bg-background/60">
         <div className="mx-auto max-w-7xl px-3 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
