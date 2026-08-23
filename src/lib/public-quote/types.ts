@@ -173,6 +173,15 @@ export type PaymentConfiguration = {
       lastDueDate: string | null;
       note?: string | null;
     } | null;
+    /** Condição de boleto definida manualmente pelo consultor (por opção). */
+    manual?: {
+      entrada: number | null;
+      installments: number;
+      amount: number;
+      total: number;
+      dueDate: string | null;
+      note?: string | null;
+    } | null;
   };
 
   pix: {
@@ -180,6 +189,12 @@ export type PaymentConfiguration = {
     discountPercent: number;
     total: number;
   };
+  /** Data limite de pagamento definida manualmente (YYYY-MM-DD). */
+  dueDate?: string | null;
+  /** Observação de pagamento exibida ao cliente. */
+  note?: string | null;
+  /** Condições definidas manualmente pelo consultor nesta opção. */
+  manual?: boolean;
 };
 
 export type QuoteSummaryLine = {

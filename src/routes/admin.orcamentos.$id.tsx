@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, Hotel, Plane, Package, DollarSign, Users, ExternalLink, Printer,
-  Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2, Plus,
+  Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2, Plus, CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +23,7 @@ import {
 import type { NormalizedOption, NormalizedQuote } from "@/lib/quotes/types";
 import { confirmThen } from "@/lib/confirm";
 import { HotelTripAdvisorDialog } from "@/components/quotes/HotelTripAdvisorDialog";
+import { OpcaoPagamentoDialog } from "@/components/quotes/OpcaoPagamentoDialog";
 import { QuoteItemsToolbar } from "@/components/quotes/QuoteItemsToolbar";
 import { QuoteItemFormDialog, type QuoteItemKind } from "@/components/quotes/QuoteItemFormDialog";
 import {
@@ -150,6 +151,7 @@ function QuoteDetailPage() {
   const renomearOpcao = useServerFn(renomearOpcaoOrcamento);
   const removerOpcao = useServerFn(removerOpcaoOrcamento);
   const [renomear, setRenomear] = useState<{ optionNumber: number; label: string } | null>(null);
+  const [pagamentoOpcao, setPagamentoOpcao] = useState<number | null>(null);
 
   const definirRoteiro = useServerFn(definirRoteiroOpcao);
   const roteiroMutation = useMutation({
@@ -604,6 +606,13 @@ function QuoteDetailPage() {
             >
               <Pencil className="h-3.5 w-3.5" /> Renomear
             </Button>
+            <Button
+              variant="ghost" size="sm" className="gap-1.5 rounded-full text-muted-foreground"
+              onClick={() => setPagamentoOpcao(option.optionNumber)}
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              Pagamento{option.paymentOverride?.enabled ? " (manual)" : ""}
+            </Button>
             <label className="ml-1 flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground">
               <Switch
                 checked={option.itinerary === true}
@@ -631,6 +640,18 @@ function QuoteDetailPage() {
           </>
         )}
       </div>
+
+      {option && (
+        <OpcaoPagamentoDialog
+          quoteId={id}
+          optionNumber={option.optionNumber}
+          optionLabel={option.label ?? `Opção ${option.optionNumber}`}
+          atual={option.paymentOverride ?? null}
+          open={pagamentoOpcao === option.optionNumber}
+          onOpenChange={(v) => setPagamentoOpcao(v ? option.optionNumber : null)}
+          onSaved={recarregarItens}
+        />
+      )}
 
       {renomear && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">

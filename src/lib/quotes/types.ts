@@ -3,6 +3,7 @@
  * Nada de comissão, markup, custo ou credencial aqui — este objeto alimenta
  * tanto a tela interna quanto o orçamento público Via Air.
  */
+import type { OptionPaymentOverride } from "@/lib/public-quote/payment-override";
 
 export type QuoteSource = "INFOTRAVEL" | "MANUAL" | "BRUNO" | "PAULA" | "IMPORTADO";
 
@@ -98,6 +99,8 @@ export type NormalizedOption = {
   taxes?: number | null;
   currency?: string | null;
   paymentConditions?: string[] | null;
+  /** Condições de pagamento definidas manualmente para ESTA opção. */
+  paymentOverride?: OptionPaymentOverride | null;
   notes?: string[] | null;
   sourceReference?: string | null;
 };
