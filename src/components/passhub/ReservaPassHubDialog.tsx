@@ -259,6 +259,20 @@ export function ReservaPassHubDialog({
       setPrecoSemTaxaTarifado(r.tarifacao.precoSemTaxa);
       setComissaoTarifada(r.tarifacao.ravValor || 0);
       salvarTarifacao(chaveCache, r.tarifacao.preco, r.tarifacao.ravValor || 0);
+      /* A lista e o resumo leem pelo token do trecho que carrega o preço
+         fechado da viagem (última volta, ou a ida quando é só ida). Sem este
+         espelho, a retarifação aparecia no aviso mas não no portal. */
+      const tokenPreco =
+        (oferta?.voltas.length ? oferta.voltas[oferta.voltas.length - 1].rateToken : null) ||
+        oferta?.ida.rateToken ||
+        null;
+      if (tokenPreco) {
+        salvarTarifacao(
+          chaveTarifacao([tokenPreco], ravPercentual),
+          r.tarifacao.preco,
+          r.tarifacao.ravValor || 0,
+        );
+      }
       const totalConfirmado = r.tarifacao.preco + (r.tarifacao.ravValor || 0);
       toast[r.tarifacao.retarifou ? "warning" : "success"](
         r.tarifacao.retarifou
