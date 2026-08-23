@@ -139,10 +139,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   };
 
   return (
-    <div className="cons-card p-4">
-      <h3 className="mb-1 flex items-center gap-2 text-[15px] font-bold">
-        <Wallet className="h-4 w-4" /> Pagamento da reserva
-      </h3>
+    <div>
       <p className="mb-3 text-[11px] cons-muted">
         <b>Pix VIA AIR</b>: cobra o cliente com a RAV por fora — quando cair, o sistema paga o Pix
         da PassHub sozinho. <b>Pix PassHub</b>: o Pix de custo da consolidadora, que você pode pagar
