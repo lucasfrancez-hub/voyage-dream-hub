@@ -206,26 +206,39 @@ function DetalheReserva({
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={r.status} />
-          <div className="flex items-center gap-1 rounded-full border border-white/10 p-1">
-            <a
-              className="cons-btn !border-0 !px-3 !py-1.5"
-              href={`/admin/reservas/${r.idPassagem}/plano-viagem`}
-              target="_blank"
-              rel="noreferrer"
-              title="Plano de viagem com o valor total"
-            >
-              <FileText className="h-4 w-4" /> Plano com valor
-            </a>
-            <a
-              className="cons-btn !border-0 !px-3 !py-1.5"
-              href={`/admin/reservas/${r.idPassagem}/plano-viagem?valores=0`}
-              target="_blank"
-              rel="noreferrer"
-              title="Plano de viagem sem nenhum valor"
-            >
-              <FileText className="h-4 w-4" /> Sem valor
-            </a>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="cons-btn !px-3 !py-1.5 inline-flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" /> Plano de viagem
+                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[180px]">
+              <DropdownMenuItem asChild>
+                <a
+                  className="flex w-full cursor-pointer items-center gap-2"
+                  href={`/admin/reservas/${r.idPassagem}/plano-viagem`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <FileText className="h-4 w-4" /> Com valor total
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a
+                  className="flex w-full cursor-pointer items-center gap-2"
+                  href={`/admin/reservas/${r.idPassagem}/plano-viagem?valores=0`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <FileText className="h-4 w-4" /> Sem valor
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {!cancelada && (
             <button
               type="button"
