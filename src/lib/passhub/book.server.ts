@@ -35,6 +35,8 @@ export type TarifarInput = {
   /** Preço total esperado (mesma unidade da busca). */
   precoEsperado: number;
   ravPercentual?: number | null;
+  /** Roteiro internacional muda o pct de incentivo do nível. */
+  internacional?: boolean;
 };
 
 export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHubTarifacao> {
