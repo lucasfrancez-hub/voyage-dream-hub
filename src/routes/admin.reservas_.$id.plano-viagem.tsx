@@ -145,7 +145,15 @@ function PlanoViagemPage() {
 
   return (
     <div style={{ background: "#eef2f5", minHeight: "100vh", padding: "22px 0" }}>
-      <div className="no-print mx-auto mb-4 flex w-[900px] max-w-[calc(100%-24px)] justify-end">
+      <div className="no-print mx-auto mb-4 flex w-[900px] max-w-[calc(100%-24px)] items-center justify-end gap-2">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-[12px] font-bold text-slate-700 shadow-sm">
+          <input
+            type="checkbox"
+            checked={semValores}
+            onChange={(e) => setSemValores(e.target.checked)}
+          />
+          Sem valores
+        </label>
         <button
           type="button"
           onClick={() => window.print()}
@@ -154,7 +162,9 @@ function PlanoViagemPage() {
           <Printer className="h-4 w-4" /> Imprimir / salvar PDF
         </button>
       </div>
-      <ComprovanteReserva dados={paraComprovante(data.reserva)} />
+      <ComprovanteReserva
+        dados={{ ...paraComprovante(data.reserva), ocultarValores: semValores }}
+      />
     </div>
   );
 }
