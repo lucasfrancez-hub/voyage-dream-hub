@@ -593,6 +593,121 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           <p className="text-[12px] cons-muted">Nenhuma movimentação registrada nesta reserva.</p>
         )}
       </section>
+
+      {/* ---------------- Conferência do Pix antes de pagar ---------------- */}
+      <Dialog open={!!previa} onOpenChange={(o) => (!o ? setPrevia(null) : null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Conferir o Pix da consolidadora</DialogTitle>
+            <DialogDescription>
+              Reserva {r.localizador || r.idPassagem} — confira o valor e o destino antes de
+              debitar o saldo ASAAS.
+            </DialogDescription>
+          </DialogHeader>
+
+          {previa ? (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
+                <span className="block text-[10px] uppercase tracking-wide cons-muted">
+                  Valor do Pix
+                </span>
+                <span className="text-2xl font-bold">{brl(previa.valor)}</span>
+                {previa.divergencia ? (
+                  <p className="mt-1 text-[11px] text-amber-300">
+                    Checkout informa {brl(previa.valorCheckout)} — vale o valor do QR Code.
+                  </p>
+                ) : null}
+              </div>
+
+              {previa.qrCodeBase64 ? (
+                <img
+                  src={previa.qrCodeBase64}
+                  alt="QR Code Pix da consolidadora"
+                  className="mx-auto h-44 w-44 rounded-lg bg-white p-2"
+                />
+              ) : null}
+
+              <dl className="space-y-1 text-[12px]">
+                <div className="flex justify-between gap-3">
+                  <dt className="cons-muted">Destino</dt>
+                  <dd className="text-right font-medium">{previa.recebedorNome || "—"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="cons-muted">CPF/CNPJ</dt>
+                  <dd className="text-right font-medium">{previa.recebedorDocumento || "—"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="cons-muted">Instituição</dt>
+                  <dd className="text-right font-medium">{previa.banco || "—"}</dd>
+                </div>
+                {previa.expiraEm ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="cons-muted">Vence em</dt>
+                    <dd className="text-right font-medium">{previa.expiraEm}</dd>
+                  </div>
+                ) : null}
+                {previa.saldo != null ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="cons-muted">Saldo ASAAS</dt>
+                    <dd className="text-right font-medium">{brl(previa.saldo)}</dd>
+                  </div>
+                ) : null}
+              </dl>
+
+              <div>
+                <span className="mb-1 block text-[10px] uppercase tracking-wide cons-muted">
+                  Pix copia e cola
+                </span>
+                <code className="block max-h-24 overflow-auto break-all rounded-lg bg-black/40 px-2 py-1 text-[10px]">
+                  {previa.brcode}
+                </code>
+                <button
+                  type="button"
+                  className="cons-btn mt-2"
+                  onClick={() => copiar(previa.brcode, "previa", "Copia e cola copiado")}
+                >
+                  {copiado === "previa" ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  Copiar copia e cola
+                </button>
+              </div>
+
+              {!previa.podePagar ? (
+                <p className="text-[11px] text-red-300">
+                  Este Pix não pode mais ser pago (expirado ou já quitado).
+                </p>
+              ) : null}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  className="cons-btn flex-1 justify-center"
+                  onClick={() => setPrevia(null)}
+                  disabled={pagarAgora.isPending}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="cons-btn cons-btn-blue flex-1 justify-center font-bold"
+                  onClick={() => pagarAgora.mutate()}
+                  disabled={pagarAgora.isPending || !previa.podePagar}
+                >
+                  {pagarAgora.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4" />
+                  )}
+                  Pagar {brl(previa.valor)}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
