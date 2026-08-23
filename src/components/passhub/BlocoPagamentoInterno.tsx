@@ -17,6 +17,7 @@ import {
   passhubCobrarComRav,
   passhubPagamentosReserva,
   passhubPagarAgora,
+  passhubPixReserva,
   passhubRepassarPagamento,
 } from "@/lib/passhub/passhub.functions";
 import { confirm } from "@/lib/confirm";
@@ -40,9 +41,28 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   const repassarFn = useServerFn(passhubRepassarPagamento);
   const listarFn = useServerFn(passhubPagamentosReserva);
 
+  const pedirPixPasshub = useServerFn(passhubPixReserva);
   const [rav, setRav] = useState("");
   const [valorManual, setValorManual] = useState("");
   const [copiado, setCopiado] = useState<string | null>(null);
+  const [pixPasshub, setPixPasshub] = useState<{
+    copiaECola: string;
+    qrCodeBase64: string;
+    valor: number;
+    expiraEm: string;
+  } | null>(null);
+
+  const gerarPixPasshub = useMutation({
+    mutationFn: () =>
+      pedirPixPasshub({ data: { id: r.idPassagem, localizador: r.localizador || undefined } }),
+    onSuccess: (res) => {
+      if (!res.ok) return toast.error(res.erro);
+      setPixPasshub(res.pix);
+      toast.success("Pix da PassHub gerado");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao gerar o Pix da PassHub"),
+  });
+
 
   const pagamentos = useQuery({
     queryKey: ["passhub-pagamentos", r.idPassagem],
@@ -119,41 +139,43 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   return (
     <div className="cons-card p-4">
       <h3 className="mb-1 flex items-center gap-2 text-[15px] font-bold">
-        <Wallet className="h-4 w-4" /> Pagamento interno
+        <Wallet className="h-4 w-4" /> Pagamento da reserva
       </h3>
       <p className="mb-3 text-[11px] cons-muted">
-        Cobre o cliente com RAV por fora (valor interno, não vai para a consolidadora) ou pague a
-        reserva na hora com o saldo ASAAS.
+        <b>Pix VIA AIR</b>: cobra o cliente com a RAV por fora — quando cair, o sistema paga o Pix
+        da PassHub sozinho. <b>Pix PassHub</b>: o Pix de custo da consolidadora, que você pode pagar
+        na hora com o saldo ASAAS.
       </p>
 
-      <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
-        <div className="cons-lab">Cobrar cliente com RAV por fora</div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-1 block text-[11px] cons-muted">RAV por fora (R$)</span>
-            <input
-              className="cons-field w-full"
-              inputMode="decimal"
-              placeholder="0,00"
-              value={rav}
-              onChange={(e) => setRav(e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[11px] cons-muted">Ou valor total manual (R$)</span>
-            <input
-              className="cons-field w-full"
-              inputMode="decimal"
-              placeholder="opcional"
-              value={valorManual}
-              onChange={(e) => setValorManual(e.target.value)}
-            />
-          </label>
-        </div>
-        <p className="text-[12px]">
-          Consolidadora <b>{brl(base)}</b> · cliente paga <b>{brl(previsto)}</b>
-        </p>
-        <div className="flex flex-wrap gap-2">
+      <div className="grid gap-3 lg:grid-cols-2">
+        {/* -------- Pix VIA AIR (cobrança do cliente) -------- */}
+        <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="cons-lab">1 · Pix VIA AIR (cliente)</div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-[11px] cons-muted">RAV por fora (R$)</span>
+              <input
+                className="cons-field w-full"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={rav}
+                onChange={(e) => setRav(e.target.value)}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[11px] cons-muted">Ou valor total manual (R$)</span>
+              <input
+                className="cons-field w-full"
+                inputMode="decimal"
+                placeholder="opcional"
+                value={valorManual}
+                onChange={(e) => setValorManual(e.target.value)}
+              />
+            </label>
+          </div>
+          <p className="text-[12px]">
+            Custo PassHub <b>{brl(base)}</b> · cliente paga <b>{brl(previsto)}</b>
+          </p>
           <button
             type="button"
             className="cons-btn cons-btn-primary"
@@ -167,6 +189,65 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
             )}
             Gerar Pix VIA AIR
           </button>
+          <p className="text-[11px] cons-muted">
+            Pagamento identificado automaticamente → PassHub paga sozinho.
+          </p>
+        </div>
+
+        {/* -------- Pix PassHub (custo) -------- */}
+        <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="cons-lab">2 · Pix PassHub (custo)</div>
+          <button
+            type="button"
+            className="cons-btn"
+            onClick={() => gerarPixPasshub.mutate()}
+            disabled={gerarPixPasshub.isPending}
+          >
+            {gerarPixPasshub.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <QrCode className="h-4 w-4" />
+            )}
+            {pixPasshub ? "Gerar Pix PassHub novamente" : "Gerar Pix PassHub"}
+          </button>
+
+          {pixPasshub ? (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {pixPasshub.qrCodeBase64 ? (
+                <img
+                  src={pixPasshub.qrCodeBase64}
+                  alt="QR Code Pix da PassHub"
+                  className="h-32 w-32 shrink-0 rounded-lg bg-white p-2"
+                />
+              ) : null}
+              <div className="min-w-0 flex-1 space-y-2">
+                {pixPasshub.valor ? (
+                  <p className="text-[13px] font-semibold">{brl(pixPasshub.valor)}</p>
+                ) : null}
+                {pixPasshub.expiraEm ? (
+                  <p className="text-[11px] cons-muted">Válido até {pixPasshub.expiraEm}</p>
+                ) : null}
+                <code className="block max-h-20 overflow-auto break-all rounded-lg bg-black/30 px-2 py-1 text-[10px]">
+                  {pixPasshub.copiaECola}
+                </code>
+                <button
+                  type="button"
+                  className="cons-btn"
+                  onClick={() =>
+                    copiar(pixPasshub.copiaECola, "pix-passhub", "Pix da PassHub copiado")
+                  }
+                >
+                  {copiado === "pix-passhub" ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  Copia e cola
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <button
             type="button"
             className="cons-btn cons-btn-blue"
@@ -178,19 +259,23 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
             ) : (
               <Zap className="h-4 w-4" />
             )}
-            Pagar agora (saldo ASAAS)
-          </button>
-          <button
-            type="button"
-            className="cons-btn"
-            onClick={() => pagamentos.refetch()}
-            disabled={pagamentos.isFetching}
-          >
-            <RefreshCw className={`h-4 w-4 ${pagamentos.isFetching ? "animate-spin" : ""}`} />
-            Atualizar
+            Pagar PassHub agora (saldo ASAAS)
           </button>
         </div>
       </div>
+
+      <div className="mt-3">
+        <button
+          type="button"
+          className="cons-btn"
+          onClick={() => pagamentos.refetch()}
+          disabled={pagamentos.isFetching}
+        >
+          <RefreshCw className={`h-4 w-4 ${pagamentos.isFetching ? "animate-spin" : ""}`} />
+          Atualizar status
+        </button>
+      </div>
+
 
       {lista.length ? (
         <div className="mt-3 space-y-3">
