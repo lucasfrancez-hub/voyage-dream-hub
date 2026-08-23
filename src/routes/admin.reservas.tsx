@@ -570,7 +570,10 @@ function ReservasPage() {
                 <button
                   type="button"
                   className="cons-btn"
-                  onClick={() => refetch()}
+                  onClick={() => {
+                    void refetch();
+                    void pedidosQuery.refetch();
+                  }}
                   disabled={isFetching}
                 >
                   {isFetching ? (
@@ -582,6 +585,15 @@ function ReservasPage() {
                 </button>
               </div>
             </header>
+
+            <FiltroFonte
+              valor={fonte}
+              onChange={setFonte}
+              contagens={{
+                consolidadora: reservas.length,
+                pedidos: reservasPedidos.length,
+              }}
+            />
 
             {erro && (
               <div className="cons-card p-3 text-[13px] text-[#ffd6d6]">{erro}</div>
