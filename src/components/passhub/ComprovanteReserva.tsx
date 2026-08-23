@@ -367,13 +367,26 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             </div>
 
             <div className="meta-grid">
+              {eBilhete && numeroBilhete ? (
+                <div>
+                  <span>Número do bilhete</span>
+                  <b>{numeroBilhete}</b>
+                </div>
+              ) : null}
               {dados.companhia ? (
                 <div>
                   <span>Companhia</span>
                   <b>{findAirline(dados.companhia)?.name ?? dados.companhia}</b>
                 </div>
               ) : null}
-              {dados.criadaEm ? (
+              {eBilhete ? (
+                bilhetes[0]?.emissao ? (
+                  <div>
+                    <span>Data de emissão</span>
+                    <b>{dataBR(bilhetes[0].emissao)}</b>
+                  </div>
+                ) : null
+              ) : dados.criadaEm ? (
                 <div>
                   <span>Criada em</span>
                   <b>{dataHora(dados.criadaEm)}</b>
