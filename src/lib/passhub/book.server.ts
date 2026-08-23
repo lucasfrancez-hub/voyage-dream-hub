@@ -6,6 +6,7 @@
  *  - POST {nexus}/api/v1/reservar → cria a reserva e devolve o localizador
  */
 import { passhubBases, passhubRequest } from "./client.server";
+import { calcularIncentivo, passhubIncentivoPct } from "./incentivo.server";
 import type { PassHubPax, PassHubReserva, PassHubTarifacao } from "./types";
 
 type Rec = Record<string, unknown>;
