@@ -369,7 +369,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
   const bilhetes = dados.passageiros.filter((p) => (p.bilhete ?? "").trim().length > 0);
   const temPrazo = !eBilhete && !dados.emitido && !!dados.limiteEmissao;
   const mostraValorBilhete = eBilhete && !dados.ocultarValores;
-  const heroSimples = eBilhete ? !mostraValorBilhete : !temPrazo && !dados.emitido;
+  const heroSimples = eBilhete ? false : !temPrazo && !dados.emitido;
   const numeroBilhete = bilhetes[0]?.bilhete ?? "";
 
   return (
@@ -472,13 +472,17 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             )}
           </div>
 
-          {mostraValorBilhete ? (
+          {eBilhete ? (
             <div className="value-card">
-              <div className="price-label">Valor total do bilhete</div>
-              <div className="price">{brl(dados.total)}</div>
-              <div className="price-note">
-                Valor total apresentado ao passageiro para este bilhete eletrônico.
-              </div>
+              {mostraValorBilhete ? (
+                <>
+                  <div className="price-label">Valor total do bilhete</div>
+                  <div className="price">{brl(dados.total)}</div>
+                  <div className="price-note">
+                    Valor total apresentado ao passageiro para este bilhete eletrônico.
+                  </div>
+                </>
+              ) : null}
             </div>
           ) : null}
 
