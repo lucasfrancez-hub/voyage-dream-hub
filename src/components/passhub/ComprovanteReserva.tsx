@@ -347,7 +347,8 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
   const densidade = voos.length <= 2 ? "normal" : voos.length <= 4 ? "medium" : "compact";
   const bilhetes = dados.passageiros.filter((p) => (p.bilhete ?? "").trim().length > 0);
   const temPrazo = !eBilhete && !dados.emitido && !!dados.limiteEmissao;
-  const heroSimples = eBilhete || (!temPrazo && !dados.emitido);
+  const mostraValorBilhete = eBilhete && !dados.ocultarValores;
+  const heroSimples = eBilhete ? !mostraValorBilhete : !temPrazo && !dados.emitido;
   const numeroBilhete = bilhetes[0]?.bilhete ?? "";
 
   return (
@@ -360,7 +361,10 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
         <header>
           <div className="brand">
             <img src={logoViaAir.url} alt="VIA AIR" />
-            <div className="brand-sub">Premium Travel</div>
+            <div className="brand-txt">
+              <div className="brand-name">VIA AIR</div>
+              <div className="brand-sub">Premium Travel</div>
+            </div>
           </div>
           <div className="doc-title">
             <h1>{eBilhete ? "Bilhete Eletrônico" : "Comprovante de Reserva"}</h1>
