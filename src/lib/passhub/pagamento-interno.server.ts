@@ -325,7 +325,8 @@ export async function pagarReservaAgora(alvo: {
       valor_passhub: pago.valor,
       markup: 0,
       valor_cobrado: 0,
-      passhub_brcode: pix.copiaECola,
+      passhub_brcode: brcode,
+
       passhub_link: link,
       status: "repassado",
       repasse_transfer_id: pago.transferId,
