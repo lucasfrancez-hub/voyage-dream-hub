@@ -44,6 +44,8 @@ export type ComprovanteReservaDados = {
   destino: string;
   limiteEmissao?: string;
   total: number;
+  /** Quando true, o plano de viagem sai sem nenhum valor. */
+  ocultarValores?: boolean;
   passageiros: ComprovantePax[];
   /** Cada grupo é um sentido/trecho: IDA, VOLTA ou TRECHO 3, 4... */
   grupos: Array<{ titulo: string; voos: ComprovanteVoo[] }>;
