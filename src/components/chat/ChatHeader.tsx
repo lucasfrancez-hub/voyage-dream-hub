@@ -50,7 +50,7 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
     || (userEmail ? userEmail.split("@")[0]!.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : null);
   return (
     <header
-      className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 sm:gap-4 sm:px-5"
+      className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-slate-200 bg-white px-3 [scrollbar-width:none] sm:gap-4 sm:px-5 [&::-webkit-scrollbar]:hidden"
       style={{
         paddingTop: "env(safe-area-inset-top)",
         minHeight: "calc(3.5rem + env(safe-area-inset-top))",
@@ -65,14 +65,14 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
           <Menu className="h-5 w-5" />
         </button>
       )}
-      <div className="min-w-0 flex-1">
+      <div className="min-w-[7rem] flex-1 shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
           <h1 className="truncate text-base font-semibold text-slate-900">{title}</h1>
           {subtitle && <span className="hidden sm:inline truncate text-xs text-slate-500">{subtitle}</span>}
         </div>
       </div>
 
-      <div className="hidden md:flex relative w-56 lg:w-72">
+      <div className="hidden md:flex relative w-56 shrink-0 lg:w-72">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
           type="text"
@@ -82,15 +82,15 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
       </div>
 
       {/* Atendentes online agora, agrupados por categoria */}
-      <div className="hidden sm:flex items-center gap-3">
+      <div className="hidden sm:flex shrink-0 items-center gap-3">
         {grupos.map((g) => (
-          <div key={g.key} className="flex items-center gap-1.5">
+          <div key={g.key} className="flex shrink-0 items-center gap-1.5">
             <span className={`text-[9px] font-semibold uppercase tracking-wider ${g.text}`}>{g.label}</span>
             {g.agents.map((a) => (
               <span
                 key={a.slug}
                 title={`${a.nome} — ${g.label.slice(0, -2)}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1"
               >
                 <span className="relative flex h-2 w-2">
                   <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${g.dot} opacity-60`} />
@@ -105,7 +105,7 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
 
       {/* Mobile: um único chip com contagem por categoria */}
       <div
-        className="sm:hidden flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1"
+        className="sm:hidden flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1"
         title={grupos.map((g) => `${g.label}: ${g.agents.map((a) => a.nome).join(", ")}`).join(" · ")}
       >
         <span className="relative flex h-2 w-2">
@@ -141,13 +141,13 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
         href="/admin"
         target="_blank"
         rel="noopener noreferrer"
-        className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[#F26B1F] px-3 py-1 text-xs font-medium text-white shadow-sm hover:opacity-90"
+        className="hidden sm:inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#F26B1F] px-3 py-1 text-xs font-medium text-white shadow-sm hover:opacity-90"
       >
         Admin
       </a>
 
       {(displayName || userEmail) && (
-        <div className="hidden lg:flex flex-col items-end border-l border-slate-200 pl-4 leading-tight">
+        <div className="hidden lg:flex shrink-0 flex-col items-end border-l border-slate-200 pl-4 leading-tight">
           {displayName && <span className="text-xs font-semibold text-slate-800">{displayName}</span>}
           {userEmail && <span className="text-[11px] text-slate-500">{userEmail}</span>}
         </div>
