@@ -9,6 +9,7 @@ import { nomeDestino } from "@/lib/public-quote/destination-name";
 import { findAirline } from "@/lib/airlines";
 import { buildPayment } from "@/lib/public-quote/payments";
 import { applyPaymentOverride } from "@/lib/public-quote/payment-override";
+import { isBrIata } from "@/lib/br-airports";
 import {
   resolveQuoteInstallmentRule,
   type QuoteInstallmentRule,
@@ -373,6 +374,17 @@ function optionType(option: NormalizedOption): QuoteType {
   return kinds.length === 1 && kinds[0] === "flights" ? "AIR_ONLY" : "TRIP_PACKAGE";
 }
 
+function isInternationalOption(option: NormalizedOption): boolean {
+  return option.flights.some((f) =>
+    (f.segments ?? []).some((s) => {
+      const from = s.fromIata?.trim();
+      const to = s.toIata?.trim();
+      if (!from && !to) return false;
+      return (!!from && !isBrIata(from)) || (!!to && !isBrIata(to));
+    }),
+  );
+}
+
 function totalsFor(option: NormalizedOption, payment: ReturnType<typeof buildPayment>): QuoteTotals {
   const total = Number(option.total) || 0;
   return { products: total, taxes: 0, total, pixTotal: payment.pix.total };
@@ -397,6 +409,7 @@ export function optionToPublicOption(
     boletoMax: rule?.boletoMax,
     boletoFinanciadoEnabled: rule?.boletoFinanciadoEnabled,
     boletoPrepagoEnabled: rule?.boletoPrepagoEnabled,
+    international: isInternationalOption(option),
     }),
     total,
     option.paymentOverride,
