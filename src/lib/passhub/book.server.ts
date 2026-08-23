@@ -157,9 +157,38 @@ export async function passhubReservarOferta(input: ReservarInput): Promise<PassH
   });
   const r = rec(bruto);
 
+  const localizador = str(r["localizador"] ?? r["locator"] ?? r["bookingId"]);
+
+  // Guardamos os dados completos dos passageiros: a consolidadora só devolve o
+  // nome depois, e o detalhe da reserva precisa de CPF/nascimento.
+  if (localizador) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("passhub_reserva_pax").insert(
+        input.paxs.map((p, i) => ({
+          localizador,
+          ordem: i,
+          nome: p.nome.trim().toUpperCase(),
+          sobrenome: p.sobrenome.trim().toUpperCase(),
+          documento_tipo: p.documentoTipo,
+          documento:
+            p.documentoTipo === "passport"
+              ? p.documento.trim().toUpperCase()
+              : p.documento.replace(/\D/g, ""),
+          nascimento: p.nascimento || null,
+          genero: p.genero ?? null,
+          tipo: p.tipo ?? null,
+          telefone: `${p.ddd ?? ""}${p.telefone ?? ""}`.replace(/\D/g, "") || null,
+        })),
+      );
+    } catch (e) {
+      console.error("[passhub] não gravou passageiros locais:", e);
+    }
+  }
+
   return {
-    localizador: str(r["localizador"] ?? r["locator"] ?? r["bookingId"]),
-    localizadorCompanhia: str(r["localizador_companhia"]),
+    localizador,
+    localizadorCompanhia: str(r["localizador_companhia"]) || localizador,
     bookingId: str(r["bookingId"] ?? r["booking_id"] ?? r["bookingIdProvider"]),
     bookingToken: str(r["booking_token"]),
     status: str(r["status"] ?? r["booking_status"]),
@@ -167,3 +196,4 @@ export async function passhubReservarOferta(input: ReservarInput): Promise<PassH
     totalSemTaxa: num(r["preco_sem_taxa"]),
   };
 }
+

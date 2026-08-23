@@ -6299,6 +6299,54 @@ export type Database = {
         }
         Relationships: []
       }
+      passhub_reserva_pax: {
+        Row: {
+          created_at: string
+          documento: string
+          documento_tipo: string
+          genero: string | null
+          id: string
+          id_passagem: number | null
+          localizador: string
+          nascimento: string | null
+          nome: string
+          ordem: number
+          sobrenome: string
+          telefone: string | null
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string
+          documento?: string
+          documento_tipo?: string
+          genero?: string | null
+          id?: string
+          id_passagem?: number | null
+          localizador: string
+          nascimento?: string | null
+          nome: string
+          ordem?: number
+          sobrenome: string
+          telefone?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string
+          documento?: string
+          documento_tipo?: string
+          genero?: string | null
+          id?: string
+          id_passagem?: number | null
+          localizador?: string
+          nascimento?: string | null
+          nome?: string
+          ordem?: number
+          sobrenome?: string
+          telefone?: string | null
+          tipo?: string | null
+        }
+        Relationships: []
+      }
       pedido_assinatura_signers: {
         Row: {
           assinatura_id: string

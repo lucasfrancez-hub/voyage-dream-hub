@@ -139,6 +139,16 @@ export type PassHubReservaSegmento = {
   conexoes: PassHubReservaConexao[];
 };
 
+export type PassHubReservaPax = {
+  nome: string;
+  documentoTipo: string;
+  documento: string;
+  nascimento: string;
+  genero: string;
+  tipo: string;
+  telefone: string;
+};
+
 export type PassHubReservaLista = {
   idPassagem: number;
   localizador: string;
@@ -165,5 +175,9 @@ export type PassHubReservaLista = {
   linkPagamento: string;
   multitrecho: boolean;
   passageiros: string[];
+  /** Dados completos dos passageiros gravados na reserva (quando existirem). */
+  passageirosDetalhe: PassHubReservaPax[];
+  /** Total efetivamente cobrado do cliente: líquido da consolidadora + comissão. */
+  totalVenda: number;
   segmentos: PassHubReservaSegmento[];
 };
