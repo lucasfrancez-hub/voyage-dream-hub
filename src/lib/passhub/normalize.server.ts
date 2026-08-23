@@ -25,7 +25,7 @@ export function duracaoParaMinutos(txt: string): number {
   return Number(m[1]) * 60 + Number(m[2]);
 }
 
-function normalizaVoo(raw: unknown): PassHubVoo {
+function normalizaVoo(raw: unknown, incentivoPct = 0): PassHubVoo {
   const v = rec(raw);
   const provedores = arr(v["providers"]).map(rec);
   const melhor = provedores[0] ?? {};
@@ -74,12 +74,13 @@ function normalizaVoo(raw: unknown): PassHubVoo {
     taxas: num(v["TOTAL_TAX"] ?? v["TAX"]),
     ravValor: num(v["rav_amount_brl"] ?? v["RAV_AMOUNT"] ?? v["rav_amount"] ?? v["RAV"]),
     ravPercentual: num(v["rav_percentage"] ?? v["RAV_PERCENTAGE"]),
-    incentivoValor: num(
-      v["incentive_amount_brl"] ?? v["incentive_amount"] ?? v["INCENTIVE_AMOUNT"] ?? v["incentivo"],
-    ),
-    incentivoPercentual: num(
-      v["incentive_percentage"] ?? v["INCENTIVE_PERCENTAGE"] ?? v["incentivo_percentual"],
-    ),
+    // O incentivo do nível não vem no payload: o portal calcula tarifa base x pct.
+    incentivoValor:
+      num(v["incentive_amount_brl"] ?? v["incentive_amount"] ?? v["INCENTIVE_AMOUNT"]) ||
+      Math.round(num(v["preco_tarifa"]) * (incentivoPct / 100) * 100) / 100,
+    incentivoPercentual:
+      num(v["incentive_percentage"] ?? v["INCENTIVE_PERCENTAGE"] ?? v["incentivo_percentual"]) ||
+      incentivoPct,
     provedor: str(v["provider"] ?? melhor["provider"]),
     canal: str(melhor["channel"]),
     rateToken: str(v["rateToken"] ?? melhor["rateToken"]),
@@ -96,15 +97,15 @@ function normalizaVoo(raw: unknown): PassHubVoo {
 }
 
 /** Converte o payload bruto da PassHub em ofertas prontas para o motor. */
-export function normalizaBuscaPassHub(bruto: unknown): PassHubResultado {
+export function normalizaBuscaPassHub(bruto: unknown, incentivoPct = 0): PassHubResultado {
   const raiz = rec(bruto);
   const meta = rec(raiz["meta"]);
   const global = rec(meta["global"]);
 
   const ofertas: PassHubOferta[] = arr(raiz["passagens"]).map((p, i) => {
     const item = rec(p);
-    const ida = normalizaVoo(item["ida"]);
-    const voltas = arr(item["voltas"]).map(normalizaVoo);
+    const ida = normalizaVoo(item["ida"], incentivoPct);
+    const voltas = arr(item["voltas"]).map((v) => normalizaVoo(v, incentivoPct));
     // A PassHub NÃO precifica por trecho: `preco_total` da ida e de cada volta
     // já é o valor fechado da viagem (ida + aquela volta). Somar os dois
     // duplicaria o preço; o total da oferta é o menor combo disponível.
