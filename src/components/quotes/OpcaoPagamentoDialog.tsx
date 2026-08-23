@@ -329,8 +329,20 @@ export function OpcaoPagamentoDialog({
                   <MoneyInput
                     placeholder="0"
                     value={ov.pix.discountPercent}
-                    onValue={(v) => set({ pix: { ...ov.pix, discountPercent: v } })}
+                    onValue={(v) =>
+                      set({
+                        pix: {
+                          ...ov.pix,
+                          discountPercent: v,
+                          total:
+                            total > 0
+                              ? Math.round(total * (1 - (v ?? 0) / 100) * 100) / 100
+                              : ov.pix.total,
+                        },
+                      })
+                    }
                   />
+
                 </div>
 
               </div>
