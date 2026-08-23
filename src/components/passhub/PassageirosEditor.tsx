@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Check, Loader2, Pencil, Plus, Trash2, Users, X } from "lucide-react";
+import { Check, Loader2, Lock, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { passhubSalvarPassageiros } from "@/lib/passhub/passhub.functions";
 import type { PassHubReservaPax } from "@/lib/passhub/types";
 
@@ -33,6 +33,8 @@ type Linha = {
   documento: string;
   nascimento: string;
   tipo: string;
+  /** Passageiro já existente na reserva: o nome não pode mais ser alterado. */
+  travado: boolean;
 };
 
 export function PassageirosEditor({
@@ -54,8 +56,18 @@ export function PassageirosEditor({
           documento: p.documento || "",
           nascimento: p.nascimento || "",
           tipo: p.tipo || "ADT",
+          travado: Boolean(p.nome?.trim()),
         }))
-      : [{ nome: "", documentoTipo: "cpf", documento: "", nascimento: "", tipo: "ADT" }],
+      : [
+          {
+            nome: "",
+            documentoTipo: "cpf",
+            documento: "",
+            nascimento: "",
+            tipo: "ADT",
+            travado: false,
+          },
+        ],
   );
 
   const atualizar = (i: number, campo: keyof Linha, valor: string) =>
