@@ -189,7 +189,7 @@ const CSS = `
 .crdoc .section-head{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;gap:12px}
 .crdoc .section-head h2{margin:0;color:var(--blue);font-size:14px}
 .crdoc .section-head .hint{color:var(--muted);font-size:10px}
-.crdoc .passenger{border:1px solid var(--line);border-radius:14px;padding:12px 16px;display:grid;grid-template-columns:1.5fr .55fr .65fr .65fr;gap:16px;align-items:center;break-inside:avoid}
+.crdoc .passenger{border:1px solid var(--line);border-radius:14px;padding:12px 16px;display:grid;grid-template-columns:1.7fr .5fr .75fr .7fr .6fr;gap:14px;align-items:center;break-inside:avoid}
 .crdoc .passenger + .passenger{margin-top:8px}
 .crdoc .passenger .name{font-size:13px;font-weight:800}
 .crdoc .small-label{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
