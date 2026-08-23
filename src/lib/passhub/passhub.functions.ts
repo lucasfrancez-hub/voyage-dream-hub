@@ -403,3 +403,38 @@ export const passhubComissaoExtra = createServerFn({ method: "POST" })
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao salvar" };
     }
   });
+
+/** Salva/edita os dados completos dos passageiros da reserva (nome, documento, nascimento). */
+export const passhubSalvarPassageiros = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        localizador: z.string().min(3).max(20),
+        passageiros: z
+          .array(
+            z.object({
+              nome: z.string().min(2).max(120),
+              documentoTipo: z.enum(["cpf", "passport"]).default("cpf"),
+              documento: z.string().max(40).optional().default(""),
+              nascimento: z
+                .string()
+                .regex(/^\d{4}-\d{2}-\d{2}$/)
+                .nullable()
+                .optional(),
+              tipo: z.string().max(4).optional().default("ADT"),
+            }),
+          )
+          .max(9),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { passhubSalvarPassageirosReserva } = await import("./reservas.server");
+    try {
+      const passageiros = await passhubSalvarPassageirosReserva(data.localizador, data.passageiros);
+      return { ok: true as const, passageiros };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao salvar" };
+    }
+  });
