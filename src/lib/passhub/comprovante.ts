@@ -104,7 +104,7 @@ export function comBilhetes(
 ): ComprovanteReservaDados {
   if (!numeros.length) return dados;
   const restantes = [...numeros];
-  const passageiros = dados.passageiros.map((p, i) => {
+  const passageiros = dados.passageiros.map((p) => {
     const alvo = soLetras(p.nome);
     let idx = restantes.findIndex((n) => {
       const c = soLetras(n.passageiro);
