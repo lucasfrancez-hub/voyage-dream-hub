@@ -10,7 +10,7 @@ import { PassageirosEditor } from "@/components/passhub/PassageirosEditor";
 import { BlocoBilhete } from "@/components/passhub/BlocoBilhete";
 
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
 import { BadgeFonte, FiltroFonte, type FonteReserva } from "@/components/passhub/FiltroFonte";
