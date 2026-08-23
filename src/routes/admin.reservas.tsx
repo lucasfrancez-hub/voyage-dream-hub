@@ -266,7 +266,7 @@ function DetalheReserva({
             <div className="cons-box p-4">
               <div className="cons-lab mb-2">Criação</div>
               <div className="text-[16px] font-black">{dataHora(r.criadaEm)}</div>
-              <div className="text-[12px] cons-muted">{r.emissor || "VIA AIR"}</div>
+              <div className="text-[12px] cons-muted">{nomeProprio(r.emissor) || "VIA AIR"}</div>
             </div>
           </div>
 
