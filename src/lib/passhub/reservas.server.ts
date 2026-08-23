@@ -84,7 +84,15 @@ function normalizaReserva(v: unknown): PassHubReservaLista {
     whatsapp: str(r["numero_whatsapp"]),
     linkPagamento: str(r["link_pagamento"]),
     multitrecho: r["is_multitrecho"] === true,
-    passageiros: arr(r["nomes_passageiros"]).map((p) => str(p)).filter(Boolean),
+    passageiros: arr(r["nomes_passageiros"] ?? r["passageiros"] ?? r["paxs"])
+      .map((p) => {
+        if (p && typeof p === "object") {
+          const o = p as Record<string, unknown>;
+          return `${str(o["nome"])} ${str(o["sobrenome"])}`.trim() || str(o["nome_completo"]);
+        }
+        return str(p);
+      })
+      .filter(Boolean),
     passageirosDetalhe: [],
     segmentos: arr(r["segmentos"]).map(normalizaSegmento),
   };
