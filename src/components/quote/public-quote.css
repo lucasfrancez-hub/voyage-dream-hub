@@ -589,3 +589,13 @@
 .vq-manual-table tr:last-child td { border-bottom: 0; }
 .vq-manual-total { color: #64748b; }
 .vq-inst-demais { font-style: normal; font-weight: 500; color: #64748b; font-size: 11px; }
+
+/* Linha de faixa manual clicável + total no modal de parcelamento */
+.vq-manual-table tr.is-clicavel { cursor: pointer; }
+.vq-manual-table tr.is-clicavel:hover td { background: rgba(242, 107, 31, 0.08); }
+.vq-modal-row.is-total {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin-top: 6px;
+  padding-top: 8px;
+  font-weight: 700;
+}
