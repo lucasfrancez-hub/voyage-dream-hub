@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Check, Loader2, Pencil, Plus, Trash2, Users, X } from "lucide-react";
+import { Check, Loader2, Lock, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { passhubSalvarPassageiros } from "@/lib/passhub/passhub.functions";
 import type { PassHubReservaPax } from "@/lib/passhub/types";
 
@@ -33,6 +33,8 @@ type Linha = {
   documento: string;
   nascimento: string;
   tipo: string;
+  /** Passageiro já existente na reserva: o nome não pode mais ser alterado. */
+  travado: boolean;
 };
 
 export function PassageirosEditor({
@@ -54,8 +56,18 @@ export function PassageirosEditor({
           documento: p.documento || "",
           nascimento: p.nascimento || "",
           tipo: p.tipo || "ADT",
+          travado: Boolean(p.nome?.trim()),
         }))
-      : [{ nome: "", documentoTipo: "cpf", documento: "", nascimento: "", tipo: "ADT" }],
+      : [
+          {
+            nome: "",
+            documentoTipo: "cpf",
+            documento: "",
+            nascimento: "",
+            tipo: "ADT",
+            travado: false,
+          },
+        ],
   );
 
   const atualizar = (i: number, campo: keyof Linha, valor: string) =>
@@ -103,12 +115,22 @@ export function PassageirosEditor({
         <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
           {linhas.map((l, i) => (
             <div key={i} className="grid gap-2 sm:grid-cols-[minmax(0,2fr)_110px_minmax(0,1fr)_150px_90px_auto]">
-              <input
-                className="cons-field"
-                placeholder="Nome completo"
-                value={l.nome}
-                onChange={(e) => atualizar(i, "nome", e.target.value)}
-              />
+              {l.travado ? (
+                <div
+                  className="cons-field flex items-center gap-2 opacity-70"
+                  title="Nome do passageiro não pode ser alterado após a reserva"
+                >
+                  <Lock className="h-3.5 w-3.5 shrink-0 text-[#9fb4c6]" />
+                  <span className="truncate text-[13px] font-bold uppercase">{l.nome}</span>
+                </div>
+              ) : (
+                <input
+                  className="cons-field"
+                  placeholder="Nome completo"
+                  value={l.nome}
+                  onChange={(e) => atualizar(i, "nome", e.target.value)}
+                />
+              )}
               <select
                 className="cons-field"
                 value={l.documentoTipo}
@@ -138,16 +160,29 @@ export function PassageirosEditor({
                 <option value="CHD">CHD</option>
                 <option value="INF">INF</option>
               </select>
-              <button
-                type="button"
-                className="cons-btn !px-2"
-                onClick={() => setLinhas((a) => a.filter((_, idx) => idx !== i))}
-                title="Remover passageiro"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {l.travado ? (
+                <span
+                  className="grid h-full min-h-[38px] w-9 place-items-center rounded-xl border border-white/5 text-[#5f7484]"
+                  title="Passageiro já reservado — não pode ser removido"
+                >
+                  <Lock className="h-4 w-4" />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="cons-btn !px-2"
+                  onClick={() => setLinhas((a) => a.filter((_, idx) => idx !== i))}
+                  title="Remover passageiro"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ))}
+          <p className="text-[11px] cons-muted">
+            O nome do passageiro fica bloqueado após a reserva — só documento, nascimento e tipo
+            podem ser ajustados.
+          </p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -155,7 +190,14 @@ export function PassageirosEditor({
               onClick={() =>
                 setLinhas((a) => [
                   ...a,
-                  { nome: "", documentoTipo: "cpf", documento: "", nascimento: "", tipo: "ADT" },
+                  {
+                    nome: "",
+                    documentoTipo: "cpf",
+                    documento: "",
+                    nascimento: "",
+                    tipo: "ADT",
+                    travado: false,
+                  },
                 ])
               }
             >
