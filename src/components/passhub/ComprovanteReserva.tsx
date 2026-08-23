@@ -348,7 +348,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             <h1>{eBilhete ? "Bilhete Eletrônico" : "Comprovante de Reserva"}</h1>
             <p>
               {eBilhete
-                ? "Apresente este documento no embarque"
+                ? "E-ticket • documento de viagem emitido"
                 : dados.emitido
                   ? "Confira os dados da sua viagem"
                   : "Confira os dados da sua viagem antes da emissão"}
