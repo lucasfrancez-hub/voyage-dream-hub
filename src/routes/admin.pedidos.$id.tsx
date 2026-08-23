@@ -490,10 +490,10 @@ function OrderDetailPage() {
                 }}><FileText className="h-3.5 w-3.5 mr-2" /> Voucher (EN)</DropdownMenuItem>
                 {detail.items.some((i) => i.status !== "cancelled") && (
                   <>
-                    <DropdownMenuItem onClick={() => window.open(`/admin/pedidos/${order.id}/plano-viagem`, "_blank")}>
+                    <DropdownMenuItem onClick={() => void abrirDocumento("pedido", order.id)}>
                       <Plane className="h-3.5 w-3.5 mr-2" /> Plano de viagem (com valor)
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => window.open(`/admin/pedidos/${order.id}/plano-viagem?valores=0`, "_blank")}>
+                    <DropdownMenuItem onClick={() => void abrirDocumento("pedido", order.id, { semValores: true })}>
                       <Plane className="h-3.5 w-3.5 mr-2" /> Plano de viagem (sem valor)
                     </DropdownMenuItem>
                   </>
