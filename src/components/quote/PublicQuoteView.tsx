@@ -13,6 +13,8 @@ import {
   brl,
   scheduleBoletoAteViagem,
   scheduleBoletoFinanciado,
+  scheduleEntradaMensal,
+
   type ParcelaAgendada,
 } from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
