@@ -575,6 +575,14 @@ function ReservasPage() {
                     <tr key={r.idPassagem} onClick={() => setAberta(r)}>
                       <td className="font-mono font-black tracking-widest">
                         {r.localizador || "—"}
+                        {bilhetes[String(r.idPassagem)]?.length ? (
+                          <div className="mt-1 text-[10px] font-bold tracking-normal cons-muted">
+                            Bilhete {bilhetes[String(r.idPassagem)]![0]!.numero}
+                            {bilhetes[String(r.idPassagem)]!.length > 1
+                              ? ` +${bilhetes[String(r.idPassagem)]!.length - 1}`
+                              : ""}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="font-mono">{r.localizadorCompanhia || "—"}</td>
                       <td className="max-w-[220px] truncate">
