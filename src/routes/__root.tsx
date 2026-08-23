@@ -229,6 +229,9 @@ function RootComponent() {
   useEffect(() => instalarHandshakeVersao(), []);
   // App abriu bem: tira os parâmetros técnicos da URL e zera o contador.
   useEffect(() => limparMarcasDeRecuperacao(), []);
+  // Arrastar com o dedo/mouse em barras horizontais (menu admin, abas do chat).
+  useEffect(() => instalarDragScroll(), []);
+
 
   // Métricas de uso (anônimas): visitas, navegação, cliques e tempo.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
