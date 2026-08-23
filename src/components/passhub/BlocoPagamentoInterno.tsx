@@ -587,7 +587,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
                       {p.status === "repassado"
                         ? "Pago à consolidadora"
                         : p.status === "falha_repasse"
-                          ? "Não foi pago à consolidadora"
+                          ? "Cancelado — não foi pago à consolidadora"
                           : "Enviando à consolidadora"}{" "}
                       <b>{brl(p.repasseValor ?? p.valorPasshub)}</b>
                       {p.repasseEm ? ` em ${new Date(p.repasseEm).toLocaleString("pt-BR")}` : ""}
