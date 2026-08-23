@@ -1555,6 +1555,66 @@ export type Database = {
           },
         ]
       }
+      auth_code_attempts: {
+        Row: {
+          code_mask: string | null
+          code_used_at: string | null
+          created_at: string
+          created_by: string | null
+          error: string | null
+          expected_senders: string[]
+          expected_subjects: string[]
+          gmail_message_id: string | null
+          id: string
+          login_hint: string | null
+          provider: string
+          received_at: string | null
+          requested_at: string
+          sender: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          code_mask?: string | null
+          code_used_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          expected_senders?: string[]
+          expected_subjects?: string[]
+          gmail_message_id?: string | null
+          id?: string
+          login_hint?: string | null
+          provider: string
+          received_at?: string | null
+          requested_at?: string
+          sender?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code_mask?: string | null
+          code_used_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          expected_senders?: string[]
+          expected_subjects?: string[]
+          gmail_message_id?: string | null
+          id?: string
+          login_hint?: string | null
+          provider?: string
+          received_at?: string | null
+          requested_at?: string
+          sender?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       broadcast_suggestions: {
         Row: {
           approved_by: string | null

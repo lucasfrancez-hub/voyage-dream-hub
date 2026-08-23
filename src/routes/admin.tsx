@@ -3,7 +3,7 @@ import { DocumentoViewer } from "@/components/docs/DocumentoViewer";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Smartphone,
-  Puzzle, MessageCircle, Sun, Moon, BarChart3, CreditCard } from "lucide-react";
+  Puzzle, MessageCircle, Sun, Moon, BarChart3, CreditCard, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -734,6 +734,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     pathname.startsWith("/admin/metricas") ||
     pathname.startsWith("/admin/pacotes-cativa") ||
     pathname.startsWith("/admin/regras-parcelamento") ||
+    pathname.startsWith("/admin/codigos-auth") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
   return (
@@ -754,6 +755,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
             { to: "/admin/app-celular", label: "App no celular", icon: Smartphone },
             { to: "/admin/pacotes-cativa", label: "Catálogo de pacotes", icon: Package },
             { to: "/admin/regras-parcelamento", label: "Regras de parcelamento", icon: CreditCard },
+            { to: "/admin/codigos-auth", label: "Códigos 2FA por e-mail", icon: ShieldCheck },
 
           ],
         },
