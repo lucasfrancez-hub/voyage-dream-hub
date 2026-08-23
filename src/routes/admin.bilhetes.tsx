@@ -78,9 +78,29 @@ function DetalheBilhete({ r, onVoltar }: { r: PassHubReservaLista; onVoltar: () 
           <span className="cons-status cons-status-ok">
             {r.emitidaEm ? "EMITIDO" : "EM EMISSÃO"}
           </span>
-          <button type="button" className="cons-btn" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" /> Imprimir
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="cons-btn">
+                <Printer className="h-4 w-4" /> Baixar bilhete
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() =>
+                  window.open(`/admin/bilhetes/${r.idPassagem}/eticket`, "_blank")
+                }
+              >
+                Com valor total
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  window.open(`/admin/bilhetes/${r.idPassagem}/eticket?valores=0`, "_blank")
+                }
+              >
+                Sem valor
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button type="button" className="cons-btn" onClick={onVoltar}>
             <ArrowLeft className="h-4 w-4" /> Voltar
           </button>
