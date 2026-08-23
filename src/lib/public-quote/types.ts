@@ -144,6 +144,8 @@ export type QuoteProducts = {
 export type Installment = {
   number: number;
   amount: number;
+  /** Valor da 1ª parcela quando difere das demais (condição manual). */
+  firstAmount?: number | null;
   total: number;
   interestFree: boolean;
 };
@@ -175,6 +177,8 @@ export type PaymentConfiguration = {
     } | null;
     /** Condição de boleto definida manualmente pelo consultor (por opção). */
     manual?: {
+      /** Faixas manuais: para N parcelas, 1ª parcela e demais. */
+      rows?: Array<{ installments: number; first: number; others: number; total: number }>;
       entrada: number | null;
       installments: number;
       amount: number;

@@ -8,6 +8,15 @@
  */
 import type { Installment, PaymentConfiguration } from "./types";
 
+/** Faixa manual: para N parcelas, valor da 1ª (entrada) e das demais. */
+export type ManualRow = {
+  parcelas: number;
+  /** valor da 1ª parcela / entrada */
+  entrada: number | null;
+  /** valor das demais parcelas */
+  demais: number | null;
+};
+
 export type OptionPaymentOverride = {
   enabled: boolean;
   card: {
@@ -17,6 +26,8 @@ export type OptionPaymentOverride = {
     /** valor de cada parcela (quando informado, manda no valor exibido) */
     amount: number | null;
     interestFree: boolean;
+    /** Faixas manuais por quantidade de parcelas (2x..10x). */
+    rows?: ManualRow[];
   };
   boleto: {
     enabled: boolean;
@@ -26,6 +37,8 @@ export type OptionPaymentOverride = {
     /** data limite de pagamento/quitação (YYYY-MM-DD) */
     dueDate: string | null;
     note: string | null;
+    /** Faixas manuais por quantidade de parcelas (2x..10x). */
+    rows?: ManualRow[];
   };
   pix: {
     enabled: boolean;
@@ -40,8 +53,11 @@ export type OptionPaymentOverride = {
 export function emptyPaymentOverride(): OptionPaymentOverride {
   return {
     enabled: false,
-    card: { enabled: true, installments: null, amount: null, interestFree: true },
-    boleto: { enabled: false, entrada: null, installments: null, amount: null, dueDate: null, note: null },
+    card: { enabled: true, installments: null, amount: null, interestFree: true, rows: [] },
+    boleto: {
+      enabled: false, entrada: null, installments: null, amount: null,
+      dueDate: null, note: null, rows: [],
+    },
     pix: { enabled: true, total: null, discountPercent: null },
     dueDate: null,
     note: null,
@@ -50,7 +66,33 @@ export function emptyPaymentOverride(): OptionPaymentOverride {
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+export function rowsValidas(rows?: ManualRow[] | null): ManualRow[] {
+  return (rows ?? [])
+    .filter((r) => r.parcelas >= 1 && ((r.entrada ?? 0) > 0 || (r.demais ?? 0) > 0))
+    .sort((a, b) => a.parcelas - b.parcelas);
+}
+
+function rowTotal(r: ManualRow): number {
+  const entrada = r.entrada ?? r.demais ?? 0;
+  const demais = r.demais ?? r.entrada ?? 0;
+  return round2(entrada + demais * Math.max(0, r.parcelas - 1));
+}
+
 function cardList(total: number, ov: OptionPaymentOverride): Installment[] {
+  const rows = rowsValidas(ov.card.rows);
+  if (rows.length) {
+    return rows.map((r) => {
+      const entrada = r.entrada ?? r.demais ?? 0;
+      const demais = r.demais ?? r.entrada ?? 0;
+      return {
+        number: r.parcelas,
+        amount: round2(demais),
+        firstAmount: round2(entrada),
+        total: rowTotal(r),
+        interestFree: ov.card.interestFree,
+      };
+    });
+  }
   const n = Math.max(1, Math.trunc(ov.card.installments ?? 1));
   const amount = ov.card.amount != null && ov.card.amount > 0 ? ov.card.amount : total / n;
   const out: Installment[] = [];
@@ -106,6 +148,12 @@ export function applyPaymentOverride(
       note: ov.boleto.note ?? base.boleto.note ?? null,
       manual: ov.boleto.enabled
         ? {
+            rows: rowsValidas(ov.boleto.rows).map((r) => ({
+              installments: r.parcelas,
+              first: round2(r.entrada ?? r.demais ?? 0),
+              others: round2(r.demais ?? r.entrada ?? 0),
+              total: rowTotal(r),
+            })),
             entrada: ov.boleto.entrada != null ? round2(ov.boleto.entrada) : null,
             installments: boletoParcelas,
             amount: round2(boletoValor),
