@@ -498,7 +498,7 @@ function PainelDetalhe({
     { rot: "Taxa de embarque / TAX", val: taxas },
   ];
   linhas.push({
-    rot: `Comissão (${ravPercentual}%)${tarifacaoApi ? " · PassHub" : ravCarregando ? " · consultando…" : ""}`,
+    rot: `Comissão (RAV ${ravPercentual}%${incentivoPct > 0 ? ` + incentivo ${incentivoPct}%` : ""})${tarifacaoApi ? " · PassHub" : ravCarregando ? " · consultando…" : ""}`,
     val: comissaoApi,
     destaque: true,
     positivo: true,
