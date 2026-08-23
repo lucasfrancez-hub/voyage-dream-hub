@@ -46,18 +46,25 @@ export async function tokenValido(tipo: TipoDoc, id: string, token: string): Pro
 
 async function docPassHub(id: number, comBilhete: boolean): Promise<ComprovanteReservaDados> {
   const { passhubReservaDetalhe } = await import("@/lib/passhub/reservas.server");
-  const { paraComprovante, comBilhetes } = await import("@/lib/passhub/comprovante");
+  const { paraComprovante, comBilhetes, reservaEmitida } = await import(
+    "@/lib/passhub/comprovante"
+  );
   const reserva = await passhubReservaDetalhe(id);
   if (!reserva) throw new Error("Reserva não encontrada");
   const base = paraComprovante(reserva);
-  if (!comBilhete) return base;
+  // O plano de viagem também mostra a seção "Bilhetes emitidos" quando já emitida.
+  if (!comBilhete && !reservaEmitida(reserva)) return base;
 
   const { passhubNumerosBilhete } = await import("@/lib/passhub/bilhete.server");
-  const bilhete = await passhubNumerosBilhete(id, { localizador: reserva.localizador });
-  return {
-    ...comBilhetes(base, bilhete.numeros ?? [], reserva.emitidaEm ?? null),
-    variante: "bilhete",
-  };
+  let numeros: { passageiro: string; numero: string }[] = [];
+  try {
+    const bilhete = await passhubNumerosBilhete(id, { localizador: reserva.localizador });
+    numeros = bilhete.numeros ?? [];
+  } catch {
+    numeros = [];
+  }
+  const comDados = comBilhetes(base, numeros, reserva.emitidaEm ?? null);
+  return comBilhete ? { ...comDados, variante: "bilhete" } : comDados;
 }
 
 async function docPedido(id: string): Promise<ComprovanteReservaDados> {
