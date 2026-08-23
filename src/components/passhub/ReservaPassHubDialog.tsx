@@ -58,7 +58,7 @@ const rotuloTipo: Record<PassHubPaxTipo, string> = {
 };
 
 const CONTATO_PADRAO = {
-  email: "reservas@viaair.tur.br",
+  email: "lucas@voeair.com",
   ddi: "55",
   ddd: "44",
   telefone: "999093642",
