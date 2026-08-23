@@ -451,9 +451,14 @@ function DetalheReserva({
   );
 }
 
+type FonteReserva = "todas" | "consolidadora" | "pedidos";
+
 function ReservasPage() {
   const listar = useServerFn(passhubReservas);
+  const listarPedidos = useServerFn(pedidosReservasAereas);
+  const navigate = useNavigate();
   const [busca, setBusca] = useState("");
+  const [fonte, setFonte] = useState<FonteReserva>("todas");
   const [aberta, setAberta] = useState<PassHubReservaLista | null>(null);
 
   const { data, isFetching, refetch } = useQuery({
@@ -462,7 +467,14 @@ function ReservasPage() {
     staleTime: 60_000,
   });
 
+  const pedidosQuery = useQuery({
+    queryKey: ["pedidos-reservas-aereas"],
+    queryFn: () => listarPedidos({ data: undefined }),
+    staleTime: 60_000,
+  });
+
   const reservas = data?.ok ? data.reservas : [];
+  const reservasPedidos = pedidosQuery.data?.ok ? pedidosQuery.data.reservas : [];
   const erro = data && !data.ok ? data.erro : null;
 
   // Toda reserva emitida tem o bilhete buscado sozinho (cache ou leitura do PDF).
