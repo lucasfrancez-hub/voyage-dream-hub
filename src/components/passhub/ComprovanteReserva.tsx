@@ -330,7 +330,7 @@ const CSS = `
   .crdoc .locator strong{font-size:20px}
 }
 
-@media (max-width:420px){
+@media screen and (max-width:420px){
   .crdoc .meta-grid{grid-template-columns:1fr}
   .crdoc .passenger{grid-template-columns:1fr}
   .crdoc .ticket-row{grid-template-columns:1fr}
