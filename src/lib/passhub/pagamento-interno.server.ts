@@ -285,6 +285,25 @@ async function pagarBrCode(opts: {
   };
 }
 
+/** Traduz o status bruto do ASAAS para o status do pagamento da reserva. */
+export function statusRepasse(bruto: string | null | undefined): {
+  status: "repassado" | "falha_repasse" | "repassando";
+  erro: string | null;
+} {
+  const s = String(bruto ?? "").toUpperCase();
+  if (s === "DONE") return { status: "repassado", erro: null };
+  if (s === "FAILED" || s === "CANCELLED" || s === "CANCELED" || s === "REFUSED" || s === "REFUNDED") {
+    return {
+      status: "falha_repasse",
+      erro:
+        s === "REFUNDED"
+          ? "O Pix foi estornado pela consolidadora."
+          : "O ASAAS recusou/cancelou a transferência (autorização externa recusada).",
+    };
+  }
+  return { status: "repassando", erro: null };
+}
+
 /* ------------------------------------------------------------------ *
  * 2.a) Conferência antes de pagar (tela de revisão)
  * ------------------------------------------------------------------ */
