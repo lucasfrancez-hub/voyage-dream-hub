@@ -97,8 +97,14 @@ export type PassHubTarifacao = {
   pricedRateTokens: string[];
   preco: number;
   precoSemTaxa: number;
-  /** RAV efetiva em R$ devolvida pela PassHub na tarifação. */
+  /** Comissão total em R$ (RAV efetiva + incentivo do nível). */
   ravValor: number;
+  /** Só a RAV efetiva devolvida pela PassHub, sem o incentivo. */
+  ravSemIncentivo?: number;
+  /** Incentivo do nível de recompensas em R$ (tarifa base x pct). */
+  incentivoValor?: number;
+  /** Percentual do incentivo do nível vigente. */
+  incentivoPercentual?: number;
   ravModo: string;
   retarifou: boolean;
 };
