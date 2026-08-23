@@ -2,6 +2,7 @@
  * Plano de viagem (comprovante de reserva aérea) em página própria,
  * pronta para impressão / download em PDF.
  */
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
