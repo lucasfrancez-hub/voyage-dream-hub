@@ -722,7 +722,8 @@ function BilhetesPage() {
               </table>
             </div>
           </>
-        )}
+        }
+
       </div>
     </div>
   );
