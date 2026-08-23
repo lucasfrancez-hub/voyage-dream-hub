@@ -113,7 +113,7 @@ export function useTarifacaoPassHub(
           cache.set(chave, {
             preco,
             comissao,
-            total: Math.round(preco * 100) / 100,
+            total: Math.round((preco + comissao) * 100) / 100,
           });
           avisar();
         }
