@@ -1,30 +1,33 @@
 /**
- * Plano de viagem (comprovante de reserva aérea) em página própria,
- * pronta para impressão / download em PDF.
+ * Bilhete Eletrônico (e-ticket) em página própria, pronto para impressão / PDF.
+ * Usa a mesma identidade visual do Plano de Viagem.
  */
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Printer } from "lucide-react";
-import { passhubReservaDetalhe } from "@/lib/passhub/passhub.functions";
+import {
+  passhubReservaDetalhe,
+  passhubBilheteNumeros,
+} from "@/lib/passhub/passhub.functions";
 import { ComprovanteReserva } from "@/components/passhub/ComprovanteReserva";
-import { paraComprovante } from "@/lib/passhub/comprovante";
+import { paraComprovante, comBilhetes } from "@/lib/passhub/comprovante";
 
-export const Route = createFileRoute("/admin/reservas_/$id/plano-viagem")({
-  component: PlanoViagemPage,
+export const Route = createFileRoute("/admin/bilhetes_/$id/eticket")({
+  component: BilheteEletronicoPage,
   head: () => ({
     meta: [
-      { title: "Plano de viagem — Comprovante de reserva | VIA AIR" },
+      { title: "Bilhete eletrônico — E-ticket | VIA AIR" },
       {
         name: "description",
         content:
-          "Comprovante de reserva aérea VIA AIR com itinerário completo, passageiros, bagagem e valores.",
+          "Bilhete eletrônico VIA AIR com números de e-ticket, itinerário, passageiros e bagagem.",
       },
-      { property: "og:title", content: "Plano de viagem — Comprovante de reserva | VIA AIR" },
+      { property: "og:title", content: "Bilhete eletrônico — E-ticket | VIA AIR" },
       {
         property: "og:description",
-        content: "Itinerário, passageiros e valores da reserva aérea VIA AIR.",
+        content: "Documento de embarque VIA AIR com e-ticket, itinerário e passageiros.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -33,10 +36,11 @@ export const Route = createFileRoute("/admin/reservas_/$id/plano-viagem")({
   }),
 });
 
-function PlanoViagemPage() {
+function BilheteEletronicoPage() {
   const { id } = Route.useParams();
   const [semValores, setSemValores] = useState(false);
   const detalheFn = useServerFn(passhubReservaDetalhe);
+  const bilheteFn = useServerFn(passhubBilheteNumeros);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -44,14 +48,19 @@ function PlanoViagemPage() {
   }, []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["passhub-reserva-plano", id],
+    queryKey: ["passhub-reserva-eticket", id],
     queryFn: () => detalheFn({ data: { id: Number(id) } }),
+  });
+
+  const { data: bilhete } = useQuery({
+    queryKey: ["passhub-bilhete-numeros", id],
+    queryFn: () => bilheteFn({ data: { id: Number(id) } }),
   });
 
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-2 text-sm">
-        <Loader2 className="h-4 w-4 animate-spin" /> Carregando plano de viagem…
+        <Loader2 className="h-4 w-4 animate-spin" /> Carregando bilhete eletrônico…
       </div>
     );
   }
@@ -63,6 +72,13 @@ function PlanoViagemPage() {
       </div>
     );
   }
+
+  const base = paraComprovante(data.reserva);
+  const dados = comBilhetes(
+    base,
+    bilhete?.ok ? (bilhete.numeros ?? []) : [],
+    data.reserva.emitidaEm ?? null,
+  );
 
   return (
     <div style={{ background: "#eef2f5", minHeight: "100vh", padding: "22px 0" }}>
@@ -84,7 +100,7 @@ function PlanoViagemPage() {
         </button>
       </div>
       <ComprovanteReserva
-        dados={{ ...paraComprovante(data.reserva), ocultarValores: semValores }}
+        dados={{ ...dados, variante: "bilhete", ocultarValores: semValores }}
       />
     </div>
   );

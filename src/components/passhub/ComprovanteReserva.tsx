@@ -35,6 +35,8 @@ export type ComprovantePax = {
 
 export type ComprovanteReservaDados = {
   emitido: boolean;
+  /** "reserva" = plano de viagem; "bilhete" = e-ticket emitido. Mesma identidade visual. */
+  variante?: "reserva" | "bilhete";
   localizador: string;
   localizadorCompanhia?: string;
   companhia: string;
@@ -268,6 +270,13 @@ const CSS = `
 .crdoc footer .contact strong{color:var(--blue)}
 .crdoc footer .page-note{font-size:9px;color:#8a96a1;text-align:right}
 
+.crdoc .passenger.nostatus{grid-template-columns:1.8fr .6fr .95fr .8fr}
+.crdoc .infoblock{margin:14px 34px 0;border:1px solid var(--line);border-radius:13px;padding:14px 16px;background:#fbfcfd;break-inside:avoid}
+.crdoc .infoblock h3{margin:0 0 7px;font-size:11px;color:var(--blue);text-transform:uppercase;letter-spacing:.7px}
+.crdoc .infoblock p{margin:0 0 6px;font-size:9.5px;line-height:1.55;color:#5b6a78}
+.crdoc .infoblock ul{margin:0;padding-left:16px;color:#5b6a78;font-size:9.5px;line-height:1.55}
+.crdoc[data-density="compact"] .infoblock{margin:10px 28px 0;padding:11px 13px}
+
 /* densidade automática conforme a quantidade de voos */
 .crdoc[data-density="medium"] .flight{padding:12px 16px}
 .crdoc[data-density="medium"] section{padding-top:10px}
@@ -314,11 +323,13 @@ const CSS = `
 /* ------------------------------- componente ------------------------------- */
 
 export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }) {
+  const eBilhete = dados.variante === "bilhete";
   const voos = dados.grupos.flatMap((g) => g.voos);
   const densidade = voos.length <= 2 ? "normal" : voos.length <= 4 ? "medium" : "compact";
   const bilhetes = dados.passageiros.filter((p) => (p.bilhete ?? "").trim().length > 0);
-  const temPrazo = !dados.emitido && !!dados.limiteEmissao;
-  const heroSimples = !temPrazo && !dados.emitido;
+  const temPrazo = !eBilhete && !dados.emitido && !!dados.limiteEmissao;
+  const heroSimples = eBilhete || (!temPrazo && !dados.emitido);
+  const numeroBilhete = bilhetes[0]?.bilhete ?? "";
 
   return (
     <div className="crdoc" id="comprovante-print" data-density={densidade}>
@@ -333,18 +344,21 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             <div className="brand-sub">Premium Travel</div>
           </div>
           <div className="doc-title">
-            <h1>Comprovante de Reserva</h1>
+            <h1>{eBilhete ? "Bilhete Eletrônico" : "Comprovante de Reserva"}</h1>
             <p>
-              {dados.emitido
-                ? "Confira os dados da sua viagem"
-                : "Confira os dados da sua viagem antes da emissão"}
+              {eBilhete
+                ? "Apresente este documento no embarque"
+                : dados.emitido
+                  ? "Confira os dados da sua viagem"
+                  : "Confira os dados da sua viagem antes da emissão"}
             </p>
           </div>
         </header>
 
         <div className={`hero${heroSimples ? " single" : ""}`}>
           <div className="hero-card soft">
-            <div className="eyebrow">Reserva aérea</div>
+            <div className="eyebrow">{eBilhete ? "Bilhete eletrônico" : "Reserva aérea"}</div>
+
             <div className="locator">
               <strong>{dados.localizador}</strong>
               <span className={`status ${dados.emitido ? "issued" : "reserved"}`}>
@@ -353,13 +367,26 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             </div>
 
             <div className="meta-grid">
+              {eBilhete && numeroBilhete ? (
+                <div>
+                  <span>Número do bilhete</span>
+                  <b>{numeroBilhete}</b>
+                </div>
+              ) : null}
               {dados.companhia ? (
                 <div>
                   <span>Companhia</span>
                   <b>{findAirline(dados.companhia)?.name ?? dados.companhia}</b>
                 </div>
               ) : null}
-              {dados.criadaEm ? (
+              {eBilhete ? (
+                bilhetes[0]?.emissao ? (
+                  <div>
+                    <span>Data de emissão</span>
+                    <b>{dataBR(bilhetes[0].emissao)}</b>
+                  </div>
+                ) : null
+              ) : dados.criadaEm ? (
                 <div>
                   <span>Criada em</span>
                   <b>{dataHora(dados.criadaEm)}</b>
@@ -392,9 +419,13 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             {dados.ocultarValores ? null : (
               <div className="total-price">
                 <div>
-                  <div className="price-label">Valor total da passagem</div>
+                  <div className="price-label">
+                    {eBilhete ? "Valor total do bilhete" : "Valor total da passagem"}
+                  </div>
                   <div className="price-note">
-                    Valor total da reserva aérea para os passageiros informados.
+                    {eBilhete
+                      ? "Valor total emitido para os passageiros informados."
+                      : "Valor total da reserva aérea para os passageiros informados."}
                   </div>
                 </div>
                 <div className="price">{brl(dados.total)}</div>
@@ -414,7 +445,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             </div>
           ) : null}
 
-          {dados.emitido ? (
+          {dados.emitido && !eBilhete ? (
             <div className="deadline ok">
               <div className="eyebrow">Situação da reserva</div>
               <div className="time">Bilhetes emitidos</div>
@@ -433,7 +464,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
               <div className="hint">Confira a grafia exatamente como no documento de viagem</div>
             </div>
             {dados.passageiros.map((p, i) => (
-              <div className="passenger" key={`${p.nome}-${i}`}>
+              <div className={`passenger${eBilhete ? " nostatus" : ""}`} key={`${p.nome}-${i}`}>
                 <div>
                   <div className="small-label">Nome completo</div>
                   <div className="name">{p.nome.toUpperCase()}</div>
@@ -454,10 +485,12 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
                     {p.nascimento ? dataBR(p.nascimento) : "—"}
                   </div>
                 </div>
-                <div>
-                  <div className="small-label">Status</div>
-                  <div className="small-value">{dados.emitido ? "Emitido" : "Reservado"}</div>
-                </div>
+                {eBilhete ? null : (
+                  <div>
+                    <div className="small-label">Status</div>
+                    <div className="small-value">{dados.emitido ? "Emitido" : "Reservado"}</div>
+                  </div>
+                )}
               </div>
             ))}
           </section>
@@ -625,7 +658,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
         {bilhetes.length ? (
           <section>
             <div className="section-head">
-              <h2>Bilhetes emitidos</h2>
+              <h2>{eBilhete ? "Dados do bilhete" : "Bilhetes emitidos"}</h2>
             </div>
             <div className="tickets">
               <div className="ticket-row head">
@@ -646,16 +679,43 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
           </section>
         ) : null}
 
-        <div className="checks">
-          <h3>Antes de viajar</h3>
-          <ul>
-            <li>Confira dados do passageiro, datas, aeroportos e horários.</li>
-            <li>Tarifas e valores podem sofrer alterações até que o bilhete seja efetivamente emitido.</li>
-            <li>Regras de alteração, cancelamento e reembolso dependem da tarifa adquirida.</li>
-            <li>Bagagem está sujeita às regras da tarifa e da companhia aérea.</li>
-            <li>Documentos, vistos, vacinas e requisitos migratórios devem ser conferidos pelo viajante.</li>
-          </ul>
-        </div>
+        {eBilhete ? (
+          <>
+            <div className="infoblock">
+              <h3>Informações</h3>
+              <p>
+                Este documento é o seu bilhete eletrônico (e-ticket) e comprova a emissão junto à
+                companhia aérea. Regras de alteração, cancelamento, remarcação e reembolso seguem as
+                condições da tarifa adquirida.
+              </p>
+              <p>
+                Bagagem despachada e de mão estão sujeitas às regras da tarifa e da companhia aérea.
+                Serviços adicionais, como assentos e bagagem extra, podem ter cobrança à parte.
+              </p>
+            </div>
+            <div className="infoblock">
+              <h3>Informações para embarque</h3>
+              <ul>
+                <li>Chegue ao aeroporto com 2 horas de antecedência em voos nacionais e 3 horas em voos internacionais.</li>
+                <li>Apresente documento oficial com foto válido; em voos internacionais, passaporte dentro da validade exigida.</li>
+                <li>Confira exigências de visto, vacinas e requisitos migratórios do destino e das conexões.</li>
+                <li>Faça o check-in antecipado pelo site ou aplicativo da companhia aérea.</li>
+                <li>Menores de idade seguem regras específicas de documentação e autorização de viagem.</li>
+              </ul>
+            </div>
+          </>
+        ) : (
+          <div className="checks">
+            <h3>Antes de viajar</h3>
+            <ul>
+              <li>Confira dados do passageiro, datas, aeroportos e horários.</li>
+              <li>Tarifas e valores podem sofrer alterações até que o bilhete seja efetivamente emitido.</li>
+              <li>Regras de alteração, cancelamento e reembolso dependem da tarifa adquirida.</li>
+              <li>Bagagem está sujeita às regras da tarifa e da companhia aérea.</li>
+              <li>Documentos, vistos, vacinas e requisitos migratórios devem ser conferidos pelo viajante.</li>
+            </ul>
+          </div>
+        )}
 
         <footer>
           <div className="contact">
