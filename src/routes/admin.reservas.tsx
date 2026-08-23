@@ -290,6 +290,14 @@ function DetalheReserva({
             </div>
           </div>
 
+          {(r.status || "").toUpperCase() === "ISSUED" && (
+            <div className="mt-3">
+              <BlocoBilhete idPassagem={r.idPassagem} localizador={r.localizador} emitida />
+            </div>
+          )}
+
+
+
           <div className="cons-dot my-5" />
 
           <h3 className="mb-3 flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.14em] text-[#9fb4c6]">
