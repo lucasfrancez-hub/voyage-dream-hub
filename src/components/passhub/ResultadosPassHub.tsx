@@ -1334,7 +1334,7 @@ function ResumoPerna({
 }
 
 
-export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onReservar }: Props) {
+export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onReservar, onOrcamento }: Props) {
   const [idaSel, setIdaSel] = useState<string | null>(null);
   const [voltaSel, setVoltaSel] = useState<string | null>(null);
   const refVolta = useRef<HTMLDivElement | null>(null);
