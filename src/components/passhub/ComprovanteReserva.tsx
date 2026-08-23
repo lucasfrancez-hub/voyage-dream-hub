@@ -35,6 +35,8 @@ export type ComprovantePax = {
 
 export type ComprovanteReservaDados = {
   emitido: boolean;
+  /** "reserva" = plano de viagem; "bilhete" = e-ticket emitido. Mesma identidade visual. */
+  variante?: "reserva" | "bilhete";
   localizador: string;
   localizadorCompanhia?: string;
   companhia: string;
