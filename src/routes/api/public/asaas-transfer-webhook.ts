@@ -105,6 +105,23 @@ export const Route = createFileRoute('/api/public/asaas-transfer-webhook')({
               payload: body,
             })
           }
+          // Reflete o resultado real no pagamento da consolidadora (PassHub).
+          if (asaasId) {
+            const { statusRepasse } = await import('@/lib/passhub/pagamento-interno.server')
+            const bruto = String(transfer?.status ?? '').toUpperCase()
+            if (bruto) {
+              const resultado = statusRepasse(bruto)
+              await supabaseAdmin
+                .from('passhub_pagamentos')
+                .update({
+                  status: resultado.status,
+                  repasse_status: bruto,
+                  repasse_erro: resultado.erro ?? transfer?.failReason ?? null,
+                  repasse_em: resultado.status === 'repassado' ? new Date().toISOString() : null,
+                })
+                .eq('repasse_transfer_id', asaasId)
+            }
+          }
           return Response.json({ received: true })
         }
 
