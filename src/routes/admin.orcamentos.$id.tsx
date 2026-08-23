@@ -646,6 +646,8 @@ function QuoteDetailPage() {
           quoteId={id}
           optionNumber={option.optionNumber}
           optionLabel={option.label ?? `Opção ${option.optionNumber}`}
+          optionTotal={option.total ?? null}
+
           atual={option.paymentOverride ?? null}
           open={pagamentoOpcao === option.optionNumber}
           onOpenChange={(v) => setPagamentoOpcao(v ? option.optionNumber : null)}
