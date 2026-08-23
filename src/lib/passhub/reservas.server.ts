@@ -75,9 +75,9 @@ function normalizaReserva(v: unknown): PassHubReservaLista {
     comissao,
     comissaoExtra: 0,
     comissaoExtraObs: "",
-    // A PassHub devolve `preco` líquido (tarifa + taxas). O total da venda
-    // inclui a comissão total (RAV + incentivo).
-    totalVenda: preco + (comissao || rav),
+    // `preco` já é o valor final da reserva cobrado pela PassHub — a comissão
+    // (RAV + incentivo) vem embutida nele. Não somar novamente.
+    totalVenda: preco,
     companhia: str(r["companhia_aerea_iata"] ?? r["companhia_aerea"]),
     provedor: str(r["provider"]),
     emissor: str(r["nome_usuario"]),
