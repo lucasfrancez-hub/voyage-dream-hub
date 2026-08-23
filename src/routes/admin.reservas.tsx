@@ -177,10 +177,7 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
 
 
   return (
-    <div className="cons-card p-4">
-      <h3 className="mb-3 flex items-center gap-2 text-[15px] font-bold">
-        <CreditCard className="h-4 w-4" /> Link de pagamento
-      </h3>
+    <div>
       {link ? (
         <div className="space-y-2">
           <code className="block break-all rounded-lg bg-white/5 px-2 py-1 text-[11px]">{link}</code>
