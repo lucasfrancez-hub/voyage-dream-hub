@@ -945,7 +945,17 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
                   </thead>
                   <tbody>
                     {manualBoleto.rows!.map((r) => (
-                      <tr key={r.installments}>
+                      <tr
+                        key={r.installments}
+                        role="button"
+                        tabIndex={0}
+                        className="is-clicavel"
+                        onClick={() => abrirFaixa("Boleto", r.first, r.others, r.installments)}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" &&
+                          abrirFaixa("Boleto", r.first, r.others, r.installments)
+                        }
+                      >
                         <td><strong>{r.installments}x</strong></td>
                         <td>{brl(r.first)}</td>
                         <td>{r.installments > 1 ? brl(r.others) : "—"}</td>
@@ -954,6 +964,7 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
                     ))}
                   </tbody>
                 </table>
+
               ) : (
                 <>
                   {manualBoleto.entrada ? (
