@@ -22,7 +22,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { passhubReservas, passhubBilheteNumeros } from "@/lib/passhub/passhub.functions";
+import {
+  passhubReservas,
+  passhubBilheteNumeros,
+  passhubBilhetesLista,
+} from "@/lib/passhub/passhub.functions";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
