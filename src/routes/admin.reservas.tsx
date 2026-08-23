@@ -108,8 +108,16 @@ function StatusBadge({ status }: { status: string }) {
 
 function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
   const buscarLink = useServerFn(passhubLinkPagamento);
+  const pedirPix = useServerFn(passhubPixReserva);
   const [link, setLink] = useState(r.linkPagamento);
   const [copiado, setCopiado] = useState(false);
+  const [pixCopiado, setPixCopiado] = useState(false);
+  const [pix, setPix] = useState<{
+    copiaECola: string;
+    qrCodeBase64: string;
+    valor: number;
+    expiraEm: string;
+  } | null>(null);
 
   const copiar = async (valor: string) => {
     await navigator.clipboard.writeText(valor);
