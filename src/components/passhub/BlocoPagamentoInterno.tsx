@@ -74,7 +74,8 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
 
   const lista = pagamentos.data?.ok ? pagamentos.data.pagamentos : [];
   const numero = (v: string) => Number(v.replace(/\./g, "").replace(",", ".")) || 0;
-  const base = r.preco || r.totalVenda;
+  // Piso do Pix VIA AIR: total da reserva (líquido + comissão da consolidadora).
+  const base = r.totalVenda || r.preco;
   const previsto = numero(valorManual) > 0 ? numero(valorManual) : base + numero(rav);
 
   const cobrar = useMutation({
