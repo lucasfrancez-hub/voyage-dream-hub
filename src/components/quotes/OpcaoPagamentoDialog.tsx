@@ -32,6 +32,8 @@ type Props = {
   quoteId: string;
   optionNumber: number;
   optionLabel: string;
+  /** Total da opção — usado para pré-preencher as faixas conforme as regras. */
+  optionTotal?: number | null;
   atual?: OptionPaymentOverride | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -39,10 +41,63 @@ type Props = {
 };
 
 const num = (v: string): number | null => {
-  const n = Number(String(v).replace(/\./g, "").replace(",", "."));
+  const limpo = String(v).replace(/[^\d.,]/g, "");
+  const n = Number(limpo.replace(/\.(?=\d{3}\b)/g, "").replace(",", "."));
   return Number.isFinite(n) && n > 0 ? n : null;
 };
-const txt = (v: number | null | undefined) => (v == null ? "" : String(v));
+const txt = (v: number | null | undefined) =>
+  v == null ? "" : String(v).replace(".", ",");
+
+/**
+ * Campo monetário que preserva exatamente o que foi digitado (inclusive a
+ * vírgula em aberto, ex.: "1500,"), convertendo só no onChange do pai.
+ */
+function MoneyInput({
+  value,
+  onValue,
+  className,
+  placeholder,
+}: {
+  value: number | null | undefined;
+  onValue: (n: number | null) => void;
+  className?: string;
+  placeholder?: string;
+}) {
+  const [raw, setRaw] = useState(txt(value));
+  const [focus, setFocus] = useState(false);
+  useEffect(() => {
+    if (!focus) setRaw(txt(value));
+  }, [value, focus]);
+  return (
+    <Input
+      className={className}
+      inputMode="decimal"
+      placeholder={placeholder}
+      value={raw}
+      onFocus={() => setFocus(true)}
+      onBlur={() => {
+        setFocus(false);
+        setRaw(txt(value));
+      }}
+      onChange={(e) => {
+        const v = e.target.value.replace(/[^\d.,]/g, "");
+        setRaw(v);
+        onValue(num(v));
+      }}
+    />
+  );
+}
+
+/** Faixas automáticas (total dividido pelo nº de parcelas). */
+function faixasAutomaticas(total: number, max: number): ManualRow[] {
+  if (!(total > 0)) return [];
+  const rows: ManualRow[] = [];
+  for (let n = 2; n <= max; n++) {
+    const v = Math.round((total / n) * 100) / 100;
+    rows.push({ parcelas: n, entrada: v, demais: v });
+  }
+  return rows;
+}
 
 /** Tabela de faixas: para cada quantidade de parcelas, 1ª parcela e demais. */
 function FaixasEditor({
@@ -77,30 +132,29 @@ function FaixasEditor({
           return (
             <div key={n} className="grid grid-cols-[52px_1fr_1fr] items-center gap-2 px-2 py-1">
               <span className="text-xs font-semibold">{n}x</span>
-              <Input
+              <MoneyInput
                 className="h-8"
-                inputMode="decimal"
                 placeholder="—"
-                value={txt(r?.entrada ?? null)}
-                onChange={(e) => setCampo(n, "entrada", num(e.target.value))}
+                value={r?.entrada ?? null}
+                onValue={(v) => setCampo(n, "entrada", v)}
               />
-              <Input
+              <MoneyInput
                 className="h-8"
-                inputMode="decimal"
                 placeholder="—"
-                value={txt(r?.demais ?? null)}
-                onChange={(e) => setCampo(n, "demais", num(e.target.value))}
+                value={r?.demais ?? null}
+                onValue={(v) => setCampo(n, "demais", v)}
               />
             </div>
           );
         })}
       </div>
       <p className="border-t border-border px-2 py-1.5 text-[11px] text-muted-foreground">
-        Preencha só as faixas que quer oferecer. Em branco = não aparece.
+        Já vem preenchido pelas regras automáticas. Ajuste só o que quiser mudar.
       </p>
     </div>
   );
 }
+
 
 export function OpcaoPagamentoDialog({
   quoteId,
