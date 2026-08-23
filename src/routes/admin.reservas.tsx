@@ -11,7 +11,8 @@ import { BlocoBilhete } from "@/components/passhub/BlocoBilhete";
 
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 import { useMemo, useState, type ReactNode } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
