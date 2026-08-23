@@ -77,6 +77,7 @@ import { searchPeople, upsertPerson, listPersonCards, addPersonCard, revealPerso
 import { Search, Save } from "lucide-react";
 import { CheckinPanel } from "@/components/checkin/CheckinPanel";
 import { ItemDialog } from "@/components/orders/ItemDialog";
+import { abrirDocumento } from "@/lib/docs/abrir";
 
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
