@@ -9,6 +9,7 @@
  */
 import { findAirline } from "@/lib/airlines";
 import { cityLabel } from "@/lib/iata-lookup";
+import { isBrIata } from "@/lib/br-airports";
 import { buildPayment } from "./payments";
 import type {
   FlightLeg,
@@ -148,7 +149,8 @@ function buildOptionPayload(option: FlightQuoteOption, numero: number) {
   if (option.volta) legs.push(toLeg(option.volta, "INBOUND"));
 
   const total = Number(option.total) || 0;
-  const payment = buildPayment({ type: "AIR_ONLY", total, airline: option.ida?.cia });
+  const international = legs.some((l) => !isBrIata(l.fromIata) || !isBrIata(l.toIata));
+  const payment = buildPayment({ type: "AIR_ONLY", total, airline: option.ida?.cia, international });
 
   const summary: QuoteSummaryLine[] = [
     {

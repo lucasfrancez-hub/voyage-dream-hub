@@ -38,6 +38,8 @@ export type AirfareConditionsInput = {
   extendedOptions?: ExtendedOption[] | null;
   /** cotação usada no momento da consulta (para parcela mínima em USD) */
   usdBrl?: number;
+  /** voo internacional — libera o teto internacional da cia (ex.: Azul 10x) */
+  international?: boolean;
 };
 
 export type AirfareConditions = {
@@ -108,7 +110,7 @@ export function getAirfarePaymentConditions(input: AirfareConditionsInput): Airf
   const total = Number.isFinite(input.total) ? Math.max(0, input.total) : 0;
   const passengers = Math.max(1, Math.trunc(input.passengers || 1));
   const usdBrl = input.usdBrl && input.usdBrl > 0 ? input.usdBrl : DEFAULT_USD_BRL;
-  const rule = airlineRule(airlineKey(input.airline));
+  const rule = airlineRule(airlineKey(input.airline), { international: input.international });
   const pixOnly = isPixOnly(rule);
 
   const best = bestInterestFree(total, rule, usdBrl);
