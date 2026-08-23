@@ -193,7 +193,30 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
               )}
               {pix ? "Gerar Pix novamente" : "Gerar QR Code Pix"}
             </button>
+            {linkCliente ? (
+              <>
+                <button
+                  type="button"
+                  className="cons-btn"
+                  onClick={() => copiarCliente(linkCliente)}
+                >
+                  {clienteCopiado ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}{" "}
+                  Enviar QR Code ao cliente
+                </button>
+                <a
+                  className="cons-btn"
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    `Segue o link para pagamento da sua reserva ${r.localizador}: ${linkCliente}`,
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
+              </>
+            ) : null}
           </div>
+
 
           {pix ? (
             <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-3 sm:flex-row sm:items-center">
