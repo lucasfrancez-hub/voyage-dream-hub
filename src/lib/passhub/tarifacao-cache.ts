@@ -39,9 +39,10 @@ export function lerTarifacao(chave: string): TarifacaoCache | null {
 
 /** Grava uma tarifação já feita (ex.: tela de reserva) no cache comum. */
 export function salvarTarifacao(chave: string, preco: number, comissao: number) {
-  // O preço devolvido pela PassHub já contém comissão/incentivo (a RAV pedida
-  // é enviada na tarifação). O total é o próprio preço — nada é somado.
-  cache.set(chave, { preco, comissao, total: Math.round(preco * 100) / 100 });
+  // Confirmado no contrato da PassHub: `preco` é sempre o líquido (tarifa +
+  // taxas) e NÃO muda com a RAV enviada. A comissão efetiva volta separada em
+  // rav_amount_brl_efetivo — o valor de venda é preço líquido + comissão.
+  cache.set(chave, { preco, comissao, total: Math.round((preco + comissao) * 100) / 100 });
   avisar();
 }
 
