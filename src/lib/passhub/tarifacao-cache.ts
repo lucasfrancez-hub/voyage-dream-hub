@@ -49,12 +49,12 @@ export function useVersaoTarifacao(): number {
   return useSyncExternalStore(assinar, snap, snap);
 }
 
-/* ------------------------------- fila (2 por vez) ------------------------------- */
+/* ------------------------------- fila (8 por vez) ------------------------------- */
 
 type Tarefa = () => Promise<void>;
 const fila: Tarefa[] = [];
 let ativos = 0;
-const LIMITE = 2;
+const LIMITE = 8;
 
 function girar() {
   while (ativos < LIMITE && fila.length) {
