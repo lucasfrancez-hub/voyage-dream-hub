@@ -2,16 +2,30 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, Loader2, Luggage, Plane, Printer, RefreshCw, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Copy,
+  Loader2,
+  Luggage,
+  Plane,
+  Printer,
+  RefreshCw,
+  Search,
+  Ticket,
+  User,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { passhubReservas } from "@/lib/passhub/passhub.functions";
+import { toast } from "sonner";
+import { passhubReservas, passhubBilheteNumeros } from "@/lib/passhub/passhub.functions";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
+import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
 
 export const Route = createFileRoute("/admin/bilhetes")({
   component: BilhetesPage,
@@ -64,138 +78,244 @@ const hora = (iso: string) => {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 };
 
+const docFmt = (tipo: string, valor: string) => {
+  const v = (valor || "").replace(/\D/g, "");
+  if ((tipo || "").toLowerCase().includes("cpf") && v.length === 11) {
+    return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
+  }
+  return valor || "—";
+};
+
 /** Consideramos bilhete tudo que já foi emitido (ou está em emissão). */
 const emitido = (r: PassHubReservaLista) =>
   !!r.emitidaEm || ["ISSUED", "IN_PROGRESS", "EMITIDA"].includes((r.status || "").toUpperCase());
 
+function copiar(texto: string, label: string) {
+  navigator.clipboard
+    .writeText(texto)
+    .then(() => toast.success(`${label} copiado`))
+    .catch(() => toast.error("Não foi possível copiar"));
+}
+
+function BotaoImprimir({ id }: { id: number }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className="cons-btn cons-btn-primary">
+          <Printer className="h-4 w-4" /> Baixar bilhete
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => window.open(`/admin/bilhetes/${id}/eticket`, "_blank")}>
+          Com valor total
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => window.open(`/admin/bilhetes/${id}/eticket?valores=0`, "_blank")}
+        >
+          Sem valor
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function DetalheBilhete({ r, onVoltar }: { r: PassHubReservaLista; onVoltar: () => void }) {
+  const numerosFn = useServerFn(passhubBilheteNumeros);
+  const { data: bilhete, isFetching } = useQuery({
+    queryKey: ["passhub-bilhete-numeros", r.idPassagem],
+    queryFn: () => numerosFn({ data: { id: r.idPassagem, localizador: r.localizador || null } }),
+    staleTime: 5 * 60_000,
+  });
+  const numeros = bilhete?.ok ? (bilhete.numeros ?? []) : [];
+  const principal = numeros[0]?.numero ?? "";
+  const paxDetalhe = r.passageirosDetalhe?.length
+    ? r.passageirosDetalhe
+    : r.passageiros.map((nome) => ({
+        nome,
+        documento: "",
+        documentoTipo: "",
+        nascimento: "",
+        genero: "",
+        tipo: "",
+        telefone: "",
+      }));
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-black tracking-tight">
-            E-ticket {r.localizador || "—"}
-          </h1>
-          <p className="text-[13px] cons-muted">
-            {r.origem} → {r.destino} · emitido em {dataHora(r.emitidaEm)}
-          </p>
+      {/* Hero */}
+      <div className="cons-card relative overflow-hidden p-5 md:p-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-20 blur-2xl"
+          style={{ background: "radial-gradient(circle,#37d39a,transparent 70%)" }}
+        />
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-[260px]">
+            <div className="mb-2 flex items-center gap-2">
+              <BadgeCia codigo={r.companhia} nome={r.companhia || r.provedor} />
+              <span className="cons-status cons-status-ok">
+                {r.emitidaEm ? "EMITIDO" : "EM EMISSÃO"}
+              </span>
+            </div>
+            <div className="cons-lab">Bilhete eletrônico</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-mono text-[30px] font-black tracking-tight md:text-[36px]">
+                {principal || (isFetching ? "buscando…" : "—")}
+              </h1>
+              {principal && (
+                <button
+                  type="button"
+                  className="cons-btn !px-2 !py-1"
+                  onClick={() => copiar(principal, "Bilhete")}
+                  aria-label="Copiar número do bilhete"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <p className="mt-1 text-[13px] cons-muted">
+              {r.origem} → {r.destino} · emitido em {dataHora(r.emitidaEm)}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <BotaoImprimir id={r.idPassagem} />
+            <button type="button" className="cons-btn" onClick={onVoltar}>
+              <ArrowLeft className="h-4 w-4" /> Voltar
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="cons-status cons-status-ok">
-            {r.emitidaEm ? "EMITIDO" : "EM EMISSÃO"}
-          </span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="cons-btn">
-                <Printer className="h-4 w-4" /> Baixar bilhete
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() =>
-                  window.open(`/admin/bilhetes/${r.idPassagem}/eticket`, "_blank")
-                }
+
+        <div className="relative mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { l: "Localizador", v: r.localizador || "—", mono: true },
+            { l: "Loc. companhia", v: r.localizadorCompanhia || "—", mono: true },
+            { l: "Sistema", v: r.companhia || r.provedor || "—" },
+            { l: "Total da venda", v: brl(r.totalVenda || r.preco) },
+          ].map((c) => (
+            <div key={c.l} className="cons-box p-4">
+              <div className="cons-lab mb-1.5">{c.l}</div>
+              <div
+                className={`text-[17px] font-black ${c.mono ? "font-mono tracking-widest" : ""}`}
               >
-                Com valor total
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  window.open(`/admin/bilhetes/${r.idPassagem}/eticket?valores=0`, "_blank")
-                }
-              >
-                Sem valor
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <button type="button" className="cons-btn" onClick={onVoltar}>
-            <ArrowLeft className="h-4 w-4" /> Voltar
-          </button>
+                {c.v}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="cons-card p-4 md:p-5">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="cons-box p-4">
-              <div className="cons-lab mb-1.5">Localizador</div>
-              <div className="font-mono text-[18px] font-black tracking-widest">
-                {r.localizador || "—"}
-              </div>
-            </div>
-            <div className="cons-box p-4">
-              <div className="cons-lab mb-1.5">Loc. companhia</div>
-              <div className="font-mono text-[18px] font-black">
-                {r.localizadorCompanhia || "—"}
-              </div>
-            </div>
-            <div className="cons-box p-4">
-              <div className="cons-lab mb-1.5">Sistema</div>
-              <div className="text-[18px] font-black">{r.companhia || r.provedor || "—"}</div>
-            </div>
-            <div className="cons-box p-4">
-              <div className="cons-lab mb-1.5">Emissão</div>
-              <div className="text-[16px] font-black">{dataHora(r.emitidaEm)}</div>
-            </div>
-          </div>
-
-          <div className="cons-dot my-5" />
-
-          <h3 className="mb-3 text-[15px] font-bold">Voos emitidos</h3>
-          <div className="space-y-3">
-            {r.segmentos.map((s, i) => (
-              <div key={i} className="cons-box p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-[16px] font-black">
-                    {s.origem} → {s.destino}
+        <div className="space-y-4">
+          {/* Voos */}
+          <div className="cons-card p-4 md:p-5">
+            <h3 className="mb-3 flex items-center gap-2 text-[15px] font-bold">
+              <Plane className="h-4 w-4 text-[#77b8ff]" /> Itinerário emitido
+            </h3>
+            <div className="space-y-3">
+              {r.segmentos.map((s, i) => (
+                <div key={i} className="cons-box p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-[16px] font-black">
+                      {s.origem} <ArrowRight className="h-4 w-4 cons-muted" /> {s.destino}
+                    </div>
+                    <span className="cons-chip">{s.duracao}</span>
                   </div>
-                  <span className="cons-chip">{s.duracao}</span>
-                </div>
-                <div className="mt-1 text-[12px] cons-muted">
-                  {dataCurta(s.partida)} · {hora(s.partida)} → {hora(s.chegada)}
-                </div>
-                <div className="mt-3 grid items-center gap-2 sm:grid-cols-[1fr_38px_1fr]">
-                  <div className="cons-soft p-3">
-                    <div className="text-[18px] font-black">{s.origem}</div>
-                    <div className="text-[12px] cons-muted">{hora(s.partida)}</div>
+                  <div className="mt-3 grid items-center gap-2 sm:grid-cols-[1fr_44px_1fr]">
+                    <div className="cons-soft p-3">
+                      <div className="text-[20px] font-black">{hora(s.partida)}</div>
+                      <div className="text-[12px] cons-muted">
+                        {s.origem} · {dataCurta(s.partida)}
+                      </div>
+                    </div>
+                    <div className="grid place-items-center text-[#77b8ff]">
+                      <Plane className="h-5 w-5" />
+                    </div>
+                    <div className="cons-soft p-3">
+                      <div className="text-[20px] font-black">{hora(s.chegada)}</div>
+                      <div className="text-[12px] cons-muted">
+                        {s.destino} · {dataCurta(s.chegada)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid place-items-center text-[#77b8ff]">
-                    <Plane className="h-5 w-5" />
-                  </div>
-                  <div className="cons-soft p-3">
-                    <div className="text-[18px] font-black">{s.destino}</div>
-                    <div className="text-[12px] cons-muted">{hora(s.chegada)}</div>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {s.conexoes.map((c, j) => (
-                    <span key={j} className="cons-chip">
-                      {c.numeroVoo} · {c.origem}→{c.destino} · {c.familiaTarifaria || c.classe}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {s.conexoes.map((c, j) => (
+                      <span key={j} className="cons-chip">
+                        {c.numeroVoo} · {c.origem}→{c.destino} · {c.familiaTarifaria || c.classe}
+                      </span>
+                    ))}
+                    <span className="cons-chip">
+                      <Luggage className="h-3 w-3" />
+                      {s.bagagemDespachada
+                        ? `${s.bagagemDespachadaQtd || 1} despachada(s)`
+                        : "só bagagem de mão"}
                     </span>
-                  ))}
-                  <span className="cons-chip">
-                    <Luggage className="h-3 w-3" />
-                    {s.bagagemDespachada
-                      ? `${s.bagagemDespachadaQtd || 1} despachada(s)`
-                      : "só bagagem de mão"}
-                  </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          <div className="cons-dot my-5" />
-
-          <h3 className="mb-3 text-[15px] font-bold">Passageiros</h3>
-          <div className="flex flex-wrap gap-2">
-            {r.passageiros.length ? (
-              r.passageiros.map((p) => (
-                <span key={p} className="cons-chip">
-                  {p}
-                </span>
-              ))
-            ) : (
-              <span className="text-[13px] cons-muted">Sem passageiros informados</span>
-            )}
+          {/* Passageiros */}
+          <div className="cons-card p-4 md:p-5">
+            <h3 className="mb-3 flex items-center gap-2 text-[15px] font-bold">
+              <User className="h-4 w-4 text-[#77b8ff]" /> Passageiros
+            </h3>
+            <div className="space-y-2">
+              {paxDetalhe.map((p, i) => {
+                const num = numeros.find(
+                  (n) =>
+                    (n.passageiro || "").trim().toUpperCase() === (p.nome || "").trim().toUpperCase(),
+                );
+                return (
+                  <div
+                    key={`${p.nome}-${i}`}
+                    className="cons-box grid gap-2 p-3 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]"
+                  >
+                    <div>
+                      <div className="cons-lab mb-1">Passageiro</div>
+                      <div className="text-[14px] font-black">{nomeProprio(p.nome)}</div>
+                    </div>
+                    <div>
+                      <div className="cons-lab mb-1">
+                        {(p.documentoTipo || "cpf").toLowerCase().includes("pass")
+                          ? "Passaporte"
+                          : "CPF"}
+                      </div>
+                      <div className="font-mono text-[13px]">
+                        {docFmt(p.documentoTipo, p.documento)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="cons-lab mb-1">Nascimento</div>
+                      <div className="text-[13px]">
+                        {p.nascimento ? dataCurta(p.nascimento) : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="cons-lab mb-1">Bilhete</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-[13px] font-bold">
+                          {num?.numero || principal || "—"}
+                        </span>
+                        {(num?.numero || principal) && (
+                          <button
+                            type="button"
+                            className="cons-btn !px-1.5 !py-1"
+                            onClick={() => copiar(num?.numero || principal, "Bilhete")}
+                            aria-label="Copiar bilhete do passageiro"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {!paxDetalhe.length && (
+                <div className="text-[13px] cons-muted">Sem passageiros informados</div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -211,38 +331,43 @@ function DetalheBilhete({ r, onVoltar }: { r: PassHubReservaLista; onVoltar: () 
               <b>{brl(r.taxas)}</b>
             </div>
             <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
-              <span className="cons-muted">RAV ({r.ravPercentual}%)</span>
-              <b>{brl(r.ravValor)}</b>
+              <span className="cons-muted">Líquido consolidadora</span>
+              <b>{brl(r.preco)}</b>
             </div>
-            <div className="flex justify-between py-2 text-[13px]">
-              <span className="cons-muted">Comissão</span>
+            <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
+              <span className="cons-muted">Comissão (inclusa)</span>
               <b>{brl(r.comissao)}</b>
             </div>
+            {r.comissaoExtra > 0 && (
+              <div className="flex justify-between py-2 text-[13px]">
+                <span className="cons-muted">Comissão extra</span>
+                <b>{brl(r.comissaoExtra)}</b>
+              </div>
+            )}
             <div className="cons-dot my-2" />
-            <div className="cons-lab">Total</div>
-            <div className="text-[26px] font-black">{brl(r.preco)}</div>
+            <div className="cons-lab">Total da venda</div>
+            <div className="text-[26px] font-black">{brl(r.totalVenda || r.preco)}</div>
           </div>
 
           <div className="cons-card p-4">
             <h3 className="mb-2 text-[15px] font-bold">Contexto</h3>
-            <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
-              <span className="cons-muted">Agência</span>
-              <b>VIA AIR</b>
-            </div>
-            <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
-              <span className="cons-muted">Emissor</span>
-              <b>{nomeProprio(r.emissor) || "—"}</b>
-            </div>
-            <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
-              <span className="cons-muted">Fornecedor</span>
-              <b>{r.provedor || "—"}</b>
-            </div>
-            <div className="flex justify-between py-2 text-[13px]">
-              <span className="cons-muted">Rota</span>
-              <b>
-                {r.origem}-{r.destino}
-              </b>
-            </div>
+            {[
+              ["Agência", "VIA AIR"],
+              ["Emissor", nomeProprio(r.emissor) || "—"],
+              ["Fornecedor", r.provedor || "—"],
+              ["Rota", `${r.origem}-${r.destino}`],
+              ["Embarque", dataCurta(r.dataIda)],
+            ].map(([l, v], i, arr) => (
+              <div
+                key={l}
+                className={`flex justify-between py-2 text-[13px] ${
+                  i < arr.length - 1 ? "border-b border-dotted border-white/10" : ""
+                }`}
+              >
+                <span className="cons-muted">{l}</span>
+                <b>{v}</b>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -262,17 +387,20 @@ function BilhetesPage() {
   });
 
   const erro = data && !data.ok ? data.erro : null;
+  const todos = useMemo(() => (data?.ok ? data.reservas : []).filter(emitido), [data]);
   const bilhetes = useMemo(() => {
-    const lista = (data?.ok ? data.reservas : []).filter(emitido);
     const q = busca.trim().toLowerCase();
-    if (!q) return lista;
-    return lista.filter((r) =>
+    if (!q) return todos;
+    return todos.filter((r) =>
       [r.localizador, r.localizadorCompanhia, r.origem, r.destino, r.companhia, ...r.passageiros]
         .join(" ")
         .toLowerCase()
         .includes(q),
     );
-  }, [data, busca]);
+  }, [todos, busca]);
+
+  const totalVendido = todos.reduce((s, r) => s + (r.totalVenda || r.preco), 0);
+  const totalComissao = todos.reduce((s, r) => s + r.comissao + (r.comissaoExtra || 0), 0);
 
   return (
     <div className="cons">
@@ -283,9 +411,11 @@ function BilhetesPage() {
           <>
             <header className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h1 className="text-[28px] font-black tracking-tight">E-tickets</h1>
+                <h1 className="flex items-center gap-2 text-[28px] font-black tracking-tight">
+                  <Ticket className="h-6 w-6 text-[#f26b1f]" /> Bilhetes emitidos
+                </h1>
                 <p className="text-[13px] cons-muted">
-                  Clique em uma linha para abrir o detalhe do bilhete emitido.
+                  Clique em uma linha para abrir o e-ticket com passageiros e números de bilhete.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -314,6 +444,19 @@ function BilhetesPage() {
               </div>
             </header>
 
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { l: "Bilhetes", v: String(todos.length) },
+                { l: "Total vendido", v: brl(totalVendido) },
+                { l: "Comissão acumulada", v: brl(totalComissao) },
+              ].map((c) => (
+                <div key={c.l} className="cons-card p-4">
+                  <div className="cons-lab mb-1">{c.l}</div>
+                  <div className="text-[22px] font-black">{c.v}</div>
+                </div>
+              ))}
+            </div>
+
             {erro && <div className="cons-card p-3 text-[13px] text-[#ffd6d6]">{erro}</div>}
 
             {isFetching && bilhetes.length === 0 && (
@@ -326,7 +469,7 @@ function BilhetesPage() {
               <table className="cons-table min-w-[1080px]">
                 <thead>
                   <tr>
-                    <th>Sistema</th>
+                    <th>Companhia</th>
                     <th>Localizador</th>
                     <th>Loc. cia</th>
                     <th>Emissão</th>
@@ -334,7 +477,7 @@ function BilhetesPage() {
                     <th>Passageiro</th>
                     <th>Rota</th>
                     <th>Status</th>
-                    <th>Valor</th>
+                    <th>Total</th>
                     <th />
                   </tr>
                 </thead>
@@ -342,7 +485,7 @@ function BilhetesPage() {
                   {bilhetes.map((r) => (
                     <tr key={r.idPassagem} onClick={() => setAberto(r)}>
                       <td>
-                        <span className="cons-pill">{r.companhia || r.provedor || "—"}</span>
+                        <BadgeCia codigo={r.companhia} nome={r.companhia || r.provedor} />
                       </td>
                       <td className="font-mono font-black tracking-widest">
                         {r.localizador || "—"}
@@ -351,7 +494,7 @@ function BilhetesPage() {
                       <td>{dataHora(r.emitidaEm)}</td>
                       <td>{dataCurta(r.dataIda)}</td>
                       <td className="max-w-[220px] truncate">
-                        {r.passageiros.join(" · ") || "—"}
+                        {r.passageiros.map(nomeProprio).join(" · ") || "—"}
                       </td>
                       <td>
                         {r.origem}-{r.destino}
@@ -361,7 +504,7 @@ function BilhetesPage() {
                           {r.emitidaEm ? "EMITIDA" : "EM EMISSÃO"}
                         </span>
                       </td>
-                      <td className="font-bold">{brl(r.preco)}</td>
+                      <td className="font-bold">{brl(r.totalVenda || r.preco)}</td>
                       <td>
                         <div className="cons-open">
                           <Search className="h-3.5 w-3.5" />
