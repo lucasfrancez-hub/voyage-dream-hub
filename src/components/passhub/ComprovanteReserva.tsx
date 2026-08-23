@@ -55,6 +55,22 @@ export type ComprovanteReservaDados = {
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
+/** Nome próprio sempre em Caixa Alta Inicial: "lucas rocha francez" -> "Lucas Rocha Francez". */
+const MINUSCULAS_NOME = new Set(["de", "da", "do", "das", "dos", "e"]);
+export function nomeProprio(v?: string): string {
+  if (!v) return "";
+  return v
+    .trim()
+    .toLocaleLowerCase("pt-BR")
+    .split(/\s+/)
+    .map((p, i) =>
+      i > 0 && MINUSCULAS_NOME.has(p)
+        ? p
+        : p.charAt(0).toLocaleUpperCase("pt-BR") + p.slice(1),
+    )
+    .join(" ");
+}
+
 function parseData(v?: string): Date | null {
   if (!v) return null;
   const d = new Date(v.length <= 10 ? `${v}T00:00:00` : v);
