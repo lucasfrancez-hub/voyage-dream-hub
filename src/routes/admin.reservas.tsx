@@ -662,9 +662,49 @@ function ReservasPage() {
                       </td>
                     </tr>
                   ))}
-                  {!isFetching && filtradas.length === 0 && !erro && (
+                  {filtradasPedidos.map((r) => (
+                    <tr
+                      key={r.orderId}
+                      onClick={() =>
+                        navigate({ to: "/admin/pedidos/$id", params: { id: r.orderId } })
+                      }
+                    >
+                      <td>
+                        <BadgeFonte tipo="pedidos" />
+                      </td>
+                      <td className="font-mono font-black tracking-widest">
+                        {r.localizador || "—"}
+                        {r.bilhetes.length ? (
+                          <div className="mt-1 text-[10px] font-bold tracking-normal cons-muted">
+                            Bilhete {r.bilhetes[0]}
+                            {r.bilhetes.length > 1 ? ` +${r.bilhetes.length - 1}` : ""}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="font-mono">{r.localizadorCompanhia || "—"}</td>
+                      <td className="max-w-[220px] truncate">
+                        {r.passageiros.map(nomeProprio).join(" · ") || r.cliente || "—"}
+                      </td>
+                      <td>
+                        {r.origem || "—"} → {r.destino || "—"}
+                        {r.dataIda ? ` · ${dataCurta(r.dataIda)}` : ""}
+                      </td>
+                      <td>{dataHora(r.criadaEm)}</td>
+                      <td className="cons-muted">Pedido {r.orderNumber}</td>
+                      <td>
+                        <StatusBadge status={r.status} />
+                      </td>
+                      <td className="font-bold">{brl(r.total)}</td>
+                      <td>
+                        <div className="cons-open">
+                          <Search className="h-3.5 w-3.5" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!isFetching && vazio && !erro && (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center cons-muted">
+                      <td colSpan={10} className="py-8 text-center cons-muted">
                         Nenhuma reserva encontrada.
                       </td>
                     </tr>
