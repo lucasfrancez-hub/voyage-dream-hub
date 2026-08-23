@@ -883,7 +883,16 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
                   {i.number}x
                   {i.interestFree ? <span className="vq-no-interest">sem juros</span> : null}
                 </span>
-                <strong>{brl(i.amount)}</strong>
+                <strong>
+                  {i.firstAmount != null && Math.abs(i.firstAmount - i.amount) > 0.01 ? (
+                    <>
+                      {brl(i.firstAmount)}
+                      <em className="vq-inst-demais"> + {i.number - 1}x {brl(i.amount)}</em>
+                    </>
+                  ) : (
+                    brl(i.amount)
+                  )}
+                </strong>
               </div>
             ))}
           </div>
@@ -894,15 +903,40 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
         <div className="vq-boleto-box">
           {manualBoleto ? (
             <div className="vq-manual-pay">
-              {manualBoleto.entrada ? (
-                <p className="vq-boleto-title">Entrada de {brl(manualBoleto.entrada)}</p>
-              ) : null}
-              <div className="vq-installments">
-                <div className="vq-inst">
-                  <span>{manualBoleto.installments}x</span>
-                  <strong>{brl(manualBoleto.amount)}</strong>
-                </div>
-              </div>
+              {(manualBoleto.rows?.length ?? 0) > 0 ? (
+                <table className="vq-manual-table">
+                  <thead>
+                    <tr>
+                      <th>Parcelas</th>
+                      <th>1ª parcela</th>
+                      <th>Demais</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {manualBoleto.rows!.map((r) => (
+                      <tr key={r.installments}>
+                        <td><strong>{r.installments}x</strong></td>
+                        <td>{brl(r.first)}</td>
+                        <td>{r.installments > 1 ? brl(r.others) : "—"}</td>
+                        <td className="vq-manual-total">{brl(r.total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <>
+                  {manualBoleto.entrada ? (
+                    <p className="vq-boleto-title">Entrada de {brl(manualBoleto.entrada)}</p>
+                  ) : null}
+                  <div className="vq-installments">
+                    <div className="vq-inst">
+                      <span>{manualBoleto.installments}x</span>
+                      <strong>{brl(manualBoleto.amount)}</strong>
+                    </div>
+                  </div>
+                </>
+              )}
               <p className="vq-boleto-note">
                 {manualBoleto.dueDate
                   ? `Quitação até ${brDateIso(manualBoleto.dueDate)}. `

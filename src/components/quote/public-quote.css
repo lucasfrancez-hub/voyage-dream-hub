@@ -577,3 +577,15 @@
   margin-top: 4px;
   line-height: 1.35;
 }
+
+/* Condições de pagamento manuais (faixas de parcelamento) */
+.vq-manual-pay { margin-bottom: 10px; }
+.vq-manual-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.vq-manual-table th {
+  text-align: left; font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
+  color: #64748b; font-weight: 700; padding: 6px 8px; border-bottom: 1px solid #e2e8f0;
+}
+.vq-manual-table td { padding: 8px; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
+.vq-manual-table tr:last-child td { border-bottom: 0; }
+.vq-manual-total { color: #64748b; }
+.vq-inst-demais { font-style: normal; font-weight: 500; color: #64748b; font-size: 11px; }
