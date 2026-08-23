@@ -419,9 +419,13 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             {dados.ocultarValores ? null : (
               <div className="total-price">
                 <div>
-                  <div className="price-label">Valor total da passagem</div>
+                  <div className="price-label">
+                    {eBilhete ? "Valor total do bilhete" : "Valor total da passagem"}
+                  </div>
                   <div className="price-note">
-                    Valor total da reserva aérea para os passageiros informados.
+                    {eBilhete
+                      ? "Valor total emitido para os passageiros informados."
+                      : "Valor total da reserva aérea para os passageiros informados."}
                   </div>
                 </div>
                 <div className="price">{brl(dados.total)}</div>
