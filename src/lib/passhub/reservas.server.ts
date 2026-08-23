@@ -206,58 +206,80 @@ export async function passhubLinkPagamentoReserva(alvo: {
 /* ------------------------------ cancelamento ------------------------------ */
 
 /**
- * Cancelamento de reserva. A PassHub não documenta a rota; o painel usa uma
- * das variantes abaixo (a "palavra-chave" muda conforme a versão da API).
- * Tentamos todas em ordem e devolvemos a que respondeu, junto do texto/motivo
- * retornado pela consolidadora.
+ * Cancelamento de reserva.
+ *
+ * A PassHub não expõe rota de cancelamento: as variantes /cancelar, /cancel e
+ * DELETE não existem (404/405). A única rota de atualização é
+ * `PATCH /api/v1/reservas/{localizador}` — e ela aceita apenas campos
+ * descritivos: gravar `status_emissao` estoura um erro interno deles
+ * ("tbe_agencia"). Então fazemos o possível: anotamos o cancelamento na
+ * reserva pelo campo de descrição, registramos localmente (a reserva some da
+ * operação) e deixamos a PassHub expirar o bilhete na data-limite de emissão.
  */
-const ROTAS_CANCELAMENTO: { method: string; path: (id: number) => string; body?: unknown }[] = [
-  { method: "POST", path: (id) => `/api/v1/reservas/${id}/cancelar` },
-  { method: "POST", path: (id) => `/api/v1/reservas/${id}/cancelamento` },
-  { method: "POST", path: (id) => `/api/v1/reservas/${id}/cancel` },
-  { method: "PATCH", path: (id) => `/api/v1/reservas/${id}`, body: { status_emissao: "CANCELED" } },
-  { method: "DELETE", path: (id) => `/api/v1/reservas/${id}` },
-];
-
 export async function passhubCancelarReserva(
   id: number,
   motivo?: string,
 ): Promise<{ ok: boolean; rota?: string; mensagem: string; reserva: PassHubReservaLista | null }> {
-  const erros: string[] = [];
+  const razao = (motivo ?? "").trim() || "Cancelamento solicitado pela agência";
+  const reservaAtual = await passhubReservaDetalhe(id).catch(() => null);
+  const localizador = reservaAtual?.localizador ?? "";
 
-  for (const rota of ROTAS_CANCELAMENTO) {
-    const url = `${GERENCIA}${rota.path(id)}`;
-    try {
-      const resposta = await passhubRequest<unknown>(url, {
-        method: rota.method,
-        body:
-          rota.method === "DELETE"
-            ? undefined
-            : { ...(rec(rota.body) as Rec), ...(motivo ? { motivo, reason: motivo } : {}) },
-      });
-      const r = rec(resposta);
-      const dados = rec(r["data"]);
-      const mensagem =
-        str(r["message"]) || str(dados["message"]) || str(dados["descricao_status_emissao"]) ||
-        "Reserva cancelada na consolidadora.";
-      let reserva: PassHubReservaLista | null = null;
+  const tentativas: string[] = [];
+  let remotoOk = false;
+
+  if (localizador) {
+    // 1) tentativa "oficial": mudar o status (hoje falha por bug da PassHub)
+    for (const body of [
+      { status_emissao: "CANCELED", descricao_status_emissao: `CANCELADA — ${razao}` },
+      { descricao_status_emissao: `CANCELADA — ${razao}` },
+    ]) {
       try {
-        reserva = await passhubReservaDetalhe(id);
-      } catch {
-        /* detalhe é só confirmação */
+        await passhubRequest<unknown>(`${GERENCIA}/api/v1/reservas/${localizador}`, {
+          method: "PATCH",
+          body,
+        });
+        remotoOk = true;
+        break;
+      } catch (e) {
+        tentativas.push(e instanceof Error ? e.message : String(e));
       }
-      return { ok: true, rota: `${rota.method} ${rota.path(id)}`, mensagem, reserva };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      erros.push(`${rota.method} ${rota.path(id)} → ${msg}`);
-      // 4xx de rota inexistente: tenta a próxima. Qualquer outro erro também
-      // segue para a próxima variante, o resumo final mostra tudo.
     }
   }
 
+  // 2) registro local: é o que garante que a reserva saia da operação
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("passhub_reserva_cancelada").upsert(
+      {
+        localizador: localizador || String(id),
+        id_passagem: id,
+        motivo: razao,
+        remoto_ok: remotoOk,
+        detalhe: tentativas.join(" | ").slice(0, 1000) || null,
+      },
+      { onConflict: "localizador" },
+    );
+  } catch (e) {
+    return {
+      ok: false,
+      mensagem: `Não foi possível registrar o cancelamento: ${
+        e instanceof Error ? e.message : String(e)
+      }`,
+      reserva: reservaAtual,
+    };
+  }
+
+  const reserva = reservaAtual
+    ? { ...reservaAtual, status: "CANCELED", statusDescricao: razao }
+    : null;
+
   return {
-    ok: false,
-    mensagem: `Não foi possível cancelar pela consolidadora. Tentativas: ${erros.join(" | ")}`,
-    reserva: null,
+    ok: true,
+    rota: localizador ? `PATCH /api/v1/reservas/${localizador}` : undefined,
+    mensagem: remotoOk
+      ? "Reserva cancelada e marcada como cancelada na consolidadora."
+      : "Reserva cancelada aqui no sistema. A PassHub não aceita cancelamento por API — o bilhete não será emitido e expira sozinho na data-limite de emissão.",
+    reserva,
   };
+
 }
