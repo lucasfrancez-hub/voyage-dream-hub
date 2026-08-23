@@ -3,6 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Loader2, Luggage, Plane, Printer, RefreshCw, Search } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { passhubReservas } from "@/lib/passhub/passhub.functions";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
