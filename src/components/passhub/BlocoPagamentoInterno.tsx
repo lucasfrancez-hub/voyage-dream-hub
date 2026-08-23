@@ -139,16 +139,35 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao gerar a cobrança"),
   });
 
+  const abrirPrevia = useMutation({
+    mutationFn: () =>
+      previaFn({ data: { id: r.idPassagem, localizador: r.localizador || undefined } }),
+    onSuccess: (res) => {
+      if (!res.ok) return toast.error(res.erro);
+      setPrevia(res.previa);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao abrir o Pix"),
+  });
+
   const pagarAgora = useMutation({
     mutationFn: () =>
-      pagarFn({ data: { id: r.idPassagem, localizador: r.localizador || undefined } }),
+      pagarFn({
+        data: {
+          id: r.idPassagem,
+          localizador: r.localizador || undefined,
+          brcode: previa?.brcode,
+          valorEsperado: previa?.valor,
+        },
+      }),
     onSuccess: (res) => {
       if (!res.ok) return toast.error(res.erro);
       toast.success(`Pix da consolidadora pago: ${brl(res.pagamento.valorPasshub)}`);
+      setPrevia(null);
       pagamentos.refetch();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao pagar"),
   });
+
 
   const repassar = useMutation({
     mutationFn: (pagamentoId: string) => repassarFn({ data: { pagamentoId } }),
