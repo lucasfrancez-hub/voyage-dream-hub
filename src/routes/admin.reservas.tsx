@@ -8,6 +8,7 @@ import {
   Check,
   Copy,
   CreditCard,
+  FileText,
   Loader2,
   Luggage,
   Plane,
