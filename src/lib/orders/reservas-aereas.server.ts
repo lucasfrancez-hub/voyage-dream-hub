@@ -3,24 +3,8 @@
  * para aparecerem junto das reservas/bilhetes da PassHub com filtro de origem.
  */
 
-export type ReservaAereaPedido = {
-  orderId: string;
-  orderNumber: string;
-  cliente: string;
-  consultor: string;
-  localizador: string;
-  localizadorCompanhia: string;
-  companhia: string;
-  origem: string;
-  destino: string;
-  dataIda: string;
-  dataVolta: string;
-  criadaEm: string;
-  status: string;
-  total: number;
-  passageiros: string[];
-  bilhetes: string[];
-};
+import type { ReservaAereaPedido } from "./reservas-aereas.types";
+export type { ReservaAereaPedido };
 
 type Det = Record<string, unknown>;
 const s = (v: unknown): string => String(v ?? "").trim();
