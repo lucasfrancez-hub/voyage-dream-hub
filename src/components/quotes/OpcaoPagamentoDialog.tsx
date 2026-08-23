@@ -187,13 +187,16 @@ export function OpcaoPagamentoDialog({
   });
 
   const [ov, setOv] = useState<OptionPaymentOverride>(() =>
-    preenchido(atual ?? emptyPaymentOverride()),
+    atual ? atual : preenchido(emptyPaymentOverride()),
   );
 
   useEffect(() => {
-    if (open) setOv(preenchido(atual ?? emptyPaymentOverride()));
+    // Se já existe configuração salva, respeita exatamente o que foi salvo
+    // (inclusive desconto 0 / campos limpos). Só pré-preenche na 1ª vez.
+    if (open) setOv(atual ? atual : preenchido(emptyPaymentOverride()));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, atual, total]);
+
 
   const salvar = useServerFn(definirPagamentoOpcao);
   const mutation = useMutation({
@@ -326,8 +329,20 @@ export function OpcaoPagamentoDialog({
                   <MoneyInput
                     placeholder="0"
                     value={ov.pix.discountPercent}
-                    onValue={(v) => set({ pix: { ...ov.pix, discountPercent: v } })}
+                    onValue={(v) =>
+                      set({
+                        pix: {
+                          ...ov.pix,
+                          discountPercent: v,
+                          total:
+                            total > 0
+                              ? Math.round(total * (1 - (v ?? 0) / 100) * 100) / 100
+                              : ov.pix.total,
+                        },
+                      })
+                    }
                   />
+
                 </div>
 
               </div>
