@@ -315,24 +315,21 @@ export function OpcaoPagamentoDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Valor no Pix (R$)</Label>
-                  <Input
-                    inputMode="decimal"
+                  <MoneyInput
                     placeholder="automático"
-                    value={txt(ov.pix.total)}
-                    onChange={(e) => set({ pix: { ...ov.pix, total: num(e.target.value) } })}
+                    value={ov.pix.total}
+                    onValue={(v) => set({ pix: { ...ov.pix, total: v } })}
                   />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Desconto (%)</Label>
-                  <Input
-                    inputMode="decimal"
+                  <MoneyInput
                     placeholder="0"
-                    value={txt(ov.pix.discountPercent)}
-                    onChange={(e) =>
-                      set({ pix: { ...ov.pix, discountPercent: num(e.target.value) } })
-                    }
+                    value={ov.pix.discountPercent}
+                    onValue={(v) => set({ pix: { ...ov.pix, discountPercent: v } })}
                   />
                 </div>
+
               </div>
             )}
           </div>
