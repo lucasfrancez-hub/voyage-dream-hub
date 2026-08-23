@@ -45,6 +45,7 @@ import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
 import { confirm } from "@/lib/confirm";
 import type { PassHubReservaLista, PassHubReservaPax } from "@/lib/passhub/types";
 import { abrirDocumento } from "@/lib/docs/abrir";
+import { JanelaDetalhe } from "@/components/passhub/JanelaDetalhe";
 
 export const Route = createFileRoute("/admin/reservas")({
   component: ReservasPage,
@@ -709,7 +710,7 @@ function ReservasPage() {
               </table>
             </div>
           </>
-        )}
+        }
       </div>
     </div>
   );

@@ -33,6 +33,7 @@ import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
 import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
 import { BadgeFonte, FiltroFonte, type FonteReserva } from "@/components/passhub/FiltroFonte";
 import { abrirDocumento } from "@/lib/docs/abrir";
+import { JanelaDetalhe } from "@/components/passhub/JanelaDetalhe";
 
 export const Route = createFileRoute("/admin/bilhetes")({
   component: BilhetesPage,
