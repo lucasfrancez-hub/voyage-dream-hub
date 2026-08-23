@@ -322,8 +322,8 @@ export const passhubCobrarComRav = createServerFn({ method: "POST" })
     }
   });
 
-/** Paga agora o Pix da consolidadora debitando o saldo ASAAS. */
-export const passhubPagarAgora = createServerFn({ method: "POST" })
+/** Conferência do Pix da consolidadora antes de pagar (valor, destino, copia e cola). */
+export const passhubPreviaPagamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
@@ -334,6 +334,34 @@ export const passhubPagarAgora = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
+  .handler(async ({ data }) => {
+    const { previaPixConsolidadora } = await import("./pagamento-interno.server");
+    try {
+      const previa = await previaPixConsolidadora({
+        idPassagem: data.id,
+        localizador: data.localizador ?? null,
+        link: data.link ?? null,
+      });
+      return { ok: true as const, previa };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao abrir o Pix" };
+    }
+  });
+
+/** Paga agora o Pix da consolidadora debitando o saldo ASAAS. */
+export const passhubPagarAgora = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.number().int().positive(),
+        localizador: z.string().max(20).optional(),
+        link: z.string().url().optional(),
+        brcode: z.string().min(20).optional(),
+        valorEsperado: z.number().positive().optional(),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { pagarReservaAgora } = await import("./pagamento-interno.server");
     try {
@@ -341,6 +369,8 @@ export const passhubPagarAgora = createServerFn({ method: "POST" })
         idPassagem: data.id,
         localizador: data.localizador ?? null,
         link: data.link ?? null,
+        brcode: data.brcode ?? null,
+        valorEsperado: data.valorEsperado ?? null,
         criadoPor: context.userId ?? null,
       });
       return { ok: true as const, pagamento };
@@ -348,6 +378,7 @@ export const passhubPagarAgora = createServerFn({ method: "POST" })
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao pagar a reserva" };
     }
   });
+
 
 /** Repassa manualmente (paga a consolidadora) uma cobrança já recebida. */
 export const passhubRepassarPagamento = createServerFn({ method: "POST" })

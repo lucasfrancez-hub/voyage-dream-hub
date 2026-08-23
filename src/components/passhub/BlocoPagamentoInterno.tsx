@@ -32,13 +32,36 @@ import {
   passhubPagamentosReserva,
   passhubPagarAgora,
   passhubPixReserva,
+  passhubPreviaPagamento,
   passhubRepassarPagamento,
 } from "@/lib/passhub/passhub.functions";
-import { confirm } from "@/lib/confirm";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
+
+type PreviaPix = {
+  link: string;
+  brcode: string;
+  qrCodeBase64: string;
+  expiraEm: string;
+  valorCheckout: number;
+  valor: number;
+  recebedorNome: string | null;
+  recebedorDocumento: string | null;
+  banco: string | null;
+  podePagar: boolean;
+  divergencia: boolean;
+  saldo: number | null;
+};
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
+
 
 const rotuloStatus: Record<string, { texto: string; cor: string }> = {
   aguardando: { texto: "Aguardando pagamento", cor: "cons-status-pay" },
@@ -80,6 +103,8 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   const listarFn = useServerFn(passhubPagamentosReserva);
   const pedirPixPasshub = useServerFn(passhubPixReserva);
   const buscarLink = useServerFn(passhubLinkPagamento);
+  const previaFn = useServerFn(passhubPreviaPagamento);
+
 
   const [rav, setRav] = useState(
     r.comissaoExtra ? String(r.comissaoExtra).replace(".", ",") : "",
@@ -93,6 +118,8 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
     valor: number;
     expiraEm: string;
   } | null>(null);
+  const [previa, setPrevia] = useState<PreviaPix | null>(null);
+
 
   const pagamentos = useQuery({
     queryKey: ["passhub-pagamentos", r.idPassagem],
@@ -139,16 +166,35 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao gerar a cobrança"),
   });
 
+  const abrirPrevia = useMutation({
+    mutationFn: () =>
+      previaFn({ data: { id: r.idPassagem, localizador: r.localizador || undefined } }),
+    onSuccess: (res) => {
+      if (!res.ok) return toast.error(res.erro);
+      setPrevia(res.previa);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao abrir o Pix"),
+  });
+
   const pagarAgora = useMutation({
     mutationFn: () =>
-      pagarFn({ data: { id: r.idPassagem, localizador: r.localizador || undefined } }),
+      pagarFn({
+        data: {
+          id: r.idPassagem,
+          localizador: r.localizador || undefined,
+          brcode: previa?.brcode,
+          valorEsperado: previa?.valor,
+        },
+      }),
     onSuccess: (res) => {
       if (!res.ok) return toast.error(res.erro);
       toast.success(`Pix da consolidadora pago: ${brl(res.pagamento.valorPasshub)}`);
+      setPrevia(null);
       pagamentos.refetch();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao pagar"),
   });
+
 
   const repassar = useMutation({
     mutationFn: (pagamentoId: string) => repassarFn({ data: { pagamentoId } }),
@@ -180,15 +226,8 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao obter o link"),
   });
 
-  const confirmarPagamento = async () => {
-    const ok = await confirm({
-      title: "Pagar a consolidadora agora?",
-      description: `O Pix da reserva ${r.localizador || r.idPassagem} será pago debitando o saldo da nossa conta ASAAS.`,
-      confirmText: "Pagar agora",
-      cancelText: "Voltar",
-    });
-    if (ok) pagarAgora.mutate();
-  };
+
+
 
   const codigoCheckout = /\/payment\/([^/?#\s]+)/.exec(link ?? "")?.[1] ?? "";
   const linkCliente =
@@ -300,16 +339,17 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
         <button
           type="button"
           className="cons-btn cons-btn-blue w-full justify-center py-3 text-sm font-bold"
-          onClick={confirmarPagamento}
-          disabled={pagarAgora.isPending}
+          onClick={() => abrirPrevia.mutate()}
+          disabled={abrirPrevia.isPending || pagarAgora.isPending}
         >
-          {pagarAgora.isPending ? (
+          {abrirPrevia.isPending || pagarAgora.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Zap className="h-4 w-4" />
           )}
           Pagar PassHub agora
         </button>
+
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] cons-muted">
             Busca o copia e cola da consolidadora e debita o nosso saldo na hora.
@@ -553,6 +593,121 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           <p className="text-[12px] cons-muted">Nenhuma movimentação registrada nesta reserva.</p>
         )}
       </section>
+
+      {/* ---------------- Conferência do Pix antes de pagar ---------------- */}
+      <Dialog open={!!previa} onOpenChange={(o) => (!o ? setPrevia(null) : null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Conferir o Pix da consolidadora</DialogTitle>
+            <DialogDescription>
+              Reserva {r.localizador || r.idPassagem} — confira o valor e o destino antes de
+              debitar o saldo ASAAS.
+            </DialogDescription>
+          </DialogHeader>
+
+          {previa ? (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
+                <span className="block text-[10px] uppercase tracking-wide cons-muted">
+                  Valor do Pix
+                </span>
+                <span className="text-2xl font-bold">{brl(previa.valor)}</span>
+                {previa.divergencia ? (
+                  <p className="mt-1 text-[11px] text-amber-300">
+                    Checkout informa {brl(previa.valorCheckout)} — vale o valor do QR Code.
+                  </p>
+                ) : null}
+              </div>
+
+              {previa.qrCodeBase64 ? (
+                <img
+                  src={previa.qrCodeBase64}
+                  alt="QR Code Pix da consolidadora"
+                  className="mx-auto h-44 w-44 rounded-lg bg-white p-2"
+                />
+              ) : null}
+
+              <dl className="space-y-1 text-[12px]">
+                <div className="flex justify-between gap-3">
+                  <dt className="cons-muted">Destino</dt>
+                  <dd className="text-right font-medium">{previa.recebedorNome || "—"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="cons-muted">CPF/CNPJ</dt>
+                  <dd className="text-right font-medium">{previa.recebedorDocumento || "—"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="cons-muted">Instituição</dt>
+                  <dd className="text-right font-medium">{previa.banco || "—"}</dd>
+                </div>
+                {previa.expiraEm ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="cons-muted">Vence em</dt>
+                    <dd className="text-right font-medium">{previa.expiraEm}</dd>
+                  </div>
+                ) : null}
+                {previa.saldo != null ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="cons-muted">Saldo ASAAS</dt>
+                    <dd className="text-right font-medium">{brl(previa.saldo)}</dd>
+                  </div>
+                ) : null}
+              </dl>
+
+              <div>
+                <span className="mb-1 block text-[10px] uppercase tracking-wide cons-muted">
+                  Pix copia e cola
+                </span>
+                <code className="block max-h-24 overflow-auto break-all rounded-lg bg-black/40 px-2 py-1 text-[10px]">
+                  {previa.brcode}
+                </code>
+                <button
+                  type="button"
+                  className="cons-btn mt-2"
+                  onClick={() => copiar(previa.brcode, "previa", "Copia e cola copiado")}
+                >
+                  {copiado === "previa" ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  Copiar copia e cola
+                </button>
+              </div>
+
+              {!previa.podePagar ? (
+                <p className="text-[11px] text-red-300">
+                  Este Pix não pode mais ser pago (expirado ou já quitado).
+                </p>
+              ) : null}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  className="cons-btn flex-1 justify-center"
+                  onClick={() => setPrevia(null)}
+                  disabled={pagarAgora.isPending}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="cons-btn cons-btn-blue flex-1 justify-center font-bold"
+                  onClick={() => pagarAgora.mutate()}
+                  disabled={pagarAgora.isPending || !previa.podePagar}
+                >
+                  {pagarAgora.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4" />
+                  )}
+                  Pagar {brl(previa.valor)}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
