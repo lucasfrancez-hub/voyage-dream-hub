@@ -32,6 +32,7 @@ import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
 import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
 import { BadgeFonte, FiltroFonte, type FonteReserva } from "@/components/passhub/FiltroFonte";
+import { abrirDocumento } from "@/lib/docs/abrir";
 
 export const Route = createFileRoute("/admin/bilhetes")({
   component: BilhetesPage,
@@ -112,12 +113,10 @@ function BotaoImprimir({ id }: { id: number }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => window.open(`/admin/bilhetes/${id}/eticket`, "_blank")}>
+        <DropdownMenuItem onClick={() => void abrirDocumento("bilhete", id)}>
           Com valor total
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => window.open(`/admin/bilhetes/${id}/eticket?valores=0`, "_blank")}
-        >
+        <DropdownMenuItem onClick={() => void abrirDocumento("bilhete", id, { semValores: true })}>
           Sem valor
         </DropdownMenuItem>
       </DropdownMenuContent>

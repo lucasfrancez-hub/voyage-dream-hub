@@ -44,6 +44,7 @@ import {
 import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
 import { confirm } from "@/lib/confirm";
 import type { PassHubReservaLista, PassHubReservaPax } from "@/lib/passhub/types";
+import { abrirDocumento } from "@/lib/docs/abrir";
 
 export const Route = createFileRoute("/admin/reservas")({
   component: ReservasPage,
@@ -222,25 +223,17 @@ function DetalheReserva({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[180px]">
-              <DropdownMenuItem asChild>
-                <a
-                  className="flex w-full cursor-pointer items-center gap-2"
-                  href={`/admin/reservas/${r.idPassagem}/plano-viagem`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <FileText className="h-4 w-4" /> Com valor total
-                </a>
+              <DropdownMenuItem
+                className="flex w-full cursor-pointer items-center gap-2"
+                onClick={() => void abrirDocumento("reserva", r.idPassagem)}
+              >
+                <FileText className="h-4 w-4" /> Com valor total
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a
-                  className="flex w-full cursor-pointer items-center gap-2"
-                  href={`/admin/reservas/${r.idPassagem}/plano-viagem?valores=0`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <FileText className="h-4 w-4" /> Sem valor
-                </a>
+              <DropdownMenuItem
+                className="flex w-full cursor-pointer items-center gap-2"
+                onClick={() => void abrirDocumento("reserva", r.idPassagem, { semValores: true })}
+              >
+                <FileText className="h-4 w-4" /> Sem valor
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -135,6 +135,7 @@ import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
 import { Route as ChatAppTokenRouteImport } from './routes/chat.app.$token'
 import { Route as CruzeirosUiPreviewIndexRouteImport } from './routes/cruzeiros_.ui-preview.index'
+import { Route as DocTipoIdRouteImport } from './routes/doc.$tipo.$id'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as MultitrechoCotacaoTokenRouteImport } from './routes/multitrecho.cotacao.$token'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
@@ -820,6 +821,11 @@ const CruzeirosUiPreviewIndexRoute = CruzeirosUiPreviewIndexRouteImport.update({
   path: '/cruzeiros/ui-preview/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocTipoIdRoute = DocTipoIdRouteImport.update({
+  id: '/doc/$tipo/$id',
+  path: '/doc/$tipo/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
   id: '/lovable/email/events',
   path: '/lovable/email/events',
@@ -1206,6 +1212,7 @@ export interface FileRoutesByFullPath {
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
+  '/doc/$tipo/$id': typeof DocTipoIdRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -1378,6 +1385,7 @@ export interface FileRoutesByTo {
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
+  '/doc/$tipo/$id': typeof DocTipoIdRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -1553,6 +1561,7 @@ export interface FileRoutesById {
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
+  '/doc/$tipo/$id': typeof DocTipoIdRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
@@ -1729,6 +1738,7 @@ export interface FileRouteTypes {
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
+    | '/doc/$tipo/$id'
     | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
@@ -1901,6 +1911,7 @@ export interface FileRouteTypes {
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
+    | '/doc/$tipo/$id'
     | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
@@ -2075,6 +2086,7 @@ export interface FileRouteTypes {
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
+    | '/doc/$tipo/$id'
     | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
@@ -2177,6 +2189,7 @@ export interface RootRouteChildren {
   ApiPublicTestFlightAlertRoute: typeof ApiPublicTestFlightAlertRoute
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
+  DocTipoIdRoute: typeof DocTipoIdRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   MultitrechoCotacaoTokenRoute: typeof MultitrechoCotacaoTokenRoute
   PagarReservaCodigoRoute: typeof PagarReservaCodigoRoute
@@ -3104,6 +3117,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CruzeirosUiPreviewIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/doc/$tipo/$id': {
+      id: '/doc/$tipo/$id'
+      path: '/doc/$tipo/$id'
+      fullPath: '/doc/$tipo/$id'
+      preLoaderRoute: typeof DocTipoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/events': {
       id: '/lovable/email/events'
       path: '/lovable/email/events'
@@ -3688,6 +3708,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicTestFlightAlertRoute: ApiPublicTestFlightAlertRoute,
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
+  DocTipoIdRoute: DocTipoIdRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   MultitrechoCotacaoTokenRoute: MultitrechoCotacaoTokenRoute,
   PagarReservaCodigoRoute: PagarReservaCodigoRoute,
