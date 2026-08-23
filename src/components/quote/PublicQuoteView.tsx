@@ -13,6 +13,8 @@ import {
   brl,
   scheduleBoletoAteViagem,
   scheduleBoletoFinanciado,
+  scheduleEntradaMensal,
+
   type ParcelaAgendada,
 } from "@/lib/public-quote/payments";
 import { quoteHeadline, quoteTagline } from "@/lib/public-quote/headline";
@@ -712,6 +714,7 @@ function ParcelamentoModal({
   onClose: () => void;
 }) {
   const ultima = parcelas[parcelas.length - 1];
+  const total = parcelas.reduce((s, p) => s + p.amount, 0);
   return (
     <div className="vq-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="vq-modal" onClick={(e) => e.stopPropagation()}>
@@ -730,6 +733,11 @@ function ParcelamentoModal({
               <span className="value">{brl(p.amount)}</span>
             </div>
           ))}
+          <div className="vq-modal-row is-total">
+            <span className="label">Total</span>
+            <span className="date" />
+            <span className="value">{brl(total)}</span>
+          </div>
         </div>
         <div className="vq-modal-foot">
           <small>Última parcela em {brDateIso(ultima?.date ?? null)}</small>
@@ -739,6 +747,7 @@ function ParcelamentoModal({
     </div>
   );
 }
+
 
 function ResumoTimeline({
   itens,
@@ -831,6 +840,13 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
         boleto.untilTravel?.lastDueDate ?? null,
       ),
     });
+  const abrirFaixa = (
+    titulo: string,
+    first: number,
+    others: number,
+    parcelas: number,
+  ) => setDetalhe({ titulo, parcelas: scheduleEntradaMensal(first, others, parcelas) });
+
 
   return (
     <div className="vq-card vq-paybox">
@@ -877,7 +893,16 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
               <div
                 key={i.number}
                 className={`vq-inst${instCartao === i.number ? " is-selected" : ""}`}
-                onClick={() => setInstCartao(i.number)}
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setInstCartao(i.number);
+                  abrirFaixa("Cartão de crédito", i.firstAmount ?? i.amount, i.amount, i.number);
+                }}
+                onKeyDown={(e) =>
+                  e.key === "Enter" &&
+                  abrirFaixa("Cartão de crédito", i.firstAmount ?? i.amount, i.amount, i.number)
+                }
               >
                 <span>
                   {i.number}x
@@ -896,8 +921,13 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
               </div>
             ))}
           </div>
+          <p className="vq-boleto-note">
+            Clique em uma opção para ver a entrada, o valor de cada parcela, as datas de vencimento
+            e o total.
+          </p>
         </div>
       ) : null}
+
 
       {tab === "BOLETO" ? (
         <div className="vq-boleto-box">
@@ -915,7 +945,17 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
                   </thead>
                   <tbody>
                     {manualBoleto.rows!.map((r) => (
-                      <tr key={r.installments}>
+                      <tr
+                        key={r.installments}
+                        role="button"
+                        tabIndex={0}
+                        className="is-clicavel"
+                        onClick={() => abrirFaixa("Boleto", r.first, r.others, r.installments)}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" &&
+                          abrirFaixa("Boleto", r.first, r.others, r.installments)
+                        }
+                      >
                         <td><strong>{r.installments}x</strong></td>
                         <td>{brl(r.first)}</td>
                         <td>{r.installments > 1 ? brl(r.others) : "—"}</td>
@@ -924,6 +964,7 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
                     ))}
                   </tbody>
                 </table>
+
               ) : (
                 <>
                   {manualBoleto.entrada ? (
