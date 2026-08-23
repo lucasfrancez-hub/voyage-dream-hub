@@ -508,3 +508,19 @@ export const passhubBilhetePdf = createServerFn({ method: "POST" })
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao baixar o PDF" };
     }
   });
+
+/** Lê automaticamente os bilhetes das reservas já emitidas (cache + PDF). */
+export const passhubBilhetesLista = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ ids: z.array(z.number().int().positive()).max(60) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    if (data.ids.length === 0) return { ok: true as const, bilhetes: {} };
+    const { passhubBilhetesEmLote } = await import("./bilhete.server");
+    try {
+      return { ok: true as const, bilhetes: await passhubBilhetesEmLote(data.ids) };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao ler bilhetes" };
+    }
+  });
