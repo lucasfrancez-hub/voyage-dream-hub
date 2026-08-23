@@ -1,5 +1,6 @@
 import { ComissaoExtraEditor } from "@/components/passhub/ComissaoExtraEditor";
 import { BlocoPagamentoInterno } from "@/components/passhub/BlocoPagamentoInterno";
+import { PassageirosEditor } from "@/components/passhub/PassageirosEditor";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -19,7 +20,6 @@ import {
   Search,
   Send,
 
-  Users,
   XCircle,
 } from "lucide-react";
 import {
@@ -30,7 +30,7 @@ import {
 } from "@/lib/passhub/passhub.functions";
 import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
 import { confirm } from "@/lib/confirm";
-import type { PassHubReservaLista } from "@/lib/passhub/types";
+import type { PassHubReservaLista, PassHubReservaPax } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/reservas")({
   component: ReservasPage,
@@ -75,16 +75,6 @@ const dataCurta = (iso: string) => {
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 };
-
-const iniciais = (nome: string) =>
-  nome
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase() || "--";
 
 const hora = (iso: string) => {
   if (!iso) return "";
@@ -322,6 +312,19 @@ function DetalheReserva({
   });
 
   const [extra, setExtra] = useState({ valor: r.comissaoExtra, obs: r.comissaoExtraObs });
+  const [pax, setPax] = useState<PassHubReservaPax[]>(
+    r.passageirosDetalhe.length
+      ? r.passageirosDetalhe
+      : r.passageiros.map((nome) => ({
+          nome,
+          documentoTipo: "cpf",
+          documento: "",
+          nascimento: "",
+          genero: "",
+          tipo: "",
+          telefone: "",
+        })),
+  );
   const totalComExtra = r.totalVenda - r.comissaoExtra + extra.valor;
 
   const pedirCancelamento = async () => {
@@ -538,8 +541,12 @@ function DetalheReserva({
           </div>
 
 
-          <BlocoPagamento r={r} />
-          <BlocoPagamentoInterno r={r} />
+          <SecaoRecolhivel titulo="Link de pagamento" icone={<CreditCard className="h-4 w-4" />}>
+            <BlocoPagamento r={r} />
+          </SecaoRecolhivel>
+          <SecaoRecolhivel titulo="Pagamento interno" icone={<QrCode className="h-4 w-4" />}>
+            <BlocoPagamentoInterno r={r} />
+          </SecaoRecolhivel>
         </div>
       </div>
     </div>
