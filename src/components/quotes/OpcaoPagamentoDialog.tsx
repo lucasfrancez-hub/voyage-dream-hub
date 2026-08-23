@@ -32,6 +32,8 @@ type Props = {
   quoteId: string;
   optionNumber: number;
   optionLabel: string;
+  /** Total da opção — usado para pré-preencher as faixas conforme as regras. */
+  optionTotal?: number | null;
   atual?: OptionPaymentOverride | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -39,10 +41,63 @@ type Props = {
 };
 
 const num = (v: string): number | null => {
-  const n = Number(String(v).replace(/\./g, "").replace(",", "."));
+  const limpo = String(v).replace(/[^\d.,]/g, "");
+  const n = Number(limpo.replace(/\.(?=\d{3}\b)/g, "").replace(",", "."));
   return Number.isFinite(n) && n > 0 ? n : null;
 };
-const txt = (v: number | null | undefined) => (v == null ? "" : String(v));
+const txt = (v: number | null | undefined) =>
+  v == null ? "" : String(v).replace(".", ",");
+
+/**
+ * Campo monetário que preserva exatamente o que foi digitado (inclusive a
+ * vírgula em aberto, ex.: "1500,"), convertendo só no onChange do pai.
+ */
+function MoneyInput({
+  value,
+  onValue,
+  className,
+  placeholder,
+}: {
+  value: number | null | undefined;
+  onValue: (n: number | null) => void;
+  className?: string;
+  placeholder?: string;
+}) {
+  const [raw, setRaw] = useState(txt(value));
+  const [focus, setFocus] = useState(false);
+  useEffect(() => {
+    if (!focus) setRaw(txt(value));
+  }, [value, focus]);
+  return (
+    <Input
+      className={className}
+      inputMode="decimal"
+      placeholder={placeholder}
+      value={raw}
+      onFocus={() => setFocus(true)}
+      onBlur={() => {
+        setFocus(false);
+        setRaw(txt(value));
+      }}
+      onChange={(e) => {
+        const v = e.target.value.replace(/[^\d.,]/g, "");
+        setRaw(v);
+        onValue(num(v));
+      }}
+    />
+  );
+}
+
+/** Faixas automáticas (total dividido pelo nº de parcelas). */
+function faixasAutomaticas(total: number, max: number): ManualRow[] {
+  if (!(total > 0)) return [];
+  const rows: ManualRow[] = [];
+  for (let n = 2; n <= max; n++) {
+    const v = Math.round((total / n) * 100) / 100;
+    rows.push({ parcelas: n, entrada: v, demais: v });
+  }
+  return rows;
+}
 
 /** Tabela de faixas: para cada quantidade de parcelas, 1ª parcela e demais. */
 function FaixasEditor({
@@ -77,45 +132,68 @@ function FaixasEditor({
           return (
             <div key={n} className="grid grid-cols-[52px_1fr_1fr] items-center gap-2 px-2 py-1">
               <span className="text-xs font-semibold">{n}x</span>
-              <Input
+              <MoneyInput
                 className="h-8"
-                inputMode="decimal"
                 placeholder="—"
-                value={txt(r?.entrada ?? null)}
-                onChange={(e) => setCampo(n, "entrada", num(e.target.value))}
+                value={r?.entrada ?? null}
+                onValue={(v) => setCampo(n, "entrada", v)}
               />
-              <Input
+              <MoneyInput
                 className="h-8"
-                inputMode="decimal"
                 placeholder="—"
-                value={txt(r?.demais ?? null)}
-                onChange={(e) => setCampo(n, "demais", num(e.target.value))}
+                value={r?.demais ?? null}
+                onValue={(v) => setCampo(n, "demais", v)}
               />
             </div>
           );
         })}
       </div>
       <p className="border-t border-border px-2 py-1.5 text-[11px] text-muted-foreground">
-        Preencha só as faixas que quer oferecer. Em branco = não aparece.
+        Já vem preenchido pelas regras automáticas. Ajuste só o que quiser mudar.
       </p>
     </div>
   );
 }
 
+
 export function OpcaoPagamentoDialog({
   quoteId,
   optionNumber,
   optionLabel,
+  optionTotal,
   atual,
   open,
   onOpenChange,
   onSaved,
 }: Props) {
-  const [ov, setOv] = useState<OptionPaymentOverride>(atual ?? emptyPaymentOverride());
+  const total = optionTotal ?? 0;
+
+  /** Base pré-preenchida com as regras automáticas (só edita se quiser). */
+  const preenchido = (base: OptionPaymentOverride): OptionPaymentOverride => ({
+    ...base,
+    card: {
+      ...base.card,
+      rows: base.card.rows?.length ? base.card.rows : faixasAutomaticas(total, 12),
+    },
+    boleto: {
+      ...base.boleto,
+      rows: base.boleto.rows?.length ? base.boleto.rows : faixasAutomaticas(total, 10),
+    },
+    pix: {
+      ...base.pix,
+      total: base.pix.total ?? (total > 0 ? Math.round(total * 0.95 * 100) / 100 : null),
+      discountPercent: base.pix.discountPercent ?? (total > 0 ? 5 : null),
+    },
+  });
+
+  const [ov, setOv] = useState<OptionPaymentOverride>(() =>
+    preenchido(atual ?? emptyPaymentOverride()),
+  );
 
   useEffect(() => {
-    if (open) setOv(atual ?? emptyPaymentOverride());
-  }, [open, atual]);
+    if (open) setOv(preenchido(atual ?? emptyPaymentOverride()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, atual, total]);
 
   const salvar = useServerFn(definirPagamentoOpcao);
   const mutation = useMutation({
@@ -130,6 +208,7 @@ export function OpcaoPagamentoDialog({
   });
 
   const set = (patch: Partial<OptionPaymentOverride>) => setOv((o) => ({ ...o, ...patch }));
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -236,24 +315,21 @@ export function OpcaoPagamentoDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Valor no Pix (R$)</Label>
-                  <Input
-                    inputMode="decimal"
+                  <MoneyInput
                     placeholder="automático"
-                    value={txt(ov.pix.total)}
-                    onChange={(e) => set({ pix: { ...ov.pix, total: num(e.target.value) } })}
+                    value={ov.pix.total}
+                    onValue={(v) => set({ pix: { ...ov.pix, total: v } })}
                   />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Desconto (%)</Label>
-                  <Input
-                    inputMode="decimal"
+                  <MoneyInput
                     placeholder="0"
-                    value={txt(ov.pix.discountPercent)}
-                    onChange={(e) =>
-                      set({ pix: { ...ov.pix, discountPercent: num(e.target.value) } })
-                    }
+                    value={ov.pix.discountPercent}
+                    onValue={(v) => set({ pix: { ...ov.pix, discountPercent: v } })}
                   />
                 </div>
+
               </div>
             )}
           </div>
