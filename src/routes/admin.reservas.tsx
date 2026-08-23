@@ -11,6 +11,7 @@ import {
   Loader2,
   Luggage,
   Plane,
+  QrCode,
   RefreshCw,
   Search,
   Users,
@@ -19,6 +20,7 @@ import {
 import {
   passhubCancelarReserva,
   passhubLinkPagamento,
+  passhubPixReserva,
   passhubReservas,
 } from "@/lib/passhub/passhub.functions";
 import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
@@ -106,8 +108,16 @@ function StatusBadge({ status }: { status: string }) {
 
 function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
   const buscarLink = useServerFn(passhubLinkPagamento);
+  const pedirPix = useServerFn(passhubPixReserva);
   const [link, setLink] = useState(r.linkPagamento);
   const [copiado, setCopiado] = useState(false);
+  const [pixCopiado, setPixCopiado] = useState(false);
+  const [pix, setPix] = useState<{
+    copiaECola: string;
+    qrCodeBase64: string;
+    valor: number;
+    expiraEm: string;
+  } | null>(null);
 
   const copiar = async (valor: string) => {
     await navigator.clipboard.writeText(valor);
@@ -129,6 +139,32 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao obter o link"),
   });
 
+  const gerarPix = useMutation({
+    mutationFn: () =>
+      pedirPix({
+        data: link
+          ? { link }
+          : { id: r.idPassagem, localizador: r.localizador },
+      }),
+    onSuccess: (res) => {
+      if (!res.ok) {
+        toast.error(res.erro);
+        return;
+      }
+      setPix(res.pix);
+      toast.success("QR Code Pix gerado");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao gerar o Pix"),
+  });
+
+  const copiarPix = async (codigo: string) => {
+    await navigator.clipboard.writeText(codigo);
+    setPixCopiado(true);
+    toast.success("Pix copia e cola copiado");
+    setTimeout(() => setPixCopiado(false), 2000);
+  };
+
+
   return (
     <div className="cons-card p-4">
       <h3 className="mb-3 flex items-center gap-2 text-[15px] font-bold">
@@ -144,7 +180,53 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
             <a className="cons-btn cons-btn-blue" href={link} target="_blank" rel="noreferrer">
               Abrir checkout
             </a>
+            <button
+              type="button"
+              className="cons-btn cons-btn-primary"
+              onClick={() => gerarPix.mutate()}
+              disabled={gerarPix.isPending}
+            >
+              {gerarPix.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <QrCode className="h-4 w-4" />
+              )}
+              {pix ? "Gerar Pix novamente" : "Gerar QR Code Pix"}
+            </button>
           </div>
+
+          {pix ? (
+            <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-3 sm:flex-row sm:items-center">
+              {pix.qrCodeBase64 ? (
+                <img
+                  src={pix.qrCodeBase64}
+                  alt="QR Code Pix da reserva"
+                  className="h-40 w-40 shrink-0 rounded-lg bg-white p-2"
+                />
+              ) : null}
+              <div className="min-w-0 flex-1 space-y-2">
+                {pix.valor ? (
+                  <p className="text-[13px] font-semibold">
+                    {pix.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </p>
+                ) : null}
+                {pix.expiraEm ? (
+                  <p className="text-[11px] cons-muted">Válido até {pix.expiraEm}</p>
+                ) : null}
+                <code className="block max-h-24 overflow-auto break-all rounded-lg bg-black/30 px-2 py-1 text-[10px]">
+                  {pix.copiaECola}
+                </code>
+                <button
+                  type="button"
+                  className="cons-btn"
+                  onClick={() => copiarPix(pix.copiaECola)}
+                >
+                  {pixCopiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} Copia e
+                  cola
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-2">
