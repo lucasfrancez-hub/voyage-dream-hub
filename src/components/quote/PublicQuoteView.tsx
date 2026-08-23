@@ -840,6 +840,13 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
         boleto.untilTravel?.lastDueDate ?? null,
       ),
     });
+  const abrirFaixa = (
+    titulo: string,
+    first: number,
+    others: number,
+    parcelas: number,
+  ) => setDetalhe({ titulo, parcelas: scheduleEntradaMensal(first, others, parcelas) });
+
 
   return (
     <div className="vq-card vq-paybox">
