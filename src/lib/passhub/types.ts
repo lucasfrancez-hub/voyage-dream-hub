@@ -177,7 +177,11 @@ export type PassHubReservaLista = {
   passageiros: string[];
   /** Dados completos dos passageiros gravados na reserva (quando existirem). */
   passageirosDetalhe: PassHubReservaPax[];
-  /** Total efetivamente cobrado do cliente: líquido da consolidadora + comissão. */
+  /** Comissão extra (RAV por fora) definida por nós, interna à agência. */
+  comissaoExtra: number;
+  /** Observação interna da comissão extra. */
+  comissaoExtraObs: string;
+  /** Total efetivamente cobrado do cliente: líquido da consolidadora + comissão + comissão extra. */
   totalVenda: number;
   segmentos: PassHubReservaSegmento[];
 };

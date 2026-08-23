@@ -73,6 +73,8 @@ function normalizaReserva(v: unknown): PassHubReservaLista {
     ravPercentual: num(r["rav_percentage"]),
     ravValor: rav,
     comissao,
+    comissaoExtra: 0,
+    comissaoExtraObs: "",
     // A PassHub devolve `preco` líquido (tarifa + taxas). O total da venda
     // inclui a comissão total (RAV + incentivo).
     totalVenda: preco + (comissao || rav),
@@ -123,7 +125,31 @@ async function anexaPassageiros(reservas: PassHubReservaLista[]): Promise<PassHu
     console.error("[passhub] passageiros locais indisponíveis:", e);
   }
   await marcaCanceladasLocais(reservas);
+  await anexaComissaoExtra(reservas);
   return reservas;
+}
+
+/** Comissão extra (RAV por fora) que definimos por reserva. */
+async function anexaComissaoExtra(reservas: PassHubReservaLista[]): Promise<void> {
+  const ids = reservas.map((r) => r.idPassagem).filter(Boolean);
+  if (ids.length === 0) return;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("passhub_reserva_extra")
+      .select("id_passagem, comissao_extra, observacao")
+      .in("id_passagem", ids);
+    const porId = new Map((data ?? []).map((e) => [Number(e.id_passagem), e]));
+    for (const r of reservas) {
+      const extra = porId.get(r.idPassagem);
+      if (!extra) continue;
+      r.comissaoExtra = Number(extra.comissao_extra ?? 0);
+      r.comissaoExtraObs = extra.observacao ?? "";
+      r.totalVenda = Number((r.totalVenda + r.comissaoExtra).toFixed(2));
+    }
+  } catch (e) {
+    console.error("[passhub] comissão extra indisponível:", e);
+  }
 }
 
 /** Reservas que cancelamos por aqui aparecem como canceladas mesmo que a PassHub demore a refletir. */
@@ -282,4 +308,36 @@ export async function passhubCancelarReserva(
     reserva,
   };
 
+}
+
+/** Define a comissão extra (RAV por fora) de uma reserva. */
+export async function passhubSalvarComissaoExtra(input: {
+  idPassagem: number;
+  localizador?: string | null;
+  comissaoExtra: number;
+  observacao?: string | null;
+  userId?: string | null;
+}): Promise<{ comissaoExtra: number; observacao: string }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const valor = Number(Number(input.comissaoExtra || 0).toFixed(2));
+  const { data, error } = await supabaseAdmin
+    .from("passhub_reserva_extra")
+    .upsert(
+      {
+        id_passagem: input.idPassagem,
+        localizador: input.localizador ?? null,
+        comissao_extra: valor,
+        observacao: input.observacao ?? null,
+        updated_by: input.userId ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id_passagem" },
+    )
+    .select("comissao_extra, observacao")
+    .single();
+  if (error) throw new Error(`Falha ao salvar a comissão extra: ${error.message}`);
+  return {
+    comissaoExtra: Number(data?.comissao_extra ?? valor),
+    observacao: data?.observacao ?? "",
+  };
 }
