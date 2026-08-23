@@ -307,17 +307,41 @@ function DetalheReserva({
           <div className="cons-dot my-5" />
 
           <h3 className="mb-3 text-[15px] font-bold">Passageiros</h3>
-          <div className="flex flex-wrap gap-2">
-            {r.passageiros.length ? (
-              r.passageiros.map((p) => (
-                <span key={p} className="cons-chip">
-                  {p}
-                </span>
-              ))
-            ) : (
-              <span className="text-[13px] cons-muted">Sem passageiros informados</span>
-            )}
-          </div>
+          {r.passageirosDetalhe.length ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {r.passageirosDetalhe.map((p, i) => (
+                <div key={i} className="cons-box p-4">
+                  <div className="text-[15px] font-black uppercase">{p.nome}</div>
+                  <div className="mt-2 grid gap-1 text-[12px] cons-muted">
+                    <div>
+                      {p.documentoTipo === "passport" ? "Passaporte" : "CPF"}:{" "}
+                      <b className="text-[13px]">{p.documento || "—"}</b>
+                    </div>
+                    <div>
+                      Nascimento: <b className="text-[13px]">{dataCurta(p.nascimento)}</b>
+                    </div>
+                    {p.telefone && (
+                      <div>
+                        Telefone: <b className="text-[13px]">{p.telefone}</b>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {r.passageiros.length ? (
+                r.passageiros.map((p) => (
+                  <span key={p} className="cons-chip">
+                    {p}
+                  </span>
+                ))
+              ) : (
+                <span className="text-[13px] cons-muted">Sem passageiros informados</span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -332,17 +356,18 @@ function DetalheReserva({
               <b>{brl(r.taxas)}</b>
             </div>
             <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
-              <span className="cons-muted">RAV ({r.ravPercentual}%)</span>
-              <b>{brl(r.ravValor)}</b>
+              <span className="cons-muted">Líquido consolidadora</span>
+              <b>{brl(r.preco)}</b>
             </div>
             <div className="flex justify-between py-2 text-[13px]">
-              <span className="cons-muted">Comissão</span>
-              <b>{brl(r.comissao)}</b>
+              <span className="cons-muted">Comissão ({r.ravPercentual}%)</span>
+              <b>{brl(r.comissao || r.ravValor)}</b>
             </div>
             <div className="cons-dot my-2" />
             <div className="cons-lab">Total da reserva</div>
-            <div className="text-[28px] font-black">{brl(r.preco)}</div>
+            <div className="text-[28px] font-black">{brl(r.totalVenda)}</div>
           </div>
+
 
           <BlocoPagamento r={r} />
         </div>
