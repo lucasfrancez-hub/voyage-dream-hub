@@ -270,6 +270,13 @@ const CSS = `
 .crdoc footer .contact strong{color:var(--blue)}
 .crdoc footer .page-note{font-size:9px;color:#8a96a1;text-align:right}
 
+.crdoc .passenger.nostatus{grid-template-columns:1.8fr .6fr .95fr .8fr}
+.crdoc .infoblock{margin:14px 34px 0;border:1px solid var(--line);border-radius:13px;padding:14px 16px;background:#fbfcfd;break-inside:avoid}
+.crdoc .infoblock h3{margin:0 0 7px;font-size:11px;color:var(--blue);text-transform:uppercase;letter-spacing:.7px}
+.crdoc .infoblock p{margin:0 0 6px;font-size:9.5px;line-height:1.55;color:#5b6a78}
+.crdoc .infoblock ul{margin:0;padding-left:16px;color:#5b6a78;font-size:9.5px;line-height:1.55}
+.crdoc[data-density="compact"] .infoblock{margin:10px 28px 0;padding:11px 13px}
+
 /* densidade automática conforme a quantidade de voos */
 .crdoc[data-density="medium"] .flight{padding:12px 16px}
 .crdoc[data-density="medium"] section{padding-top:10px}
