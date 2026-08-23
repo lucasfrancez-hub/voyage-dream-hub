@@ -261,48 +261,85 @@ function DetalheReserva({
 
           <div className="cons-dot my-5" />
 
-          <h3 className="mb-3 text-[15px] font-bold">Trechos</h3>
-          <div className="space-y-3">
-            {r.segmentos.map((s, i) => (
-              <div key={i} className="cons-box p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-[16px] font-black">
-                    {s.origem} → {s.destino}
+          <h3 className="mb-3 flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.14em] text-[#9fb4c6]">
+            <Plane className="h-4 w-4 text-[#77b8ff]" /> Trechos da viagem
+          </h3>
+          <div className="space-y-4">
+            {r.segmentos.map((s, i) => {
+              const primeira = s.conexoes[0];
+              const ultima = s.conexoes[s.conexoes.length - 1];
+              const cia = primeira?.companhia || r.companhia;
+              const classe = primeira?.familiaTarifaria || primeira?.classe || "—";
+              return (
+                <div
+                  key={i}
+                  className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] transition-colors hover:border-white/20"
+                >
+                  <div className="p-5">
+                    <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <BadgeCia codigo={cia} grande />
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#77b8ff]">
+                            Voo {primeira?.numeroVoo || "—"}
+                            {s.conexoes.length > 1 ? ` · +${s.conexoes.length - 1} conexão(ões)` : ""}
+                          </div>
+                          <div className="text-[17px] font-black">
+                            {s.origem} <span className="mx-1 cons-muted">→</span> {s.destino}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="cons-lab">Duração</div>
+                        <div className="text-[13px] font-bold">{s.duracao || ultima?.duracao || "—"}</div>
+                      </div>
+                    </div>
+
+                    <div className="relative flex items-center justify-between px-1">
+                      <div className="relative z-10 bg-[#0b1a24] pr-4">
+                        <div className="text-[26px] font-black leading-none">{hora(s.partida)}</div>
+                        <div className="mt-1 text-[13px] font-bold cons-muted">{s.origem}</div>
+                        <div className="text-[11px] cons-muted">{dataCurta(s.partida)}</div>
+                      </div>
+                      <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center border-t border-dashed border-white/10">
+                        <span className="-mt-3 rounded-full bg-white/10 p-1.5">
+                          <Plane className="h-3 w-3 rotate-90 text-[#77b8ff]" />
+                        </span>
+                      </div>
+                      <div className="relative z-10 bg-[#0b1a24] pl-4 text-right">
+                        <div className="text-[26px] font-black leading-none">{hora(s.chegada)}</div>
+                        <div className="mt-1 text-[13px] font-bold cons-muted">{s.destino}</div>
+                        <div className="text-[11px] cons-muted">{dataCurta(s.chegada)}</div>
+                      </div>
+                    </div>
                   </div>
-                  <span className="cons-chip">{s.duracao}</span>
-                </div>
-                <div className="mt-1 text-[12px] cons-muted">
-                  {dataCurta(s.partida)} · {hora(s.partida)} → {hora(s.chegada)}
-                </div>
-                <div className="mt-3 grid items-center gap-2 sm:grid-cols-[1fr_38px_1fr]">
-                  <div className="cons-soft p-3">
-                    <div className="text-[18px] font-black">{s.origem}</div>
-                    <div className="text-[12px] cons-muted">{hora(s.partida)}</div>
+
+                  <div className="flex flex-wrap divide-x divide-white/5 border-t border-white/5 bg-white/[0.03]">
+                    <div className="flex flex-1 items-center gap-2 px-4 py-3">
+                      <span className="cons-lab">Classe</span>
+                      <span className="text-[12px] font-bold text-[#bfe0ff]">{classe}</span>
+                    </div>
+                    <div className="flex flex-1 items-center gap-2 px-4 py-3">
+                      <span className="cons-lab">Bagagem</span>
+                      <span className="flex items-center gap-1 text-[12px] font-bold text-[#8ce0b6]">
+                        <Luggage className="h-3 w-3" />
+                        {s.bagagemDespachada
+                          ? `${s.bagagemDespachadaQtd || 1} despachada(s)`
+                          : "somente mão"}
+                      </span>
+                    </div>
+                    <div className="flex flex-1 items-center gap-2 px-4 py-3">
+                      <span className="cons-lab">Voos</span>
+                      <span className="text-[12px] font-bold">
+                        {s.conexoes.map((c) => c.numeroVoo).filter(Boolean).join(" · ") || "—"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="grid place-items-center text-[#77b8ff]">
-                    <Plane className="h-5 w-5" />
-                  </div>
-                  <div className="cons-soft p-3">
-                    <div className="text-[18px] font-black">{s.destino}</div>
-                    <div className="text-[12px] cons-muted">{hora(s.chegada)}</div>
-                  </div>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {s.conexoes.map((c, j) => (
-                    <span key={j} className="cons-chip">
-                      {c.numeroVoo} · {c.origem}→{c.destino} · {c.familiaTarifaria || c.classe}
-                    </span>
-                  ))}
-                  <span className="cons-chip">
-                    <Luggage className="h-3 w-3" />
-                    {s.bagagemDespachada
-                      ? `${s.bagagemDespachadaQtd || 1} despachada(s)`
-                      : "só bagagem de mão"}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
 
           <div className="cons-dot my-5" />
 
