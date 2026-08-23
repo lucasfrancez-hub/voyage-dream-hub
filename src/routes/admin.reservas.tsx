@@ -451,7 +451,7 @@ function ReservasPage() {
   const listarPedidos = useServerFn(pedidosReservasAereas);
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
-  const [fonte, setFonte] = useState<FonteReserva>("todas");
+  const [fonte, setFonte] = useState<FonteReserva>("consolidadora");
   const [aberta, setAberta] = useState<PassHubReservaLista | null>(null);
 
   const { data, isFetching, refetch } = useQuery({
