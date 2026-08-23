@@ -282,9 +282,15 @@ function DetalheReserva({
             </div>
             <div className="cons-box p-4">
               <div className="cons-lab mb-2">Emissão limite</div>
-              <div className="text-[16px] font-black">{dataHora(r.limiteEmissao)}</div>
-              <div className="text-[12px] cons-muted">Horário de Brasília</div>
+              {/* Reserva já emitida não tem mais prazo de emissão */}
+              <div className="text-[16px] font-black">
+                {(r.status || "").toUpperCase() === "ISSUED" ? "—" : dataHora(r.limiteEmissao)}
+              </div>
+              <div className="text-[12px] cons-muted">
+                {(r.status || "").toUpperCase() === "ISSUED" ? "Bilhete emitido" : "Horário de Brasília"}
+              </div>
             </div>
+
             <div className="cons-box p-4">
               <div className="cons-lab mb-2">Criação</div>
               <div className="text-[16px] font-black">{dataHora(r.criadaEm)}</div>
@@ -556,7 +562,10 @@ function ReservasPage() {
                         {r.dataVolta ? ` / ${dataCurta(r.dataVolta)}` : ""}
                       </td>
                       <td>{dataHora(r.criadaEm)}</td>
-                      <td>{dataHora(r.limiteEmissao)}</td>
+                      <td>
+                        {(r.status || "").toUpperCase() === "ISSUED" ? "—" : dataHora(r.limiteEmissao)}
+                      </td>
+
                       <td>
                         <StatusBadge status={r.status} />
                       </td>
