@@ -78,7 +78,7 @@ function rowTotal(r: ManualRow): number {
   return round2(entrada + demais * Math.max(0, r.parcelas - 1));
 }
 
-function cardList(total: number, ov: OptionPaymentOverride): Installment[] {
+function cardList(total: number, ov: OptionPaymentOverride, base: Installment[]): Installment[] {
   const rows = rowsValidas(ov.card.rows);
   if (rows.length) {
     return rows.map((r) => {
@@ -93,6 +93,8 @@ function cardList(total: number, ov: OptionPaymentOverride): Installment[] {
       };
     });
   }
+  // Nada preenchido manualmente: mantém o cálculo automático.
+  if (ov.card.installments == null && (ov.card.amount == null || ov.card.amount <= 0)) return base;
   const n = Math.max(1, Math.trunc(ov.card.installments ?? 1));
   const amount = ov.card.amount != null && ov.card.amount > 0 ? ov.card.amount : total / n;
   const out: Installment[] = [];
@@ -108,6 +110,7 @@ function cardList(total: number, ov: OptionPaymentOverride): Installment[] {
   }
   return out;
 }
+
 
 /** Aplica a configuração manual sobre o pagamento calculado automaticamente. */
 export function applyPaymentOverride(
@@ -132,37 +135,62 @@ export function applyPaymentOverride(
       ? ov.boleto.amount
       : round2(Math.max(0, total - (ov.boleto.entrada ?? 0)) / boletoParcelas);
 
+  const boletoRows = rowsValidas(ov.boleto.rows);
+  // Boleto sem nada preenchido: mantém as parcelas/condições automáticas.
+  const vazio =
+    !boletoRows.length &&
+    ov.boleto.installments == null &&
+    (ov.boleto.amount == null || ov.boleto.amount <= 0) &&
+    (ov.boleto.entrada == null || ov.boleto.entrada <= 0);
+  // Se o consultor ligou o boleto mas o automático não oferece nada (ex.: só
+  // aéreo), geramos as faixas padrão de 1x a 10x sem juros sobre o total.
+  const baseTemBoleto = base.boleto.installments.length > 0 || !!base.boleto.untilTravel;
+  const boletoAuto = vazio && baseTemBoleto;
+  const faixasPadrao: typeof boletoRows =
+    vazio && !baseTemBoleto && total > 0
+      ? Array.from({ length: 10 }, (_, i) => ({
+          parcelas: i + 1,
+          entrada: round2(total / (i + 1)),
+          demais: round2(total / (i + 1)),
+        }))
+      : [];
+  const linhasManuais = boletoRows.length ? boletoRows : faixasPadrao;
+
+
   return {
     ...base,
     methods: methods.length ? methods : ["PIX"],
     card: {
       ...base.card,
       enabled: ov.card.enabled,
-      installments: ov.card.enabled ? cardList(total, ov) : [],
+      installments: ov.card.enabled ? cardList(total, ov, base.card.installments) : [],
     },
     boleto: {
       ...base.boleto,
       enabled: ov.boleto.enabled,
-      installments: [],
-      untilTravel: null,
+      installments: ov.boleto.enabled && boletoAuto ? base.boleto.installments : [],
+      untilTravel: ov.boleto.enabled && boletoAuto ? base.boleto.untilTravel : null,
       note: ov.boleto.note ?? base.boleto.note ?? null,
-      manual: ov.boleto.enabled
-        ? {
-            rows: rowsValidas(ov.boleto.rows).map((r) => ({
-              installments: r.parcelas,
-              first: round2(r.entrada ?? r.demais ?? 0),
-              others: round2(r.demais ?? r.entrada ?? 0),
-              total: rowTotal(r),
-            })),
-            entrada: ov.boleto.entrada != null ? round2(ov.boleto.entrada) : null,
-            installments: boletoParcelas,
-            amount: round2(boletoValor),
-            total: round2((ov.boleto.entrada ?? 0) + boletoValor * boletoParcelas),
-            dueDate: ov.boleto.dueDate ?? null,
-            note: ov.boleto.note ?? null,
-          }
-        : null,
+      manual:
+        ov.boleto.enabled && !boletoAuto
+          ? {
+              rows: linhasManuais.map((r) => ({
+                installments: r.parcelas,
+                first: round2(r.entrada ?? r.demais ?? 0),
+                others: round2(r.demais ?? r.entrada ?? 0),
+                total: rowTotal(r),
+              })),
+
+              entrada: ov.boleto.entrada != null ? round2(ov.boleto.entrada) : null,
+              installments: boletoParcelas,
+              amount: round2(boletoValor),
+              total: round2((ov.boleto.entrada ?? 0) + boletoValor * boletoParcelas),
+              dueDate: ov.boleto.dueDate ?? null,
+              note: ov.boleto.note ?? null,
+            }
+          : null,
     },
+
     pix: { enabled: ov.pix.enabled, discountPercent: pixPercent, total: round2(pixTotal) },
     dueDate: ov.dueDate ?? null,
     note: ov.note ?? null,

@@ -283,6 +283,15 @@ export const definirPagamentoOpcao = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => {
     const money = z.number().min(0).max(10_000_000).nullable();
     const data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable();
+    const rows = z
+      .array(
+        z.object({
+          parcelas: z.number().int().min(1).max(24),
+          entrada: money,
+          demais: money,
+        }),
+      )
+      .optional();
     return z
       .object({
         quoteId: z.string().uuid(),
@@ -295,6 +304,7 @@ export const definirPagamentoOpcao = createServerFn({ method: "POST" })
               installments: z.number().int().min(1).max(24).nullable(),
               amount: money,
               interestFree: z.boolean(),
+              rows,
             }),
             boleto: z.object({
               enabled: z.boolean(),
@@ -303,7 +313,9 @@ export const definirPagamentoOpcao = createServerFn({ method: "POST" })
               amount: money,
               dueDate: data,
               note: z.string().trim().max(300).nullable(),
+              rows,
             }),
+
             pix: z.object({
               enabled: z.boolean(),
               total: money,
