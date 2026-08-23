@@ -500,6 +500,7 @@ function ReservasPage() {
     bilhetesQuery.data && bilhetesQuery.data.ok ? (bilhetesQuery.data.bilhetes as never) : {};
 
   const filtradas = useMemo(() => {
+    if (fonte === "pedidos") return [];
     const q = busca.trim().toLowerCase();
     if (!q) return reservas;
     return reservas.filter((r) =>
@@ -508,7 +509,31 @@ function ReservasPage() {
         .toLowerCase()
         .includes(q),
     );
-  }, [reservas, busca]);
+  }, [reservas, busca, fonte]);
+
+  const filtradasPedidos = useMemo(() => {
+    if (fonte === "consolidadora") return [];
+    const q = busca.trim().toLowerCase();
+    if (!q) return reservasPedidos;
+    return reservasPedidos.filter((r) =>
+      [
+        r.localizador,
+        r.localizadorCompanhia,
+        r.orderNumber,
+        r.cliente,
+        r.origem,
+        r.destino,
+        r.companhia,
+        ...r.passageiros,
+        ...r.bilhetes,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [reservasPedidos, busca, fonte]);
+
+  const vazio = filtradas.length === 0 && filtradasPedidos.length === 0;
 
   return (
     <div className="cons">
