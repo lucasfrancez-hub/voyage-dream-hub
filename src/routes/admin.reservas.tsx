@@ -8,6 +8,7 @@ import {
   Check,
   Copy,
   CreditCard,
+  FileText,
   Loader2,
   Luggage,
   Plane,
@@ -343,6 +344,14 @@ function DetalheReserva({
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={r.status} />
+          <a
+            className="cons-btn"
+            href={`/admin/reservas/${r.idPassagem}/plano-viagem`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <FileText className="h-4 w-4" /> Plano de viagem
+          </a>
           {!cancelada && (
             <button
               type="button"

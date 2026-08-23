@@ -141,6 +141,7 @@ import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.ind
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as PagarReservaCodigoRouteImport } from './routes/pagar_.reserva.$codigo'
 import { Route as AdminCruzeirosPreviaIdRouteImport } from './routes/admin.cruzeiros.previa.$id'
+import { Route as AdminReservasIdPlanoViagemRouteImport } from './routes/admin.reservas_.$id.plano-viagem'
 import { Route as ApiPublicAdminManifestTokenRouteImport } from './routes/api/public/admin-manifest.$token'
 import { Route as ApiPublicAgendaManifestTokenRouteImport } from './routes/api/public/agenda-manifest.$token'
 import { Route as ApiPublicBoletoIdRouteImport } from './routes/api/public/boleto.$id'
@@ -847,6 +848,12 @@ const AdminCruzeirosPreviaIdRoute = AdminCruzeirosPreviaIdRouteImport.update({
   path: '/cruzeiros/previa/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminReservasIdPlanoViagemRoute =
+  AdminReservasIdPlanoViagemRouteImport.update({
+    id: '/reservas_/$id/plano-viagem',
+    path: '/reservas/$id/plano-viagem',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const ApiPublicAdminManifestTokenRoute =
   ApiPublicAdminManifestTokenRouteImport.update({
     id: '/api/public/admin-manifest/$token',
@@ -1197,6 +1204,7 @@ export interface FileRoutesByFullPath {
   '/cruzeiros/ui-preview/': typeof CruzeirosUiPreviewIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/admin/cruzeiros/previa/$id': typeof AdminCruzeirosPreviaIdRoute
+  '/admin/reservas/$id/plano-viagem': typeof AdminReservasIdPlanoViagemRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
@@ -1366,6 +1374,7 @@ export interface FileRoutesByTo {
   '/cruzeiros/ui-preview': typeof CruzeirosUiPreviewIndexRoute
   '/pacotes/$slug': typeof PacotesSlugIndexRoute
   '/admin/cruzeiros/previa/$id': typeof AdminCruzeirosPreviaIdRoute
+  '/admin/reservas/$id/plano-viagem': typeof AdminReservasIdPlanoViagemRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
@@ -1538,6 +1547,7 @@ export interface FileRoutesById {
   '/cruzeiros_/ui-preview/': typeof CruzeirosUiPreviewIndexRoute
   '/pacotes/$slug/': typeof PacotesSlugIndexRoute
   '/admin/cruzeiros/previa/$id': typeof AdminCruzeirosPreviaIdRoute
+  '/admin/reservas_/$id/plano-viagem': typeof AdminReservasIdPlanoViagemRoute
   '/api/public/admin-manifest/$token': typeof ApiPublicAdminManifestTokenRoute
   '/api/public/agenda-manifest/$token': typeof ApiPublicAgendaManifestTokenRoute
   '/api/public/boleto/$id': typeof ApiPublicBoletoIdRoute
@@ -1711,6 +1721,7 @@ export interface FileRouteTypes {
     | '/cruzeiros/ui-preview/'
     | '/pacotes/$slug/'
     | '/admin/cruzeiros/previa/$id'
+    | '/admin/reservas/$id/plano-viagem'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
     | '/api/public/boleto/$id'
@@ -1880,6 +1891,7 @@ export interface FileRouteTypes {
     | '/cruzeiros/ui-preview'
     | '/pacotes/$slug'
     | '/admin/cruzeiros/previa/$id'
+    | '/admin/reservas/$id/plano-viagem'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
     | '/api/public/boleto/$id'
@@ -2051,6 +2063,7 @@ export interface FileRouteTypes {
     | '/cruzeiros_/ui-preview/'
     | '/pacotes/$slug/'
     | '/admin/cruzeiros/previa/$id'
+    | '/admin/reservas_/$id/plano-viagem'
     | '/api/public/admin-manifest/$token'
     | '/api/public/agenda-manifest/$token'
     | '/api/public/boleto/$id'
@@ -3108,6 +3121,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCruzeirosPreviaIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/reservas_/$id/plano-viagem': {
+      id: '/admin/reservas_/$id/plano-viagem'
+      path: '/reservas/$id/plano-viagem'
+      fullPath: '/admin/reservas/$id/plano-viagem'
+      preLoaderRoute: typeof AdminReservasIdPlanoViagemRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/public/admin-manifest/$token': {
       id: '/api/public/admin-manifest/$token'
       path: '/api/public/admin-manifest/$token'
@@ -3441,6 +3461,7 @@ interface AdminRouteChildren {
   AdminOrcamentosIndexRoute: typeof AdminOrcamentosIndexRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
   AdminCruzeirosPreviaIdRoute: typeof AdminCruzeirosPreviaIdRoute
+  AdminReservasIdPlanoViagemRoute: typeof AdminReservasIdPlanoViagemRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -3502,6 +3523,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOrcamentosIndexRoute: AdminOrcamentosIndexRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
   AdminCruzeirosPreviaIdRoute: AdminCruzeirosPreviaIdRoute,
+  AdminReservasIdPlanoViagemRoute: AdminReservasIdPlanoViagemRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
