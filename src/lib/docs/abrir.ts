@@ -48,17 +48,49 @@ function shellHtml(url: string, titulo: string): string {
 <iframe id="doc" src=${u}></iframe>
 <div class="barra">
   <button class="p" onclick="imprimir()">Imprimir / Salvar PDF</button>
-  <button onclick="compartilhar()">Compartilhar</button>
+  <button id="btnPdf" onclick="compartilharPdf()">Compartilhar PDF</button>
   <button onclick="copiar()">Copiar link</button>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script>
 var URL_DOC=${u};
+var NOME_PDF=${JSON.stringify(titulo.toLowerCase().replace(/[^a-z0-9]+/gi, "-"))}+'.pdf';
 function imprimir(){try{var f=document.getElementById('doc');f.contentWindow.focus();f.contentWindow.print();}catch(e){window.print();}}
-function compartilhar(){
-  if(navigator.share){navigator.share({title:document.title,url:URL_DOC}).catch(function(){});}
-  else{window.open('https://wa.me/?text='+encodeURIComponent(document.title+': '+URL_DOC),'_blank');}
-}
 function copiar(){navigator.clipboard.writeText(URL_DOC);}
+function gerarPdf(){
+  var f=document.getElementById('doc');
+  var d=f.contentDocument;
+  var alvo=d.body;
+  return html2canvas(alvo,{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:alvo.scrollWidth,windowHeight:alvo.scrollHeight}).then(function(canvas){
+    var jsPDF=window.jspdf.jsPDF;
+    var pdf=new jsPDF({unit:'pt',format:'a4',orientation:'portrait'});
+    var pw=pdf.internal.pageSize.getWidth();
+    var ph=pdf.internal.pageSize.getHeight();
+    var ih=canvas.height*pw/canvas.width;
+    var y=0;
+    var img=canvas.toDataURL('image/jpeg',0.92);
+    pdf.addImage(img,'JPEG',0,0,pw,ih);
+    y=ih-ph;
+    while(y>1){pdf.addPage();pdf.addImage(img,'JPEG',0,-(ih-y-ph)-ph+ (ih-y) - (ih-y),pw,ih);y-=ph;}
+    return pdf.output('blob');
+  });
+}
+function compartilharPdf(){
+  var b=document.getElementById('btnPdf');
+  var txt=b.textContent; b.textContent='Gerando PDF…'; b.disabled=true;
+  gerarPdf().then(function(blob){
+    var file=new File([blob],NOME_PDF,{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      return navigator.share({files:[file],title:document.title});
+    }
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=NOME_PDF;a.click();
+    setTimeout(function(){window.open('https://wa.me/?text='+encodeURIComponent(document.title+' — PDF em anexo'),'_blank');},400);
+  }).catch(function(){
+    window.open('https://wa.me/?text='+encodeURIComponent(document.title+': '+URL_DOC),'_blank');
+  }).then(function(){b.textContent=txt;b.disabled=false;});
+}
 document.getElementById('doc').addEventListener('load',function(){setTimeout(imprimir,600);});
 </script></body></html>`;
 }
