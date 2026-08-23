@@ -381,6 +381,7 @@ function DetalheBilhete({ r, onVoltar }: { r: PassHubReservaLista; onVoltar: () 
 
 function BilhetesPage() {
   const listar = useServerFn(passhubReservas);
+  const listarBilhetes = useServerFn(passhubBilhetesLista);
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState<PassHubReservaLista | null>(null);
 
@@ -390,18 +391,44 @@ function BilhetesPage() {
     staleTime: 60_000,
   });
 
+  const ids = useMemo(() => (data?.ok ? data.reservas : []).filter(emitido).map((r) => r.idPassagem), [data]);
+
+  const { data: bilhetesData, isFetching: bilhetesFetching } = useQuery({
+    queryKey: ["passhub-bilhetes-lista", ids.join(",")],
+    queryFn: () => listarBilhetes({ data: { ids } }),
+    enabled: ids.length > 0,
+    staleTime: 30_000,
+  });
+
+  const numerosPorReserva = useMemo<Record<number, string>>(() => {
+    const map: Record<number, string> = {};
+    if (!bilhetesData?.ok) return map;
+    for (const [id, nums] of Object.entries(bilhetesData.bilhetes)) {
+      map[Number(id)] = nums[0]?.numero ?? "";
+    }
+    return map;
+  }, [bilhetesData]);
+
   const erro = data && !data.ok ? data.erro : null;
   const todos = useMemo(() => (data?.ok ? data.reservas : []).filter(emitido), [data]);
   const bilhetes = useMemo(() => {
     const q = busca.trim().toLowerCase();
     if (!q) return todos;
-    return todos.filter((r) =>
-      [r.localizador, r.localizadorCompanhia, r.origem, r.destino, r.companhia, ...r.passageiros]
+    return todos.filter((r) => {
+      const campos = [
+        r.localizador,
+        r.localizadorCompanhia,
+        r.origem,
+        r.destino,
+        r.companhia,
+        numerosPorReserva[r.idPassagem],
+        ...r.passageiros,
+      ]
         .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [todos, busca]);
+        .toLowerCase();
+      return campos.includes(q);
+    });
+  }, [todos, busca, numerosPorReserva]);
 
   const totalVendido = todos.reduce((s, r) => s + (r.totalVenda || r.preco), 0);
   const totalComissao = todos.reduce((s, r) => s + r.comissao + (r.comissaoExtra || 0), 0);
