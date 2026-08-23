@@ -454,20 +454,26 @@ export async function repassarPagamento(id: string): Promise<PagamentoReserva> {
       criadoPor: row.criado_por ?? null,
     });
 
+    const resultado = statusRepasse(pago.status);
     const { data } = await supabaseAdmin
       .from("passhub_pagamentos")
       .update({
-        status: "repassado",
+        status: resultado.status,
         passhub_brcode: pix.copiaECola,
         repasse_transfer_id: pago.transferId,
         repasse_status: pago.status,
         repasse_valor: pago.valor,
-        repasse_em: new Date().toISOString(),
-        repasse_erro: null,
+        repasse_em: resultado.status === "repassado" ? new Date().toISOString() : null,
+        repasse_erro: resultado.erro,
       })
       .eq("id", row.id)
       .select("*")
       .single();
+    if (resultado.status === "falha_repasse") {
+      throw Object.assign(new Error(resultado.erro ?? "Falha no repasse."), {
+        pagamento: data ? mapear(data) : null,
+      });
+    }
     return mapear((data ?? row) as Record<string, any>);
   } catch (e) {
     const erro = e instanceof Error ? e.message : "Falha ao repassar";
