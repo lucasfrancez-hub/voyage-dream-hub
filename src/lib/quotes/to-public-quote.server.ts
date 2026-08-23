@@ -8,6 +8,7 @@ import { cityLabel } from "@/lib/iata-lookup";
 import { nomeDestino } from "@/lib/public-quote/destination-name";
 import { findAirline } from "@/lib/airlines";
 import { buildPayment } from "@/lib/public-quote/payments";
+import { applyPaymentOverride } from "@/lib/public-quote/payment-override";
 import {
   resolveQuoteInstallmentRule,
   type QuoteInstallmentRule,
@@ -386,7 +387,8 @@ export function optionToPublicOption(
   const type = optionType(option);
   const total = Number(option.total) || 0;
   const airline = option.flights[0]?.airline ?? option.flights[0]?.segments?.[0]?.airlineIata ?? null;
-  const payment = buildPayment({
+  const payment = applyPaymentOverride(
+    buildPayment({
     type,
     total,
     airline,
@@ -395,7 +397,10 @@ export function optionToPublicOption(
     boletoMax: rule?.boletoMax,
     boletoFinanciadoEnabled: rule?.boletoFinanciadoEnabled,
     boletoPrepagoEnabled: rule?.boletoPrepagoEnabled,
-  });
+    }),
+    total,
+    option.paymentOverride,
+  );
   return {
     optionId: String(option.optionNumber),
     label: option.label ?? `Opção ${option.optionNumber}`,
