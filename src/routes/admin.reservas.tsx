@@ -609,6 +609,7 @@ function ReservasPage() {
               <table className="cons-table min-w-[1080px]">
                 <thead>
                   <tr>
+                    <th>Origem</th>
                     <th>Localizador</th>
                     <th>Loc. cia</th>
                     <th>Passageiro</th>
