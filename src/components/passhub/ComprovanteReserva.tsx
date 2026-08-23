@@ -270,6 +270,7 @@ const CSS = `
 .crdoc footer .contact strong{color:var(--blue)}
 .crdoc footer .page-note{font-size:9px;color:#8a96a1;text-align:right}
 
+.crdoc .locator-pill{display:inline-block;margin-top:2px;background:#eef4f9;border:1px solid #d3e0ea;color:var(--blue);border-radius:999px;padding:5px 11px;font-weight:900;font-size:13px;letter-spacing:1.4px}
 .crdoc .passenger.nostatus{grid-template-columns:1.8fr .6fr .95fr .8fr}
 .crdoc .infoblock{margin:14px 34px 0;border:1px solid var(--line);border-radius:13px;padding:14px 16px;background:#fbfcfd;break-inside:avoid}
 .crdoc .infoblock h3{margin:0 0 7px;font-size:11px;color:var(--blue);text-transform:uppercase;letter-spacing:.7px}
