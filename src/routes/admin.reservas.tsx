@@ -45,6 +45,7 @@ import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
 import { confirm } from "@/lib/confirm";
 import type { PassHubReservaLista, PassHubReservaPax } from "@/lib/passhub/types";
 import { abrirDocumento } from "@/lib/docs/abrir";
+import { JanelaDetalhe } from "@/components/passhub/JanelaDetalhe";
 
 export const Route = createFileRoute("/admin/reservas")({
   component: ReservasPage,
@@ -530,17 +531,21 @@ function ReservasPage() {
   return (
     <div className="cons">
       <div className="cons-shell space-y-4">
-        {aberta ? (
-          <DetalheReserva
-            r={aberta}
-            onVoltar={() => setAberta(null)}
-            onAtualizar={() => {
-              setAberta(null);
-              void refetch();
-            }}
-          />
-        ) : (
+        <JanelaDetalhe aberto={!!aberta} onFechar={() => setAberta(null)} titulo="Reserva">
+          {aberta ? (
+            <DetalheReserva
+              r={aberta}
+              onVoltar={() => setAberta(null)}
+              onAtualizar={() => {
+                setAberta(null);
+                void refetch();
+              }}
+            />
+          ) : null}
+        </JanelaDetalhe>
+        {
           <>
+
             <header className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h1 className="text-[28px] font-black tracking-tight">Reservas</h1>
@@ -705,7 +710,7 @@ function ReservasPage() {
               </table>
             </div>
           </>
-        )}
+        }
       </div>
     </div>
   );

@@ -33,6 +33,7 @@ import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
 import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
 import { BadgeFonte, FiltroFonte, type FonteReserva } from "@/components/passhub/FiltroFonte";
 import { abrirDocumento } from "@/lib/docs/abrir";
+import { JanelaDetalhe } from "@/components/passhub/JanelaDetalhe";
 
 export const Route = createFileRoute("/admin/bilhetes")({
   component: BilhetesPage,
@@ -530,10 +531,12 @@ function BilhetesPage() {
   return (
     <div className="cons">
       <div className="cons-shell space-y-4">
-        {aberto ? (
-          <DetalheBilhete r={aberto} onVoltar={() => setAberto(null)} />
-        ) : (
+        <JanelaDetalhe aberto={!!aberto} onFechar={() => setAberto(null)} titulo="Bilhete">
+          {aberto ? <DetalheBilhete r={aberto} onVoltar={() => setAberto(null)} /> : null}
+        </JanelaDetalhe>
+        {
           <>
+
             <header className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h1 className="flex items-center gap-2 text-[28px] font-black tracking-tight">
@@ -720,7 +723,8 @@ function BilhetesPage() {
               </table>
             </div>
           </>
-        )}
+        }
+
       </div>
     </div>
   );
