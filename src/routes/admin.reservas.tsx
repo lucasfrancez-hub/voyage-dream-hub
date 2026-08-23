@@ -493,7 +493,7 @@ function ReservasPage() {
                       <td>
                         <StatusBadge status={r.status} />
                       </td>
-                      <td className="font-bold">{brl(r.preco)}</td>
+                      <td className="font-bold">{brl(r.totalVenda)}</td>
                       <td>
                         <div className="cons-open">
                           <Search className="h-3.5 w-3.5" />
