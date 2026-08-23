@@ -335,7 +335,6 @@ const CSS = `
   .crdoc .passenger{grid-template-columns:1fr}
   .crdoc .ticket-row{grid-template-columns:1fr}
   .crdoc .ticket-row > div{border-right:0;border-bottom:1px solid #e3efe9}
-  .crdoc .brand-name{font-size:20px}
 }
 
 
