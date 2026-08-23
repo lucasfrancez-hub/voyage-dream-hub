@@ -113,7 +113,7 @@ function BotaoImprimir({ id }: { id: number }) {
           <Printer className="h-4 w-4" /> Baixar bilhete
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="z-[120]">
         <DropdownMenuItem onClick={() => void abrirDocumento("bilhete", id)}>
           Com valor total
         </DropdownMenuItem>
