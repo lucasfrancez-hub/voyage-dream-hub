@@ -736,7 +736,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             viaair.tur.br
           </div>
           <div className="page-note">
-            Localizador {dados.localizador}
+            {eBilhete ? "Bilhete eletrônico • E-ticket" : `Localizador ${dados.localizador}`}
             <br />
             Documento gerado em {dataBR(new Date().toISOString())}
           </div>
