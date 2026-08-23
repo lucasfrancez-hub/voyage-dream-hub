@@ -4,6 +4,7 @@
  */
 import { toast } from "sonner";
 import { criarLinkComprovante } from "./comprovante.functions";
+import { DOC_EVENT } from "@/components/docs/DocumentoViewer";
 
 export type TipoDoc = "reserva" | "bilhete" | "pedido";
 
