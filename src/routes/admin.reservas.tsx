@@ -33,6 +33,7 @@ import {
   XCircle,
 } from "lucide-react";
 import {
+  passhubBilhetesLista,
   passhubCancelarReserva,
   passhubLinkPagamento,
   passhubPixReserva,
