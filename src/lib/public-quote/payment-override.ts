@@ -78,7 +78,7 @@ function rowTotal(r: ManualRow): number {
   return round2(entrada + demais * Math.max(0, r.parcelas - 1));
 }
 
-function cardList(total: number, ov: OptionPaymentOverride): Installment[] {
+function cardList(total: number, ov: OptionPaymentOverride, base: Installment[]): Installment[] {
   const rows = rowsValidas(ov.card.rows);
   if (rows.length) {
     return rows.map((r) => {
@@ -93,6 +93,8 @@ function cardList(total: number, ov: OptionPaymentOverride): Installment[] {
       };
     });
   }
+  // Nada preenchido manualmente: mantém o cálculo automático.
+  if (ov.card.installments == null && (ov.card.amount == null || ov.card.amount <= 0)) return base;
   const n = Math.max(1, Math.trunc(ov.card.installments ?? 1));
   const amount = ov.card.amount != null && ov.card.amount > 0 ? ov.card.amount : total / n;
   const out: Installment[] = [];
@@ -108,6 +110,7 @@ function cardList(total: number, ov: OptionPaymentOverride): Installment[] {
   }
   return out;
 }
+
 
 /** Aplica a configuração manual sobre o pagamento calculado automaticamente. */
 export function applyPaymentOverride(
