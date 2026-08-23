@@ -115,12 +115,22 @@ export function PassageirosEditor({
         <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
           {linhas.map((l, i) => (
             <div key={i} className="grid gap-2 sm:grid-cols-[minmax(0,2fr)_110px_minmax(0,1fr)_150px_90px_auto]">
-              <input
-                className="cons-field"
-                placeholder="Nome completo"
-                value={l.nome}
-                onChange={(e) => atualizar(i, "nome", e.target.value)}
-              />
+              {l.travado ? (
+                <div
+                  className="cons-field flex items-center gap-2 opacity-70"
+                  title="Nome do passageiro não pode ser alterado após a reserva"
+                >
+                  <Lock className="h-3.5 w-3.5 shrink-0 text-[#9fb4c6]" />
+                  <span className="truncate text-[13px] font-bold uppercase">{l.nome}</span>
+                </div>
+              ) : (
+                <input
+                  className="cons-field"
+                  placeholder="Nome completo"
+                  value={l.nome}
+                  onChange={(e) => atualizar(i, "nome", e.target.value)}
+                />
+              )}
               <select
                 className="cons-field"
                 value={l.documentoTipo}
