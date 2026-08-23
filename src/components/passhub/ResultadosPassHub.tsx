@@ -50,13 +50,10 @@ const diaCurto = (dataHora: string) => {
 /** Cores oficiais por companhia — fundo da marca + texto legível. */
 const CORES_CIA: Record<string, { bg: string; fg: string }> = {
   G3: { bg: "#ff7a00", fg: "#ffffff" },
-  GOL: { bg: "#ff7a00", fg: "#ffffff" },
   AD: { bg: "#1f8ae0", fg: "#ffffff" },
-  AZUL: { bg: "#1f8ae0", fg: "#ffffff" },
   "2Z": { bg: "#1f8ae0", fg: "#ffffff" },
   LA: { bg: "#0b1b6b", fg: "#ffffff" },
   JJ: { bg: "#0b1b6b", fg: "#ffffff" },
-  LATAM: { bg: "#0b1b6b", fg: "#ffffff" },
   AA: { bg: "#0c2f5a", fg: "#ffffff" },
   UA: { bg: "#0033a0", fg: "#ffffff" },
   DL: { bg: "#003268", fg: "#ffffff" },
@@ -72,14 +69,25 @@ const CORES_CIA: Record<string, { bg: string; fg: string }> = {
   EK: { bg: "#d71921", fg: "#ffffff" },
   QR: { bg: "#5c0632", fg: "#ffffff" },
   BA: { bg: "#075aaa", fg: "#ffffff" },
+  AZ: { bg: "#00654a", fg: "#ffffff" },   // ITA Airways (ex-Alitalia)
+  LX: { bg: "#e30613", fg: "#ffffff" },   // Swiss
+  AC: { bg: "#d22630", fg: "#ffffff" },   // Air Canada
+  CA: { bg: "#c8102e", fg: "#ffffff" },   // Air China
+  UX: { bg: "#0a2c6b", fg: "#ffffff" },   // Air Europa
+  AT: { bg: "#c1272d", fg: "#ffffff" },   // Royal Air Maroc
   IG: { bg: "#0f766e", fg: "#ffffff" },
+  SQ: { bg: "#f5a623", fg: "#0b2340" },
+  EY: { bg: "#c19a5b", fg: "#1a1a1a" },
+  LO: { bg: "#11397d", fg: "#ffffff" },
+  SU: { bg: "#00256c", fg: "#ffffff" },
+  AM: { bg: "#0b2265", fg: "#ffffff" },
+  H2: { bg: "#e4002b", fg: "#ffffff" },   // Sky Airline
+  JA: { bg: "#e4002b", fg: "#ffffff" },   // JetSmart
+  P5: { bg: "#e4002b", fg: "#ffffff" },
+  AZUL: { bg: "#1f8ae0", fg: "#ffffff" },
+  GOL: { bg: "#ff7a00", fg: "#ffffff" },
+  LATAM: { bg: "#0b1b6b", fg: "#ffffff" },
 };
-
-function corCia(codigo: string, nome: string) {
-  const k1 = (codigo || "").toUpperCase();
-  const k2 = (nome || "").toUpperCase().split(" ")[0] ?? "";
-  return CORES_CIA[k1] ?? CORES_CIA[k2] ?? { bg: "#22303f", fg: "#e8f2ff" };
-}
 
 /** Nome amigável por código IATA, quando a API só devolve a sigla. */
 const NOMES_CIA: Record<string, string> = {
@@ -103,14 +111,82 @@ const NOMES_CIA: Record<string, string> = {
   EK: "Emirates",
   QR: "Qatar",
   BA: "British",
+  AZ: "ITA",
+  LX: "Swiss",
+  AC: "Air Canada",
+  CA: "Air China",
+  UX: "Air Europa",
+  AT: "Royal Air Maroc",
   IG: "ITA Airways",
+  SQ: "Singapore",
+  EY: "Etihad",
+  LO: "LOT",
+  SU: "Aeroflot",
+  AM: "Aeroméxico",
+  H2: "Sky",
+  JA: "JetSmart",
 };
 
+/** Nomes brutos vindos da API → código IATA canônico. */
+const ALIAS_CIA: Record<string, string> = {
+  ALITALIA: "AZ",
+  "ITA AIRWAYS": "AZ",
+  ITA: "AZ",
+  "LATAM AIRLINES": "LA",
+  "LATAM AIRLINES BRASIL": "LA",
+  LATAM: "LA",
+  "SWISS INTERNATIONAL": "LX",
+  "SWISS INTERNATIONAL AIR LINES": "LX",
+  SWISS: "LX",
+  "IBERIA AIRLINES": "IB",
+  IBERIA: "IB",
+  "AIR CANADA": "AC",
+  "AIR CHINA": "CA",
+  "AIR EUROPA": "UX",
+  "ROYAL AIR MAROC": "AT",
+  "TAP PORTUGAL": "TP",
+  "TAP AIR PORTUGAL": "TP",
+  "BRITISH AIRWAYS": "BA",
+  "AIR FRANCE": "AF",
+  "AMERICAN AIRLINES": "AA",
+  "UNITED AIRLINES": "UA",
+  "DELTA AIR LINES": "DL",
+  "COPA AIRLINES": "CM",
+  "AEROLINEAS ARGENTINAS": "AR",
+  "TURKISH AIRLINES": "TK",
+  "QATAR AIRWAYS": "QR",
+  "EMIRATES": "EK",
+  "GOL LINHAS AEREAS": "G3",
+  "AZUL LINHAS AEREAS": "AD",
+};
+
+const semAcento = (v: string) =>
+  v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
+/** Resolve o código IATA canônico a partir do código e/ou do nome recebido. */
+function codigoCia(codigo: string, nome?: string) {
+  const cod = (codigo || "").trim().toUpperCase();
+  if (CORES_CIA[cod] && cod.length <= 3) return cod;
+  const alvo = semAcento(nome || codigo || "");
+  if (ALIAS_CIA[alvo]) return ALIAS_CIA[alvo];
+  const parcial = Object.keys(ALIAS_CIA).find((k) => alvo.startsWith(k) || k.startsWith(alvo));
+  if (parcial && alvo.length >= 3) return ALIAS_CIA[parcial]!;
+  return cod;
+}
+
+function corCia(codigo: string, nome: string) {
+  const k = codigoCia(codigo, nome);
+  const k2 = semAcento(nome).split(" ")[0] ?? "";
+  return CORES_CIA[k] ?? CORES_CIA[k2] ?? { bg: "#22303f", fg: "#e8f2ff" };
+}
+
 function nomeCia(codigo: string, nome?: string) {
+  const k = codigoCia(codigo, nome);
+  if (NOMES_CIA[k]) return NOMES_CIA[k];
   const n = (nome ?? "").trim();
   const cod = (codigo ?? "").trim().toUpperCase();
   if (n && n.toUpperCase() !== cod) return n;
-  return NOMES_CIA[cod] ?? n ?? cod;
+  return n || cod;
 }
 
 export function BadgeCia({
@@ -624,9 +700,11 @@ function LinhaPerna({
   selecionada,
   ravPercentual,
   onSelecionar,
+  par,
 }: {
   perna: Perna;
   selecionada: boolean;
+  par?: boolean;
   ravPercentual: number;
   onSelecionar: () => void;
 }) {
@@ -645,7 +723,15 @@ function LinhaPerna({
 
   return (
     <>
-      <tr className={`align-top ${selecionada ? "bg-[rgba(255,148,64,.09)]" : ""}`}>
+      <tr
+        className={`align-top transition-colors ${
+          selecionada
+            ? "bg-[rgba(255,148,64,.09)]"
+            : par
+              ? "bg-white/[.028] hover:bg-white/[.05]"
+              : "bg-transparent hover:bg-white/[.03]"
+        }`}
+      >
         <td className="w-[62px] px-3 py-3">
           <button
             type="button"
@@ -1135,10 +1221,11 @@ function Etapa({
             </tr>
           </thead>
           <tbody>
-            {visiveis.map((p) => (
+            {visiveis.map((p, i) => (
               <LinhaPerna
                 key={p.chave}
                 perna={p}
+                par={i % 2 === 1}
                 ravPercentual={ravPercentual}
                 selecionada={selecionada === p.chave}
                 onSelecionar={() => onSelecionar(p.chave)}
