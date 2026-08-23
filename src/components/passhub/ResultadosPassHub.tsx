@@ -471,7 +471,7 @@ function PainelDetalhe({
   ravPercentual: number;
   onFechar: () => void;
 }) {
-  const { tarifa, taxas, rav, comissaoIncentivo, total } = calcularValores(
+  const { tarifa, taxas, rav, total } = calcularValores(
     voo,
     ravPercentual,
   );
@@ -485,7 +485,9 @@ function PainelDetalhe({
   );
   const ravCarregando = !tarifacaoApi;
 
-  const comissaoApi = tarifacaoApi?.comissao ?? (rav + comissaoIncentivo);
+  // O incentivo já está embutido no preço devolvido pela PassHub. Somente a
+  // RAV solicitada na tarifação é acrescentada ao valor final.
+  const comissaoApi = tarifacaoApi?.comissao ?? rav;
   const precoLiquido = tarifacaoApi?.preco ?? total;
   const totalFinal = Math.round((precoLiquido + comissaoApi) * 100) / 100;
 
