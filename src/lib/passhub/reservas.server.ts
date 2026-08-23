@@ -5,7 +5,7 @@
  * agência (inclusive as criadas direto no site da PassHub).
  */
 import { passhubRequest } from "./client.server";
-import type { PassHubReservaLista } from "./types";
+import type { PassHubReservaLista, PassHubReservaPax } from "./types";
 
 const GERENCIA = "https://emissor-gerencia.passhub.com.br";
 
