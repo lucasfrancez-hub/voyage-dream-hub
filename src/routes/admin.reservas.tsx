@@ -10,7 +10,7 @@ import { PassageirosEditor } from "@/components/passhub/PassageirosEditor";
 import { BlocoBilhete } from "@/components/passhub/BlocoBilhete";
 
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
 import { BadgeFonte, FiltroFonte, type FonteReserva } from "@/components/passhub/FiltroFonte";
@@ -49,6 +49,7 @@ import { JanelaDetalhe } from "@/components/passhub/JanelaDetalhe";
 
 export const Route = createFileRoute("/admin/reservas")({
   component: ReservasPage,
+  validateSearch: (s: Record<string, unknown>) => ({ q: typeof s.q === "string" ? s.q : undefined }),
   head: () => ({
     meta: [
       { title: "Reservas e emissões — Consolidadora | VIA AIR" },
@@ -450,9 +451,17 @@ function ReservasPage() {
   const listar = useServerFn(passhubReservas);
   const listarPedidos = useServerFn(pedidosReservasAereas);
   const navigate = useNavigate();
-  const [busca, setBusca] = useState("");
-  const [fonte, setFonte] = useState<FonteReserva>("consolidadora");
+  const { q: qUrl } = Route.useSearch();
+  const [busca, setBusca] = useState(qUrl ?? "");
+  const [fonte, setFonte] = useState<FonteReserva>(qUrl ? "todas" : "consolidadora");
   const [aberta, setAberta] = useState<PassHubReservaLista | null>(null);
+
+  useEffect(() => {
+    if (qUrl) {
+      setBusca(qUrl);
+      setFonte("todas");
+    }
+  }, [qUrl]);
 
   const { data, isFetching, refetch } = useQuery({
     queryKey: ["passhub-reservas"],

@@ -17,6 +17,7 @@ export type GlobalSearchResult = {
   badge?: string | null;
   to: string;
   params?: Record<string, string>;
+  search?: Record<string, string>;
 };
 
 const STATIC_PAGES: Array<{ title: string; subtitle: string; to: string; keywords: string[] }> = [
@@ -156,6 +157,69 @@ export const searchGlobal = createServerFn({ method: "POST" })
           params: { id: o.id as string },
         });
       }
+    }
+
+    // Localizador da companhia no próprio pedido
+    const { data: ordsLoc } = await supabase
+      .from("orders")
+      .select("id, order_number, full_name, trip_title, airline_locator")
+      .ilike("airline_locator", like)
+      .limit(10);
+    for (const o of (ordsLoc ?? []) as Array<Record<string, unknown>>) {
+      if (seenOrderIds.has(o.id as string)) continue;
+      results.push({
+        id: `order-airloc:${o.id as string}`,
+        type: "localizador",
+        title: String(o.airline_locator ?? "").toUpperCase(),
+        subtitle: `${(o.trip_title as string) || (o.full_name as string) || "Pedido"} · #${(o.order_number as string) ?? String(o.id).slice(0, 8).toUpperCase()}`,
+        to: "/admin/pedidos/$id",
+        params: { id: o.id as string },
+      });
+    }
+
+    // Reservas da consolidadora (PassHub) — localizador / passageiro
+    const locsConsolidadora = new Map<string, string>();
+    const { data: paxPh } = await supabase
+      .from("passhub_reserva_pax")
+      .select("localizador, nome, sobrenome, documento")
+      .or([`localizador.ilike.${like}`, `nome.ilike.${like}`, `sobrenome.ilike.${like}`, `documento.ilike.${like}`].join(","))
+      .limit(15);
+    for (const p of (paxPh ?? []) as Array<Record<string, unknown>>) {
+      const loc = String(p.localizador ?? "").toUpperCase();
+      if (!loc || locsConsolidadora.has(loc)) continue;
+      locsConsolidadora.set(loc, `${p.nome ?? ""} ${p.sobrenome ?? ""}`.trim());
+    }
+    const { data: bilhetesPh } = await supabase
+      .from("passhub_reserva_bilhete")
+      .select("localizador")
+      .ilike("localizador", like)
+      .limit(10);
+    for (const b of (bilhetesPh ?? []) as Array<Record<string, unknown>>) {
+      const loc = String(b.localizador ?? "").toUpperCase();
+      if (loc && !locsConsolidadora.has(loc)) locsConsolidadora.set(loc, "");
+    }
+    if (/^[A-Za-z0-9]{5,7}$/.test(q) && !locsConsolidadora.has(q.toUpperCase())) {
+      locsConsolidadora.set(q.toUpperCase(), "");
+    }
+    for (const [loc, pax] of locsConsolidadora) {
+      results.push({
+        id: `ph-res:${loc}`,
+        type: "localizador",
+        title: loc,
+        subtitle: pax ? `Consolidadora · ${pax}` : "Reserva na consolidadora",
+        badge: "Reservas",
+        to: "/admin/reservas",
+        search: { q: loc },
+      });
+      results.push({
+        id: `ph-bil:${loc}`,
+        type: "localizador",
+        title: loc,
+        subtitle: "Bilhete emitido na consolidadora",
+        badge: "Bilhetes",
+        to: "/admin/bilhetes",
+        search: { q: loc },
+      });
     }
 
     // Pessoas

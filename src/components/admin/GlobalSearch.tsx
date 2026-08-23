@@ -120,13 +120,11 @@ function SpotlightDialog({ onClose }: { onClose: () => void }) {
 
   function go(r: GlobalSearchResult) {
     onClose();
-    if (r.params) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      navigate({ to: r.to as any, params: r.params as any });
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      navigate({ to: r.to as any });
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const opts: any = { to: r.to };
+    if (r.params) opts.params = r.params;
+    if (r.search) opts.search = r.search;
+    navigate(opts);
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
