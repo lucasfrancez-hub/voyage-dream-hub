@@ -6299,6 +6299,99 @@ export type Database = {
         }
         Relationships: []
       }
+      passhub_pagamentos: {
+        Row: {
+          asaas_payment_id: string | null
+          auto_repasse: boolean
+          cliente_documento: string | null
+          cliente_email: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          created_at: string
+          criado_por: string | null
+          id: string
+          id_passagem: number
+          localizador: string | null
+          markup: number
+          modo: string
+          passhub_brcode: string | null
+          passhub_link: string | null
+          pix_copia_cola: string | null
+          pix_expira_em: string | null
+          pix_qr_base64: string | null
+          recebido_em: string | null
+          repasse_em: string | null
+          repasse_erro: string | null
+          repasse_status: string | null
+          repasse_transfer_id: string | null
+          repasse_valor: number | null
+          status: string
+          updated_at: string
+          valor_cobrado: number
+          valor_passhub: number
+        }
+        Insert: {
+          asaas_payment_id?: string | null
+          auto_repasse?: boolean
+          cliente_documento?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          id_passagem: number
+          localizador?: string | null
+          markup?: number
+          modo?: string
+          passhub_brcode?: string | null
+          passhub_link?: string | null
+          pix_copia_cola?: string | null
+          pix_expira_em?: string | null
+          pix_qr_base64?: string | null
+          recebido_em?: string | null
+          repasse_em?: string | null
+          repasse_erro?: string | null
+          repasse_status?: string | null
+          repasse_transfer_id?: string | null
+          repasse_valor?: number | null
+          status?: string
+          updated_at?: string
+          valor_cobrado?: number
+          valor_passhub?: number
+        }
+        Update: {
+          asaas_payment_id?: string | null
+          auto_repasse?: boolean
+          cliente_documento?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          id_passagem?: number
+          localizador?: string | null
+          markup?: number
+          modo?: string
+          passhub_brcode?: string | null
+          passhub_link?: string | null
+          pix_copia_cola?: string | null
+          pix_expira_em?: string | null
+          pix_qr_base64?: string | null
+          recebido_em?: string | null
+          repasse_em?: string | null
+          repasse_erro?: string | null
+          repasse_status?: string | null
+          repasse_transfer_id?: string | null
+          repasse_valor?: number | null
+          status?: string
+          updated_at?: string
+          valor_cobrado?: number
+          valor_passhub?: number
+        }
+        Relationships: []
+      }
       passhub_reserva_cancelada: {
         Row: {
           cancelado_por: string | null
