@@ -9,7 +9,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Printer } from "lucide-react";
 import { getOrderDetail } from "@/lib/orders.functions";
 import { ComprovanteReserva } from "@/components/passhub/ComprovanteReserva";
-import { pedidoParaComprovante, pedidoTemAereo } from "@/lib/orders/plano-viagem";
+import { pedidoParaComprovante } from "@/lib/orders/plano-viagem";
 
 export const Route = createFileRoute("/admin/pedidos_/$id/plano-viagem")({
   component: PlanoViagemPedidoPage,
@@ -64,10 +64,10 @@ function PlanoViagemPedidoPage() {
     );
   }
 
-  if (!pedidoTemAereo(data)) {
+  if (!data.items.some((i) => i.status !== "cancelled")) {
     return (
       <div className="flex min-h-screen items-center justify-center p-6 text-sm">
-        Este pedido não possui trechos aéreos ativos.
+        Este pedido ainda não possui reservas ativas.
       </div>
     );
   }
