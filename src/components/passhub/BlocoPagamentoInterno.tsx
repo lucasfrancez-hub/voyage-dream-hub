@@ -132,7 +132,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           <label className="block">
             <span className="mb-1 block text-[11px] cons-muted">RAV por fora (R$)</span>
             <input
-              className="cons-input w-full"
+              className="cons-field w-full"
               inputMode="decimal"
               placeholder="0,00"
               value={rav}
@@ -142,7 +142,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           <label className="block">
             <span className="mb-1 block text-[11px] cons-muted">Ou valor total manual (R$)</span>
             <input
-              className="cons-input w-full"
+              className="cons-field w-full"
               inputMode="decimal"
               placeholder="opcional"
               value={valorManual}
