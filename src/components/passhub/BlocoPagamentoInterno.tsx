@@ -17,6 +17,7 @@ import {
   passhubCobrarComRav,
   passhubPagamentosReserva,
   passhubPagarAgora,
+  passhubPixReserva,
   passhubRepassarPagamento,
 } from "@/lib/passhub/passhub.functions";
 import { confirm } from "@/lib/confirm";
