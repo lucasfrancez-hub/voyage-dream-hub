@@ -445,7 +445,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             </div>
           ) : null}
 
-          {dados.emitido ? (
+          {dados.emitido && !eBilhete ? (
             <div className="deadline ok">
               <div className="eyebrow">Situação da reserva</div>
               <div className="time">Bilhetes emitidos</div>
