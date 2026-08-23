@@ -472,13 +472,17 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             )}
           </div>
 
-          {mostraValorBilhete ? (
+          {eBilhete ? (
             <div className="value-card">
-              <div className="price-label">Valor total do bilhete</div>
-              <div className="price">{brl(dados.total)}</div>
-              <div className="price-note">
-                Valor total apresentado ao passageiro para este bilhete eletrônico.
-              </div>
+              {mostraValorBilhete ? (
+                <>
+                  <div className="price-label">Valor total do bilhete</div>
+                  <div className="price">{brl(dados.total)}</div>
+                  <div className="price-note">
+                    Valor total apresentado ao passageiro para este bilhete eletrônico.
+                  </div>
+                </>
+              ) : null}
             </div>
           ) : null}
 
