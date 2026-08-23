@@ -131,6 +131,32 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao obter o link"),
   });
 
+  const gerarPix = useMutation({
+    mutationFn: () =>
+      pedirPix({
+        data: link
+          ? { link }
+          : { id: r.idPassagem, localizador: r.localizador },
+      }),
+    onSuccess: (res) => {
+      if (!res.ok) {
+        toast.error(res.erro);
+        return;
+      }
+      setPix(res.pix);
+      toast.success("QR Code Pix gerado");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao gerar o Pix"),
+  });
+
+  const copiarPix = async (codigo: string) => {
+    await navigator.clipboard.writeText(codigo);
+    setPixCopiado(true);
+    toast.success("Pix copia e cola copiado");
+    setTimeout(() => setPixCopiado(false), 2000);
+  };
+
+
   return (
     <div className="cons-card p-4">
       <h3 className="mb-3 flex items-center gap-2 text-[15px] font-bold">
