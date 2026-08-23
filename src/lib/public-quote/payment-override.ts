@@ -174,12 +174,13 @@ export function applyPaymentOverride(
       manual:
         ov.boleto.enabled && !boletoAuto
           ? {
-              rows: boletoRows.map((r) => ({
+              rows: linhasManuais.map((r) => ({
                 installments: r.parcelas,
                 first: round2(r.entrada ?? r.demais ?? 0),
                 others: round2(r.demais ?? r.entrada ?? 0),
                 total: rowTotal(r),
               })),
+
               entrada: ov.boleto.entrada != null ? round2(ov.boleto.entrada) : null,
               installments: boletoParcelas,
               amount: round2(boletoValor),
