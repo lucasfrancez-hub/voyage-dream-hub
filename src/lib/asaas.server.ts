@@ -951,3 +951,65 @@ export async function createAsaasDirectCharge(input: AsaasDirectChargeInput) {
     pixEncodedImage,
   }
 }
+
+/* ============================================================
+ * PAGAR PIX COPIA E COLA (débito do saldo ASAAS)
+ * ============================================================ */
+
+export interface PixBrCodeInfo {
+  payload: string
+  value: number | null
+  canBePaid: boolean
+  receiverName: string | null
+  receiverDocument: string | null
+  bankName: string | null
+  endToEndId: string | null
+  raw: any
+}
+
+/** Lê um Pix copia e cola (BR Code) e devolve valor e recebedor. */
+export async function decodeAsaasPixBrCode(payload: string): Promise<PixBrCodeInfo> {
+  const code = String(payload || '').trim()
+  if (!code) throw new Error('Informe o Pix copia e cola.')
+  const decoded = await asaasFetch('/pix/qrCodes/decode', {
+    method: 'POST',
+    body: JSON.stringify({ payload: code }),
+  })
+  const receiver = decoded?.receiver ?? {}
+  const valor = Number(decoded?.value ?? decoded?.pix?.value ?? 0)
+  return {
+    payload: code,
+    value: Number.isFinite(valor) && valor > 0 ? valor : null,
+    canBePaid: decoded?.canBePaid !== false,
+    receiverName: receiver?.name ?? null,
+    receiverDocument: receiver?.cpfCnpj ?? null,
+    bankName: receiver?.ispbName ?? null,
+    endToEndId: decoded?.endToEndIdentifier ?? decoded?.pix?.endToEndIdentifier ?? null,
+    raw: decoded,
+  }
+}
+
+export interface PayPixBrCodeInput {
+  payload: string
+  /** Obrigatório quando o QR não traz valor fixo. */
+  value?: number | null
+  description?: string | null
+  externalReference?: string | null
+  /** YYYY-MM-DD — agenda o pagamento em vez de pagar agora. */
+  scheduleDate?: string | null
+}
+
+/**
+ * Paga um Pix copia e cola debitando o saldo da conta ASAAS.
+ * Retorna a transferência criada (id + status).
+ */
+export async function payAsaasPixBrCode(input: PayPixBrCodeInput) {
+  const body: Record<string, unknown> = {
+    qrCode: { payload: String(input.payload || '').trim() },
+    description: input.description || undefined,
+    externalReference: input.externalReference || undefined,
+  }
+  if (input.value != null) body['value'] = Number(Number(input.value).toFixed(2))
+  if (input.scheduleDate) body['scheduleDate'] = input.scheduleDate
+  return asaasFetch('/pix/qrCodes/pay', { method: 'POST', body: JSON.stringify(body) })
+}
