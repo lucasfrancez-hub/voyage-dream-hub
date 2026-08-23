@@ -153,3 +153,45 @@ export async function passhubNumerosBilhete(
 
   return { idPassagem: id, numeros, encontrado: numeros.length > 0, verificadoEm };
 }
+
+/**
+ * Busca automática: recebe as reservas emitidas e garante que cada uma tenha o
+ * número do bilhete lido (do cache ou do PDF). Processa poucas por chamada para
+ * não estourar o tempo da requisição; a tela reconsulta até todas saírem.
+ */
+export async function passhubBilhetesEmLote(
+  ids: number[],
+  limiteLeituras = 4,
+): Promise<Record<number, BilheteNumero[]>> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: cache } = await supabaseAdmin
+    .from("passhub_reserva_bilhete")
+    .select("id_passagem, numeros, encontrado, verificado_em")
+    .in("id_passagem", ids);
+
+  const mapa: Record<number, BilheteNumero[]> = {};
+  const pendentes: number[] = [];
+
+  for (const id of ids) {
+    const linha = cache?.find((c) => c.id_passagem === id);
+    if (linha?.encontrado) {
+      mapa[id] = (linha.numeros as BilheteNumero[]) ?? [];
+      continue;
+    }
+    const recente =
+      linha?.verificado_em && Date.now() - new Date(linha.verificado_em).getTime() < 3 * 60_000;
+    if (!recente) pendentes.push(id);
+  }
+
+  for (const id of pendentes.slice(0, limiteLeituras)) {
+    try {
+      const info = await passhubNumerosBilhete(id);
+      if (info.encontrado) mapa[id] = info.numeros;
+    } catch {
+      // segue para a próxima; a tela tenta de novo no próximo ciclo
+    }
+  }
+
+  return mapa;
+}

@@ -33,6 +33,7 @@ import {
   XCircle,
 } from "lucide-react";
 import {
+  passhubBilhetesLista,
   passhubCancelarReserva,
   passhubLinkPagamento,
   passhubPixReserva,
@@ -463,6 +464,28 @@ function ReservasPage() {
   const reservas = data?.ok ? data.reservas : [];
   const erro = data && !data.ok ? data.erro : null;
 
+  // Toda reserva emitida tem o bilhete buscado sozinho (cache ou leitura do PDF).
+  const emitidas = useMemo(
+    () =>
+      reservas
+        .filter((r) => (r.status || "").toUpperCase() === "ISSUED")
+        .map((r) => r.idPassagem),
+    [reservas],
+  );
+  const lerBilhetes = useServerFn(passhubBilhetesLista);
+  const bilhetesQuery = useQuery({
+    queryKey: ["passhub-bilhetes-lista", emitidas.join(",")],
+    queryFn: () => lerBilhetes({ data: { ids: emitidas } }),
+    enabled: emitidas.length > 0,
+    refetchInterval: (q) => {
+      const d = q.state.data;
+      const achados = d && d.ok ? Object.keys(d.bilhetes).length : 0;
+      return achados >= emitidas.length ? false : 60_000;
+    },
+  });
+  const bilhetes: Record<string, { passageiro: string; numero: string }[]> =
+    bilhetesQuery.data && bilhetesQuery.data.ok ? (bilhetesQuery.data.bilhetes as never) : {};
+
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     if (!q) return reservas;
@@ -552,6 +575,14 @@ function ReservasPage() {
                     <tr key={r.idPassagem} onClick={() => setAberta(r)}>
                       <td className="font-mono font-black tracking-widest">
                         {r.localizador || "—"}
+                        {bilhetes[String(r.idPassagem)]?.length ? (
+                          <div className="mt-1 text-[10px] font-bold tracking-normal cons-muted">
+                            Bilhete {bilhetes[String(r.idPassagem)]![0]!.numero}
+                            {bilhetes[String(r.idPassagem)]!.length > 1
+                              ? ` +${bilhetes[String(r.idPassagem)]!.length - 1}`
+                              : ""}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="font-mono">{r.localizadorCompanhia || "—"}</td>
                       <td className="max-w-[220px] truncate">
