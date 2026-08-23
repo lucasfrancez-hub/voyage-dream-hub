@@ -446,7 +446,7 @@ function AdminLayout() {
             <Link to="/" className="flex items-center gap-3 shrink-0">
               <img src={viaAirLogo.url} alt="Via Air" className="h-7 sm:h-8 w-auto" />
             </Link>
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1 min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {isAdmin && <ProdutosNav pathname={pathname} />}
               {isAdmin && <DashboardNav pathname={pathname} />}
               {isAdmin
