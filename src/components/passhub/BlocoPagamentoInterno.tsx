@@ -40,9 +40,28 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   const repassarFn = useServerFn(passhubRepassarPagamento);
   const listarFn = useServerFn(passhubPagamentosReserva);
 
+  const pedirPixPasshub = useServerFn(passhubPixReserva);
   const [rav, setRav] = useState("");
   const [valorManual, setValorManual] = useState("");
   const [copiado, setCopiado] = useState<string | null>(null);
+  const [pixPasshub, setPixPasshub] = useState<{
+    copiaECola: string;
+    qrCodeBase64: string;
+    valor: number;
+    expiraEm: string;
+  } | null>(null);
+
+  const gerarPixPasshub = useMutation({
+    mutationFn: () =>
+      pedirPixPasshub({ data: { id: r.idPassagem, localizador: r.localizador || undefined } }),
+    onSuccess: (res) => {
+      if (!res.ok) return toast.error(res.erro);
+      setPixPasshub(res.pix);
+      toast.success("Pix da PassHub gerado");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao gerar o Pix da PassHub"),
+  });
+
 
   const pagamentos = useQuery({
     queryKey: ["passhub-pagamentos", r.idPassagem],
