@@ -59,9 +59,9 @@ export function ComissaoExtraEditor({
             type="button"
             className="cons-btn !px-2 !py-1"
             onClick={() => setEditando(true)}
-            title="Editar comissão"
+            title="Editar comissão extra"
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="h-3.5 w-3.5" /> Editar
           </button>
         </span>
       </div>
