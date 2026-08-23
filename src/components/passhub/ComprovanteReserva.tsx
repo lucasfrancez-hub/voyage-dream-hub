@@ -658,7 +658,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
         {bilhetes.length ? (
           <section>
             <div className="section-head">
-              <h2>Bilhetes emitidos</h2>
+              <h2>{eBilhete ? "Dados do bilhete" : "Bilhetes emitidos"}</h2>
             </div>
             <div className="tickets">
               <div className="ticket-row head">
@@ -679,16 +679,43 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
           </section>
         ) : null}
 
-        <div className="checks">
-          <h3>Antes de viajar</h3>
-          <ul>
-            <li>Confira dados do passageiro, datas, aeroportos e horários.</li>
-            <li>Tarifas e valores podem sofrer alterações até que o bilhete seja efetivamente emitido.</li>
-            <li>Regras de alteração, cancelamento e reembolso dependem da tarifa adquirida.</li>
-            <li>Bagagem está sujeita às regras da tarifa e da companhia aérea.</li>
-            <li>Documentos, vistos, vacinas e requisitos migratórios devem ser conferidos pelo viajante.</li>
-          </ul>
-        </div>
+        {eBilhete ? (
+          <>
+            <div className="infoblock">
+              <h3>Informações</h3>
+              <p>
+                Este documento é o seu bilhete eletrônico (e-ticket) e comprova a emissão junto à
+                companhia aérea. Regras de alteração, cancelamento, remarcação e reembolso seguem as
+                condições da tarifa adquirida.
+              </p>
+              <p>
+                Bagagem despachada e de mão estão sujeitas às regras da tarifa e da companhia aérea.
+                Serviços adicionais, como assentos e bagagem extra, podem ter cobrança à parte.
+              </p>
+            </div>
+            <div className="infoblock">
+              <h3>Informações para embarque</h3>
+              <ul>
+                <li>Chegue ao aeroporto com 2 horas de antecedência em voos nacionais e 3 horas em voos internacionais.</li>
+                <li>Apresente documento oficial com foto válido; em voos internacionais, passaporte dentro da validade exigida.</li>
+                <li>Confira exigências de visto, vacinas e requisitos migratórios do destino e das conexões.</li>
+                <li>Faça o check-in antecipado pelo site ou aplicativo da companhia aérea.</li>
+                <li>Menores de idade seguem regras específicas de documentação e autorização de viagem.</li>
+              </ul>
+            </div>
+          </>
+        ) : (
+          <div className="checks">
+            <h3>Antes de viajar</h3>
+            <ul>
+              <li>Confira dados do passageiro, datas, aeroportos e horários.</li>
+              <li>Tarifas e valores podem sofrer alterações até que o bilhete seja efetivamente emitido.</li>
+              <li>Regras de alteração, cancelamento e reembolso dependem da tarifa adquirida.</li>
+              <li>Bagagem está sujeita às regras da tarifa e da companhia aérea.</li>
+              <li>Documentos, vistos, vacinas e requisitos migratórios devem ser conferidos pelo viajante.</li>
+            </ul>
+          </div>
+        )}
 
         <footer>
           <div className="contact">
