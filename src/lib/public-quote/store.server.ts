@@ -67,9 +67,13 @@ function toRow(q: NewPublicQuote, publicId: string) {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/** Somente aéreo NUNCA tem boleto — vale também para links já gravados. */
+/**
+ * Somente aéreo não oferece boleto automaticamente. Uma condição manual
+ * habilitada pelo consultor, porém, deve prevalecer também nos links gravados.
+ */
 function semBoleto(p: any): any {
   if (!p) return p;
+  if (p.manual === true && p.boleto?.enabled === true) return p;
   const methods = Array.isArray(p.methods) ? p.methods.filter((m: string) => m !== "BOLETO") : p.methods;
   return { ...p, methods, boleto: { ...(p.boleto ?? {}), enabled: false, installments: [], note: null } };
 }
