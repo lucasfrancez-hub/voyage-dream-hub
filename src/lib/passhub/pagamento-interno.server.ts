@@ -393,6 +393,7 @@ export async function pagarReservaAgora(alvo: {
     criadoPor: alvo.criadoPor ?? null,
   });
 
+  const resultado = statusRepasse(pago.status);
 
   const { data, error } = await supabaseAdmin
     .from("passhub_pagamentos")
@@ -406,18 +407,24 @@ export async function pagarReservaAgora(alvo: {
       passhub_brcode: brcode,
 
       passhub_link: link,
-      status: "repassado",
+      status: resultado.status,
       repasse_transfer_id: pago.transferId,
       repasse_status: pago.status,
       repasse_valor: pago.valor,
-      repasse_em: new Date().toISOString(),
+      repasse_erro: resultado.erro,
+      repasse_em: resultado.status === "repassado" ? new Date().toISOString() : null,
       auto_repasse: false,
       criado_por: alvo.criadoPor ?? null,
     })
     .select("*")
     .single();
 
-  if (error) throw new Error(`Pix pago, mas falhou o registro: ${error.message}`);
+  if (error) throw new Error(`Pix enviado, mas falhou o registro: ${error.message}`);
+  if (resultado.status === "falha_repasse") {
+    throw Object.assign(new Error(resultado.erro ?? "Falha no pagamento à consolidadora."), {
+      pagamento: mapear(data as Record<string, any>),
+    });
+  }
   return mapear(data as Record<string, any>);
 }
 
