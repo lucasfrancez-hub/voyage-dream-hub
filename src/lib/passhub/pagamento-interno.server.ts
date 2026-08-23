@@ -557,7 +557,7 @@ async function sincronizarRepasses(rows: Record<string, any>[]) {
       const bruto = String(t?.status ?? "").toUpperCase();
       if (!bruto || bruto === String(r.repasse_status ?? "").toUpperCase()) continue;
       const resultado = statusRepasse(bruto);
-      const patch: Record<string, any> = {
+      const patch = {
         status: resultado.status,
         repasse_status: bruto,
         repasse_erro: resultado.erro ?? t?.failReason ?? null,
