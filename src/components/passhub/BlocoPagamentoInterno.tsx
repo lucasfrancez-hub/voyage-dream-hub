@@ -32,13 +32,36 @@ import {
   passhubPagamentosReserva,
   passhubPagarAgora,
   passhubPixReserva,
+  passhubPreviaPagamento,
   passhubRepassarPagamento,
 } from "@/lib/passhub/passhub.functions";
-import { confirm } from "@/lib/confirm";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
+
+type PreviaPix = {
+  link: string;
+  brcode: string;
+  qrCodeBase64: string;
+  expiraEm: string;
+  valorCheckout: number;
+  valor: number;
+  recebedorNome: string | null;
+  recebedorDocumento: string | null;
+  banco: string | null;
+  podePagar: boolean;
+  divergencia: boolean;
+  saldo: number | null;
+};
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
+
 
 const rotuloStatus: Record<string, { texto: string; cor: string }> = {
   aguardando: { texto: "Aguardando pagamento", cor: "cons-status-pay" },
