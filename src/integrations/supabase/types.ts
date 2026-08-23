@@ -6299,6 +6299,39 @@ export type Database = {
         }
         Relationships: []
       }
+      passhub_reserva_cancelada: {
+        Row: {
+          cancelado_por: string | null
+          created_at: string
+          detalhe: string | null
+          id: string
+          id_passagem: number | null
+          localizador: string
+          motivo: string | null
+          remoto_ok: boolean
+        }
+        Insert: {
+          cancelado_por?: string | null
+          created_at?: string
+          detalhe?: string | null
+          id?: string
+          id_passagem?: number | null
+          localizador: string
+          motivo?: string | null
+          remoto_ok?: boolean
+        }
+        Update: {
+          cancelado_por?: string | null
+          created_at?: string
+          detalhe?: string | null
+          id?: string
+          id_passagem?: number | null
+          localizador?: string
+          motivo?: string | null
+          remoto_ok?: boolean
+        }
+        Relationships: []
+      }
       passhub_reserva_pax: {
         Row: {
           created_at: string
