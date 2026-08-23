@@ -893,7 +893,16 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
               <div
                 key={i.number}
                 className={`vq-inst${instCartao === i.number ? " is-selected" : ""}`}
-                onClick={() => setInstCartao(i.number)}
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setInstCartao(i.number);
+                  abrirFaixa("Cartão de crédito", i.firstAmount ?? i.amount, i.amount, i.number);
+                }}
+                onKeyDown={(e) =>
+                  e.key === "Enter" &&
+                  abrirFaixa("Cartão de crédito", i.firstAmount ?? i.amount, i.amount, i.number)
+                }
               >
                 <span>
                   {i.number}x
@@ -912,8 +921,13 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
               </div>
             ))}
           </div>
+          <p className="vq-boleto-note">
+            Clique em uma opção para ver a entrada, o valor de cada parcela, as datas de vencimento
+            e o total.
+          </p>
         </div>
       ) : null}
+
 
       {tab === "BOLETO" ? (
         <div className="vq-boleto-box">
