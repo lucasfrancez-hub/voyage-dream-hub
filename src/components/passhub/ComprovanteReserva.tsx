@@ -357,20 +357,22 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
 
         <div className={`hero${heroSimples ? " single" : ""}`}>
           <div className="hero-card soft">
-            <div className="eyebrow">{eBilhete ? "Bilhete eletrônico" : "Reserva aérea"}</div>
+            <div className="eyebrow">
+              {eBilhete ? "Número do bilhete" : "Reserva aérea"}
+            </div>
 
             <div className="locator">
-              <strong>{dados.localizador}</strong>
+              <strong>{eBilhete ? numeroBilhete || dados.localizador : dados.localizador}</strong>
               <span className={`status ${dados.emitido ? "issued" : "reserved"}`}>
                 {dados.emitido ? "Emitido" : "Reservado"}
               </span>
             </div>
 
             <div className="meta-grid">
-              {eBilhete && numeroBilhete ? (
+              {eBilhete ? (
                 <div>
-                  <span>Número do bilhete</span>
-                  <b>{numeroBilhete}</b>
+                  <span>Localizador</span>
+                  <div className="locator-pill">{dados.localizador}</div>
                 </div>
               ) : null}
               {dados.companhia ? (
