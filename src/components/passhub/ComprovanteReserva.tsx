@@ -189,7 +189,7 @@ const CSS = `
 .crdoc .section-head{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;gap:12px}
 .crdoc .section-head h2{margin:0;color:var(--blue);font-size:14px}
 .crdoc .section-head .hint{color:var(--muted);font-size:10px}
-.crdoc .passenger{border:1px solid var(--line);border-radius:14px;padding:12px 16px;display:grid;grid-template-columns:1.5fr .55fr .65fr .65fr;gap:16px;align-items:center;break-inside:avoid}
+.crdoc .passenger{border:1px solid var(--line);border-radius:14px;padding:12px 16px;display:grid;grid-template-columns:1.7fr .5fr .75fr .7fr .6fr;gap:14px;align-items:center;break-inside:avoid}
 .crdoc .passenger + .passenger{margin-top:8px}
 .crdoc .passenger .name{font-size:13px;font-weight:800}
 .crdoc .small-label{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
@@ -198,10 +198,10 @@ const CSS = `
 .crdoc .journey-title{background:var(--soft);padding:10px 15px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);gap:10px}
 .crdoc .journey-title strong{color:var(--blue);font-size:12px}
 .crdoc .journey-title span{color:var(--muted);font-size:10px}
-.crdoc .flight{display:grid;grid-template-columns:96px 1fr 122px;gap:14px;align-items:center;padding:16px;break-inside:avoid}
+.crdoc .flight{display:grid;grid-template-columns:132px 1fr 122px;gap:14px;align-items:center;padding:16px;break-inside:avoid}
 .crdoc .flight + .flight{border-top:1px solid var(--line)}
-.crdoc .airline{display:flex;flex-direction:column;gap:4px}
-.crdoc .airline img{height:22px;width:auto;max-width:96px;object-fit:contain;object-position:left}
+.crdoc .airline{display:flex;flex-direction:column;gap:6px}
+.crdoc .airline img{height:40px;width:auto;max-width:130px;object-fit:contain;object-position:left}
 .crdoc .airline-code{font-size:16px;font-weight:900;color:var(--blue);letter-spacing:.3px}
 .crdoc .airline span{color:var(--muted);font-size:9px}
 .crdoc .route{display:grid;grid-template-columns:1fr 90px 1fr;align-items:center;gap:10px}

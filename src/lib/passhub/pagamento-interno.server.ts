@@ -200,10 +200,11 @@ async function pagarBrCode(opts: {
     );
   }
 
+  // O ASAAS exige `value` mesmo em QR com valor fixo ("Informe o valor a ser
+  // transferido"); enviamos sempre o valor decodificado (ou o informado).
   const transfer = await payAsaasPixBrCode({
     payload: opts.brcode,
-    // QRs com valor fixo não aceitam value; só enviamos quando o decode não trouxe valor.
-    value: info?.value ? null : valor,
+    value: valor,
     description: opts.descricao,
     externalReference: opts.referencia,
   });
