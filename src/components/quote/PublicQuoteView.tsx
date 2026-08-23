@@ -714,6 +714,7 @@ function ParcelamentoModal({
   onClose: () => void;
 }) {
   const ultima = parcelas[parcelas.length - 1];
+  const total = parcelas.reduce((s, p) => s + p.amount, 0);
   return (
     <div className="vq-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="vq-modal" onClick={(e) => e.stopPropagation()}>
@@ -732,6 +733,11 @@ function ParcelamentoModal({
               <span className="value">{brl(p.amount)}</span>
             </div>
           ))}
+          <div className="vq-modal-row is-total">
+            <span className="label">Total</span>
+            <span className="date" />
+            <span className="value">{brl(total)}</span>
+          </div>
         </div>
         <div className="vq-modal-foot">
           <small>Última parcela em {brDateIso(ultima?.date ?? null)}</small>
@@ -741,6 +747,7 @@ function ParcelamentoModal({
     </div>
   );
 }
+
 
 function ResumoTimeline({
   itens,
