@@ -7,6 +7,8 @@ import {
 import { ComissaoExtraEditor } from "@/components/passhub/ComissaoExtraEditor";
 import { BlocoPagamentoInterno } from "@/components/passhub/BlocoPagamentoInterno";
 import { PassageirosEditor } from "@/components/passhub/PassageirosEditor";
+import { BlocoBilhete } from "@/components/passhub/BlocoBilhete";
+
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 import { useMemo, useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -289,6 +291,14 @@ function DetalheReserva({
               <div className="text-[12px] cons-muted">{nomeProprio(r.emissor) || "VIA AIR"}</div>
             </div>
           </div>
+
+          {(r.status || "").toUpperCase() === "ISSUED" && (
+            <div className="mt-3">
+              <BlocoBilhete idPassagem={r.idPassagem} localizador={r.localizador} emitida />
+            </div>
+          )}
+
+
 
           <div className="cons-dot my-5" />
 

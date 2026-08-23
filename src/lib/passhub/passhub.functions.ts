@@ -469,3 +469,42 @@ export const passhubSalvarPassageiros = createServerFn({ method: "POST" })
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao salvar" };
     }
   });
+
+/** Número do bilhete (e-ticket) lido do PDF da reserva na consolidadora. */
+export const passhubBilheteNumeros = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.number().int().positive(),
+        localizador: z.string().max(12).nullable().optional(),
+        forcar: z.boolean().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { passhubNumerosBilhete } = await import("./bilhete.server");
+    try {
+      const info = await passhubNumerosBilhete(data.id, {
+        localizador: data.localizador ?? null,
+        forcar: data.forcar,
+      });
+      return { ok: true as const, ...info };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao ler o bilhete" };
+    }
+  });
+
+/** PDF da reserva emitida (base64) para download direto no painel. */
+export const passhubBilhetePdf = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.number().int().positive() }).parse(input))
+  .handler(async ({ data }) => {
+    const { passhubPdfReserva } = await import("./bilhete.server");
+    try {
+      const pdf = await passhubPdfReserva(data.id);
+      return { ok: true as const, base64: pdf.toString("base64") };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao baixar o PDF" };
+    }
+  });
