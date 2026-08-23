@@ -7,7 +7,7 @@
  */
 import { cidadeDoAeroporto, nomeDoAeroporto } from "@/lib/whatsapp/airport-city";
 import { findAirline } from "@/lib/airlines";
-import logoViaAir from "@/assets/viaair-mark.png.asset.json";
+import logoViaAir from "@/assets/viaair-logo.png.asset.json";
 
 export type ComprovanteVoo = {
   companhia: string;
@@ -185,11 +185,9 @@ const CSS = `
 .crdoc .sheet{width:900px;max-width:calc(100% - 24px);margin:0 auto 32px;background:#fff;box-shadow:0 12px 35px rgba(22,44,66,.11);border-radius:18px;overflow:hidden}
 .crdoc .brandbar{height:7px;background:linear-gradient(90deg,var(--orange) 0 28%,var(--blue) 28% 100%)}
 .crdoc header{padding:24px 34px 20px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;border-bottom:1px solid var(--line)}
-.crdoc .brand{display:flex;align-items:center;gap:12px}
-.crdoc .brand img{height:44px;width:44px;object-fit:contain;display:block;flex:none}
-.crdoc .brand-txt{display:flex;flex-direction:column;line-height:1}
-.crdoc .brand-name{font-size:23px;font-weight:900;color:var(--blue);letter-spacing:.5px}
-.crdoc .brand-sub{font-size:10px;margin-top:4px;letter-spacing:.24em;color:var(--orange);font-weight:900;text-transform:uppercase}
+.crdoc .brand{display:flex;flex-direction:column;gap:2px;text-decoration:none;flex-shrink:0}
+.crdoc .brand img{height:40px;width:auto;object-fit:contain;display:block;object-position:left}
+.crdoc .brand-sub{font-size:9px;font-weight:900;letter-spacing:.22em;color:#9fb0bf;text-transform:uppercase;padding-left:2px}
 .crdoc .value-card{border:1px solid #cfe8dc;background:var(--green-soft);border-radius:15px;padding:18px;display:flex;flex-direction:column;justify-content:center}
 .crdoc .value-card .price{color:var(--green);font-size:28px}
 .crdoc .value-card .price-note{margin-top:6px}
@@ -337,7 +335,6 @@ const CSS = `
   .crdoc .passenger{grid-template-columns:1fr}
   .crdoc .ticket-row{grid-template-columns:1fr}
   .crdoc .ticket-row > div{border-right:0;border-bottom:1px solid #e3efe9}
-  .crdoc .brand-name{font-size:20px}
 }
 
 
@@ -349,8 +346,7 @@ const CSS = `
   .crdoc .sheet{width:100%;max-width:none;box-shadow:none;border-radius:0;margin:0;overflow:visible}
   .crdoc *{print-color-adjust:exact;-webkit-print-color-adjust:exact}
   .crdoc header{padding:12px 20px 10px}
-  .crdoc .brand img{height:34px;width:34px}
-  .crdoc .brand-name{font-size:19px}
+  .crdoc .brand img{height:34px;width:auto}
   .crdoc .doc-title h1{font-size:17px}
   .crdoc .hero{padding:10px 20px 4px;gap:10px}
   .crdoc .hero-card,.crdoc .value-card{padding:12px}
@@ -384,13 +380,10 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
         <div className="brandbar" />
 
         <header>
-          <div className="brand">
+          <a className="brand" href="https://viaair.tur.br" target="_blank" rel="noreferrer">
             <img src={logoViaAir.url} alt="VIA AIR" />
-            <div className="brand-txt">
-              <div className="brand-name">VIA AIR</div>
-              <div className="brand-sub">Premium Travel</div>
-            </div>
-          </div>
+            <span className="brand-sub">Premium Travel</span>
+          </a>
           <div className="doc-title">
             <h1>{eBilhete ? "Bilhete Eletrônico" : "Comprovante de Reserva"}</h1>
             <p>
