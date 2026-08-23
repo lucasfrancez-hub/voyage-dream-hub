@@ -17,10 +17,27 @@ export type PassHubPix = {
   expiraEm: string;
 };
 
-/** Extrai o token JWT do link de checkout. */
+/** Extrai o código curto do link de checkout. */
 export function tokenDoLinkCheckout(link: string): string {
   const m = /\/payment\/([^/?#\s]+)/.exec((link || "").trim());
   return m?.[1] ?? "";
+}
+
+/** Troca o código curto do link pelo JWT temporário do checkout. */
+async function expandirShortCode(shortCode: string): Promise<string> {
+  const resp = await fetch(`${NEXUS_API}/expand-booking-token/${shortCode}`, {
+    headers: { Accept: "application/json", Origin: "https://checkout.passhub.com.br" },
+  });
+  if (!resp.ok) {
+    throw new Error(
+      resp.status === 404
+        ? "Link de pagamento expirado ou não encontrado na consolidadora."
+        : `Falha ao abrir o checkout (HTTP ${resp.status}).`,
+    );
+  }
+  const body = (await resp.json()) as { temp_jwt?: string };
+  if (!body.temp_jwt) throw new Error("A consolidadora não devolveu o acesso ao checkout.");
+  return body.temp_jwt;
 }
 
 const str = (v: unknown, fb = ""): string =>
