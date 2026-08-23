@@ -494,71 +494,12 @@ function DetalheReserva({
 
           <div className="cons-dot my-5" />
 
-          <h3 className="mb-3 flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.14em] text-[#9fb4c6]">
-            <Users className="h-4 w-4 text-[#8ce0b6]" /> Passageiros
-          </h3>
-          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.04]">
-            <table className="w-full min-w-[560px] text-left">
-              <thead className="border-b border-white/5 bg-white/[0.04]">
-                <tr>
-                  <th className="px-5 py-3 cons-lab">Nome completo</th>
-                  <th className="px-5 py-3 text-center cons-lab">Documento</th>
-                  <th className="px-5 py-3 text-center cons-lab">Nascimento</th>
-                  <th className="px-5 py-3 text-right cons-lab">Tipo</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {(r.passageirosDetalhe.length
-                  ? r.passageirosDetalhe
-                  : r.passageiros.map((nome) => ({
-                      nome,
-                      documento: "",
-                      documentoTipo: "cpf",
-                      nascimento: "",
-                      tipo: "",
-                      genero: "",
-                      telefone: "",
-                    }))
-                ).map((p, i) => (
-                  <tr key={i}>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="grid h-8 w-8 place-items-center rounded-full bg-[#8ce0b6]/10 text-[11px] font-black text-[#8ce0b6]">
-                          {iniciais(p.nome)}
-                        </span>
-                        <span className="text-[13px] font-bold uppercase">{p.nome}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-center text-[13px]">
-                      {p.documento ? (
-                        <>
-                          <span className="cons-muted mr-1 text-[11px] uppercase">
-                            {p.documentoTipo === "passport" ? "Pass." : "CPF"}
-                          </span>
-                          <b>{p.documento}</b>
-                        </>
-                      ) : (
-                        <span className="cons-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-center text-[13px] font-bold">
-                      {p.nascimento ? dataCurta(p.nascimento) : <span className="cons-muted font-normal">—</span>}
-                    </td>
-                    <td className="px-5 py-4 text-right text-[12px] cons-muted uppercase">
-                      {p.tipo || "ADT"}
-                    </td>
-                  </tr>
-                ))}
-                {r.passageirosDetalhe.length === 0 && r.passageiros.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-5 py-6 text-center text-[13px] cons-muted">
-                      Sem passageiros informados
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <PassageirosEditor
+            localizador={r.localizador || String(r.idPassagem)}
+            passageiros={pax}
+            onSalvo={(lista) => setPax(lista)}
+          />
+
 
         </div>
 
