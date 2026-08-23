@@ -462,6 +462,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
           </section>
         ) : null}
 
+        {dados.grupos.length ? (
         <section>
           <div className="section-head">
             <h2>Itinerário</h2>
