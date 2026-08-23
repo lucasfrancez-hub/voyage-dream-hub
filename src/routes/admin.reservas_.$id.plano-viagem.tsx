@@ -8,12 +8,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Printer } from "lucide-react";
 import { passhubReservaDetalhe } from "@/lib/passhub/passhub.functions";
-import {
-  ComprovanteReserva,
-  type ComprovanteReservaDados,
-  type ComprovanteVoo,
-} from "@/components/passhub/ComprovanteReserva";
-import type { PassHubReservaLista } from "@/lib/passhub/types";
+import { ComprovanteReserva } from "@/components/passhub/ComprovanteReserva";
+import { paraComprovante } from "@/lib/passhub/comprovante";
 
 export const Route = createFileRoute("/admin/reservas_/$id/plano-viagem")({
   component: PlanoViagemPage,
@@ -36,82 +32,6 @@ export const Route = createFileRoute("/admin/reservas_/$id/plano-viagem")({
     ],
   }),
 });
-
-function tituloGrupo(indice: number, total: number, temVolta: boolean): string {
-  if (total <= 1) return "IDA";
-  if (total === 2 && temVolta) return indice === 0 ? "IDA" : "VOLTA";
-  return `TRECHO ${indice + 1}`;
-}
-
-function paraComprovante(r: PassHubReservaLista): ComprovanteReservaDados {
-  const emitido = Boolean(r.emitidaEm) || ["ISSUED", "EMITIDA", "EMITIDO"].includes(
-    (r.status || "").toUpperCase(),
-  );
-
-  const grupos = (r.segmentos ?? []).map((s, i) => {
-    const bagagem = {
-      itemPessoal: true,
-      mao: s.bagagemMao,
-      despachada: s.bagagemDespachada,
-      despachadaQtd: s.bagagemDespachadaQtd,
-    };
-    const conexoes = s.conexoes?.length
-      ? s.conexoes
-      : [
-          {
-            origem: s.origem,
-            destino: s.destino,
-            partida: s.partida,
-            chegada: s.chegada,
-            duracao: s.duracao,
-            numeroVoo: "",
-            familiaTarifaria: "",
-            classe: "",
-            companhia: r.companhia,
-          },
-        ];
-    const voos: ComprovanteVoo[] = conexoes.map((c) => ({
-      companhia: c.companhia || r.companhia,
-      numeroVoo: c.numeroVoo,
-      origem: c.origem,
-      destino: c.destino,
-      partida: c.partida,
-      chegada: c.chegada,
-      duracao: c.duracao,
-      classe: c.classe,
-      familiaTarifaria: c.familiaTarifaria,
-      bagagem,
-    }));
-    return {
-      titulo: tituloGrupo(i, (r.segmentos ?? []).length, Boolean(r.dataVolta)),
-      voos,
-    };
-  });
-
-  return {
-    emitido,
-    localizador: r.localizador || String(r.idPassagem),
-    localizadorCompanhia: r.localizadorCompanhia,
-    companhia: r.companhia,
-    criadaEm: r.criadaEm,
-    consultor: r.emissor,
-    origem: r.origem,
-    destino: r.destino,
-    limiteEmissao: r.limiteEmissao,
-    total: r.totalVenda || r.preco,
-    passageiros: (r.passageirosDetalhe?.length
-      ? r.passageirosDetalhe.map((p) => ({
-          nome: p.nome,
-          tipo: p.tipo,
-          documento: p.documento,
-          documentoTipo: p.documentoTipo,
-          nascimento: p.nascimento,
-        }))
-      : (r.passageiros ?? []).map((nome) => ({ nome, tipo: "ADT" }))
-    ).map((p) => ({ ...p })),
-    grupos,
-  };
-}
 
 function PlanoViagemPage() {
   const { id } = Route.useParams();
