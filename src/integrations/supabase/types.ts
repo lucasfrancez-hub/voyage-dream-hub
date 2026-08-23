@@ -6425,6 +6425,36 @@ export type Database = {
         }
         Relationships: []
       }
+      passhub_reserva_extra: {
+        Row: {
+          comissao_extra: number
+          created_at: string
+          id_passagem: number
+          localizador: string | null
+          observacao: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          comissao_extra?: number
+          created_at?: string
+          id_passagem: number
+          localizador?: string | null
+          observacao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          comissao_extra?: number
+          created_at?: string
+          id_passagem?: number
+          localizador?: string | null
+          observacao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       passhub_reserva_pax: {
         Row: {
           created_at: string
