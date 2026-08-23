@@ -270,6 +270,7 @@ const CSS = `
 .crdoc footer .contact strong{color:var(--blue)}
 .crdoc footer .page-note{font-size:9px;color:#8a96a1;text-align:right}
 
+.crdoc .locator-pill{display:inline-block;margin-top:2px;background:#eef4f9;border:1px solid #d3e0ea;color:var(--blue);border-radius:999px;padding:5px 11px;font-weight:900;font-size:13px;letter-spacing:1.4px}
 .crdoc .passenger.nostatus{grid-template-columns:1.8fr .6fr .95fr .8fr}
 .crdoc .infoblock{margin:14px 34px 0;border:1px solid var(--line);border-radius:13px;padding:14px 16px;background:#fbfcfd;break-inside:avoid}
 .crdoc .infoblock h3{margin:0 0 7px;font-size:11px;color:var(--blue);text-transform:uppercase;letter-spacing:.7px}
@@ -347,7 +348,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             <h1>{eBilhete ? "Bilhete Eletrônico" : "Comprovante de Reserva"}</h1>
             <p>
               {eBilhete
-                ? "Apresente este documento no embarque"
+                ? "E-ticket • documento de viagem emitido"
                 : dados.emitido
                   ? "Confira os dados da sua viagem"
                   : "Confira os dados da sua viagem antes da emissão"}
@@ -357,20 +358,22 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
 
         <div className={`hero${heroSimples ? " single" : ""}`}>
           <div className="hero-card soft">
-            <div className="eyebrow">{eBilhete ? "Bilhete eletrônico" : "Reserva aérea"}</div>
+            <div className="eyebrow">
+              {eBilhete ? "Número do bilhete" : "Reserva aérea"}
+            </div>
 
             <div className="locator">
-              <strong>{dados.localizador}</strong>
+              <strong>{eBilhete ? numeroBilhete || dados.localizador : dados.localizador}</strong>
               <span className={`status ${dados.emitido ? "issued" : "reserved"}`}>
                 {dados.emitido ? "Emitido" : "Reservado"}
               </span>
             </div>
 
             <div className="meta-grid">
-              {eBilhete && numeroBilhete ? (
+              {eBilhete ? (
                 <div>
-                  <span>Número do bilhete</span>
-                  <b>{numeroBilhete}</b>
+                  <span>Localizador</span>
+                  <div className="locator-pill">{dados.localizador}</div>
                 </div>
               ) : null}
               {dados.companhia ? (
@@ -684,23 +687,30 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             <div className="infoblock">
               <h3>Informações</h3>
               <p>
-                Este documento é o seu bilhete eletrônico (e-ticket) e comprova a emissão junto à
-                companhia aérea. Regras de alteração, cancelamento, remarcação e reembolso seguem as
-                condições da tarifa adquirida.
+                Os voos são válidos apenas para utilização nas datas e horários reservados e
+                emitidos. Em caso de alteração voluntária, estão sujeitos às condições impostas pela
+                companhia aérea e pela regra tarifária.
               </p>
               <p>
-                Bagagem despachada e de mão estão sujeitas às regras da tarifa e da companhia aérea.
-                Serviços adicionais, como assentos e bagagem extra, podem ter cobrança à parte.
+                O transporte aéreo aqui contratado está sujeito às condições gerais de transporte e
+                às demais legislações aplicáveis. Algumas tarifas não permitem alterações e/ou
+                reembolso após a compra. Caso julgue necessário ter esta informação, consulte a VIA
+                AIR para conhecer as condições da sua tarifa.
+              </p>
+              <p>
+                O não comparecimento para o embarque (no-show) em qualquer voo cancela os voos
+                subsequentes. Em alguns casos, perde-se o bilhete, impossibilitando alteração e/ou
+                reembolso.
               </p>
             </div>
             <div className="infoblock">
               <h3>Informações para embarque</h3>
               <ul>
-                <li>Chegue ao aeroporto com 2 horas de antecedência em voos nacionais e 3 horas em voos internacionais.</li>
-                <li>Apresente documento oficial com foto válido; em voos internacionais, passaporte dentro da validade exigida.</li>
-                <li>Confira exigências de visto, vacinas e requisitos migratórios do destino e das conexões.</li>
-                <li>Faça o check-in antecipado pelo site ou aplicativo da companhia aérea.</li>
-                <li>Menores de idade seguem regras específicas de documentação e autorização de viagem.</li>
+                <li>Apresente-se no check-in com 2 horas de antecedência em voos nacionais e com 3 horas de antecedência em voos internacionais.</li>
+                <li>Leve documento original de identificação para voos nacionais.</li>
+                <li>Para voos internacionais, leve passaporte original e os vistos necessários para entrada no país de destino.</li>
+                <li>Informações sobre validade de passaporte, vacinas e vistos que possam ser necessários para sua viagem devem ser consultadas com as respectivas embaixadas ou despachantes de vistos.</li>
+                <li>Verifique essa necessidade para todos os países envolvidos na viagem, mesmo aqueles em que houver apenas escala. Alguns países exigem passaporte com validade mínima de 6 meses para embarque.</li>
               </ul>
             </div>
           </>
@@ -726,7 +736,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             viaair.tur.br
           </div>
           <div className="page-note">
-            Localizador {dados.localizador}
+            {eBilhete ? "Bilhete eletrônico • E-ticket" : `Localizador ${dados.localizador}`}
             <br />
             Documento gerado em {dataBR(new Date().toISOString())}
           </div>
