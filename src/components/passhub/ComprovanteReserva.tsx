@@ -316,13 +316,26 @@ const CSS = `
   .crdoc .ticket-row{grid-template-columns:1fr 1fr}
 }
 
-@page{size:A4 portrait;margin:10mm}
+@page{size:A4 portrait;margin:8mm}
 @media print{
-  body{background:#fff}
+  html,body{background:#fff;margin:0;padding:0}
   .no-print{display:none!important}
-  .crdoc .sheet{width:100%;max-width:none;box-shadow:none;border-radius:0;margin:0}
+  .crdoc{font-size:11px}
+  .crdoc .sheet{width:100%;max-width:none;box-shadow:none;border-radius:0;margin:0;overflow:visible}
   .crdoc *{print-color-adjust:exact;-webkit-print-color-adjust:exact}
-  .crdoc .journey,.crdoc .flight,.crdoc .passenger,.crdoc .tickets,.crdoc .deadline,.crdoc .notice{break-inside:avoid}
+  .crdoc header{padding:12px 20px 10px}
+  .crdoc .brand img{height:34px;width:34px}
+  .crdoc .brand-name{font-size:19px}
+  .crdoc .doc-title h1{font-size:17px}
+  .crdoc .hero{padding:10px 20px 4px;gap:10px}
+  .crdoc .hero-card,.crdoc .value-card{padding:12px}
+  .crdoc section{padding:8px 20px 0}
+  .crdoc .flight{padding:8px 12px}
+  .crdoc .journey{margin-bottom:8px}
+  .crdoc .passenger{padding:8px 12px}
+  .crdoc footer{margin-top:10px;padding:10px 20px 0}
+  .crdoc .journey,.crdoc .flight,.crdoc .passenger,.crdoc .tickets,.crdoc .deadline,.crdoc .notice,.crdoc section,.crdoc footer{break-inside:avoid}
+  .crdoc .sheet>*:last-child{margin-bottom:0;padding-bottom:0}
 }
 `;
 
