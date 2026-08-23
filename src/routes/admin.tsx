@@ -221,11 +221,24 @@ function AdminLayout() {
       return;
     }
     let cancelled = false;
+    // Papel em cache (por usuário): pinta o painel na hora, sem esperar a
+    // Data API. A consulta real continua rodando e corrige se mudou.
+    const chaveCache = `viaair-admin-role:${session.user.id}`;
+    let temCache = false;
+    try {
+      const salvo = localStorage.getItem(chaveCache);
+      if (salvo === "admin" || salvo === "partner" || salvo === "marketing") {
+        temCache = true;
+        setRole(salvo as Role);
+      }
+    } catch { /* noop */ }
     // Timeout de segurança pra query de role — evita spinner infinito
     // se a Data API ficar lenta/travada.
-    const roleFailsafe = setTimeout(() => {
-      if (!cancelled) setRole(null);
-    }, 6000);
+    const roleFailsafe = temCache
+      ? undefined
+      : setTimeout(() => {
+          if (!cancelled) setRole(null);
+        }, 6000);
     (async () => {
       const { data, error } = await supabase
         .from("user_roles")
@@ -233,23 +246,34 @@ function AdminLayout() {
         .eq("user_id", session.user.id)
         .in("role", ["admin", "partner", "marketing"]);
       if (cancelled) return;
-      clearTimeout(roleFailsafe);
+      if (roleFailsafe) clearTimeout(roleFailsafe);
       if (error) {
-        toast.error("Erro ao validar acesso");
-        setRole(null);
+        if (!temCache) {
+          toast.error("Erro ao validar acesso");
+          setRole(null);
+        }
         return;
       }
       const roles = (data ?? []).map((r) => r.role);
-      if (roles.includes("admin")) setRole("admin");
-      else if (roles.includes("partner")) setRole("partner");
-      else if (roles.includes("marketing")) setRole("marketing");
-      else setRole(null);
+      const novo: Role = roles.includes("admin")
+        ? "admin"
+        : roles.includes("partner")
+          ? "partner"
+          : roles.includes("marketing")
+            ? "marketing"
+            : null;
+      setRole(novo);
+      try {
+        if (novo) localStorage.setItem(chaveCache, novo);
+        else localStorage.removeItem(chaveCache);
+      } catch { /* noop */ }
     })();
     return () => {
       cancelled = true;
-      clearTimeout(roleFailsafe);
+      if (roleFailsafe) clearTimeout(roleFailsafe);
     };
   }, [session, navigate]);
+
 
   // Redirect /admin -> destino padrão por role
   useEffect(() => {
