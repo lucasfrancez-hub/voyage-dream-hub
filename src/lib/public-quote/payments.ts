@@ -309,3 +309,22 @@ export function bestInstallmentLabel(installments: Installment[]): string | null
   if (!best || best.number <= 1) return null;
   return `${best.number}x de ${brl(best.amount)} sem juros`;
 }
+
+/**
+ * Agenda genérica "entrada + demais": 1º pagamento na contratação e os
+ * demais a cada 30 dias. Usada nas faixas manuais (cartão e boleto).
+ */
+export function scheduleEntradaMensal(
+  first: number,
+  others: number,
+  parcelas: number,
+  contratacao = isoHoje(),
+): ParcelaAgendada[] {
+  const n = Math.max(1, Math.trunc(parcelas));
+  return Array.from({ length: n }, (_, i) => ({
+    number: i + 1,
+    date: isoMaisDias(contratacao, 30 * i),
+    amount: round2(i === 0 ? first : others),
+    label: i === 0 ? (n > 1 ? "Entrada (1ª parcela)" : "Pagamento único") : `${i + 1}ª parcela`,
+  }));
+}
