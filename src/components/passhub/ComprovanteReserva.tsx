@@ -7,7 +7,7 @@
  */
 import { cidadeDoAeroporto, nomeDoAeroporto } from "@/lib/whatsapp/airport-city";
 import { findAirline } from "@/lib/airlines";
-import logoViaAir from "@/assets/viaair-mark.png.asset.json";
+import logoViaAir from "@/assets/viaair-logo.png.asset.json";
 
 export type ComprovanteVoo = {
   companhia: string;
