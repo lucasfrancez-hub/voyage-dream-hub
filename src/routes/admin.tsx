@@ -306,7 +306,9 @@ function AdminLayout() {
     );
   }
 
-  if (session === undefined || aparelho === undefined || (session && role === undefined)) {
+  // Só espera o status do aparelho quando NÃO há sessão (aí ele decide entre
+  // PIN e login). Com sessão, o painel pinta assim que a role chegar.
+  if (session === undefined || (session === null && aparelho === undefined) || (session && role === undefined)) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
