@@ -48,10 +48,16 @@ function normalizaSegmento(v: unknown) {
 
 function normalizaReserva(v: unknown): PassHubReservaLista {
   const r = rec(v);
+  const preco = num(r["preco"]);
+  const comissao = num(r["valor_comissao"]);
+  const rav = num(r["rav_amount_brl"]);
+  const localizador = str(r["localizador"]);
   return {
     idPassagem: num(r["id_passagem"]),
-    localizador: str(r["localizador"]),
-    localizadorCompanhia: str(r["localizador_companhia"]),
+    localizador,
+    // Em voo nacional a consolidadora não devolve o localizador da companhia:
+    // nesse caso ele é o mesmo da reserva.
+    localizadorCompanhia: str(r["localizador_companhia"]) || localizador,
     status: str(r["status_emissao"]),
     statusDescricao: str(r["descricao_status_emissao"]),
     origem: str(r["origem"]),
@@ -61,12 +67,15 @@ function normalizaReserva(v: unknown): PassHubReservaLista {
     criadaEm: str(r["data_criacao_reserva"]),
     limiteEmissao: str(r["data_limite_emissao"]),
     emitidaEm: str(r["data_emissao"]),
-    preco: num(r["preco"]),
+    preco,
     precoSemTaxa: num(r["preco_sem_taxa"]),
     taxas: num(r["tax"]),
     ravPercentual: num(r["rav_percentage"]),
-    ravValor: num(r["rav_amount_brl"]),
-    comissao: num(r["valor_comissao"]),
+    ravValor: rav,
+    comissao,
+    // A PassHub devolve `preco` líquido (tarifa + taxas). O total da venda
+    // inclui a comissão total (RAV + incentivo).
+    totalVenda: preco + (comissao || rav),
     companhia: str(r["companhia_aerea_iata"] ?? r["companhia_aerea"]),
     provedor: str(r["provider"]),
     emissor: str(r["nome_usuario"]),
@@ -74,8 +83,46 @@ function normalizaReserva(v: unknown): PassHubReservaLista {
     linkPagamento: str(r["link_pagamento"]),
     multitrecho: r["is_multitrecho"] === true,
     passageiros: arr(r["nomes_passageiros"]).map((p) => str(p)).filter(Boolean),
+    passageirosDetalhe: [],
     segmentos: arr(r["segmentos"]).map(normalizaSegmento),
   };
+}
+
+/** Dados completos dos passageiros que gravamos no momento da reserva. */
+async function anexaPassageiros(reservas: PassHubReservaLista[]): Promise<PassHubReservaLista[]> {
+  const locs = reservas.map((r) => r.localizador).filter(Boolean);
+  if (locs.length === 0) return reservas;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("passhub_reserva_pax")
+      .select("localizador, ordem, nome, sobrenome, documento_tipo, documento, nascimento, genero, tipo, telefone")
+      .in("localizador", locs)
+      .order("ordem", { ascending: true });
+    const porLoc = new Map<string, PassHubReservaLista["passageirosDetalhe"]>();
+    for (const row of data ?? []) {
+      const lista = porLoc.get(row.localizador) ?? [];
+      lista.push({
+        nome: `${row.nome ?? ""} ${row.sobrenome ?? ""}`.trim().toUpperCase(),
+        documentoTipo: row.documento_tipo ?? "cpf",
+        documento: row.documento ?? "",
+        nascimento: row.nascimento ?? "",
+        genero: row.genero ?? "",
+        tipo: row.tipo ?? "",
+        telefone: row.telefone ?? "",
+      });
+      porLoc.set(row.localizador, lista);
+    }
+    for (const r of reservas) {
+      r.passageirosDetalhe = porLoc.get(r.localizador) ?? [];
+      if (r.passageiros.length === 0 && r.passageirosDetalhe.length) {
+        r.passageiros = r.passageirosDetalhe.map((p) => p.nome);
+      }
+    }
+  } catch (e) {
+    console.error("[passhub] passageiros locais indisponíveis:", e);
+  }
+  return reservas;
 }
 
 /** Todas as reservas da agência na PassHub, mais recentes primeiro. */
@@ -83,10 +130,13 @@ export async function passhubListarReservas(): Promise<PassHubReservaLista[]> {
   const bruto = await passhubRequest<unknown>(`${GERENCIA}/api/v1/reservas`, { method: "GET" });
   const dados = rec(rec(bruto)["data"]);
   const lista = arr(dados["reservas"] ?? rec(bruto)["reservas"]);
-  return lista
-    .map(normalizaReserva)
-    .sort((a, b) => (a.criadaEm < b.criadaEm ? 1 : a.criadaEm > b.criadaEm ? -1 : 0));
+  return anexaPassageiros(
+    lista
+      .map(normalizaReserva)
+      .sort((a, b) => (a.criadaEm < b.criadaEm ? 1 : a.criadaEm > b.criadaEm ? -1 : 0)),
+  );
 }
+
 
 /** Detalhe de uma reserva específica (mesmo contrato do painel). */
 export async function passhubReservaDetalhe(id: number): Promise<PassHubReservaLista | null> {
