@@ -471,7 +471,7 @@ function PainelDetalhe({
   ravPercentual: number;
   onFechar: () => void;
 }) {
-  const { tarifa, taxas, rav, comissaoIncentivo, total } = calcularValores(
+  const { tarifa, taxas, rav, total } = calcularValores(
     voo,
     ravPercentual,
   );
