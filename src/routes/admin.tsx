@@ -278,7 +278,7 @@ function AdminLayout() {
       cancelled = true;
       if (roleFailsafe) clearTimeout(roleFailsafe);
     };
-  }, [session, navigate]);
+  }, [session, aparelho, navigate]);
 
 
   // Redirect /admin -> destino padrão por role
