@@ -218,3 +218,37 @@ export const passhubCancelarReserva = createServerFn({ method: "POST" })
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao cancelar" };
     }
   });
+
+/** Gera o QR Code Pix a partir do link de pagamento do checkout PassHub. */
+export const passhubPixReserva = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        link: z.string().url().optional(),
+        id: z.number().int().positive().optional(),
+        localizador: z.string().min(4).max(12).optional(),
+      })
+      .refine((v) => !!v.link || !!v.id || !!v.localizador, "Informe a reserva")
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    try {
+      let link = data.link ?? "";
+      if (!link) {
+        const { passhubLinkPagamentoReserva } = await import("./reservas.server");
+        const r = await passhubLinkPagamentoReserva({ id: data.id, localizador: data.localizador });
+        link = r.link;
+      }
+      if (!link) {
+        return {
+          ok: false as const,
+          erro: "A consolidadora ainda não gerou o link desta reserva.",
+        };
+      }
+      const { passhubPixDoLink } = await import("./pix.server");
+      return { ok: true as const, pix: await passhubPixDoLink(link) };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao gerar o Pix" };
+    }
+  });
