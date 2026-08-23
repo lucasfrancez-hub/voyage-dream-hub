@@ -687,23 +687,30 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             <div className="infoblock">
               <h3>Informações</h3>
               <p>
-                Este documento é o seu bilhete eletrônico (e-ticket) e comprova a emissão junto à
-                companhia aérea. Regras de alteração, cancelamento, remarcação e reembolso seguem as
-                condições da tarifa adquirida.
+                Os voos são válidos apenas para utilização nas datas e horários reservados e
+                emitidos. Em caso de alteração voluntária, estão sujeitos às condições impostas pela
+                companhia aérea e pela regra tarifária.
               </p>
               <p>
-                Bagagem despachada e de mão estão sujeitas às regras da tarifa e da companhia aérea.
-                Serviços adicionais, como assentos e bagagem extra, podem ter cobrança à parte.
+                O transporte aéreo aqui contratado está sujeito às condições gerais de transporte e
+                às demais legislações aplicáveis. Algumas tarifas não permitem alterações e/ou
+                reembolso após a compra. Caso julgue necessário ter esta informação, consulte a VIA
+                AIR para conhecer as condições da sua tarifa.
+              </p>
+              <p>
+                O não comparecimento para o embarque (no-show) em qualquer voo cancela os voos
+                subsequentes. Em alguns casos, perde-se o bilhete, impossibilitando alteração e/ou
+                reembolso.
               </p>
             </div>
             <div className="infoblock">
               <h3>Informações para embarque</h3>
               <ul>
-                <li>Chegue ao aeroporto com 2 horas de antecedência em voos nacionais e 3 horas em voos internacionais.</li>
-                <li>Apresente documento oficial com foto válido; em voos internacionais, passaporte dentro da validade exigida.</li>
-                <li>Confira exigências de visto, vacinas e requisitos migratórios do destino e das conexões.</li>
-                <li>Faça o check-in antecipado pelo site ou aplicativo da companhia aérea.</li>
-                <li>Menores de idade seguem regras específicas de documentação e autorização de viagem.</li>
+                <li>Apresente-se no check-in com 2 horas de antecedência em voos nacionais e com 3 horas de antecedência em voos internacionais.</li>
+                <li>Leve documento original de identificação para voos nacionais.</li>
+                <li>Para voos internacionais, leve passaporte original e os vistos necessários para entrada no país de destino.</li>
+                <li>Informações sobre validade de passaporte, vacinas e vistos que possam ser necessários para sua viagem devem ser consultadas com as respectivas embaixadas ou despachantes de vistos.</li>
+                <li>Verifique essa necessidade para todos os países envolvidos na viagem, mesmo aqueles em que houver apenas escala. Alguns países exigem passaporte com validade mínima de 6 meses para embarque.</li>
               </ul>
             </div>
           </>
