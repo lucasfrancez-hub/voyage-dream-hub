@@ -8,6 +8,7 @@
  */
 
 const CHECKOUT_API = "https://checkout-api.passhub.com.br/api/v1";
+const NEXUS_API = "https://nexus.passhub.com.br/api/v1";
 
 export type PassHubPix = {
   copiaECola: string;
