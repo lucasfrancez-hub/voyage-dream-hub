@@ -199,15 +199,8 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao obter o link"),
   });
 
-  const confirmarPagamento = async () => {
-    const ok = await confirm({
-      title: "Pagar a consolidadora agora?",
-      description: `O Pix da reserva ${r.localizador || r.idPassagem} será pago debitando o saldo da nossa conta ASAAS.`,
-      confirmText: "Pagar agora",
-      cancelText: "Voltar",
-    });
-    if (ok) pagarAgora.mutate();
-  };
+
+
 
   const codigoCheckout = /\/payment\/([^/?#\s]+)/.exec(link ?? "")?.[1] ?? "";
   const linkCliente =
