@@ -119,11 +119,11 @@ export function ChatHeader({ title, subtitle, userEmail, userFullName, theme = "
 
 
 
-      <AiMasterSwitch />
-
-      <AiStatusButton />
-
-      <ChatPushToggle />
+      <div className="flex shrink-0 items-center gap-2">
+        <AiMasterSwitch />
+        <AiStatusButton />
+        <ChatPushToggle />
+      </div>
 
 
       {onToggleTheme && (
