@@ -71,8 +71,20 @@ export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHub
       : [pricedToken, pricedVolta].filter(Boolean),
     preco: num(r["preco"] ?? r["total_price"] ?? r["priceWithTax"], input.precoEsperado),
     precoSemTaxa: num(r["preco_sem_taxa"] ?? r["priceWithoutTax"]),
-    // RAV efetiva calculada pela PassHub com o % que enviamos.
-    ravValor: num(r["rav_amount_brl_efetivo"] ?? r["rav_amount_brl"] ?? r["rav_amount"]),
+    // Comissão: a PassHub devolve a RAV efetiva do % enviado, mas o portal
+    // mostra a comissão TOTAL (incentivo + RAV) — que existe mesmo com 0%.
+    // Usamos a maior das duas para nunca perder o incentivo.
+    ravValor: Math.max(
+      num(r["rav_amount_brl_efetivo"] ?? r["rav_amount_brl"] ?? r["rav_amount"]),
+      num(
+        r["valor_comissao"] ??
+          r["comissao"] ??
+          r["commission_amount_brl"] ??
+          r["commission_amount"] ??
+          r["incentive_amount_brl"] ??
+          r["incentive_amount"],
+      ),
+    ),
     ravModo: str(r["rav_mode"]),
     retarifou: r["retarifou"] === true,
   };
