@@ -147,17 +147,28 @@ function AdminLayout() {
     if (link.getAttribute("href") !== href) link.setAttribute("href", href);
   }, []);
 
+  // Roda já na montagem, em paralelo com a sessão/role — no app instalado
+  // esperar esse round-trip antes de pintar a tela deixava o painel lento.
   useEffect(() => {
-    if (session === undefined) return;
+    let pronto = false;
+    const falha = setTimeout(() => {
+      if (!pronto) setAparelho((cur) => cur ?? { registrado: false, email: null });
+    }, 3500);
     void (async () => {
       try {
         const r = (await statusAparelho()) as { registrado: boolean; email?: string | null };
+        pronto = true;
+        clearTimeout(falha);
         setAparelho({ registrado: r.registrado, email: r.email ?? null });
       } catch {
+        pronto = true;
+        clearTimeout(falha);
         setAparelho({ registrado: false, email: null });
       }
     })();
-  }, [session, statusAparelho]);
+    return () => clearTimeout(falha);
+  }, [statusAparelho]);
+
 
   // Mantém o token fresco enquanto o app estiver aberto / volta do segundo plano.
   useEffect(() => {
