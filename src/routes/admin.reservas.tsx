@@ -444,18 +444,20 @@ function DetalheReserva({
                       </div>
                     </div>
 
-                    <div className="relative flex items-center justify-between px-1">
-                      <div className="relative z-10 bg-[#0b1a24] pr-4">
+                    <div className="flex items-center gap-4 px-1">
+                      <div className="min-w-0">
                         <div className="text-[26px] font-black leading-none">{hora(s.partida)}</div>
                         <div className="mt-1 text-[13px] font-bold cons-muted">{s.origem}</div>
                         <div className="text-[11px] cons-muted">{dataCurta(s.partida)}</div>
                       </div>
-                      <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center border-t border-dashed border-white/10">
-                        <span className="-mt-3 rounded-full bg-white/10 p-1.5">
+                      <div className="flex flex-1 items-center gap-2">
+                        <span className="h-px flex-1 border-t border-dashed border-white/10" />
+                        <span className="rounded-full bg-white/10 p-1.5">
                           <Plane className="h-3 w-3 rotate-90 text-[#77b8ff]" />
                         </span>
+                        <span className="h-px flex-1 border-t border-dashed border-white/10" />
                       </div>
-                      <div className="relative z-10 bg-[#0b1a24] pl-4 text-right">
+                      <div className="min-w-0 text-right">
                         <div className="text-[26px] font-black leading-none">{hora(s.chegada)}</div>
                         <div className="mt-1 text-[13px] font-bold cons-muted">{s.destino}</div>
                         <div className="text-[11px] cons-muted">{dataCurta(s.chegada)}</div>
