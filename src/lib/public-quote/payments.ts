@@ -187,7 +187,7 @@ export function buildPayment(params: {
     card: {
       enabled: true,
       brands: CARD_BRANDS,
-      installments: cardInstallments(total, airline, type, params.markups, params.cardMax),
+      installments: cardInstallments(total, airline, type, params.markups, params.cardMax, params.international),
     },
     boleto: {
       enabled: boletoEnabled,
