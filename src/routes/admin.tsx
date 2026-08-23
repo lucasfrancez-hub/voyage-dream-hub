@@ -197,8 +197,10 @@ function AdminLayout() {
 
   useEffect(() => {
     if (session === undefined) return;
-    if (aparelho === undefined) return;
-    if (!session) {
+    // Com sessão, o papel é consultado na hora: não espera o status do
+    // aparelho (esse round-trip só decide PIN x login quando NÃO há sessão).
+    if (!session && aparelho === undefined) return;
+    if (!session && aparelho) {
       if (aparelho.registrado) {
         void (async () => {
           try {
@@ -221,10 +223,12 @@ function AdminLayout() {
       navigate({ to: "/auth" });
       return;
     }
+    if (!session) return;
+    const sessaoAtual = session;
     let cancelled = false;
     // Papel em cache (por usuário): pinta o painel na hora, sem esperar a
     // Data API. A consulta real continua rodando e corrige se mudou.
-    const chaveCache = `viaair-admin-role:${session.user.id}`;
+    const chaveCache = `viaair-admin-role:${sessaoAtual.user.id}`;
     let temCache = false;
     try {
       const salvo = localStorage.getItem(chaveCache);
@@ -244,7 +248,7 @@ function AdminLayout() {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", session.user.id)
+        .eq("user_id", sessaoAtual.user.id)
         .in("role", ["admin", "partner", "marketing"]);
       if (cancelled) return;
       if (roleFailsafe) clearTimeout(roleFailsafe);
@@ -273,7 +277,7 @@ function AdminLayout() {
       cancelled = true;
       if (roleFailsafe) clearTimeout(roleFailsafe);
     };
-  }, [session, navigate]);
+  }, [session, aparelho, navigate]);
 
 
   // Redirect /admin -> destino padrão por role
