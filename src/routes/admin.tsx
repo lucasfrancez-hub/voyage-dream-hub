@@ -63,7 +63,6 @@ function AdminRoute() {
   return <AdminLayout />;
 }
 
-const aparelhoDbg: { v: unknown } = { v: undefined };
 function AdminLayout() {
 
   const navigate = useNavigate();
@@ -94,7 +93,6 @@ function AdminLayout() {
   }, [theme]);
 
 
-  if (typeof window !== "undefined") console.log("[dbg] render session=", session, "role=", role, "aparelho=", JSON.stringify(aparelhoDbg.v));
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
 
@@ -134,7 +132,6 @@ function AdminLayout() {
   const [pedirPin, setPedirPin] = useState(false);
   const [oferecerPin, setOferecerPin] = useState(false);
   const appInstalado = ehAppInstalado();
-  aparelhoDbg.v = aparelho;
 
   // Mantém o manifest do app em qualquer página do painel: a URL do app
   // (/admin/app/<token>) continua sendo a de origem do aplicativo instalado.
