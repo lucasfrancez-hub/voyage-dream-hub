@@ -1,7 +1,7 @@
 import { ComissaoExtraEditor } from "@/components/passhub/ComissaoExtraEditor";
 import { BlocoPagamentoInterno } from "@/components/passhub/BlocoPagamentoInterno";
 import { PassageirosEditor } from "@/components/passhub/PassageirosEditor";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -109,8 +109,8 @@ function SecaoRecolhivel({
   aberta,
 }: {
   titulo: string;
-  icone: React.ReactNode;
-  children: React.ReactNode;
+  icone: ReactNode;
+  children: ReactNode;
   aberta?: boolean;
 }) {
   const [open, setOpen] = useState(Boolean(aberta));
