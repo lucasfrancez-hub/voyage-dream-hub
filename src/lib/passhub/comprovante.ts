@@ -113,7 +113,7 @@ export function comBilhetes(
     if (idx < 0 && restantes.length === dados.passageiros.length) idx = 0;
     if (idx < 0) return p;
     const [achado] = restantes.splice(idx, 1);
-    return { ...p, bilhete: achado?.numero ?? p.bilhete, emissao: emissao ?? p.emissao ?? null };
+    return { ...p, bilhete: achado?.numero ?? p.bilhete, emissao: emissao ?? p.emissao ?? undefined };
   });
   return { ...dados, passageiros };
 }
