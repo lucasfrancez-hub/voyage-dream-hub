@@ -13,6 +13,7 @@ import {
   Plane,
   RefreshCw,
   Search,
+  Users,
   XCircle,
 } from "lucide-react";
 import {
@@ -20,6 +21,7 @@ import {
   passhubLinkPagamento,
   passhubReservas,
 } from "@/lib/passhub/passhub.functions";
+import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
 import { confirm } from "@/lib/confirm";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 
@@ -66,6 +68,16 @@ const dataCurta = (iso: string) => {
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 };
+
+const iniciais = (nome: string) =>
+  nome
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase() || "--";
 
 const hora = (iso: string) => {
   if (!iso) return "";
