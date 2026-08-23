@@ -103,6 +103,8 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   const listarFn = useServerFn(passhubPagamentosReserva);
   const pedirPixPasshub = useServerFn(passhubPixReserva);
   const buscarLink = useServerFn(passhubLinkPagamento);
+  const previaFn = useServerFn(passhubPreviaPagamento);
+
 
   const [rav, setRav] = useState(
     r.comissaoExtra ? String(r.comissaoExtra).replace(".", ",") : "",
