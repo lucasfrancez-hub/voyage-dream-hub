@@ -357,7 +357,7 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
               ) : null}
               <div>
                 <span>Consultor</span>
-                <b>{dados.consultor || "VIA AIR"}</b>
+                <b>{nomeProprio(dados.consultor) || "VIA AIR"}</b>
               </div>
               <div>
                 <span>Origem</span>
@@ -379,15 +379,17 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
               </div>
             </div>
 
-            <div className="total-price">
-              <div>
-                <div className="price-label">Valor total da passagem</div>
-                <div className="price-note">
-                  Valor total da reserva aérea para os passageiros informados.
+            {dados.ocultarValores ? null : (
+              <div className="total-price">
+                <div>
+                  <div className="price-label">Valor total da passagem</div>
+                  <div className="price-note">
+                    Valor total da reserva aérea para os passageiros informados.
+                  </div>
                 </div>
+                <div className="price">{brl(dados.total)}</div>
               </div>
-              <div className="price">{brl(dados.total)}</div>
-            </div>
+            )}
           </div>
 
           {temPrazo ? (
