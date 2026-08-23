@@ -248,7 +248,7 @@ function AdminLayout() {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", session.user.id)
+        .eq("user_id", sessaoAtual.user.id)
         .in("role", ["admin", "partner", "marketing"]);
       if (cancelled) return;
       if (roleFailsafe) clearTimeout(roleFailsafe);
