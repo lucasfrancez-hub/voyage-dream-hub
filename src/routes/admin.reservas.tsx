@@ -530,17 +530,21 @@ function ReservasPage() {
   return (
     <div className="cons">
       <div className="cons-shell space-y-4">
-        {aberta ? (
-          <DetalheReserva
-            r={aberta}
-            onVoltar={() => setAberta(null)}
-            onAtualizar={() => {
-              setAberta(null);
-              void refetch();
-            }}
-          />
-        ) : (
+        <JanelaDetalhe aberto={!!aberta} onFechar={() => setAberta(null)} titulo="Reserva">
+          {aberta ? (
+            <DetalheReserva
+              r={aberta}
+              onVoltar={() => setAberta(null)}
+              onAtualizar={() => {
+                setAberta(null);
+                void refetch();
+              }}
+            />
+          ) : null}
+        </JanelaDetalhe>
+        {
           <>
+
             <header className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h1 className="text-[28px] font-black tracking-tight">Reservas</h1>
