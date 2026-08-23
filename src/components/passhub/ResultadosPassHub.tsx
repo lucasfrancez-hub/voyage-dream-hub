@@ -485,11 +485,11 @@ function PainelDetalhe({
   );
   const ravCarregando = !tarifacaoApi;
 
-  // O incentivo já está embutido no preço devolvido pela PassHub. Somente a
-  // RAV solicitada na tarifação é acrescentada ao valor final.
+  // A RAV pedida já é enviada à PassHub na busca/tarifação, então o preço que
+  // volta de lá JÁ inclui comissão e incentivo. Nunca somar nada por cima.
   const comissaoApi = tarifacaoApi?.comissao ?? rav;
   const precoLiquido = tarifacaoApi?.preco ?? total;
-  const totalFinal = Math.round((precoLiquido + comissaoApi) * 100) / 100;
+  const totalFinal = Math.round(precoLiquido * 100) / 100;
 
   const linhas: { rot: string; val: number; destaque?: boolean; positivo?: boolean }[] = [
     { rot: "Tarifa (base)", val: tarifa },

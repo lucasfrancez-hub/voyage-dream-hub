@@ -67,7 +67,8 @@ const rotuloStatus: Record<string, { texto: string; cor: string }> = {
   aguardando: { texto: "Aguardando pagamento", cor: "cons-status-pay" },
   recebido: { texto: "Recebido — repassando", cor: "cons-status-res" },
   repassado: { texto: "Pago à consolidadora", cor: "cons-status-ok" },
-  falha_repasse: { texto: "Falha no repasse", cor: "cons-status-pay" },
+  repassando: { texto: "Enviando à consolidadora", cor: "cons-status-res" },
+  falha_repasse: { texto: "Erro no pagamento", cor: "cons-status-pay" },
   cancelado: { texto: "Cancelado", cor: "cons-status-pay" },
   estornado: { texto: "Estornado", cor: "cons-status-pay" },
 };
@@ -581,10 +582,20 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
                     ) : null}
                   </div>
                 ) : (
-                  <p className="text-[13px]">
-                    Pago à consolidadora <b>{brl(p.repasseValor ?? p.valorPasshub)}</b>
-                    {p.repasseEm ? ` em ${new Date(p.repasseEm).toLocaleString("pt-BR")}` : ""}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-[13px]">
+                      {p.status === "repassado"
+                        ? "Pago à consolidadora"
+                        : p.status === "falha_repasse"
+                          ? "Não foi pago à consolidadora"
+                          : "Enviando à consolidadora"}{" "}
+                      <b>{brl(p.repasseValor ?? p.valorPasshub)}</b>
+                      {p.repasseEm ? ` em ${new Date(p.repasseEm).toLocaleString("pt-BR")}` : ""}
+                    </p>
+                    {p.repasseErro ? (
+                      <p className="text-[11px] text-red-300">{p.repasseErro}</p>
+                    ) : null}
+                  </div>
                 )}
               </div>
             );

@@ -18,6 +18,7 @@ import {
   decodeAsaasPixBrCode,
   ensureAsaasCustomer,
   getAsaasBalance,
+  getAsaasTransfer,
   payAsaasPixBrCode,
 } from "@/lib/asaas.server";
 import { passhubPixDoLink } from "./pix.server";
@@ -285,6 +286,25 @@ async function pagarBrCode(opts: {
   };
 }
 
+/** Traduz o status bruto do ASAAS para o status do pagamento da reserva. */
+export function statusRepasse(bruto: string | null | undefined): {
+  status: "repassado" | "falha_repasse" | "repassando";
+  erro: string | null;
+} {
+  const s = String(bruto ?? "").toUpperCase();
+  if (s === "DONE") return { status: "repassado", erro: null };
+  if (s === "FAILED" || s === "CANCELLED" || s === "CANCELED" || s === "REFUSED" || s === "REFUNDED") {
+    return {
+      status: "falha_repasse",
+      erro:
+        s === "REFUNDED"
+          ? "O Pix foi estornado pela consolidadora."
+          : "O ASAAS recusou/cancelou a transferência (autorização externa recusada).",
+    };
+  }
+  return { status: "repassando", erro: null };
+}
+
 /* ------------------------------------------------------------------ *
  * 2.a) Conferência antes de pagar (tela de revisão)
  * ------------------------------------------------------------------ */
@@ -374,6 +394,7 @@ export async function pagarReservaAgora(alvo: {
     criadoPor: alvo.criadoPor ?? null,
   });
 
+  const resultado = statusRepasse(pago.status);
 
   const { data, error } = await supabaseAdmin
     .from("passhub_pagamentos")
@@ -387,18 +408,24 @@ export async function pagarReservaAgora(alvo: {
       passhub_brcode: brcode,
 
       passhub_link: link,
-      status: "repassado",
+      status: resultado.status,
       repasse_transfer_id: pago.transferId,
       repasse_status: pago.status,
       repasse_valor: pago.valor,
-      repasse_em: new Date().toISOString(),
+      repasse_erro: resultado.erro,
+      repasse_em: resultado.status === "repassado" ? new Date().toISOString() : null,
       auto_repasse: false,
       criado_por: alvo.criadoPor ?? null,
     })
     .select("*")
     .single();
 
-  if (error) throw new Error(`Pix pago, mas falhou o registro: ${error.message}`);
+  if (error) throw new Error(`Pix enviado, mas falhou o registro: ${error.message}`);
+  if (resultado.status === "falha_repasse") {
+    throw Object.assign(new Error(resultado.erro ?? "Falha no pagamento à consolidadora."), {
+      pagamento: mapear(data as Record<string, any>),
+    });
+  }
   return mapear(data as Record<string, any>);
 }
 
@@ -428,20 +455,26 @@ export async function repassarPagamento(id: string): Promise<PagamentoReserva> {
       criadoPor: row.criado_por ?? null,
     });
 
+    const resultado = statusRepasse(pago.status);
     const { data } = await supabaseAdmin
       .from("passhub_pagamentos")
       .update({
-        status: "repassado",
+        status: resultado.status,
         passhub_brcode: pix.copiaECola,
         repasse_transfer_id: pago.transferId,
         repasse_status: pago.status,
         repasse_valor: pago.valor,
-        repasse_em: new Date().toISOString(),
-        repasse_erro: null,
+        repasse_em: resultado.status === "repassado" ? new Date().toISOString() : null,
+        repasse_erro: resultado.erro,
       })
       .eq("id", row.id)
       .select("*")
       .single();
+    if (resultado.status === "falha_repasse") {
+      throw Object.assign(new Error(resultado.erro ?? "Falha no repasse."), {
+        pagamento: data ? mapear(data) : null,
+      });
+    }
     return mapear((data ?? row) as Record<string, any>);
   } catch (e) {
     const erro = e instanceof Error ? e.message : "Falha ao repassar";
@@ -510,12 +543,48 @@ export async function processarWebhookPagamentoReserva(body: any): Promise<{ han
   }
 }
 
-/** Pagamentos registrados de uma reserva. */
+/**
+ * Reconfere no ASAAS o status real das transferências ainda em andamento e
+ * grava falhas/recusas no pagamento. Chamado pelo botão "Atualizar".
+ */
+async function sincronizarRepasses(rows: Record<string, any>[]) {
+  const pendentes = rows.filter(
+    (r) => r.repasse_transfer_id && ["repassando", "repassado"].includes(String(r.status)),
+  );
+  for (const r of pendentes) {
+    try {
+      const t: any = await getAsaasTransfer(String(r.repasse_transfer_id));
+      const bruto = String(t?.status ?? "").toUpperCase();
+      if (!bruto || bruto === String(r.repasse_status ?? "").toUpperCase()) continue;
+      const resultado = statusRepasse(bruto);
+      const patch = {
+        status: resultado.status,
+        repasse_status: bruto,
+        repasse_erro: resultado.erro ?? t?.failReason ?? null,
+        repasse_em: resultado.status === "repassado" ? r.repasse_em ?? new Date().toISOString() : null,
+      };
+      await supabaseAdmin.from("passhub_pagamentos").update(patch).eq("id", r.id);
+      Object.assign(r, patch);
+      if (r.repasse_transfer_id) {
+        await supabaseAdmin
+          .from("asaas_transfers")
+          .update({ asaas_status: bruto, fail_reason: t?.failReason ?? null })
+          .eq("asaas_transfer_id", String(r.repasse_transfer_id));
+      }
+    } catch (e) {
+      console.error("[passhub-pagamento] sync transferência falhou:", (e as Error).message);
+    }
+  }
+}
+
+/** Pagamentos registrados de uma reserva (com status do repasse atualizado). */
 export async function listarPagamentosReserva(idPassagem: number): Promise<PagamentoReserva[]> {
   const { data } = await supabaseAdmin
     .from("passhub_pagamentos")
     .select("*")
     .eq("id_passagem", idPassagem)
     .order("created_at", { ascending: false });
-  return (data ?? []).map((r) => mapear(r as Record<string, any>));
+  const rows = (data ?? []) as Record<string, any>[];
+  await sincronizarRepasses(rows);
+  return rows.map((r) => mapear(r));
 }
