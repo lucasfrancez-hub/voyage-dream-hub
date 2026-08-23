@@ -624,6 +624,9 @@ function ReservasPage() {
                 <tbody>
                   {filtradas.map((r) => (
                     <tr key={r.idPassagem} onClick={() => setAberta(r)}>
+                      <td>
+                        <BadgeFonte tipo="consolidadora" />
+                      </td>
                       <td className="font-mono font-black tracking-widest">
                         {r.localizador || "—"}
                         {bilhetes[String(r.idPassagem)]?.length ? (
