@@ -120,8 +120,11 @@ export async function applyPromotionPriceOverride(input: PriceOverrideInput) {
       price_per_passenger: n2(perPax),
       airline_iata: airlineIata,
       airline_name: airlineName,
+      ...(novaCia ? { airline_logo: novaCia.logo ?? null } : {}),
       inbound_airline_iata: inboundIata,
       inbound_airline_name: inboundName,
+      ...(novaCia ? { inbound_airline_logo: promo.inbound_airline_iata ? (novaCia.logo ?? null) : null } : {}),
+
       interest_free_installments: cond.interestFree.installments,
       interest_free_installment_value: n2(cond.interestFree.installmentValue),
       airline_rule: JSON.parse(JSON.stringify(cond.airlineRule)) as unknown,
