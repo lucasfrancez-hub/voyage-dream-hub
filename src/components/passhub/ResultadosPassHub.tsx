@@ -1506,26 +1506,47 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
                 <div className="cons-lab">Total da viagem (ida e volta)</div>
                 <div className="text-[24px] font-black tracking-tight">{brl(totalFinal)}</div>
               </div>
-              <button
-                type="button"
-                className="cons-btn cons-btn-primary h-11 px-6 text-[14px] font-black"
-                onClick={() => {
-                  // Envia só o par escolhido (ida + a volta selecionada),
-                  // nunca a lista inteira de voltas combináveis da oferta.
-                  const ida = pernaIda?.voo ?? ofertaFinal.ida;
-                  const voltasSel = pernaVolta ? [pernaVolta.voo] : [];
-                  onReservar({
-                    ...ofertaFinal,
-                    ida,
-                    voltas: voltasSel,
-                    // Preço fechado da viagem (não é soma de trechos).
-                    precoTotal:
-                      (pernaVolta?.voo.precoTotal || ida.precoTotal) || ofertaFinal.precoTotal,
-                  });
-                }}
-              >
-                Reservar
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {onOrcamento && (
+                  <button
+                    type="button"
+                    className="cons-btn h-11 px-5 text-[13px] font-bold"
+                    onClick={() => {
+                      onOrcamento(
+                        {
+                          ...ofertaFinal,
+                          ida: pernaIda?.voo ?? ofertaFinal.ida,
+                          voltas: pernaVolta ? [pernaVolta.voo] : [],
+                        },
+                        totalFinal,
+                      );
+                    }}
+                  >
+                    Gerar orçamento
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="cons-btn cons-btn-primary h-11 px-6 text-[14px] font-black"
+                  onClick={() => {
+                    // Envia só o par escolhido (ida + a volta selecionada),
+                    // nunca a lista inteira de voltas combináveis da oferta.
+                    const ida = pernaIda?.voo ?? ofertaFinal.ida;
+                    const voltasSel = pernaVolta ? [pernaVolta.voo] : [];
+                    onReservar({
+                      ...ofertaFinal,
+                      ida,
+                      voltas: voltasSel,
+                      // Preço fechado da viagem (não é soma de trechos).
+                      precoTotal:
+                        (pernaVolta?.voo.precoTotal || ida.precoTotal) || ofertaFinal.precoTotal,
+                    });
+                  }}
+                >
+                  Reservar
+                </button>
+              </div>
+
             </div>
           </section>
 
