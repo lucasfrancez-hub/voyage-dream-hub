@@ -14,7 +14,12 @@ export type AirlineRule = {
   /** só permite exatamente esses números de parcela (ex.: Emirates 3/5/9) */
   only?: number[];
   obs?: string;
+  /** Sobrescreve a regra quando o voo é INTERNACIONAL (ex.: Azul até 10x). */
+  intl?: Omit<AirlineRule, "intl">;
 };
+
+/** Opções de contexto do voo. */
+export type InstallmentContext = { international?: boolean };
 
 /** Câmbio aproximado só pra converter parcela mínima em USD. */
 const USD_BRL = 5.5;
@@ -24,7 +29,7 @@ const RULES: Array<{ name: string; iata: string; match: RegExp; rule: AirlineRul
   // Nacionais
   { name: "LATAM Airlines", iata: "LA", match: /latam|\btam\b|^(LA|JJ)$/i, rule: { max: 4, min: 70 } },
   { name: "GOL Linhas Aéreas", iata: "G3", match: /\bgol\b|^G3$/i, rule: { max: 5, min: 100 } },
-  { name: "Azul Linhas Aéreas", iata: "AD", match: /azul|^AD$/i, rule: { max: 5, min: 120 } },
+  { name: "Azul Linhas Aéreas", iata: "AD", match: /azul|^AD$/i, rule: { max: 5, min: 120, intl: { max: 10, min: 120 } } },
   // Internacionais
   { name: "Aerolíneas Argentinas", iata: "AR", match: /aerol[ií]neas|^AR$/i, rule: { max: 12, min: 80, currency: "USD" } },
   { name: "Aeroméxico", iata: "AM", match: /aerom[eé]xico|^AM$/i, rule: { max: 12, min: 80 } },
@@ -97,11 +102,16 @@ export function ruleMinLabel(rule: AirlineRule): string {
 
 const FALLBACK: AirlineRule = { max: 4, min: 100 };
 
-export function airlineRule(airline?: string | null): AirlineRule {
+export function airlineRule(
+  airline?: string | null,
+  ctx?: InstallmentContext,
+): AirlineRule {
   const s = (airline ?? "").trim();
-  if (!s) return FALLBACK;
-  for (const r of RULES) if (r.match.test(s)) return r.rule;
-  return FALLBACK;
+  const apply = (rule: AirlineRule): AirlineRule =>
+    ctx?.international && rule.intl ? { ...rule, ...rule.intl } : rule;
+  if (!s) return apply(FALLBACK);
+  for (const r of RULES) if (r.match.test(s)) return apply(r.rule);
+  return apply(FALLBACK);
 }
 
 /** Parcela mínima em reais (converte USD por aproximação). */
@@ -117,8 +127,9 @@ function minBRL(rule: AirlineRule): number {
 export function bestInstallments(
   total: number,
   airline?: string | null,
+  ctx?: InstallmentContext,
 ): { parcelas: number; valor: number } {
-  const rule = airlineRule(airline);
+  const rule = airlineRule(airline, ctx);
   const min = minBRL(rule);
   const permitidas = rule.only ?? Array.from({ length: rule.max }, (_, i) => i + 1);
   const ordenadas = [...permitidas].sort((a, b) => b - a);
@@ -129,8 +140,12 @@ export function bestInstallments(
   return { parcelas: 1, valor: total };
 }
 
-export function installmentLabelFor(total: number, airline?: string | null): string {
-  const { parcelas, valor } = bestInstallments(total, airline);
+export function installmentLabelFor(
+  total: number,
+  airline?: string | null,
+  ctx?: InstallmentContext,
+): string {
+  const { parcelas, valor } = bestInstallments(total, airline, ctx);
   const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   return parcelas <= 1 ? `à vista ${brl(total)}` : `${parcelas}x de ${brl(valor)} sem juros`;
 }
