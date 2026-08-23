@@ -3,7 +3,7 @@
  *
  * Regra do negócio: o valor de venda NUNCA é calculado localmente. Ele é
  * sempre o que a PassHub devolve na tarifação com o percentual configurado
- * (comissão = RAV + incentivo). Este cache garante que a lista, o
+ * (o incentivo já está embutido no preço; somente a RAV é adicional). Este cache garante que a lista, o
  * detalhamento, o resumo e a tela de reserva mostrem exatamente o mesmo valor.
  */
 import { useCallback, useEffect, useSyncExternalStore } from "react";

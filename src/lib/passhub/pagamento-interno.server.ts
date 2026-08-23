@@ -185,6 +185,7 @@ async function pagarBrCode(opts: {
   valor: number;
   referencia: string;
   descricao: string;
+  criadoPor?: string | null;
   /** Valor que o operador viu na tela de conferência. */
   valorEsperado?: number | null;
 }) {
@@ -212,12 +213,69 @@ async function pagarBrCode(opts: {
 
   // O ASAAS exige `value` mesmo em QR com valor fixo ("Informe o valor a ser
   // transferido"); enviamos sempre o valor decodificado (ou o informado).
-  const transfer = await payAsaasPixBrCode({
-    payload: opts.brcode,
-    value: valor,
-    description: opts.descricao,
-    externalReference: opts.referencia,
-  });
+  // A conta ASAAS usa autorização externa para toda saída. O webhook só
+  // aprova transferências que já existam em `asaas_transfers`, portanto o
+  // registro precisa ser criado ANTES da chamada /pix/qrCodes/pay. Usamos o
+  // UUID local como externalReference para o webhook correlacionar a saída.
+  const tentativa = crypto.randomUUID();
+  const { data: registro, error: registroErro } = await supabaseAdmin
+    .from("asaas_transfers")
+    .insert({
+      status: "pendente",
+      idempotency_key: `${opts.referencia}-${tentativa}`,
+      favored_name: info?.receiverName || "Consolidadora",
+      pix_key: `brcode:${tentativa}`,
+      pix_key_type: "QR_CODE",
+      cpf_cnpj: info?.receiverDocument ?? null,
+      bank_name: info?.bankName ?? null,
+      value: valor,
+      description: opts.descricao,
+      origin: "outro",
+      created_by: opts.criadoPor ?? null,
+    })
+    .select("id")
+    .single();
+  if (registroErro || !registro?.id) {
+    throw new Error(`Não foi possível preparar a autorização do Pix: ${registroErro?.message ?? "registro ausente"}`);
+  }
+
+  let transfer: any;
+  try {
+    transfer = await payAsaasPixBrCode({
+      payload: opts.brcode,
+      value: valor,
+      description: opts.descricao,
+      externalReference: registro.id,
+    });
+    const bruto = String(transfer?.status ?? "PENDING").toUpperCase();
+    const status = bruto === "DONE"
+      ? "concluido"
+      : bruto === "FAILED"
+        ? "falhou"
+        : bruto === "CANCELLED" || bruto === "CANCELED"
+          ? "cancelado"
+          : bruto === "BANK_PROCESSING" || bruto === "IN_BANK_PROCESSING"
+            ? "processando"
+            : "pendente";
+    await supabaseAdmin
+      .from("asaas_transfers")
+      .update({
+        asaas_transfer_id: transfer?.id ?? null,
+        status,
+        asaas_status: bruto,
+        effective_date: transfer?.effectiveDate ?? null,
+        receipt_url: transfer?.transactionReceiptUrl ?? null,
+        raw_response: transfer ?? null,
+      })
+      .eq("id", registro.id);
+  } catch (error) {
+    const mensagem = error instanceof Error ? error.message : "Falha ao pagar Pix";
+    await supabaseAdmin
+      .from("asaas_transfers")
+      .update({ status: "falhou", fail_reason: mensagem })
+      .eq("id", registro.id);
+    throw error;
+  }
 
   return {
     transferId: String(transfer?.id ?? ""),
@@ -313,6 +371,7 @@ export async function pagarReservaAgora(alvo: {
     valorEsperado: alvo.valorEsperado ?? null,
     referencia: `passhub-pagamento-${alvo.idPassagem}`,
     descricao: `Pagamento reserva ${alvo.localizador || alvo.idPassagem} — consolidadora`,
+    criadoPor: alvo.criadoPor ?? null,
   });
 
 
@@ -366,6 +425,7 @@ export async function repassarPagamento(id: string): Promise<PagamentoReserva> {
       valor: dinheiro(pix.valor || row.valor_passhub),
       referencia: `passhub-repasse-${row.id}`,
       descricao: `Repasse reserva ${row.localizador || row.id_passagem} — consolidadora`,
+      criadoPor: row.criado_por ?? null,
     });
 
     const { data } = await supabaseAdmin
