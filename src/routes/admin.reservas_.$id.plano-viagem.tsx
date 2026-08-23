@@ -100,8 +100,10 @@ function paraComprovante(r: PassHubReservaLista): ComprovanteReservaDados {
     total: r.totalVenda || r.preco,
     passageiros: (r.passageirosDetalhe?.length
       ? r.passageirosDetalhe.map((p) => ({
-          nome: p.nome,
+          nome: [p.nome, p.sobrenome].filter(Boolean).join(" ").trim() || p.nome,
           tipo: p.tipo,
+          documento: p.documento,
+          documentoTipo: p.documentoTipo,
           nascimento: p.nascimento,
         }))
       : (r.passageiros ?? []).map((nome) => ({ nome, tipo: "ADT" }))

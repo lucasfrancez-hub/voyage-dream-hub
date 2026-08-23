@@ -26,6 +26,8 @@ export type ComprovanteVoo = {
 export type ComprovantePax = {
   nome: string;
   tipo: string;
+  documento?: string;
+  documentoTipo?: string;
   nascimento?: string;
   bilhete?: string;
   emissao?: string;
@@ -410,14 +412,18 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
                   <div className="small-label">Tipo</div>
                   <div className="small-value">{tipoPax(p.tipo)}</div>
                 </div>
-                {p.nascimento ? (
-                  <div>
-                    <div className="small-label">Nascimento</div>
-                    <div className="small-value">{dataBR(p.nascimento)}</div>
+                <div>
+                  <div className="small-label">
+                    {p.documentoTipo === "passport" ? "Passaporte" : "CPF"}
                   </div>
-                ) : (
-                  <div />
-                )}
+                  <div className="small-value">{p.documento || "—"}</div>
+                </div>
+                <div>
+                  <div className="small-label">Nascimento</div>
+                  <div className="small-value">
+                    {p.nascimento ? dataBR(p.nascimento) : "—"}
+                  </div>
+                </div>
                 <div>
                   <div className="small-label">Status</div>
                   <div className="small-value">{dados.emitido ? "Emitido" : "Reservado"}</div>
