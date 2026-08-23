@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Loader2, Luggage, Plane, Printer, RefreshCw, Search } from "lucide-react";
 import { passhubReservas } from "@/lib/passhub/passhub.functions";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
+import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 
 export const Route = createFileRoute("/admin/bilhetes")({
   component: BilhetesPage,
@@ -204,7 +205,7 @@ function DetalheBilhete({ r, onVoltar }: { r: PassHubReservaLista; onVoltar: () 
             </div>
             <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
               <span className="cons-muted">Emissor</span>
-              <b>{r.emissor || "—"}</b>
+              <b>{nomeProprio(r.emissor) || "—"}</b>
             </div>
             <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
               <span className="cons-muted">Fornecedor</span>
