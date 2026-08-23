@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -30,6 +30,8 @@ import {
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 import { BadgeCia } from "@/components/passhub/ResultadosPassHub";
+import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
+import { BadgeFonte, FiltroFonte, type FonteReserva } from "@/components/passhub/FiltroFonte";
 
 export const Route = createFileRoute("/admin/bilhetes")({
   component: BilhetesPage,
@@ -382,7 +384,10 @@ function DetalheBilhete({ r, onVoltar }: { r: PassHubReservaLista; onVoltar: () 
 function BilhetesPage() {
   const listar = useServerFn(passhubReservas);
   const listarBilhetes = useServerFn(passhubBilhetesLista);
+  const listarPedidos = useServerFn(pedidosReservasAereas);
+  const navigate = useNavigate();
   const [busca, setBusca] = useState("");
+  const [fonte, setFonte] = useState<FonteReserva>("todas");
   const [aberto, setAberto] = useState<PassHubReservaLista | null>(null);
 
   const { data, isFetching, refetch } = useQuery({
@@ -409,9 +414,21 @@ function BilhetesPage() {
     return map;
   }, [bilhetesData]);
 
+  const pedidosQuery = useQuery({
+    queryKey: ["pedidos-reservas-aereas"],
+    queryFn: () => listarPedidos({ data: undefined }),
+    staleTime: 60_000,
+  });
+  // Dos pedidos, só entram aqui os que já têm número de bilhete.
+  const todosPedidos = useMemo(
+    () => (pedidosQuery.data?.ok ? pedidosQuery.data.reservas : []).filter((r) => r.bilhetes.length),
+    [pedidosQuery.data],
+  );
+
   const erro = data && !data.ok ? data.erro : null;
   const todos = useMemo(() => (data?.ok ? data.reservas : []).filter(emitido), [data]);
   const bilhetes = useMemo(() => {
+    if (fonte === "pedidos") return [];
     const q = busca.trim().toLowerCase();
     if (!q) return todos;
     return todos.filter((r) => {
@@ -428,7 +445,31 @@ function BilhetesPage() {
         .toLowerCase();
       return campos.includes(q);
     });
-  }, [todos, busca, numerosPorReserva]);
+  }, [todos, busca, numerosPorReserva, fonte]);
+
+  const bilhetesPedidos = useMemo(() => {
+    if (fonte === "consolidadora") return [];
+    const q = busca.trim().toLowerCase();
+    if (!q) return todosPedidos;
+    return todosPedidos.filter((r) =>
+      [
+        r.localizador,
+        r.localizadorCompanhia,
+        r.orderNumber,
+        r.cliente,
+        r.origem,
+        r.destino,
+        r.companhia,
+        ...r.passageiros,
+        ...r.bilhetes,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [todosPedidos, busca, fonte]);
+
+  const vazio = bilhetes.length === 0 && bilhetesPedidos.length === 0;
 
   const totalVendido = todos.reduce((s, r) => s + (r.totalVenda || r.preco), 0);
   const totalComissao = todos.reduce((s, r) => s + r.comissao + (r.comissaoExtra || 0), 0);
@@ -462,7 +503,10 @@ function BilhetesPage() {
                 <button
                   type="button"
                   className="cons-btn"
-                  onClick={() => refetch()}
+                  onClick={() => {
+                    void refetch();
+                    void pedidosQuery.refetch();
+                  }}
                   disabled={isFetching}
                 >
                   {isFetching ? (
@@ -475,9 +519,15 @@ function BilhetesPage() {
               </div>
             </header>
 
+            <FiltroFonte
+              valor={fonte}
+              onChange={setFonte}
+              contagens={{ consolidadora: todos.length, pedidos: todosPedidos.length }}
+            />
+
             <div className="grid gap-3 sm:grid-cols-3">
               {[
-                { l: "Bilhetes", v: String(todos.length) },
+                { l: "Bilhetes", v: String(todos.length + todosPedidos.length) },
                 { l: "Total vendido", v: brl(totalVendido) },
                 { l: "Comissão acumulada", v: brl(totalComissao) },
               ].map((c) => (
@@ -500,6 +550,7 @@ function BilhetesPage() {
               <table className="cons-table min-w-[1180px]">
                 <thead>
                   <tr>
+                    <th>Origem</th>
                     <th>Companhia</th>
                     <th>Localizador</th>
                     <th>Loc. cia</th>
@@ -518,6 +569,9 @@ function BilhetesPage() {
                     const numeroBilhete = numerosPorReserva[r.idPassagem];
                     return (
                       <tr key={r.idPassagem} onClick={() => setAberto(r)}>
+                        <td>
+                          <BadgeFonte tipo="consolidadora" />
+                        </td>
                         <td>
                           <BadgeCia codigo={r.companhia} nome={r.companhia || r.provedor} />
                         </td>
@@ -558,9 +612,53 @@ function BilhetesPage() {
                       </tr>
                     );
                   })}
-                  {!isFetching && bilhetes.length === 0 && !erro && (
+                  {bilhetesPedidos.map((r) => (
+                    <tr
+                      key={r.orderId}
+                      onClick={() => navigate({ to: "/admin/pedidos/$id", params: { id: r.orderId } })}
+                    >
+                      <td>
+                        <BadgeFonte tipo="pedidos" />
+                      </td>
+                      <td>
+                        <BadgeCia codigo={r.companhia} nome={r.companhia || "—"} />
+                      </td>
+                      <td className="font-mono font-black tracking-widest">
+                        {r.localizador || "—"}
+                      </td>
+                      <td className="font-mono">{r.localizadorCompanhia || "—"}</td>
+                      <td>
+                        <span className="font-mono text-[13px] font-black">{r.bilhetes[0]}</span>
+                        {r.bilhetes.length > 1 ? (
+                          <span className="ml-1 text-[11px] cons-muted">
+                            +{r.bilhetes.length - 1}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td>{dataHora(r.criadaEm)}</td>
+                      <td>{dataCurta(r.dataIda)}</td>
+                      <td className="max-w-[220px] truncate">
+                        {r.passageiros.map(nomeProprio).join(" · ") || r.cliente || "—"}
+                      </td>
+                      <td>
+                        {r.origem || "—"}-{r.destino || "—"}
+                      </td>
+                      <td>
+                        <span className="cons-status cons-status-ok">
+                          Pedido {r.orderNumber}
+                        </span>
+                      </td>
+                      <td className="font-bold">{brl(r.total)}</td>
+                      <td>
+                        <div className="cons-open">
+                          <Search className="h-3.5 w-3.5" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!isFetching && vazio && !erro && (
                     <tr>
-                      <td colSpan={11} className="py-8 text-center cons-muted">
+                      <td colSpan={12} className="py-8 text-center cons-muted">
                         Nenhum bilhete emitido até agora.
                       </td>
                     </tr>

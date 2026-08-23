@@ -11,7 +11,9 @@ import { BlocoBilhete } from "@/components/passhub/BlocoBilhete";
 
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 import { useMemo, useState, type ReactNode } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
+import { BadgeFonte, FiltroFonte, type FonteReserva } from "@/components/passhub/FiltroFonte";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -452,7 +454,10 @@ function DetalheReserva({
 
 function ReservasPage() {
   const listar = useServerFn(passhubReservas);
+  const listarPedidos = useServerFn(pedidosReservasAereas);
+  const navigate = useNavigate();
   const [busca, setBusca] = useState("");
+  const [fonte, setFonte] = useState<FonteReserva>("todas");
   const [aberta, setAberta] = useState<PassHubReservaLista | null>(null);
 
   const { data, isFetching, refetch } = useQuery({
@@ -461,7 +466,14 @@ function ReservasPage() {
     staleTime: 60_000,
   });
 
+  const pedidosQuery = useQuery({
+    queryKey: ["pedidos-reservas-aereas"],
+    queryFn: () => listarPedidos({ data: undefined }),
+    staleTime: 60_000,
+  });
+
   const reservas = data?.ok ? data.reservas : [];
+  const reservasPedidos = pedidosQuery.data?.ok ? pedidosQuery.data.reservas : [];
   const erro = data && !data.ok ? data.erro : null;
 
   // Toda reserva emitida tem o bilhete buscado sozinho (cache ou leitura do PDF).
@@ -487,6 +499,7 @@ function ReservasPage() {
     bilhetesQuery.data && bilhetesQuery.data.ok ? (bilhetesQuery.data.bilhetes as never) : {};
 
   const filtradas = useMemo(() => {
+    if (fonte === "pedidos") return [];
     const q = busca.trim().toLowerCase();
     if (!q) return reservas;
     return reservas.filter((r) =>
@@ -495,7 +508,31 @@ function ReservasPage() {
         .toLowerCase()
         .includes(q),
     );
-  }, [reservas, busca]);
+  }, [reservas, busca, fonte]);
+
+  const filtradasPedidos = useMemo(() => {
+    if (fonte === "consolidadora") return [];
+    const q = busca.trim().toLowerCase();
+    if (!q) return reservasPedidos;
+    return reservasPedidos.filter((r) =>
+      [
+        r.localizador,
+        r.localizadorCompanhia,
+        r.orderNumber,
+        r.cliente,
+        r.origem,
+        r.destino,
+        r.companhia,
+        ...r.passageiros,
+        ...r.bilhetes,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [reservasPedidos, busca, fonte]);
+
+  const vazio = filtradas.length === 0 && filtradasPedidos.length === 0;
 
   return (
     <div className="cons">
@@ -532,7 +569,10 @@ function ReservasPage() {
                 <button
                   type="button"
                   className="cons-btn"
-                  onClick={() => refetch()}
+                  onClick={() => {
+                    void refetch();
+                    void pedidosQuery.refetch();
+                  }}
                   disabled={isFetching}
                 >
                   {isFetching ? (
@@ -544,6 +584,15 @@ function ReservasPage() {
                 </button>
               </div>
             </header>
+
+            <FiltroFonte
+              valor={fonte}
+              onChange={setFonte}
+              contagens={{
+                consolidadora: reservas.length,
+                pedidos: reservasPedidos.length,
+              }}
+            />
 
             {erro && (
               <div className="cons-card p-3 text-[13px] text-[#ffd6d6]">{erro}</div>
@@ -559,6 +608,7 @@ function ReservasPage() {
               <table className="cons-table min-w-[1080px]">
                 <thead>
                   <tr>
+                    <th>Origem</th>
                     <th>Localizador</th>
                     <th>Loc. cia</th>
                     <th>Passageiro</th>
@@ -573,6 +623,9 @@ function ReservasPage() {
                 <tbody>
                   {filtradas.map((r) => (
                     <tr key={r.idPassagem} onClick={() => setAberta(r)}>
+                      <td>
+                        <BadgeFonte tipo="consolidadora" />
+                      </td>
                       <td className="font-mono font-black tracking-widest">
                         {r.localizador || "—"}
                         {bilhetes[String(r.idPassagem)]?.length ? (
@@ -608,9 +661,49 @@ function ReservasPage() {
                       </td>
                     </tr>
                   ))}
-                  {!isFetching && filtradas.length === 0 && !erro && (
+                  {filtradasPedidos.map((r) => (
+                    <tr
+                      key={r.orderId}
+                      onClick={() =>
+                        navigate({ to: "/admin/pedidos/$id", params: { id: r.orderId } })
+                      }
+                    >
+                      <td>
+                        <BadgeFonte tipo="pedidos" />
+                      </td>
+                      <td className="font-mono font-black tracking-widest">
+                        {r.localizador || "—"}
+                        {r.bilhetes.length ? (
+                          <div className="mt-1 text-[10px] font-bold tracking-normal cons-muted">
+                            Bilhete {r.bilhetes[0]}
+                            {r.bilhetes.length > 1 ? ` +${r.bilhetes.length - 1}` : ""}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="font-mono">{r.localizadorCompanhia || "—"}</td>
+                      <td className="max-w-[220px] truncate">
+                        {r.passageiros.map(nomeProprio).join(" · ") || r.cliente || "—"}
+                      </td>
+                      <td>
+                        {r.origem || "—"} → {r.destino || "—"}
+                        {r.dataIda ? ` · ${dataCurta(r.dataIda)}` : ""}
+                      </td>
+                      <td>{dataHora(r.criadaEm)}</td>
+                      <td className="cons-muted">Pedido {r.orderNumber}</td>
+                      <td>
+                        <StatusBadge status={r.status} />
+                      </td>
+                      <td className="font-bold">{brl(r.total)}</td>
+                      <td>
+                        <div className="cons-open">
+                          <Search className="h-3.5 w-3.5" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!isFetching && vazio && !erro && (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center cons-muted">
+                      <td colSpan={10} className="py-8 text-center cons-muted">
                         Nenhuma reserva encontrada.
                       </td>
                     </tr>
