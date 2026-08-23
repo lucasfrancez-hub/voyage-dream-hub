@@ -802,6 +802,7 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
   const [brand, setBrand] = useState(cartao.brands[0] ?? "VISA");
   const [instCartao, setInstCartao] = useState<number | null>(null);
 
+  const manualBoleto = boleto.manual ?? null;
   const temFinanciado = boleto.installments.length > 0;
   const temAteViagem = !!boleto.untilTravel?.enabled;
   const [modo, setModo] = useState<"FIN" | "VIAGEM">(temFinanciado ? "FIN" : "VIAGEM");
@@ -891,6 +892,25 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
 
       {tab === "BOLETO" ? (
         <div className="vq-boleto-box">
+          {manualBoleto ? (
+            <div className="vq-manual-pay">
+              {manualBoleto.entrada ? (
+                <p className="vq-boleto-title">Entrada de {brl(manualBoleto.entrada)}</p>
+              ) : null}
+              <div className="vq-installments">
+                <div className="vq-inst">
+                  <span>{manualBoleto.installments}x</span>
+                  <strong>{brl(manualBoleto.amount)}</strong>
+                </div>
+              </div>
+              <p className="vq-boleto-note">
+                {manualBoleto.dueDate
+                  ? `Quitação até ${brDateIso(manualBoleto.dueDate)}. `
+                  : ""}
+                {manualBoleto.note ?? ""}
+              </p>
+            </div>
+          ) : null}
           <div className="vq-subtabs">
             {temFinanciado ? (
               <button
@@ -914,7 +934,7 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
             ) : null}
           </div>
 
-          {modo === "FIN" && temFinanciado ? (
+          {!manualBoleto && modo === "FIN" && temFinanciado ? (
             <>
               <p className="vq-boleto-title">Escolha a quantidade de pagamentos</p>
               <div className="vq-installments">
@@ -942,7 +962,7 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
             </>
           ) : null}
 
-          {modo === "VIAGEM" && temAteViagem ? (
+          {!manualBoleto && modo === "VIAGEM" && temAteViagem ? (
             <>
               <p className="vq-boleto-title">Escolha a quantidade de pagamentos</p>
               <div className="vq-installments">
@@ -985,6 +1005,13 @@ function PaymentBox({ quote }: { quote: PublicQuote }) {
             <strong>{brl(pix.total)}</strong>
           </div>
         </div>
+      ) : null}
+
+      {quote.payment.dueDate || quote.payment.note ? (
+        <p className="vq-boleto-note">
+          {quote.payment.dueDate ? `Pagamento até ${brDateIso(quote.payment.dueDate)}. ` : ""}
+          {quote.payment.note ?? ""}
+        </p>
       ) : null}
 
       {detalhe ? (
