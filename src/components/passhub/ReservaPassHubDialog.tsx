@@ -424,7 +424,7 @@ export function ReservaPassHubDialog({
                             <td className="px-3 py-2 text-primary">{brl(comissao)}</td>
                             <td className="px-3 py-2">{brl(base)}</td>
                             <td className="px-3 py-2">{brl(tx)}</td>
-                            <td className="px-3 py-2 font-bold">{brl(base + tx + comissao)}</td>
+                            <td className="px-3 py-2 font-bold">{brl(base + tx)}</td>
                           </tr>
                         );
                       })}
