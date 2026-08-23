@@ -451,9 +451,17 @@ function ReservasPage() {
   const listar = useServerFn(passhubReservas);
   const listarPedidos = useServerFn(pedidosReservasAereas);
   const navigate = useNavigate();
-  const [busca, setBusca] = useState("");
-  const [fonte, setFonte] = useState<FonteReserva>("consolidadora");
+  const { q: qUrl } = Route.useSearch();
+  const [busca, setBusca] = useState(qUrl ?? "");
+  const [fonte, setFonte] = useState<FonteReserva>(qUrl ? "todas" : "consolidadora");
   const [aberta, setAberta] = useState<PassHubReservaLista | null>(null);
+
+  useEffect(() => {
+    if (qUrl) {
+      setBusca(qUrl);
+      setFonte("todas");
+    }
+  }, [qUrl]);
 
   const { data, isFetching, refetch } = useQuery({
     queryKey: ["passhub-reservas"],
