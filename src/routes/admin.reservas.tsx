@@ -14,6 +14,8 @@ import {
   QrCode,
   RefreshCw,
   Search,
+  Send,
+
   Users,
   XCircle,
 } from "lucide-react";
@@ -112,6 +114,7 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
   const [link, setLink] = useState(r.linkPagamento);
   const [copiado, setCopiado] = useState(false);
   const [pixCopiado, setPixCopiado] = useState(false);
+  const [clienteCopiado, setClienteCopiado] = useState(false);
   const [pix, setPix] = useState<{
     copiaECola: string;
     qrCodeBase64: string;
@@ -164,6 +167,21 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
     setTimeout(() => setPixCopiado(false), 2000);
   };
 
+  const codigoCheckout = /\/payment\/([^/?#\s]+)/.exec(link ?? "")?.[1] ?? "";
+  const linkCliente =
+    codigoCheckout && typeof window !== "undefined"
+      ? `${window.location.origin}/pagar/reserva/${codigoCheckout}`
+      : "";
+
+  const copiarCliente = async (url: string) => {
+    await navigator.clipboard.writeText(url);
+    setClienteCopiado(true);
+    toast.success("Link do QR Code copiado — é só enviar ao cliente");
+    setTimeout(() => setClienteCopiado(false), 2000);
+  };
+
+
+
 
   return (
     <div className="cons-card p-4">
@@ -193,7 +211,30 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
               )}
               {pix ? "Gerar Pix novamente" : "Gerar QR Code Pix"}
             </button>
+            {linkCliente ? (
+              <>
+                <button
+                  type="button"
+                  className="cons-btn"
+                  onClick={() => copiarCliente(linkCliente)}
+                >
+                  {clienteCopiado ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}{" "}
+                  Enviar QR Code ao cliente
+                </button>
+                <a
+                  className="cons-btn"
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    `Segue o link para pagamento da sua reserva ${r.localizador}: ${linkCliente}`,
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
+              </>
+            ) : null}
           </div>
+
 
           {pix ? (
             <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-3 sm:flex-row sm:items-center">

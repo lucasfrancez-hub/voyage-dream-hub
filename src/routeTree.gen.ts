@@ -139,6 +139,7 @@ import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/e
 import { Route as MultitrechoCotacaoTokenRouteImport } from './routes/multitrecho.cotacao.$token'
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
+import { Route as PagarReservaCodigoRouteImport } from './routes/pagar_.reserva.$codigo'
 import { Route as AdminCruzeirosPreviaIdRouteImport } from './routes/admin.cruzeiros.previa.$id'
 import { Route as ApiPublicAdminManifestTokenRouteImport } from './routes/api/public/admin-manifest.$token'
 import { Route as ApiPublicAgendaManifestTokenRouteImport } from './routes/api/public/agenda-manifest.$token'
@@ -836,6 +837,11 @@ const PacotesSlugCheckoutRoute = PacotesSlugCheckoutRouteImport.update({
   path: '/$slug/checkout',
   getParentRoute: () => PacotesRoute,
 } as any)
+const PagarReservaCodigoRoute = PagarReservaCodigoRouteImport.update({
+  id: '/pagar_/reserva/$codigo',
+  path: '/pagar/reserva/$codigo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCruzeirosPreviaIdRoute = AdminCruzeirosPreviaIdRouteImport.update({
   id: '/cruzeiros/previa/$id',
   path: '/cruzeiros/previa/$id',
@@ -1183,6 +1189,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/pagar/reserva/$codigo': typeof PagarReservaCodigoRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
@@ -1351,6 +1358,7 @@ export interface FileRoutesByTo {
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/pagar/reserva/$codigo': typeof PagarReservaCodigoRoute
   '/admin/cobranca-cartao': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros': typeof AdminCruzeirosIndexRoute
   '/admin/orcamentos': typeof AdminOrcamentosIndexRoute
@@ -1522,6 +1530,7 @@ export interface FileRoutesById {
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
+  '/pagar_/reserva/$codigo': typeof PagarReservaCodigoRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
@@ -1694,6 +1703,7 @@ export interface FileRouteTypes {
     | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
+    | '/pagar/reserva/$codigo'
     | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
     | '/admin/orcamentos/'
@@ -1862,6 +1872,7 @@ export interface FileRouteTypes {
     | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
+    | '/pagar/reserva/$codigo'
     | '/admin/cobranca-cartao'
     | '/admin/cruzeiros'
     | '/admin/orcamentos'
@@ -2032,6 +2043,7 @@ export interface FileRouteTypes {
     | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
+    | '/pagar_/reserva/$codigo'
     | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
     | '/admin/orcamentos/'
@@ -2129,6 +2141,7 @@ export interface RootRouteChildren {
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   MultitrechoCotacaoTokenRoute: typeof MultitrechoCotacaoTokenRoute
+  PagarReservaCodigoRoute: typeof PagarReservaCodigoRoute
   CruzeirosUiPreviewIndexRoute: typeof CruzeirosUiPreviewIndexRoute
   ApiPublicAdminManifestTokenRoute: typeof ApiPublicAdminManifestTokenRoute
   ApiPublicAgendaManifestTokenRoute: typeof ApiPublicAgendaManifestTokenRoute
@@ -3081,6 +3094,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PacotesSlugCheckoutRouteImport
       parentRoute: typeof PacotesRoute
     }
+    '/pagar_/reserva/$codigo': {
+      id: '/pagar_/reserva/$codigo'
+      path: '/pagar/reserva/$codigo'
+      fullPath: '/pagar/reserva/$codigo'
+      preLoaderRoute: typeof PagarReservaCodigoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/cruzeiros/previa/$id': {
       id: '/admin/cruzeiros/previa/$id'
       path: '/cruzeiros/previa/$id'
@@ -3605,6 +3625,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   MultitrechoCotacaoTokenRoute: MultitrechoCotacaoTokenRoute,
+  PagarReservaCodigoRoute: PagarReservaCodigoRoute,
   CruzeirosUiPreviewIndexRoute: CruzeirosUiPreviewIndexRoute,
   ApiPublicAdminManifestTokenRoute: ApiPublicAdminManifestTokenRoute,
   ApiPublicAgendaManifestTokenRoute: ApiPublicAgendaManifestTokenRoute,
