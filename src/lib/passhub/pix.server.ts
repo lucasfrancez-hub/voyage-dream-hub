@@ -49,17 +49,18 @@ const num = (v: unknown, fb = 0): number => {
 
 /** Gera (ou recupera) o Pix de um link de pagamento do checkout PassHub. */
 export async function passhubPixDoLink(link: string): Promise<PassHubPix> {
-  const token = tokenDoLinkCheckout(link);
-  if (!token) throw new Error("Link de pagamento inválido — token do checkout não encontrado.");
+  const shortCode = tokenDoLinkCheckout(link);
+  if (!shortCode) throw new Error("Link de pagamento inválido — código do checkout não encontrado.");
+  const jwt = await expandirShortCode(shortCode);
 
   const resp = await fetch(`${CHECKOUT_API}/pix/criar`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${jwt}`,
       Origin: "https://checkout.passhub.com.br",
-      Referer: `https://checkout.passhub.com.br/payment/${token}`,
+      Referer: `https://checkout.passhub.com.br/payment/${shortCode}`,
     },
     body: "{}",
   });
