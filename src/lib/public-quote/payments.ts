@@ -54,8 +54,10 @@ export function cardInstallments(
   markups: MarkupTable = DEFAULT_EXTENDED_MARKUPS,
   /** Teto da operadora (ex.: FRT 15x). Padrão VIA AIR = 10x. */
   cardMax: number = CARD_MAX_INSTALLMENTS,
+  /** Voo internacional (algumas cias parcelam mais, ex.: Azul 10x). */
+  international = false,
 ): Installment[] {
-  if (type === "AIR_ONLY") return airCardInstallments(total, airline, markups);
+  if (type === "AIR_ONLY") return airCardInstallments(total, airline, markups, international);
   const out: Installment[] = [];
   const max = Math.max(1, Math.trunc(cardMax) || CARD_MAX_INSTALLMENTS);
   for (let n = 1; n <= max; n++) {
@@ -69,8 +71,9 @@ export function airCardInstallments(
   total: number,
   airline?: string | null,
   markups: MarkupTable = DEFAULT_EXTENDED_MARKUPS,
+  international = false,
 ): Installment[] {
-  const { parcelas } = bestInstallments(total, airline);
+  const { parcelas } = bestInstallments(total, airline, { international });
   const maxSemJuros = Math.max(1, parcelas);
   const out: Installment[] = [];
   for (let n = 1; n <= maxSemJuros; n++) {
@@ -152,6 +155,8 @@ export function buildPayment(params: {
   boletoFinanciadoEnabled?: boolean;
   /** Operadora libera boleto pré-pago (até a data da viagem)? */
   boletoPrepagoEnabled?: boolean;
+  /** Voo internacional — libera o teto internacional da companhia. */
+  international?: boolean;
 }): PaymentConfiguration {
   const { type, total, airline } = params;
   // Regra comercial VIA AIR: Pix sempre aceito. Desconto de 5% somente em
