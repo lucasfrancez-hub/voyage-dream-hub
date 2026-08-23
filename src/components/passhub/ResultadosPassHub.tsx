@@ -25,6 +25,9 @@ type Props = {
   filtros: FiltrosMotor;
   ravPercentual?: number;
   onReservar: (oferta: PassHubOferta) => void;
+  /** Salva a seleção na cesta de orçamento (múltiplas opções). */
+  onOrcamento?: (oferta: PassHubOferta, total: number) => void;
+
 };
 
 const brl = (v: number) =>
