@@ -37,6 +37,7 @@ import { JanelaDetalhe } from "@/components/passhub/JanelaDetalhe";
 
 export const Route = createFileRoute("/admin/bilhetes")({
   component: BilhetesPage,
+  validateSearch: (s: Record<string, unknown>) => ({ q: typeof s.q === "string" ? s.q : undefined }),
   head: () => ({
     meta: [
       { title: "Bilhetes emitidos — Consolidadora | VIA AIR" },
