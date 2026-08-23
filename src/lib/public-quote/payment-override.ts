@@ -137,11 +137,25 @@ export function applyPaymentOverride(
 
   const boletoRows = rowsValidas(ov.boleto.rows);
   // Boleto sem nada preenchido: mantém as parcelas/condições automáticas.
-  const boletoAuto =
+  const vazio =
     !boletoRows.length &&
     ov.boleto.installments == null &&
     (ov.boleto.amount == null || ov.boleto.amount <= 0) &&
     (ov.boleto.entrada == null || ov.boleto.entrada <= 0);
+  // Se o consultor ligou o boleto mas o automático não oferece nada (ex.: só
+  // aéreo), geramos as faixas padrão de 1x a 10x sem juros sobre o total.
+  const baseTemBoleto = base.boleto.installments.length > 0 || !!base.boleto.untilTravel;
+  const boletoAuto = vazio && baseTemBoleto;
+  const faixasPadrao: typeof boletoRows =
+    vazio && !baseTemBoleto && total > 0
+      ? Array.from({ length: 10 }, (_, i) => ({
+          parcelas: i + 1,
+          entrada: round2(total / (i + 1)),
+          demais: round2(total / (i + 1)),
+        }))
+      : [];
+  const linhasManuais = boletoRows.length ? boletoRows : faixasPadrao;
+
 
   return {
     ...base,
