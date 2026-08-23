@@ -6,6 +6,7 @@
  *  - POST {nexus}/api/v1/reservar → cria a reserva e devolve o localizador
  */
 import { passhubBases, passhubRequest } from "./client.server";
+import { calcularIncentivo, passhubIncentivoPct } from "./incentivo.server";
 import type { PassHubPax, PassHubReserva, PassHubTarifacao } from "./types";
 
 type Rec = Record<string, unknown>;
@@ -34,6 +35,8 @@ export type TarifarInput = {
   /** Preço total esperado (mesma unidade da busca). */
   precoEsperado: number;
   ravPercentual?: number | null;
+  /** Roteiro internacional muda o pct de incentivo do nível. */
+  internacional?: boolean;
 };
 
 export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHubTarifacao> {
@@ -65,26 +68,36 @@ export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHub
   const pricedToken = str(r["pricedRateToken"]);
   const pricedVolta = str(r["pricedRateTokenVolta"]);
 
+  const preco = num(r["preco"] ?? r["total_price"] ?? r["priceWithTax"], input.precoEsperado);
+  const precoSemTaxa = num(r["preco_sem_taxa"] ?? r["priceWithoutTax"]);
+
+  // RAV efetiva do % enviado. Alguns retornos já trazem a comissão fechada.
+  const rav = Math.max(
+    num(r["rav_amount_brl_efetivo"] ?? r["rav_amount_brl"] ?? r["rav_amount"]),
+    num(
+      r["valor_comissao"] ??
+        r["comissao"] ??
+        r["commission_amount_brl"] ??
+        r["commission_amount"],
+    ),
+  );
+
+  // Incentivo do nível de recompensas: não vem na tarifação, é calculado pelo
+  // próprio portal como tarifa base x pct do nível — e existe mesmo com RAV 0%.
+  const incentivoPct = await passhubIncentivoPct(input.internacional === true);
+  const incentivoValor = calcularIncentivo(precoSemTaxa || preco, incentivoPct);
+
   return {
     pricedRateTokens: pricedTokens.length
       ? pricedTokens
       : [pricedToken, pricedVolta].filter(Boolean),
-    preco: num(r["preco"] ?? r["total_price"] ?? r["priceWithTax"], input.precoEsperado),
-    precoSemTaxa: num(r["preco_sem_taxa"] ?? r["priceWithoutTax"]),
-    // Comissão: a PassHub devolve a RAV efetiva do % enviado, mas o portal
-    // mostra a comissão TOTAL (incentivo + RAV) — que existe mesmo com 0%.
-    // Usamos a maior das duas para nunca perder o incentivo.
-    ravValor: Math.max(
-      num(r["rav_amount_brl_efetivo"] ?? r["rav_amount_brl"] ?? r["rav_amount"]),
-      num(
-        r["valor_comissao"] ??
-          r["comissao"] ??
-          r["commission_amount_brl"] ??
-          r["commission_amount"] ??
-          r["incentive_amount_brl"] ??
-          r["incentive_amount"],
-      ),
-    ),
+    preco,
+    precoSemTaxa,
+    // Comissão total exibida = RAV + incentivo (mesma conta do portal).
+    ravValor: Math.round((rav + incentivoValor) * 100) / 100,
+    ravSemIncentivo: rav,
+    incentivoValor,
+    incentivoPercentual: incentivoPct,
     ravModo: str(r["rav_mode"]),
     retarifou: r["retarifou"] === true,
   };
