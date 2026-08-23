@@ -382,13 +382,10 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
         <div className="brandbar" />
 
         <header>
-          <div className="brand">
+          <a className="brand" href="https://viaair.tur.br" target="_blank" rel="noreferrer">
             <img src={logoViaAir.url} alt="VIA AIR" />
-            <div className="brand-txt">
-              <div className="brand-name">VIA AIR</div>
-              <div className="brand-sub">Premium Travel</div>
-            </div>
-          </div>
+            <span className="brand-sub">Premium Travel</span>
+          </a>
           <div className="doc-title">
             <h1>{eBilhete ? "Bilhete Eletrônico" : "Comprovante de Reserva"}</h1>
             <p>
