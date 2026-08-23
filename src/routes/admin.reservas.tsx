@@ -164,6 +164,21 @@ function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
     setTimeout(() => setPixCopiado(false), 2000);
   };
 
+  const codigoCheckout = /\/payment\/([^/?#\s]+)/.exec(link ?? "")?.[1] ?? "";
+  const linkCliente =
+    codigoCheckout && typeof window !== "undefined"
+      ? `${window.location.origin}/pagar/reserva/${codigoCheckout}`
+      : "";
+
+  const copiarCliente = async (url: string) => {
+    await navigator.clipboard.writeText(url);
+    setClienteCopiado(true);
+    toast.success("Link do QR Code copiado — é só enviar ao cliente");
+    setTimeout(() => setClienteCopiado(false), 2000);
+  };
+
+
+
 
   return (
     <div className="cons-card p-4">
