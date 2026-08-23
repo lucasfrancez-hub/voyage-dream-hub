@@ -184,5 +184,7 @@ export function pedidoParaComprovante(
     ocultarValores: opts?.ocultarValores,
     passageiros,
     grupos,
+    outrasReservas: outrasReservasDo(detail),
+
   };
 }
