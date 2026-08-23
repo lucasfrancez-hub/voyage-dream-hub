@@ -13,6 +13,9 @@ import {
   type FiltrosMotor,
 } from "@/components/passhub/ResultadosPassHub";
 import { isBrIata } from "@/lib/br-airports";
+import { QuoteBasketBar } from "@/components/quote/QuoteBasketBar";
+import { addToQuoteBasket } from "@/lib/quote-basket";
+import { passhubResumoLinhas, passhubToQuoteFlight } from "@/lib/passhub/quote";
 import type { PassHubOferta, PassHubResultado } from "@/lib/passhub/types";
 
 export const Route = createFileRoute("/admin/passhub")({
@@ -579,9 +582,35 @@ function PassHubPage() {
               filtros={filtros}
               ravPercentual={rav}
               onReservar={setOfertaReserva}
+              onOrcamento={(oferta, total) => {
+                const ida = oferta.ida;
+                const volta = oferta.voltas[0] ?? null;
+                addToQuoteBasket({
+                  label: `${ida.origem} → ${ida.destino}${volta ? " (ida e volta)" : ""} • ${ida.companhia}`,
+                  total,
+                  adults: adultos,
+                  children: criancas,
+                  origin: ida.origem || null,
+                  destination: ida.destino || null,
+                  startDate: trechos[0]?.data || null,
+                  endDate: volta ? dataVolta || null : null,
+                  services: [
+                    ...passhubResumoLinhas(ida, "Ida"),
+                    ...(volta ? passhubResumoLinhas(volta, "Volta") : []),
+                  ],
+                  flights: [
+                    passhubToQuoteFlight(ida, volta ? "OUTBOUND" : null, total),
+                    ...(volta ? [passhubToQuoteFlight(volta, "INBOUND", null)] : []),
+                  ],
+                  notes: `${adultos} adulto(s)${criancas ? ` • ${criancas} criança(s)` : ""}${bebes ? ` • ${bebes} bebê(s)` : ""}`,
+                });
+                toast.success("Voo salvo na cesta de orçamento");
+              }}
             />
           </>
         )}
+
+        <QuoteBasketBar />
 
         <ReservaPassHubDialog
           oferta={ofertaReserva}
@@ -591,6 +620,7 @@ function PassHubPage() {
           ravPercentual={rav}
           onClose={() => setOfertaReserva(null)}
         />
+
       </div>
     </div>
   );
