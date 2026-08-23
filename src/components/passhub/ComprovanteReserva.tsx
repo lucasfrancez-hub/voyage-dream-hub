@@ -323,11 +323,13 @@ const CSS = `
 /* ------------------------------- componente ------------------------------- */
 
 export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }) {
+  const eBilhete = dados.variante === "bilhete";
   const voos = dados.grupos.flatMap((g) => g.voos);
   const densidade = voos.length <= 2 ? "normal" : voos.length <= 4 ? "medium" : "compact";
   const bilhetes = dados.passageiros.filter((p) => (p.bilhete ?? "").trim().length > 0);
-  const temPrazo = !dados.emitido && !!dados.limiteEmissao;
-  const heroSimples = !temPrazo && !dados.emitido;
+  const temPrazo = !eBilhete && !dados.emitido && !!dados.limiteEmissao;
+  const heroSimples = eBilhete || (!temPrazo && !dados.emitido);
+  const numeroBilhete = bilhetes[0]?.bilhete ?? "";
 
   return (
     <div className="crdoc" id="comprovante-print" data-density={densidade}>
@@ -342,18 +344,21 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
             <div className="brand-sub">Premium Travel</div>
           </div>
           <div className="doc-title">
-            <h1>Comprovante de Reserva</h1>
+            <h1>{eBilhete ? "Bilhete Eletrônico" : "Comprovante de Reserva"}</h1>
             <p>
-              {dados.emitido
-                ? "Confira os dados da sua viagem"
-                : "Confira os dados da sua viagem antes da emissão"}
+              {eBilhete
+                ? "Apresente este documento no embarque"
+                : dados.emitido
+                  ? "Confira os dados da sua viagem"
+                  : "Confira os dados da sua viagem antes da emissão"}
             </p>
           </div>
         </header>
 
         <div className={`hero${heroSimples ? " single" : ""}`}>
           <div className="hero-card soft">
-            <div className="eyebrow">Reserva aérea</div>
+            <div className="eyebrow">{eBilhete ? "Bilhete eletrônico" : "Reserva aérea"}</div>
+
             <div className="locator">
               <strong>{dados.localizador}</strong>
               <span className={`status ${dados.emitido ? "issued" : "reserved"}`}>
