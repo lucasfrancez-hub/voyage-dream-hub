@@ -304,17 +304,42 @@ const CSS = `
 .crdoc[data-density="compact"] footer{margin-top:12px;padding:12px 28px 16px}
 
 @media (max-width:720px){
-  .crdoc header{grid-template-columns:1fr}
+  .crdoc{overflow-x:hidden}
+  .crdoc .sheet{width:100%;max-width:calc(100% - 16px);border-radius:14px}
+  .crdoc header{grid-template-columns:1fr;padding:18px 16px 14px;gap:14px}
   .crdoc .doc-title{text-align:left}
-  .crdoc .hero{grid-template-columns:1fr}
-  .crdoc .meta-grid{grid-template-columns:1fr 1fr}
+  .crdoc .doc-title h1{font-size:18px}
+  .crdoc .value-card{padding:14px}
+  .crdoc .value-card .price{font-size:23px}
+  .crdoc .hero{grid-template-columns:1fr;padding:14px 16px 4px}
+  .crdoc .hero-card{padding:14px}
+  .crdoc .meta-grid{grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:14px}
   .crdoc .total-price{align-items:flex-start;flex-direction:column;gap:8px}
-  .crdoc .passenger{grid-template-columns:1fr 1fr}
-  .crdoc .flight{grid-template-columns:1fr}
+  .crdoc .price{font-size:22px}
+  .crdoc section{padding:10px 16px 0}
+  .crdoc .passenger{grid-template-columns:1fr 1fr;padding:12px 14px;gap:10px}
+  .crdoc .passenger.nostatus{grid-template-columns:1fr 1fr}
+  .crdoc .passenger .name{grid-column:1 / -1}
+  .crdoc .flight{grid-template-columns:1fr;padding:14px}
   .crdoc .flight-info{border-left:0;border-top:1px solid var(--line);padding:10px 0 0}
-  .crdoc .route{grid-template-columns:1fr 60px 1fr}
+  .crdoc .route{grid-template-columns:1fr 56px 1fr;gap:6px}
+  .crdoc .airport .code{font-size:18px}
   .crdoc .ticket-row{grid-template-columns:1fr 1fr}
+  .crdoc .ticket-row > div:nth-child(2n){border-right:0}
+  .crdoc .notice,.crdoc .infoblock,.crdoc .checks{margin-left:16px;margin-right:16px}
+  .crdoc footer{flex-direction:column;align-items:flex-start;gap:12px;padding:16px}
+  .crdoc footer .page-note{text-align:left}
+  .crdoc .locator strong{font-size:20px}
 }
+
+@media (max-width:420px){
+  .crdoc .meta-grid{grid-template-columns:1fr}
+  .crdoc .passenger{grid-template-columns:1fr}
+  .crdoc .ticket-row{grid-template-columns:1fr}
+  .crdoc .ticket-row > div{border-right:0;border-bottom:1px solid #e3efe9}
+  .crdoc .brand-name{font-size:20px}
+}
+
 
 @page{size:A4 portrait;margin:8mm}
 @media print{
