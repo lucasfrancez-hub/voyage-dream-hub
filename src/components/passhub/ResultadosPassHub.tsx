@@ -485,11 +485,11 @@ function PainelDetalhe({
   );
   const ravCarregando = !tarifacaoApi;
 
-  // A RAV pedida já é enviada à PassHub na busca/tarifação, então o preço que
-  // volta de lá JÁ inclui comissão e incentivo. Nunca somar nada por cima.
+  // A PassHub devolve o preço LÍQUIDO (não muda com a RAV) e a comissão
+  // efetiva separada. O valor de venda é líquido + comissão.
   const comissaoApi = tarifacaoApi?.comissao ?? rav;
   const precoLiquido = tarifacaoApi?.preco ?? total;
-  const totalFinal = Math.round(precoLiquido * 100) / 100;
+  const totalFinal = Math.round((precoLiquido + comissaoApi) * 100) / 100;
 
   const linhas: { rot: string; val: number; destaque?: boolean; positivo?: boolean }[] = [
     { rot: "Tarifa (base)", val: tarifa },
