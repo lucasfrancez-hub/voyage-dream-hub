@@ -7,7 +7,7 @@
  */
 import { cidadeDoAeroporto, nomeDoAeroporto } from "@/lib/whatsapp/airport-city";
 import { findAirline } from "@/lib/airlines";
-import logoViaAir from "@/assets/viaair-logo.png.asset.json";
+import logoViaAir from "@/assets/viaair-mark.png.asset.json";
 
 export type ComprovanteVoo = {
   companhia: string;
@@ -185,9 +185,14 @@ const CSS = `
 .crdoc .sheet{width:900px;max-width:calc(100% - 24px);margin:0 auto 32px;background:#fff;box-shadow:0 12px 35px rgba(22,44,66,.11);border-radius:18px;overflow:hidden}
 .crdoc .brandbar{height:7px;background:linear-gradient(90deg,var(--orange) 0 28%,var(--blue) 28% 100%)}
 .crdoc header{padding:24px 34px 20px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;border-bottom:1px solid var(--line)}
-.crdoc .brand{display:flex;flex-direction:column;gap:2px}
-.crdoc .brand img{height:36px;width:auto;display:block}
-.crdoc .brand-sub{font-size:9px;margin-top:2px;letter-spacing:.22em;color:#9fb0bf;font-weight:900;text-transform:uppercase;padding-left:2px}
+.crdoc .brand{display:flex;align-items:center;gap:12px}
+.crdoc .brand img{height:44px;width:44px;object-fit:contain;display:block;flex:none}
+.crdoc .brand-txt{display:flex;flex-direction:column;line-height:1}
+.crdoc .brand-name{font-size:23px;font-weight:900;color:var(--blue);letter-spacing:.5px}
+.crdoc .brand-sub{font-size:10px;margin-top:4px;letter-spacing:.24em;color:var(--orange);font-weight:900;text-transform:uppercase}
+.crdoc .value-card{border:1px solid #cfe8dc;background:var(--green-soft);border-radius:15px;padding:18px;display:flex;flex-direction:column;justify-content:center}
+.crdoc .value-card .price{color:var(--green);font-size:28px}
+.crdoc .value-card .price-note{margin-top:6px}
 .crdoc .doc-title{text-align:right}
 .crdoc .doc-title h1{margin:0;font-size:21px;color:var(--ink);letter-spacing:-.2px}
 .crdoc .doc-title p{margin:6px 0 0;color:var(--muted);font-size:12px}
@@ -311,13 +316,26 @@ const CSS = `
   .crdoc .ticket-row{grid-template-columns:1fr 1fr}
 }
 
-@page{size:A4 portrait;margin:10mm}
+@page{size:A4 portrait;margin:8mm}
 @media print{
-  body{background:#fff}
+  html,body{background:#fff;margin:0;padding:0}
   .no-print{display:none!important}
-  .crdoc .sheet{width:100%;max-width:none;box-shadow:none;border-radius:0;margin:0}
+  .crdoc{font-size:11px}
+  .crdoc .sheet{width:100%;max-width:none;box-shadow:none;border-radius:0;margin:0;overflow:visible}
   .crdoc *{print-color-adjust:exact;-webkit-print-color-adjust:exact}
-  .crdoc .journey,.crdoc .flight,.crdoc .passenger,.crdoc .tickets,.crdoc .deadline,.crdoc .notice{break-inside:avoid}
+  .crdoc header{padding:12px 20px 10px}
+  .crdoc .brand img{height:34px;width:34px}
+  .crdoc .brand-name{font-size:19px}
+  .crdoc .doc-title h1{font-size:17px}
+  .crdoc .hero{padding:10px 20px 4px;gap:10px}
+  .crdoc .hero-card,.crdoc .value-card{padding:12px}
+  .crdoc section{padding:8px 20px 0}
+  .crdoc .flight{padding:8px 12px}
+  .crdoc .journey{margin-bottom:8px}
+  .crdoc .passenger{padding:8px 12px}
+  .crdoc footer{margin-top:10px;padding:10px 20px 0}
+  .crdoc .journey,.crdoc .flight,.crdoc .passenger,.crdoc .tickets,.crdoc .deadline,.crdoc .notice,.crdoc section,.crdoc footer{break-inside:avoid}
+  .crdoc .sheet>*:last-child{margin-bottom:0;padding-bottom:0}
 }
 `;
 
@@ -329,7 +347,8 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
   const densidade = voos.length <= 2 ? "normal" : voos.length <= 4 ? "medium" : "compact";
   const bilhetes = dados.passageiros.filter((p) => (p.bilhete ?? "").trim().length > 0);
   const temPrazo = !eBilhete && !dados.emitido && !!dados.limiteEmissao;
-  const heroSimples = eBilhete || (!temPrazo && !dados.emitido);
+  const mostraValorBilhete = eBilhete && !dados.ocultarValores;
+  const heroSimples = eBilhete ? !mostraValorBilhete : !temPrazo && !dados.emitido;
   const numeroBilhete = bilhetes[0]?.bilhete ?? "";
 
   return (
@@ -342,7 +361,10 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
         <header>
           <div className="brand">
             <img src={logoViaAir.url} alt="VIA AIR" />
-            <div className="brand-sub">Premium Travel</div>
+            <div className="brand-txt">
+              <div className="brand-name">VIA AIR</div>
+              <div className="brand-sub">Premium Travel</div>
+            </div>
           </div>
           <div className="doc-title">
             <h1>{eBilhete ? "Bilhete Eletrônico" : "Comprovante de Reserva"}</h1>
@@ -419,22 +441,28 @@ export function ComprovanteReserva({ dados }: { dados: ComprovanteReservaDados }
               </div>
             </div>
 
-            {dados.ocultarValores ? null : (
+            {dados.ocultarValores || eBilhete ? null : (
               <div className="total-price">
                 <div>
-                  <div className="price-label">
-                    {eBilhete ? "Valor total do bilhete" : "Valor total da passagem"}
-                  </div>
+                  <div className="price-label">Valor total da passagem</div>
                   <div className="price-note">
-                    {eBilhete
-                      ? "Valor total emitido para os passageiros informados."
-                      : "Valor total da reserva aérea para os passageiros informados."}
+                    Valor total da reserva aérea para os passageiros informados.
                   </div>
                 </div>
                 <div className="price">{brl(dados.total)}</div>
               </div>
             )}
           </div>
+
+          {mostraValorBilhete ? (
+            <div className="value-card">
+              <div className="price-label">Valor total do bilhete</div>
+              <div className="price">{brl(dados.total)}</div>
+              <div className="price-note">
+                Valor total apresentado ao passageiro para este bilhete eletrônico.
+              </div>
+            </div>
+          ) : null}
 
           {temPrazo ? (
             <div className="deadline">
