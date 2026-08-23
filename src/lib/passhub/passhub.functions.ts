@@ -63,7 +63,9 @@ export const passhubMotorBuscar = createServerFn({ method: "POST" })
     const { normalizaBuscaPassHub } = await import("./normalize.server");
     try {
       const bruto = await passhubBuscarVoos(data);
-      return { ok: true as const, resultado: normalizaBuscaPassHub(bruto), bruto };
+      // O JSON original pode ter vários megabytes. A tela só precisa do
+      // resultado normalizado para listar, filtrar e reservar as ofertas.
+      return { ok: true as const, resultado: normalizaBuscaPassHub(bruto) };
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha na busca PassHub";
       console.error("[passhub] motor falhou:", msg);

@@ -255,14 +255,16 @@ function RootComponent() {
     void import("@/integrations/supabase/client").then(({ supabase }) => {
       if (!mounted) return;
       const { data } = supabase.auth.onAuthStateChange((event) => {
-        if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-        router.invalidate();
         if (event === "SIGNED_OUT") {
+          router.invalidate();
           queryClient.cancelQueries();
           queryClient.clear();
-        } else {
-          queryClient.invalidateQueries();
+          return;
         }
+        // SIGNED_IN pode ser emitido durante a hidratação e USER_UPDATED em
+        // renovações de sessão. Invalidar todo o cache nesses eventos criava
+        // uma rajada de requisições em cada abertura do painel.
+        if (event === "SIGNED_IN") router.invalidate();
       });
       unsub = () => data.subscription.unsubscribe();
     });
