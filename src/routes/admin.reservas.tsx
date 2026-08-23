@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
   Copy,
   CreditCard,
   FileText,
@@ -99,6 +100,37 @@ function StatusBadge({ status }: { status: string }) {
   const classe =
     s === "ISSUED" ? "cons-status-ok" : s === "CREATED" ? "cons-status-res" : "cons-status-pay";
   return <span className={`cons-status ${classe}`}>{label}</span>;
+}
+
+function SecaoRecolhivel({
+  titulo,
+  icone,
+  children,
+  aberta,
+}: {
+  titulo: string;
+  icone: React.ReactNode;
+  children: React.ReactNode;
+  aberta?: boolean;
+}) {
+  const [open, setOpen] = useState(Boolean(aberta));
+  return (
+    <div className="cons-card overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-[15px] font-bold">
+          {icone} {titulo}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open ? <div className="border-t border-white/5 p-4">{children}</div> : null}
+    </div>
+  );
 }
 
 function BlocoPagamento({ r }: { r: PassHubReservaLista }) {
