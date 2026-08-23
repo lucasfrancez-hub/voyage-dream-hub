@@ -116,6 +116,7 @@ import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.in
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
+import { Route as ApiAuthCodeWaitRouteImport } from './routes/api/auth-code/wait'
 import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
 import { Route as ApiPublicAnalyticsCollectRouteImport } from './routes/api/public/analytics-collect'
 import { Route as ApiPublicAsaasTransferWebhookRouteImport } from './routes/api/public/asaas-transfer-webhook'
@@ -719,6 +720,11 @@ const AdminPessoasIdRoute = AdminPessoasIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminPessoasRoute,
 } as any)
+const ApiAuthCodeWaitRoute = ApiAuthCodeWaitRouteImport.update({
+  id: '/api/auth-code/wait',
+  path: '/api/auth-code/wait',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatCamilaRoute = ApiChatCamilaRouteImport.update({
   id: '/api/chat/camila',
   path: '/api/chat/camila',
@@ -1194,6 +1200,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
+  '/api/auth-code/wait': typeof ApiAuthCodeWaitRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
@@ -1367,6 +1374,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
+  '/api/auth-code/wait': typeof ApiAuthCodeWaitRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
@@ -1543,6 +1551,7 @@ export interface FileRoutesById {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
+  '/api/auth-code/wait': typeof ApiAuthCodeWaitRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
   '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
@@ -1720,6 +1729,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
+    | '/api/auth-code/wait'
     | '/api/chat/camila'
     | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
@@ -1893,6 +1903,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
+    | '/api/auth-code/wait'
     | '/api/chat/camila'
     | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
@@ -2068,6 +2079,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
+    | '/api/auth-code/wait'
     | '/api/chat/camila'
     | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
@@ -2172,6 +2184,7 @@ export interface RootRouteChildren {
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   ReservaTokenRoute: typeof ReservaTokenRoute
   WSlugRoute: typeof WSlugRoute
+  ApiAuthCodeWaitRoute: typeof ApiAuthCodeWaitRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
   ApiPublicAnalyticsCollectRoute: typeof ApiPublicAnalyticsCollectRoute
   ApiPublicAsaasTransferWebhookRoute: typeof ApiPublicAsaasTransferWebhookRoute
@@ -2984,6 +2997,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPessoasIdRouteImport
       parentRoute: typeof AdminPessoasRoute
     }
+    '/api/auth-code/wait': {
+      id: '/api/auth-code/wait'
+      path: '/api/auth-code/wait'
+      fullPath: '/api/auth-code/wait'
+      preLoaderRoute: typeof ApiAuthCodeWaitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat/camila': {
       id: '/api/chat/camila'
       path: '/api/chat/camila'
@@ -3691,6 +3711,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   ReservaTokenRoute: ReservaTokenRoute,
   WSlugRoute: WSlugRoute,
+  ApiAuthCodeWaitRoute: ApiAuthCodeWaitRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
   ApiPublicAnalyticsCollectRoute: ApiPublicAnalyticsCollectRoute,
   ApiPublicAsaasTransferWebhookRoute: ApiPublicAsaasTransferWebhookRoute,
