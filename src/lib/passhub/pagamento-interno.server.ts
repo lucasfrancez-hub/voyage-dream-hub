@@ -248,6 +248,10 @@ async function pagarBrCode(opts: {
       description: opts.descricao,
       externalReference: registro.id,
     });
+    // No pagamento por BR Code, o ASAAS pode devolver o id da transação do QR
+    // em `id` e o id real da transferência em `transferId`. Os webhooks
+    // TRANSFER_* usam o segundo, portanto ele precisa ser a nossa referência.
+    const asaasTransferId = String(transfer?.transferId ?? transfer?.id ?? "");
     const bruto = String(transfer?.status ?? "PENDING").toUpperCase();
     const status = bruto === "DONE"
       ? "concluido"
@@ -261,7 +265,7 @@ async function pagarBrCode(opts: {
     await supabaseAdmin
       .from("asaas_transfers")
       .update({
-        asaas_transfer_id: transfer?.id ?? null,
+        asaas_transfer_id: asaasTransferId || null,
         status,
         asaas_status: bruto,
         effective_date: transfer?.effectiveDate ?? null,
@@ -279,7 +283,7 @@ async function pagarBrCode(opts: {
   }
 
   return {
-    transferId: String(transfer?.id ?? ""),
+    transferId: String(transfer?.transferId ?? transfer?.id ?? ""),
     status: String(transfer?.status ?? "PENDING"),
     valor,
     recebedor: info?.receiverName ?? null,

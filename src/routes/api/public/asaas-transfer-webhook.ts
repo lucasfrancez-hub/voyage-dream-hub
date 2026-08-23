@@ -41,10 +41,14 @@ export const Route = createFileRoute('/api/public/asaas-transfer-webhook')({
           null
 
         const event: string = body?.event || ''
-        const transfer = body?.transfer ?? body?.payment ?? body ?? null
-        const asaasId: string | null = transfer?.id ?? null
+        const pixQrCode = body?.pixQrCode ?? null
+        const transfer = body?.transfer ?? body?.payment ?? pixQrCode ?? body ?? null
+        // A autorização do pagamento por BR Code vem em `pixQrCode` e não
+        // preserva o externalReference enviado na criação. Nesse payload, o id
+        // usado pelos eventos TRANSFER_* fica em `transferId`.
+        const asaasId: string | null = transfer?.transferId ?? transfer?.id ?? null
         const externalRef: string | null = transfer?.externalReference ?? null
-        const value = Number(transfer?.value ?? 0)
+        const value = Number(transfer?.value ?? transfer?.qrCode?.originalValue ?? 0)
 
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
 
@@ -65,6 +69,24 @@ export const Route = createFileRoute('/api/public/asaas-transfer-webhook')({
             .eq('asaas_transfer_id', asaasId)
             .maybeSingle()
           row = data
+        }
+
+        // O ASAAS chama a autorização de forma síncrona, antes de responder ao
+        // POST /pix/qrCodes/pay. Por isso ainda não temos o id externo salvo.
+        // Correlacionamos somente quando há UMA tentativa pendente, não
+        // autorizada, do mesmo valor, criada nos últimos 10 minutos.
+        if (!row && value > 0) {
+          const desde = new Date(Date.now() - 10 * 60_000).toISOString()
+          const { data } = await supabaseAdmin
+            .from('asaas_transfers')
+            .select('*')
+            .eq('authorized', false)
+            .in('status', ['pendente', 'agendado', 'processando'])
+            .eq('value', value)
+            .gte('created_at', desde)
+            .order('created_at', { ascending: false })
+            .limit(2)
+          if (data?.length === 1) row = data[0]
         }
 
         console.log('[asaas-transfer-webhook]', {
@@ -139,7 +161,11 @@ export const Route = createFileRoute('/api/public/asaas-transfer-webhook')({
             .from('asaas_transfers')
             .update(
               approved
-                ? { authorized: true, authorized_at: new Date().toISOString() }
+                ? {
+                    authorized: true,
+                    authorized_at: new Date().toISOString(),
+                    ...(asaasId ? { asaas_transfer_id: asaasId } : {}),
+                  }
                 : { fail_reason: 'Autorização de saque negada pelo sistema' },
             )
             .eq('id', row.id)
