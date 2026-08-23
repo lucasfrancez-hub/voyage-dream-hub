@@ -223,7 +223,7 @@ function DetalheReserva({
                 <ChevronDown className="h-3.5 w-3.5 opacity-70" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[180px]">
+            <DropdownMenuContent align="end" className="z-[120] min-w-[180px]">
               <DropdownMenuItem
                 className="flex w-full cursor-pointer items-center gap-2"
                 onClick={() => void abrirDocumento("reserva", r.idPassagem)}
