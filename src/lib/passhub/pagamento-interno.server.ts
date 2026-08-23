@@ -185,13 +185,23 @@ async function pagarBrCode(opts: {
   valor: number;
   referencia: string;
   descricao: string;
+  /** Valor que o operador viu na tela de conferência. */
+  valorEsperado?: number | null;
 }) {
   const info = await decodeAsaasPixBrCode(opts.brcode).catch(() => null);
   if (info && info.canBePaid === false) {
     throw new Error("Este Pix da consolidadora não pode mais ser pago (expirado ou já quitado).");
   }
+  // O valor decodificado do próprio BR Code é a única fonte de verdade.
   const valor = dinheiro(info?.value ?? opts.valor);
   if (!valor || valor <= 0) throw new Error("Não foi possível determinar o valor do Pix da consolidadora.");
+
+  const esperado = dinheiro(opts.valorEsperado ?? 0);
+  if (esperado > 0 && Math.abs(esperado - valor) > 0.01) {
+    throw new Error(
+      `O Pix da consolidadora mudou de valor (conferido R$ ${esperado.toFixed(2)}, agora R$ ${valor.toFixed(2)}). Nada foi pago — confira de novo.`,
+    );
+  }
 
   const saldo = await getAsaasBalance().catch(() => 0);
   if (saldo > 0 && saldo < valor) {
@@ -217,25 +227,94 @@ async function pagarBrCode(opts: {
   };
 }
 
-/** Botão "Pagar agora": paga o Pix da PassHub direto do saldo ASAAS. */
-export async function pagarReservaAgora(alvo: {
+/* ------------------------------------------------------------------ *
+ * 2.a) Conferência antes de pagar (tela de revisão)
+ * ------------------------------------------------------------------ */
+
+export type PreviaPixConsolidadora = {
+  link: string;
+  brcode: string;
+  qrCodeBase64: string;
+  expiraEm: string;
+  /** Valor informado pelo checkout da consolidadora. */
+  valorCheckout: number;
+  /** Valor lido do próprio BR Code (o que será debitado). */
+  valor: number;
+  recebedorNome: string | null;
+  recebedorDocumento: string | null;
+  banco: string | null;
+  podePagar: boolean;
+  divergencia: boolean;
+  saldo: number | null;
+};
+
+/** Gera o Pix da consolidadora e decodifica para conferência antes do pagamento. */
+export async function previaPixConsolidadora(alvo: {
   idPassagem: number;
   localizador?: string | null;
   link?: string | null;
-  criadoPor?: string | null;
-}): Promise<PagamentoReserva> {
+}): Promise<PreviaPixConsolidadora> {
   const { link, pix } = await pixDaPassHub({
     id: alvo.idPassagem,
     localizador: alvo.localizador ?? undefined,
     link: alvo.link ?? undefined,
   });
 
-  const pago = await pagarBrCode({
+  const info = await decodeAsaasPixBrCode(pix.copiaECola).catch(() => null);
+  const saldo = await getAsaasBalance().catch(() => null);
+  const valorCheckout = dinheiro(pix.valor);
+  const valor = dinheiro(info?.value ?? valorCheckout);
+
+  return {
+    link,
     brcode: pix.copiaECola,
-    valor: dinheiro(pix.valor),
+    qrCodeBase64: pix.qrCodeBase64,
+    expiraEm: pix.expiraEm,
+    valorCheckout,
+    valor,
+    recebedorNome: info?.receiverName ?? null,
+    recebedorDocumento: info?.receiverDocument ?? null,
+    banco: info?.bankName ?? null,
+    podePagar: info ? info.canBePaid !== false : true,
+    divergencia: valorCheckout > 0 && Math.abs(valorCheckout - valor) > 0.01,
+    saldo,
+  };
+}
+
+/** Botão "Pagar agora": paga o Pix da PassHub direto do saldo ASAAS. */
+export async function pagarReservaAgora(alvo: {
+  idPassagem: number;
+  localizador?: string | null;
+  link?: string | null;
+  criadoPor?: string | null;
+  /** BR Code já conferido na tela de revisão (evita gerar outro Pix). */
+  brcode?: string | null;
+  /** Valor conferido na tela de revisão. */
+  valorEsperado?: number | null;
+}): Promise<PagamentoReserva> {
+  let link = alvo.link ?? null;
+  let brcode = (alvo.brcode ?? "").trim();
+  let valorPix = dinheiro(alvo.valorEsperado ?? 0);
+
+  if (!brcode) {
+    const gerado = await pixDaPassHub({
+      id: alvo.idPassagem,
+      localizador: alvo.localizador ?? undefined,
+      link: alvo.link ?? undefined,
+    });
+    link = gerado.link;
+    brcode = gerado.pix.copiaECola;
+    valorPix = dinheiro(gerado.pix.valor);
+  }
+
+  const pago = await pagarBrCode({
+    brcode,
+    valor: valorPix,
+    valorEsperado: alvo.valorEsperado ?? null,
     referencia: `passhub-pagamento-${alvo.idPassagem}`,
     descricao: `Pagamento reserva ${alvo.localizador || alvo.idPassagem} — consolidadora`,
   });
+
 
   const { data, error } = await supabaseAdmin
     .from("passhub_pagamentos")
