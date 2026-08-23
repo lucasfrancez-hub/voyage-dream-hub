@@ -464,6 +464,28 @@ function ReservasPage() {
   const reservas = data?.ok ? data.reservas : [];
   const erro = data && !data.ok ? data.erro : null;
 
+  // Toda reserva emitida tem o bilhete buscado sozinho (cache ou leitura do PDF).
+  const emitidas = useMemo(
+    () =>
+      reservas
+        .filter((r) => (r.status || "").toUpperCase() === "ISSUED")
+        .map((r) => r.idPassagem),
+    [reservas],
+  );
+  const lerBilhetes = useServerFn(passhubBilhetesLista);
+  const bilhetesQuery = useQuery({
+    queryKey: ["passhub-bilhetes-lista", emitidas.join(",")],
+    queryFn: () => lerBilhetes({ data: { ids: emitidas } }),
+    enabled: emitidas.length > 0,
+    refetchInterval: (q) => {
+      const d = q.state.data;
+      const achados = d && d.ok ? Object.keys(d.bilhetes).length : 0;
+      return achados >= emitidas.length ? false : 60_000;
+    },
+  });
+  const bilhetes: Record<string, { passageiro: string; numero: string }[]> =
+    bilhetesQuery.data && bilhetesQuery.data.ok ? (bilhetesQuery.data.bilhetes as never) : {};
+
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     if (!q) return reservas;
