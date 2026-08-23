@@ -145,7 +145,9 @@ export async function passhubReservaDetalhe(id: number): Promise<PassHubReservaL
   });
   const dados = rec(bruto)["data"];
   if (!dados || typeof dados !== "object") return null;
-  return normalizaReserva(dados);
+  const [reserva] = await anexaPassageiros([normalizaReserva(dados)]);
+  return reserva ?? null;
+
 }
 
 /**
