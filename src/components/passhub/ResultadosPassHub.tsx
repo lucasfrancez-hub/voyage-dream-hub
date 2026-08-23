@@ -487,7 +487,9 @@ function PainelDetalhe({
 
   // A PassHub devolve o preço LÍQUIDO (não muda com a RAV) e a comissão
   // efetiva separada. O valor de venda é líquido + comissão.
-  const comissaoApi = tarifacaoApi?.comissao ?? rav;
+  // Comissão = RAV + incentivo do nível (existe mesmo com RAV 0%).
+  const comissaoApi =
+    tarifacaoApi?.comissao ?? Math.round((rav + comissaoIncentivo) * 100) / 100;
   const precoLiquido = tarifacaoApi?.preco ?? total;
   const totalFinal = Math.round((precoLiquido + comissaoApi) * 100) / 100;
 
