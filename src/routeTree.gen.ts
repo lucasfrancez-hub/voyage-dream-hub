@@ -129,6 +129,7 @@ import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/a
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as ApiPublicFlightCardRouteImport } from './routes/api/public/flight-card'
 import { Route as ApiPublicFrt2faInboxRouteImport } from './routes/api/public/frt-2fa-inbox'
+import { Route as ApiPublicFrtLabRouteImport } from './routes/api/public/frt-lab'
 import { Route as ApiPublicHotelCardRouteImport } from './routes/api/public/hotel-card'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
@@ -794,6 +795,11 @@ const ApiPublicFrt2faInboxRoute = ApiPublicFrt2faInboxRouteImport.update({
   path: '/api/public/frt-2fa-inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFrtLabRoute = ApiPublicFrtLabRouteImport.update({
+  id: '/api/public/frt-lab',
+  path: '/api/public/frt-lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHotelCardRoute = ApiPublicHotelCardRouteImport.update({
   id: '/api/public/hotel-card',
   path: '/api/public/hotel-card',
@@ -1249,6 +1255,7 @@ export interface FileRoutesByFullPath {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
+  '/api/public/frt-lab': typeof ApiPublicFrtLabRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
@@ -1428,6 +1435,7 @@ export interface FileRoutesByTo {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
+  '/api/public/frt-lab': typeof ApiPublicFrtLabRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
@@ -1611,6 +1619,7 @@ export interface FileRoutesById {
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
+  '/api/public/frt-lab': typeof ApiPublicFrtLabRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
@@ -1795,6 +1804,7 @@ export interface FileRouteTypes {
     | '/api/public/clicksign-webhook'
     | '/api/public/flight-card'
     | '/api/public/frt-2fa-inbox'
+    | '/api/public/frt-lab'
     | '/api/public/hotel-card'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
@@ -1974,6 +1984,7 @@ export interface FileRouteTypes {
     | '/api/public/clicksign-webhook'
     | '/api/public/flight-card'
     | '/api/public/frt-2fa-inbox'
+    | '/api/public/frt-lab'
     | '/api/public/hotel-card'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
@@ -2156,6 +2167,7 @@ export interface FileRouteTypes {
     | '/api/public/clicksign-webhook'
     | '/api/public/flight-card'
     | '/api/public/frt-2fa-inbox'
+    | '/api/public/frt-lab'
     | '/api/public/hotel-card'
     | '/api/public/import-aereo'
     | '/api/public/instagram-webhook'
@@ -2263,6 +2275,7 @@ export interface RootRouteChildren {
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicFlightCardRoute: typeof ApiPublicFlightCardRoute
   ApiPublicFrt2faInboxRoute: typeof ApiPublicFrt2faInboxRoute
+  ApiPublicFrtLabRoute: typeof ApiPublicFrtLabRoute
   ApiPublicHotelCardRoute: typeof ApiPublicHotelCardRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
@@ -3160,6 +3173,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFrt2faInboxRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/frt-lab': {
+      id: '/api/public/frt-lab'
+      path: '/api/public/frt-lab'
+      fullPath: '/api/public/frt-lab'
+      preLoaderRoute: typeof ApiPublicFrtLabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hotel-card': {
       id: '/api/public/hotel-card'
       path: '/api/public/hotel-card'
@@ -3852,6 +3872,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicFlightCardRoute: ApiPublicFlightCardRoute,
   ApiPublicFrt2faInboxRoute: ApiPublicFrt2faInboxRoute,
+  ApiPublicFrtLabRoute: ApiPublicFrtLabRoute,
   ApiPublicHotelCardRoute: ApiPublicHotelCardRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
