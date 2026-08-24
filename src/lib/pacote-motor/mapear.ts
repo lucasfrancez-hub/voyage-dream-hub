@@ -64,6 +64,8 @@ export type HotelPacote = {
   politicas: string[];
   /** quantidade de avaliações, quando disponível */
   numAvaliacoes: number | null;
+  /** true quando o hotel aparece na lista "recomendados" da operadora */
+  recomendado?: boolean;
   /** valor total do pacote com esta hospedagem (pax já multiplicados) */
   total: number;
   moeda: string;
