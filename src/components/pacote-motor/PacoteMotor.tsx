@@ -366,7 +366,7 @@ export function PacoteMotor({
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                 <CalendarDays className="h-3 w-3" /> Ida e volta
               </Label>
