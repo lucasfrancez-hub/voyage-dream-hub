@@ -31,6 +31,7 @@ import { criarPacoteMotorCheckout } from "@/lib/pacote-motor/checkout.functions"
 import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import type { PassHubOferta } from "@/lib/passhub/types";
 import type { PacotePreset } from "@/lib/pacote-motor/preset";
+import { ResumoDock } from "./ResumoDock";
 
 type Vista = "overview" | "voo" | "hotel" | "servico";
 
@@ -549,7 +550,7 @@ export function PacoteMotor({
               setVoo(o);
               setVista("overview");
             }}
-            resumo={resumo}
+            resumo={<ResumoDock>{resumo}</ResumoDock>}
           />
         )}
 
@@ -568,7 +569,7 @@ export function PacoteMotor({
               setQuartoId(q);
               setVista("overview");
             }}
-            resumo={resumo}
+            resumo={<ResumoDock>{resumo}</ResumoDock>}
           />
         )}
 
@@ -579,7 +580,7 @@ export function PacoteMotor({
             erro={erroServicos}
             selecionados={servicosSel.map((s) => s.id)}
             onAlternar={alternarServico}
-            resumo={resumo}
+            resumo={<ResumoDock>{resumo}</ResumoDock>}
           />
         )}
       </div>

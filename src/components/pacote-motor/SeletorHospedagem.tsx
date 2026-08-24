@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { FiltrosMkt } from "./FiltrosMkt";
 import { brl, plural, type HotelPacote } from "@/lib/pacote-motor/mapear";
 import { Chips } from "@/components/pacote-motor/SeletorVoo";
 import { SobreHotelModal } from "@/components/pacote-motor/SobreHotelModal";
@@ -116,14 +117,8 @@ export function SeletorHospedagem({
       </div>
 
       <div className="market">
-        <aside className="filters">
-          <div className="filter-head">
-            Filtros de hospedagem
-            <button type="button" className="fclear" onClick={limparFiltros}>
-              Limpar
-            </button>
-          </div>
-          <div className="filter-body">
+        <FiltrosMkt titulo="Filtros de hospedagem" onLimpar={limparFiltros}>
+
             <div className="fb">
               <span className="flabel">Ordenar por</span>
               <select className="fselect" value={ordem} onChange={(e) => setOrdem(e.target.value as OrdemHotel)}>
@@ -212,8 +207,7 @@ export function SeletorHospedagem({
                 />
               </div>
             </div>
-          </div>
-        </aside>
+          </FiltrosMkt>
 
         <div className="results">
           {carregando && <div className="state-box">Consultando hospedagens disponíveis para a sua ocupação…</div>}

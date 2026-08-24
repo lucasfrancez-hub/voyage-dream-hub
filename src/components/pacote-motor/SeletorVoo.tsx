@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParcelamentoPacote } from "@/lib/pacote-motor/parcelamento";
 import { LogoCia } from "@/components/pacote-motor/LogoCia";
+import { FiltrosMkt } from "./FiltrosMkt";
 import { brl, hora, resumoVoo } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 
@@ -264,14 +265,8 @@ export function SeletorVoo({
       </div>
 
       <div className="market">
-        <aside className="filters">
-          <div className="filter-head">
-            Filtros do aéreo
-            <button type="button" className="fclear" onClick={limpar}>
-              Limpar
-            </button>
-          </div>
-          <div className="filter-body">
+        <FiltrosMkt titulo="Filtros do aéreo" onLimpar={limpar}>
+
             <div className="fb">
               <span className="flabel">Ordenar por</span>
               <select className="fselect" value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)}>
@@ -382,8 +377,7 @@ export function SeletorVoo({
               valor={fornecedores}
               onChange={setFornecedores}
             />
-          </div>
-        </aside>
+          </FiltrosMkt>
 
         <div className="results">
           {carregando && <div className="state-box">Consultando aéreos disponíveis…</div>}
