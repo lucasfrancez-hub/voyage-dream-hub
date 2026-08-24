@@ -20,13 +20,11 @@ function NumeroField({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-        {label}
-      </span>
+      <span className="mpp-label">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-10 w-full rounded-xl border border-border bg-background/60 px-3 text-sm font-semibold text-foreground outline-none transition focus:border-brand-orange"
+        className="mpp-field h-10 w-full px-3 text-sm font-semibold"
       >
         {Array.from({ length: max + 1 }, (_, i) => i).map((n) => (
           <option key={n} value={n}>
@@ -35,6 +33,7 @@ function NumeroField({
         ))}
       </select>
     </label>
+
   );
 }
 
