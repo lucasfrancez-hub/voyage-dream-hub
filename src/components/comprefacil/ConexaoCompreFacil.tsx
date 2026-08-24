@@ -116,6 +116,18 @@ export function ConexaoCompreFacil() {
           sessão até {new Date(estado.expiraEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
         </span>
       ) : null}
+      {!conectado && estado?.bloqueadoAte ? (
+        <span className="text-xs text-amber-500">
+          códigos bloqueados pela operadora até{" "}
+          {new Date(estado.bloqueadoAte).toLocaleString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      ) : null}
+
       <Button
         type="button"
         size="sm"
