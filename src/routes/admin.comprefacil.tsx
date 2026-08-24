@@ -224,6 +224,38 @@ function CompreFacilPage() {
   );
 }
 
+/** Busca um orçamento da operadora e permite cancelar item a item ou tudo. */
+function PainelCancelamentos() {
+  const [texto, setTexto] = useState("");
+  const [orcamentoId, setOrcamentoId] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex max-w-md gap-2">
+        <Input
+          value={texto}
+          onChange={(e) => setTexto(e.target.value.replace(/\D/g, ""))}
+          placeholder="Número do orçamento na operadora"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && texto) setOrcamentoId(Number(texto));
+          }}
+        />
+        <Button disabled={!texto} onClick={() => setOrcamentoId(Number(texto))}>
+          <Search className="mr-2 h-4 w-4" /> Abrir
+        </Button>
+      </div>
+      {orcamentoId ? (
+        <CancelarReservaFrt key={orcamentoId} orcamentoId={orcamentoId} />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Informe o número do orçamento da reserva para consultar os itens e cancelar.
+        </p>
+      )}
+    </div>
+  );
+}
+
+
 function Paginacao({
   pagina,
   total,
