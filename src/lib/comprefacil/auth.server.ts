@@ -157,25 +157,17 @@ async function validarDoisFatores(otpToken: string): Promise<{ access_token?: st
     throw new Error("Não recebemos o código de dois fatores do CompreFácil a tempo.");
   }
 
-  let resp: Response;
-  try {
-    resp = await fetch(`${BASE}/api/autenticacao/validaracesso`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        noauth: "t",
-        fingerprint: FINGERPRINT,
-        navegador: "Chrome",
-      },
-      body: JSON.stringify({ token: otpToken, codigo: espera.code }),
-      signal: AbortSignal.timeout(TEMPO_LIMITE_REQUISICAO_MS),
-    });
-  } catch (erro) {
-    if (erro instanceof Error && (erro.name === "TimeoutError" || erro.name === "AbortError")) {
-      throw new Error("A validação da operadora demorou para responder. Tente novamente.");
-    }
-    throw erro;
-  }
+  const resp = await fetch(`${BASE}/api/autenticacao/validaracesso`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      noauth: "t",
+      fingerprint: FINGERPRINT,
+      navegador: "Chrome",
+    },
+    body: JSON.stringify({ token: otpToken, codigo: espera.code }),
+  });
+
 
   const texto = await resp.text();
   if (!resp.ok && resp.status !== 202) {
