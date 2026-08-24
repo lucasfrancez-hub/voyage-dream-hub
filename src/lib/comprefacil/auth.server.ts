@@ -250,3 +250,29 @@ export const COMPREFACIL_BASES = {
   hotel: "https://apihotel.comprefacil.tur.br",
   servico: "https://apiservico.comprefacil.tur.br",
 } as const;
+
+/** Estado da sessão sem tentar logar (para a UI de conexão). */
+export async function statusSessaoCompreFacil(): Promise<{
+  conectado: boolean;
+  expiraEm: string | null;
+  agenciaId: string | null;
+  usuarioId: string | null;
+}> {
+  const atual = sessao && sessao.expiraEm > Date.now() ? sessao : await lerSessaoSalva();
+  if (atual) sessao = atual;
+  return {
+    conectado: Boolean(atual),
+    expiraEm: atual ? new Date(atual.expiraEm).toISOString() : null,
+    agenciaId: atual?.agenciaId ?? null,
+    usuarioId: atual?.usuarioId ?? null,
+  };
+}
+
+/** Força um novo login (descarta a sessão salva). Resolve o 2FA sozinho. */
+export async function reconectarCompreFacil(): Promise<Sessao> {
+  await limparSessaoCompreFacil();
+  const nova = await autenticar();
+  sessao = nova;
+  await salvarSessao(nova);
+  return nova;
+}
