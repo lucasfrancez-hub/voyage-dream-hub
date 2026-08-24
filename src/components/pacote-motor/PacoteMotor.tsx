@@ -152,8 +152,10 @@ export function PacoteMotor({
   const baseVoo = voo?.precoTotal ?? baseVooRecomendado;
   const baseHotel = (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) || baseHotelRecomendado;
 
-  const buscou = pacotes.isSuccess || voos.isSuccess;
   const carregando = pacotes.isPending || voos.isPending;
+  // Mostra a área de resultados (com esqueleto piscando) já durante a busca,
+  // para o cliente não ficar olhando uma tela em branco.
+  const buscou = pacotes.isSuccess || voos.isSuccess || carregando;
 
   const noites = useMemo(() => {
     if (!ida || !volta) return null;
