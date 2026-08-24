@@ -21,6 +21,8 @@ export type ServicoDisponivel = {
   valor: number | null;
   moeda: "BRL";
   imagem?: string | null;
+  /** galeria completa do serviço (quando a operadora envia) */
+  imagens?: string[];
 };
 
 const semHtml = (v: unknown): string | null => {
@@ -63,6 +65,10 @@ function mapear(s: any, i: number): ServicoDisponivel {
   } catch {
     extra = {};
   }
+  const imagens: string[] = (Array.isArray(s?.Imagens) ? s.Imagens : [])
+    .map((im: any) => (typeof im === "string" ? im : (im?.Url ?? im?.Imagem ?? im?.Caminho ?? "")))
+    .map((u: any) => String(u ?? "").trim())
+    .filter((u: string) => /^https?:\/\//i.test(u));
   const valor = Number(s?.ValorVenda ?? 0);
   const informacoes = [
     s?.Combo ? "Combo de serviços" : null,
@@ -85,7 +91,8 @@ function mapear(s: any, i: number): ServicoDisponivel {
     recomendado: false,
     valor: valor > 0 ? Number(valor.toFixed(2)) : null,
     moeda: "BRL" as const,
-    imagem: Array.isArray(s?.Imagens) && s.Imagens.length ? String(s.Imagens[0]) : null,
+    imagem: imagens[0] ?? null,
+    imagens,
   };
 }
 

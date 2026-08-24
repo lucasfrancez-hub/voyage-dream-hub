@@ -33,7 +33,6 @@ export function SeletorHospedagem({
   const [busca, setBusca] = useState("");
   const [estrelas, setEstrelas] = useState<number[]>([]);
   const [regimes, setRegimes] = useState<string[]>([]);
-  const [bairros, setBairros] = useState<string[]>([]);
   const [comodidades, setComodidades] = useState<string[]>([]);
   const [notaMinima, setNotaMinima] = useState<number | null>(null);
   const [precoMax, setPrecoMax] = useState<number | null>(null);
@@ -45,17 +44,14 @@ export function SeletorHospedagem({
 
   const opcoes = useMemo(() => {
     const reg = new Set<string>();
-    const bai = new Set<string>();
     const com = new Map<string, number>();
     for (const h of hoteis) {
       for (const q of h.quartos) if (q.regime) reg.add(q.regime);
       if (h.regime) reg.add(h.regime);
-      if (h.localizacao) bai.add(h.localizacao);
       for (const c of h.comodidades) com.set(c, (com.get(c) ?? 0) + 1);
     }
     return {
       regimes: [...reg].sort(),
-      bairros: [...bai].sort(),
       comodidades: [...com.entries()]
         .sort((a, b) => b[1] - a[1])
         .slice(0, 14)
@@ -80,7 +76,6 @@ export function SeletorHospedagem({
         const disponiveis = [h.regime, ...h.quartos.map((q) => q.regime)].filter(Boolean) as string[];
         if (!disponiveis.some((r) => regimes.includes(r))) return false;
       }
-      if (bairros.length && !(h.localizacao && bairros.includes(h.localizacao))) return false;
       if (comodidades.length && !comodidades.every((c) => h.comodidades.includes(c))) return false;
       if (notaMinima != null && !(h.avaliacao != null && h.avaliacao >= notaMinima)) return false;
       if (soReembolsavel && h.reembolsavel !== true && !h.quartos.some((q) => q.reembolsavel === true)) return false;
@@ -97,13 +92,12 @@ export function SeletorHospedagem({
     if (ordem === "estrelas") ordenados.sort((a, b) => (b.categoria ?? 0) - (a.categoria ?? 0));
     if (ordem === "avaliacao") ordenados.sort((a, b) => (b.avaliacao ?? 0) - (a.avaliacao ?? 0));
     return ordenados;
-  }, [hoteis, busca, estrelas, regimes, bairros, comodidades, notaMinima, soReembolsavel, precoMax, ordem]);
+  }, [hoteis, busca, estrelas, regimes, comodidades, notaMinima, soReembolsavel, precoMax, ordem]);
 
   const limparFiltros = () => {
     setBusca("");
     setEstrelas([]);
     setRegimes([]);
-    setBairros([]);
     setComodidades([]);
     setNotaMinima(null);
     setPrecoMax(null);
@@ -200,12 +194,6 @@ export function SeletorHospedagem({
               opcoes={opcoes.regimes.map((r) => ({ v: r, l: r }))}
               valor={regimes}
               onChange={setRegimes}
-            />
-            <Chips
-              rotulo="Localização"
-              opcoes={opcoes.bairros.map((b) => ({ v: b, l: b }))}
-              valor={bairros}
-              onChange={setBairros}
             />
             <Chips
               rotulo="Comodidades"
