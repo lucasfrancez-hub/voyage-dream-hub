@@ -55,7 +55,11 @@ export function ServicoModal({
             ✕
           </button>
           <div className="svc-hero-txt">
+            {servico.logo ? (
+              <img className="svc-hero-logo" src={servico.logo} alt={servico.fornecedor ?? "Seguradora"} loading="lazy" />
+            ) : null}
             <span className="svc-hero-cat">{grupo}</span>
+
             <h3>{servico.titulo}</h3>
             {servico.fornecedor ? <p>Operado por {servico.fornecedor}</p> : null}
           </div>
