@@ -40,8 +40,12 @@ function NumeroField({
 
 export function MotorPacotePersonalizado() {
   const [aberto, setAberto] = useState(false);
+  const navigate = useNavigate();
   const [origem, setOrigem] = useState("");
+  const [origemIata, setOrigemIata] = useState("");
   const [destino, setDestino] = useState("");
+  const [destinoIata, setDestinoIata] = useState("");
+  const [cidadeId, setCidadeId] = useState<number | null>(null);
   const [ida, setIda] = useState("");
   const [volta, setVolta] = useState("");
   const [quartos, setQuartos] = useState<Quarto[]>([novoQuarto()]);
@@ -63,24 +67,28 @@ export function MotorPacotePersonalizado() {
     setQuartos((prev) => prev.map((q, idx) => (idx === i ? { ...q, ...patch } : q)));
   }
 
-  const mensagem = useMemo(() => {
-    const fmt = (d: string) => (d ? d.split("-").reverse().join("/") : "a definir");
-    const ocupacao = quartos
-      .map(
-        (q, i) =>
-          `Quarto ${i + 1}: ${q.adultos} adulto(s)` +
-          (q.criancas ? `, ${q.criancas} criança(s)` : "") +
-          (q.bebes ? `, ${q.bebes} bebê(s)` : ""),
-      )
-      .join(" | ");
-    return [
-      "Olá! Quero montar um pacote personalizado:",
-      `Origem: ${origem || "a definir"}`,
-      `Destino: ${destino || "a definir"}`,
-      `Ida: ${fmt(ida)} • Volta: ${fmt(volta)}`,
-      ocupacao,
-    ].join("\n");
-  }, [origem, destino, ida, volta, quartos]);
+  const podeBuscar = Boolean(destino.trim() && ida);
+
+  /** Leva para a busca completa (aéreo, hotel, carro, pacotes) já na aba Pacotes. */
+  function pesquisar() {
+    if (!podeBuscar) return;
+    navigate({
+      to: "/voar",
+      search: {
+        m: "combo" as const,
+        o: origemIata || undefined,
+        d: destinoIata || undefined,
+        pon: origem || undefined,
+        pdn: destino || undefined,
+        cid: cidadeId ?? undefined,
+        ida,
+        volta: volta || undefined,
+        q: encodeQuartos(
+          quartos.map((x) => ({ ...x, idades: Array.from({ length: x.criancas }, () => 7) })),
+        ),
+      },
+    });
+  }
 
   return (
     <div className="mt-8">
@@ -126,22 +134,31 @@ export function MotorPacotePersonalizado() {
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
                 Origem
               </span>
-              <input
-                value={origem}
-                onChange={(e) => setOrigem(e.target.value)}
+              <CidadeAutocompleteCF
+                publico
+                campo="saida"
+                valor={origem}
                 placeholder="Cidade de saída"
-                className="h-11 w-full rounded-xl border border-border bg-background/60 px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/70 focus:border-brand-orange"
+                onChange={(nome, _id, iata) => {
+                  setOrigem(nome);
+                  setOrigemIata(iata ?? "");
+                }}
               />
             </label>
             <label className="block">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
                 Destino
               </span>
-              <input
-                value={destino}
-                onChange={(e) => setDestino(e.target.value)}
+              <CidadeAutocompleteCF
+                publico
+                campo="destino"
+                valor={destino}
                 placeholder="Para onde vamos?"
-                className="h-11 w-full rounded-xl border border-border bg-background/60 px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/70 focus:border-brand-orange"
+                onChange={(nome, id, iata) => {
+                  setDestino(nome);
+                  setCidadeId(id);
+                  setDestinoIata(iata ?? "");
+                }}
               />
             </label>
             <label className="block">
@@ -167,14 +184,14 @@ export function MotorPacotePersonalizado() {
                 className="h-11 w-full rounded-xl border border-border bg-background/60 px-3 text-sm text-foreground outline-none transition focus:border-brand-orange"
               />
             </label>
-            <a
-              href={whatsappUrl(mensagem)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-11 items-center justify-center self-end rounded-xl bg-brand-orange px-5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[.98]"
+            <button
+              type="button"
+              onClick={pesquisar}
+              disabled={!podeBuscar}
+              className="flex h-11 items-center justify-center self-end rounded-xl bg-brand-orange px-5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               Buscar pacotes
-            </a>
+            </button>
           </div>
 
           <div className="mt-4 rounded-2xl border border-border bg-background/40 p-4">
@@ -234,8 +251,8 @@ export function MotorPacotePersonalizado() {
           </div>
 
           <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-            Busca completa: ao pesquisar, um consultor VIA AIR recebe seus dados já preenchidos e
-            retorna com as opções de aéreo + hospedagem.
+            Busca completa: ao pesquisar, abrimos o motor VIA AIR (aéreo, hotel, carro e pacotes)
+            com os resultados de aéreo + hospedagem já carregados logo abaixo.
           </p>
         </div>
       )}
