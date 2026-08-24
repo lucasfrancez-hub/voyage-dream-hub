@@ -24,14 +24,18 @@ export function SeletorServicos({
 
   const categorias = useMemo(() => {
     const mapa = new Map<string, number>();
-    for (const s of servicos) mapa.set(s.categoria, (mapa.get(s.categoria) ?? 0) + 1);
-    return [...mapa.entries()].sort((a, b) => b[1] - a[1]);
+    for (const s of servicos) {
+      const g = grupoServico(s);
+      mapa.set(g, (mapa.get(g) ?? 0) + 1);
+    }
+    return GRUPOS_SERVICO.filter((g) => mapa.has(g)).map((g) => [g, mapa.get(g)!] as const);
   }, [servicos]);
 
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase();
     const filtrados = servicos.filter((s) => {
-      if (categoria !== "todos" && s.categoria !== categoria) return false;
+      if (categoria !== "todos" && grupoServico(s) !== categoria) return false;
+
       if (t && !`${s.titulo} ${s.descricao ?? ""}`.toLowerCase().includes(t)) return false;
       return true;
     });
