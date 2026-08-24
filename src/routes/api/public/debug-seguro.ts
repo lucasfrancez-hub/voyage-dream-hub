@@ -55,25 +55,25 @@ export const Route = createFileRoute("/api/public/debug-seguro")({
         });
         const guidCtx = (svc.dados as any)?.MetaData?.Guid ?? null;
 
-        const nomes = [
-          ["DataInicioVigencia","DataFimVigencia"],
-          ["InicioVigencia","FimVigencia"],
-          ["DataInicioViagem","DataFimViagem"],
-          ["DtIda","DtVolta"],
-          ["DataIdaViagem","DataVoltaViagem"],
-          ["DataPartidaViagem","DataRetornoViagem"],
-          ["DataInicioCobertura","DataFimCobertura"],
-          ["DataInicioSeguro","DataFimSeguro"],
-        ];
+        const trecho = { De: de, Ate: ate, Cidade: { Id: cidadeId }, CidadeId: cidadeId, Destino: { Id: cidadeId } };
+        const variantes: Record<string, any> = {
+          Trechos: { ...body, Guid: guidCtx, Trechos: [trecho] },
+          Destinos: { ...body, Guid: guidCtx, Destinos: [trecho] },
+          Itinerario: { ...body, Guid: guidCtx, Itinerario: [trecho] },
+          Viagens: { ...body, Guid: guidCtx, Viagens: [trecho] },
+          Servicos: { ...body, Guid: guidCtx, Servicos: [trecho] },
+          Passageiros: {
+            ...body,
+            Guid: guidCtx,
+            Passageiros: [{ DataNascimento: "1990-01-01", Tipo: 0 }, { DataNascimento: "1990-01-01", Tipo: 0 }],
+          },
+          Carrinho: { ...body, Guid: guidCtx, Carrinho: { De: de, Ate: ate } },
+        };
         const out: Record<string, any> = {};
-        for (const [a, b] of nomes) {
-          const r2 = await chamarCompreFacil(rota, {
-            base,
-            method: "POST",
-            body: { ...body, Guid: guidCtx, [a]: de, [b]: ate },
-          });
+        for (const [nome, b] of Object.entries(variantes)) {
+          const r2 = await chamarCompreFacil(rota, { base, method: "POST", body: b });
           const dd: any = r2.dados;
-          out[a] = { ok: r2.ok, status: (r2 as any).status, msg: dd?.mensagem, itens: (dd?.Items ?? []).length };
+          out[nome] = { ok: r2.ok, status: (r2 as any).status, msg: dd?.mensagem, itens: (dd?.Items ?? []).length, guid: dd?.MetaData?.Guid ?? null };
         }
         const r = await chamarCompreFacil(rota, { base, method: "POST", body: { ...body, Guid: guidCtx } });
         const d: any = r.dados;
