@@ -53,7 +53,14 @@ function Detalhe({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
         const chegada = c?.chegada ?? voo.chegada;
         return (
           <div key={`${origem}-${i}`}>
-            {i > 0 ? <div className="connect">Conexão em {trechos[i - 1].destino}</div> : null}
+            {i > 0 ? (
+              <div className="connect">
+                Conexão em {trechos[i - 1].destino}
+                {String(trechos[i - 1].destino ?? "").toUpperCase() !== String(origem ?? "").toUpperCase()
+                  ? ` · troca de aeroporto (${trechos[i - 1].destino} → ${origem})`
+                  : ""}
+              </div>
+            ) : null}
             <div className="segment">
               <div className="clock">
                 {hora(partida)}
