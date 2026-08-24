@@ -9,6 +9,10 @@ export const Route = createFileRoute("/api/public/frt-lab")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const host = new URL(request.url).hostname;
+        if (host !== "localhost" && host !== "127.0.0.1") {
+          return new Response("Not found", { status: 404 });
+        }
         const chave = process.env["FRT_LAB_KEY"] ?? "lab-local-2026";
         if (request.headers.get("x-lab-key") !== chave) {
           return new Response("Unauthorized", { status: 401 });
