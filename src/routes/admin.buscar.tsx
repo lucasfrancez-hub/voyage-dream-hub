@@ -21,6 +21,7 @@ import { HoteisPage } from "./admin.hoteis-teste";
 import { CarrosPage } from "./admin.carros";
 import { ExclusivosPage } from "./admin.exclusivos";
 import { SegurosPage } from "./admin.seguros";
+import { RoomsPaxField, QUARTO_PADRAO, totalPax, type QuartoPax } from "@/components/search/RoomsPaxField";
 import { DateRangeField } from "@/components/search/DateRangeField";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 
@@ -146,6 +147,8 @@ type ComboForm = {
   children: number;
   infants: number;
   rooms: number;
+  /** Distribuição por quarto (clique no quarto para editar). */
+  quartos: QuartoPax[];
 };
 
 const COMBO_INITIAL: ComboForm = {
@@ -159,6 +162,7 @@ const COMBO_INITIAL: ComboForm = {
   children: 0,
   infants: 0,
   rooms: 1,
+  quartos: [{ ...QUARTO_PADRAO }],
 };
 
 /** Formulário único do modo Aéreo + Hotel: uma busca alimenta os dois motores. */
@@ -254,28 +258,24 @@ function ComboForm({
             onChange={(e) => setForm({ ...form, destinationCity: e.target.value })}
           />
         </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Users className="h-3 w-3" /> {form.adults + form.children + form.infants} pax • {form.rooms} quarto(s)
-          </span>
-          {[
-            { k: "adults" as const, l: "Adultos", min: 1 },
-            { k: "children" as const, l: "Crianças", min: 0 },
-            { k: "infants" as const, l: "Bebês", min: 0 },
-            { k: "rooms" as const, l: "Quartos", min: 1 },
-          ].map((p) => (
-            <div key={p.k} className="w-24 space-y-1">
-              <Label className="text-[11px] text-muted-foreground">{p.l}</Label>
-              <Input
-                className="h-9"
-                type="number"
-                min={p.min}
-                max={9}
-                value={form[p.k]}
-                onChange={(e) => setForm({ ...form, [p.k]: Number(e.target.value) })}
-              />
-            </div>
-          ))}
+        <div className="w-full space-y-1 md:w-72">
+          <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+            <Users className="h-3 w-3" /> Pessoas e quartos
+          </Label>
+          <RoomsPaxField
+            quartos={form.quartos}
+            onChange={(quartos) => {
+              const t = totalPax(quartos);
+              setForm({
+                ...form,
+                quartos,
+                adults: t.adultos,
+                children: t.criancas,
+                infants: t.bebes,
+                rooms: quartos.length,
+              });
+            }}
+          />
         </div>
       </div>
     </div>
