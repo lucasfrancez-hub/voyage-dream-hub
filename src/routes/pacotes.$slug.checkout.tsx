@@ -80,7 +80,11 @@ function Checkout() {
     birthday: birthdayFromSearch,
     hotel: hotelFromSearch,
     pay: payFromSearch,
+    fixed: fixedFromSearch,
   } = Route.useSearch();
+  /** Pacote sob medida do motor: quantidade de viajantes travada. */
+  const paxTravado = fixedFromSearch === 1;
+
   const navigate = useNavigate();
   const notifyPix = useServerFn(notifyPixOrder);
 
