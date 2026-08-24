@@ -418,12 +418,7 @@ export function SearchEngine({
       </>
     );
 
-  const subtitle =
-    mode === "hotel"
-      ? ""
-      : mode === "combo"
-        ? "Aéreo + hospedagem no mesmo pacote, com quartos e viajantes do seu jeito."
-        : "";
+  const subtitle = "";
 
 
 
