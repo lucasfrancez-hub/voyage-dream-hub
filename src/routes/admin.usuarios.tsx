@@ -24,6 +24,7 @@ import {
   setAdminUserPassword,
   type AdminRole,
 } from "@/lib/admin-users.functions";
+import { ModulosUsuarioDialog } from "@/components/admin/ModulosUsuarioDialog";
 
 export const Route = createFileRoute("/admin/usuarios")({
   component: UsersPage,
