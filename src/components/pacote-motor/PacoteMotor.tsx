@@ -342,35 +342,53 @@ export function PacoteMotor({
       <div className="shell">
         {/* Mesma linguagem visual das abas Aéreo/Hotel: card do design system,
             labels com ícone, calendário e seletor de hóspedes padrão. */}
-        <section className="w-full overflow-hidden rounded-[32px] border border-border/50 bg-card/60 p-6 font-sans text-base text-foreground shadow-2xl backdrop-blur-xl md:p-8">
-          <div className="grid w-full min-w-0 items-end gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto]">
-            <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <MapPin className="h-3 w-3 text-primary" /> Origem
+        {/* Exatamente o mesmo painel da aba Aéreo: mesmas classes, mesmos campos. */}
+        <section className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
+          <div className="grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
+            <div className="relative grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <MapPin className="h-3 w-3" /> Origem
                 </Label>
                 <CidadeAutocompleteCF
                   publico={publico}
                   valor={origem}
                   campo="saida"
-                  placeholder="Cidade de saída"
-                  className="h-12 rounded-xl border-border/40 bg-input px-4 text-sm font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
+                  placeholder="De onde sairemos?"
+                  className="h-11 text-sm font-semibold sm:text-base"
                   onChange={(nome, _id, iata) => {
                     setOrigem(nome);
                     setOrigemIata(iata ?? "");
                   }}
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <ArrowLeftRight className="h-3 w-3 text-primary" /> Destino
+              <button
+                type="button"
+                aria-label="Inverter origem e destino"
+                title="Inverter origem e destino"
+                onClick={() => {
+                  const o = origem;
+                  const oi = origemIata;
+                  setOrigem(destino);
+                  setOrigemIata(destinoIata);
+                  setDestino(o);
+                  setDestinoIata(oi);
+                  setCidadeId(null);
+                }}
+                className="absolute left-1/2 top-[calc(50%+0.5rem)] z-10 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border/60 bg-card text-muted-foreground shadow-lg transition hover:text-primary active:scale-95"
+              >
+                <ArrowLeftRight className="h-3.5 w-3.5" />
+              </button>
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <ArrowLeftRight className="h-3 w-3" /> Destino
                 </Label>
                 <CidadeAutocompleteCF
                   publico={publico}
                   valor={destino}
                   campo="destino"
-                  placeholder="Cidade do pacote"
-                  className="h-12 rounded-xl border-border/40 bg-input px-4 text-sm font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
+                  placeholder="Para onde vamos?"
+                  className="h-11 text-sm font-semibold sm:text-base"
                   onChange={(nome, id, iata) => {
                     setDestino(nome);
                     setCidadeId(id);
@@ -380,16 +398,15 @@ export function PacoteMotor({
               </div>
             </div>
 
-            <div className="min-w-0 space-y-2">
-              <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                <CalendarDays className="h-3 w-3 text-primary" /> Ida e volta
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <CalendarDays className="h-3 w-3" /> Ida e volta
               </Label>
               <DateRangeField
                 departureDate={ida}
                 returnDate={volta}
                 allowOneWay={false}
                 labels={{ start: "Ida", end: "Volta" }}
-                className="bg-input"
                 onChange={(d, v) => {
                   setIda(d);
                   setVolta(v);
@@ -397,10 +414,10 @@ export function PacoteMotor({
               />
             </div>
 
-            <div className="flex min-w-0 items-end">
+            <div className="flex items-end">
               <Button
                 size="lg"
-                className="h-12 w-full rounded-xl font-bold shadow-xl shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95 lg:w-auto"
+                className="h-11 w-full lg:w-auto"
                 onClick={pesquisar}
                 disabled={carregando}
               >
@@ -414,19 +431,18 @@ export function PacoteMotor({
             </div>
           </div>
 
-          <div className="mt-2 grid gap-4 border-t border-border/40 pt-6 md:grid-cols-[1fr_auto] md:items-end">
+          <div className="mt-3 grid gap-3 border-t border-border/60 pt-3 md:grid-cols-[1.4fr_auto] md:items-end">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Users className="h-3.5 w-3.5" />
               {plural(pax.hospedes, "passageiro", "passageiros")} ·{" "}
               {plural(quartos.length, "quarto", "quartos")}
             </div>
-            <div className="w-full space-y-2 md:w-72">
-              <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                <BedDouble className="h-3 w-3 text-primary" /> Quartos e hóspedes
+            <div className="w-full space-y-1 md:w-72">
+              <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <BedDouble className="h-3 w-3" /> Quartos e hóspedes
               </Label>
               <RoomsPaxField
                 quartos={quartos}
-                className="h-12 rounded-xl border-border/60 bg-input px-3 text-sm font-semibold hover:border-primary/50"
                 onChange={(novos) =>
                   // Preserva as idades já informadas para cada quarto ao redistribuir.
                   setQuartos(
@@ -440,6 +456,7 @@ export function PacoteMotor({
             </div>
           </div>
         </section>
+
 
         {/* Abas e resultados só entram em cena depois da pesquisa. */}
         {buscou && (

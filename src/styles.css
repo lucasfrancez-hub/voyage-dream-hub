@@ -1567,7 +1567,7 @@ body:has([data-chat-root]),
    Motor embutido (admin/embed): responde à largura do container, não da janela.
    Evita que o grid de busca e os blocos estourem as margens da página.
    ========================================================================== */
-.mkt.inset {container-type:inline-size;container-name:mkt;overflow:hidden;border-radius:24px}
+.mkt.inset {container-type:inline-size;container-name:mkt;overflow:hidden;border-radius:24px;background:transparent}
 .mkt.inset .shell {max-width:100%;padding:0}
 .mkt.inset main {padding:16px 0 24px}
 .mkt.inset * {min-width:0}
