@@ -113,7 +113,8 @@ import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
 import { Route as AdminCobrancaCartaoIndexRouteImport } from './routes/admin.cobranca-cartao.index'
 import { Route as AdminCobrancaCartaoIdRouteImport } from './routes/admin.cobranca-cartao.$id'
 import { Route as AdminCruzeirosIndexRouteImport } from './routes/admin.cruzeiros.index'
-import { Route as AdminMotorPacoteModelosRouteImport } from './routes/admin.motor-pacote_.modelos'
+import { Route as AdminMotorPacoteIndexRouteImport } from './routes/admin.motor-pacote.index'
+import { Route as AdminMotorPacoteModelosRouteImport } from './routes/admin.motor-pacote.modelos'
 import { Route as AdminOrcamentosIndexRouteImport } from './routes/admin.orcamentos.index'
 import { Route as AdminOrcamentosIdRouteImport } from './routes/admin.orcamentos.$id'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
@@ -709,10 +710,15 @@ const AdminCruzeirosIndexRoute = AdminCruzeirosIndexRouteImport.update({
   path: '/cruzeiros/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMotorPacoteIndexRoute = AdminMotorPacoteIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminMotorPacoteRoute,
+} as any)
 const AdminMotorPacoteModelosRoute = AdminMotorPacoteModelosRouteImport.update({
-  id: '/motor-pacote_/modelos',
-  path: '/motor-pacote/modelos',
-  getParentRoute: () => AdminRoute,
+  id: '/modelos',
+  path: '/modelos',
+  getParentRoute: () => AdminMotorPacoteRoute,
 } as any)
 const AdminOrcamentosIndexRoute = AdminOrcamentosIndexRouteImport.update({
   id: '/orcamentos/',
@@ -1172,7 +1178,7 @@ export interface FileRoutesByFullPath {
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/metricas': typeof AdminMetricasRoute
   '/admin/motor-frt': typeof AdminMotorFrtRoute
-  '/admin/motor-pacote': typeof AdminMotorPacoteRoute
+  '/admin/motor-pacote': typeof AdminMotorPacoteRouteWithChildren
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
@@ -1254,6 +1260,7 @@ export interface FileRoutesByFullPath {
   '/pagar/reserva/$codigo': typeof PagarReservaCodigoRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
+  '/admin/motor-pacote/': typeof AdminMotorPacoteIndexRoute
   '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/cruzeiros/ui-preview/': typeof CruzeirosUiPreviewIndexRoute
@@ -1350,7 +1357,6 @@ export interface FileRoutesByTo {
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/metricas': typeof AdminMetricasRoute
   '/admin/motor-frt': typeof AdminMotorFrtRoute
-  '/admin/motor-pacote': typeof AdminMotorPacoteRoute
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
@@ -1432,6 +1438,7 @@ export interface FileRoutesByTo {
   '/pagar/reserva/$codigo': typeof PagarReservaCodigoRoute
   '/admin/cobranca-cartao': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros': typeof AdminCruzeirosIndexRoute
+  '/admin/motor-pacote': typeof AdminMotorPacoteIndexRoute
   '/admin/orcamentos': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/cruzeiros/ui-preview': typeof CruzeirosUiPreviewIndexRoute
@@ -1531,7 +1538,7 @@ export interface FileRoutesById {
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/metricas': typeof AdminMetricasRoute
   '/admin/motor-frt': typeof AdminMotorFrtRoute
-  '/admin/motor-pacote': typeof AdminMotorPacoteRoute
+  '/admin/motor-pacote': typeof AdminMotorPacoteRouteWithChildren
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
@@ -1582,7 +1589,7 @@ export interface FileRoutesById {
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
   '/admin/cobranca-cartao/$id': typeof AdminCobrancaCartaoIdRoute
-  '/admin/motor-pacote_/modelos': typeof AdminMotorPacoteModelosRoute
+  '/admin/motor-pacote/modelos': typeof AdminMotorPacoteModelosRoute
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -1613,6 +1620,7 @@ export interface FileRoutesById {
   '/pagar_/reserva/$codigo': typeof PagarReservaCodigoRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
+  '/admin/motor-pacote/': typeof AdminMotorPacoteIndexRoute
   '/admin/orcamentos/': typeof AdminOrcamentosIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/cruzeiros_/ui-preview/': typeof CruzeirosUiPreviewIndexRoute
@@ -1795,6 +1803,7 @@ export interface FileRouteTypes {
     | '/pagar/reserva/$codigo'
     | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
+    | '/admin/motor-pacote/'
     | '/admin/orcamentos/'
     | '/admin/pedidos/'
     | '/cruzeiros/ui-preview/'
@@ -1891,7 +1900,6 @@ export interface FileRouteTypes {
     | '/admin/melhores-destinos'
     | '/admin/metricas'
     | '/admin/motor-frt'
-    | '/admin/motor-pacote'
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
@@ -1973,6 +1981,7 @@ export interface FileRouteTypes {
     | '/pagar/reserva/$codigo'
     | '/admin/cobranca-cartao'
     | '/admin/cruzeiros'
+    | '/admin/motor-pacote'
     | '/admin/orcamentos'
     | '/admin/pedidos'
     | '/cruzeiros/ui-preview'
@@ -2122,7 +2131,7 @@ export interface FileRouteTypes {
     | '/pacotes/'
     | '/admin/app/$token'
     | '/admin/cobranca-cartao/$id'
-    | '/admin/motor-pacote_/modelos'
+    | '/admin/motor-pacote/modelos'
     | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -2153,6 +2162,7 @@ export interface FileRouteTypes {
     | '/pagar_/reserva/$codigo'
     | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
+    | '/admin/motor-pacote/'
     | '/admin/orcamentos/'
     | '/admin/pedidos/'
     | '/cruzeiros_/ui-preview/'
@@ -3024,12 +3034,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCruzeirosIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/motor-pacote_/modelos': {
-      id: '/admin/motor-pacote_/modelos'
-      path: '/motor-pacote/modelos'
+    '/admin/motor-pacote/': {
+      id: '/admin/motor-pacote/'
+      path: '/'
+      fullPath: '/admin/motor-pacote/'
+      preLoaderRoute: typeof AdminMotorPacoteIndexRouteImport
+      parentRoute: typeof AdminMotorPacoteRoute
+    }
+    '/admin/motor-pacote/modelos': {
+      id: '/admin/motor-pacote/modelos'
+      path: '/modelos'
       fullPath: '/admin/motor-pacote/modelos'
       preLoaderRoute: typeof AdminMotorPacoteModelosRouteImport
-      parentRoute: typeof AdminRoute
+      parentRoute: typeof AdminMotorPacoteRoute
     }
     '/admin/orcamentos/': {
       id: '/admin/orcamentos/'
@@ -3545,6 +3562,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminMotorPacoteRouteChildren {
+  AdminMotorPacoteModelosRoute: typeof AdminMotorPacoteModelosRoute
+  AdminMotorPacoteIndexRoute: typeof AdminMotorPacoteIndexRoute
+}
+
+const AdminMotorPacoteRouteChildren: AdminMotorPacoteRouteChildren = {
+  AdminMotorPacoteModelosRoute: AdminMotorPacoteModelosRoute,
+  AdminMotorPacoteIndexRoute: AdminMotorPacoteIndexRoute,
+}
+
+const AdminMotorPacoteRouteWithChildren =
+  AdminMotorPacoteRoute._addFileChildren(AdminMotorPacoteRouteChildren)
+
 interface AdminPessoasRouteChildren {
   AdminPessoasIdRoute: typeof AdminPessoasIdRoute
 }
@@ -3588,7 +3618,7 @@ interface AdminRouteChildren {
   AdminMelhoresDestinosRoute: typeof AdminMelhoresDestinosRoute
   AdminMetricasRoute: typeof AdminMetricasRoute
   AdminMotorFrtRoute: typeof AdminMotorFrtRoute
-  AdminMotorPacoteRoute: typeof AdminMotorPacoteRoute
+  AdminMotorPacoteRoute: typeof AdminMotorPacoteRouteWithChildren
   AdminMotorTremRoute: typeof AdminMotorTremRoute
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
@@ -3611,7 +3641,6 @@ interface AdminRouteChildren {
   AdminVoosTesteRoute: typeof AdminVoosTesteRoute
   AdminAppTokenRoute: typeof AdminAppTokenRoute
   AdminCobrancaCartaoIdRoute: typeof AdminCobrancaCartaoIdRoute
-  AdminMotorPacoteModelosRoute: typeof AdminMotorPacoteModelosRoute
   AdminOrcamentosIdRoute: typeof AdminOrcamentosIdRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
   AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
@@ -3656,7 +3685,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMelhoresDestinosRoute: AdminMelhoresDestinosRoute,
   AdminMetricasRoute: AdminMetricasRoute,
   AdminMotorFrtRoute: AdminMotorFrtRoute,
-  AdminMotorPacoteRoute: AdminMotorPacoteRoute,
+  AdminMotorPacoteRoute: AdminMotorPacoteRouteWithChildren,
   AdminMotorTremRoute: AdminMotorTremRoute,
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminPacotesRoute: AdminPacotesRoute,
@@ -3679,7 +3708,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminVoosTesteRoute: AdminVoosTesteRoute,
   AdminAppTokenRoute: AdminAppTokenRoute,
   AdminCobrancaCartaoIdRoute: AdminCobrancaCartaoIdRoute,
-  AdminMotorPacoteModelosRoute: AdminMotorPacoteModelosRoute,
   AdminOrcamentosIdRoute: AdminOrcamentosIdRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
   AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
