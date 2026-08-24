@@ -106,30 +106,44 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
   if (!guid) return [];
 
   let dados: any = inicio.dados;
-  for (let i = 0; i < 12; i++) {
-    await espera(3000);
+  // Polling adaptativo (mesmo padrão da hotelaria): começa curto e cresce,
+  // devolvendo a lista assim que já há resultado útil em vez de ciclos fixos de 3s.
+  const intervalos = [700, 900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000];
+  for (let i = 0; i < intervalos.length; i++) {
+    await espera(intervalos[i]!);
     const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
     dados = r.dados;
     const meta = dados?.Aereos?.MetaData;
-    if (buscasAtivas(meta) === 0 && (dados?.Aereos?.Items?.length ?? 0) >= 0 && Number(meta?.TotalItens ?? 0) > 0) break;
+    const total = Number(meta?.TotalItens ?? 0);
+    if (buscasAtivas(meta) === 0 && total > 0) break;
+    // Já há ofertas suficientes: entrega sem esperar companhias lentas.
+    if (total >= 40 && i >= 2) break;
     if (buscasAtivas(meta) === 0 && i > 1) break;
   }
 
   const itens: any[] = [...(dados?.Aereos?.Items ?? [])];
 
-  // A busca já terminou (mesmo Guid): varre as páginas seguintes para trazer
-  // TODAS as ofertas que a operadora tem, não só a primeira página.
+  // Páginas restantes em paralelo (lotes de 4) — antes era uma requisição por vez.
   const metaFinal = dados?.Aereos?.MetaData;
   const faltam = paginasRestantes(metaFinal, porPagina, itens.length);
-  for (let pagina = 2; pagina <= faltam + 1; pagina++) {
-    const r = await chamarCompreFacil(
-      `/api/Aereo/busca?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
-      { base, method: "POST", body: corpo(guid) },
+  const paginas = Array.from({ length: faltam }, (_, k) => k + 2);
+  for (let ini = 0; ini < paginas.length; ini += 4) {
+    const lote = paginas.slice(ini, ini + 4);
+    const respostas = await Promise.all(
+      lote.map((pagina) =>
+        chamarCompreFacil(
+          `/api/Aereo/busca?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
+          { base, method: "POST", body: corpo(guid) },
+        ).catch(() => null),
+      ),
     );
-    const lote: any[] = (r.dados as any)?.Aereos?.Items ?? [];
-    if (!lote.length) break;
-    itens.push(...lote);
-    if (itens.length >= MAX_ITENS) break;
+    let vazio = true;
+    for (const r of respostas) {
+      const its: any[] = (r?.dados as any)?.Aereos?.Items ?? [];
+      if (its.length) vazio = false;
+      itens.push(...its);
+    }
+    if (vazio || itens.length >= MAX_ITENS) break;
   }
 
   return itens.map((it, idx) => mapearOfertaAereo(it, idx)).filter(Boolean) as PassHubOferta[];
