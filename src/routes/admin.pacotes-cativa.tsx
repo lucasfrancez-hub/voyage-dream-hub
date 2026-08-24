@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, Check, ExternalLink, Loader2, Plane, RefreshCw, Search, History, Trash2, Route as RouteIcon } from "lucide-react";
-import { confirmThen } from "@/lib/confirm";
+import { AlertTriangle, Check, ExternalLink, Loader2, Plane, RefreshCw, Search, History, Trash2, Route as RouteIcon, ShieldCheck } from "lucide-react";
+import { confirm, confirmThen } from "@/lib/confirm";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
