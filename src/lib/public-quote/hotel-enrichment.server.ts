@@ -266,16 +266,29 @@ async function jsonOf(
   signal: AbortSignal,
   apiKey: string,
 ): Promise<Record<string, unknown> | null> {
+  const chamar = () =>
+    fetch(url, { signal, headers: { accept: "application/json", "X-API-KEY": apiKey } });
+
   try {
-    const r = await fetch(url, {
-      signal,
-      headers: { accept: "application/json", "X-API-KEY": apiKey },
-    });
-    if (!r.ok) {
+    let r = await naFila(chamar);
+
+    // 429 aqui é rajada nossa (limite por segundo), não cota da conta:
+    // espera o Retry-After (ou 2s) e tenta de novo uma vez.
+    if (r.status === 429) {
+      const retryAfter = Number(r.headers.get("retry-after"));
+      const esperaMs = Math.min(
+        Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 2000,
+        8000,
+      );
+      await new Promise((res) => setTimeout(res, esperaMs));
+      r = await naFila(chamar);
       if (r.status === 429) {
-        // Limite da chave estourado: pausa curta para não queimar mais cota.
-        bloqueadoAte = Date.now() + 10 * 60_000;
+        // Só agora fazemos uma pausa curta e global (segundos, não minutos).
+        bloqueadoAte = Date.now() + 20_000;
       }
+    }
+
+    if (!r.ok) {
       console.warn("[hotel-enrichment] TripAdvisor", r.status, url.split("?")[0]);
       return null;
     }
@@ -284,6 +297,7 @@ async function jsonOf(
     return null;
   }
 }
+
 
 
 /**
