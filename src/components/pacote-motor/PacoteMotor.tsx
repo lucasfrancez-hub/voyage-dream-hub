@@ -16,6 +16,7 @@ import {
   type OcupacaoQuarto,
 } from "@/lib/pacote-motor/mapear";
 import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.functions";
+import { buscarAereoCFPublic, buscarHospedagemCFPublic } from "@/lib/comprefacil/publico.functions";
 import { criarPacoteMotorCheckout } from "@/lib/pacote-motor/checkout.functions";
 import type { PassHubOferta } from "@/lib/passhub/types";
 
@@ -25,9 +26,9 @@ type Vista = "overview" | "voo" | "hotel";
  * Motor de Pacotes VIA AIR — padrão visual aprovado.
  * Busca com distribuição real por quarto e opções vindas da operadora.
  */
-export function PacoteMotor({ embed = false }: { embed?: boolean } = {}) {
-  const buscarHoteis = useServerFn(buscarHospedagemCF);
-  const buscarVoos = useServerFn(buscarAereoCF);
+export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolean; publico?: boolean } = {}) {
+  const buscarHoteis = useServerFn(publico ? buscarHospedagemCFPublic : buscarHospedagemCF);
+  const buscarVoos = useServerFn(publico ? buscarAereoCFPublic : buscarAereoCF);
   const criarCheckout = useServerFn(criarPacoteMotorCheckout);
 
 
@@ -218,6 +219,7 @@ export function PacoteMotor({ embed = false }: { embed?: boolean } = {}) {
               <div className="label">Origem</div>
               <div className="field">
                 <CidadeAutocompleteCF
+                  publico={publico}
                   valor={origem}
                   campo="saida"
                   placeholder="Cidade de saída"
@@ -232,6 +234,7 @@ export function PacoteMotor({ embed = false }: { embed?: boolean } = {}) {
               <div className="label">Destino</div>
               <div className="field">
                 <CidadeAutocompleteCF
+                  publico={publico}
                   valor={destino}
                   campo="destino"
                   placeholder="Cidade do pacote"
