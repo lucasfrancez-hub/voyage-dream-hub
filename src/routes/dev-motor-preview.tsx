@@ -147,9 +147,9 @@ function DevMotorPreview() {
             </div>
           </div>
         </section>
-        <div id="modal-alvo">
+        {typeof window !== "undefined" && window.location.search.includes("modal") ? (
           <SobreHotelModal hotel={hotel} onFechar={() => {}} />
-        </div>
+        ) : null}
       </div>
     </div>
   );
