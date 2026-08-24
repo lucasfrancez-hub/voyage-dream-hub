@@ -140,7 +140,7 @@ export function PacoteMotor({
   // Base do pacote recomendado: usado no resumo para mostrar a diferença
   // entre a montagem atual e a sugestão inicial da operadora.
   const baseVooRecomendado = ofertas[0]?.precoTotal ?? 0;
-  const baseHotelRecomendado = hoteis[0]?.total ?? 0;
+  const baseHotelRecomendado = (hoteis.find((h) => h.recomendado) ?? hoteis[0])?.total ?? 0;
   const baseTotalRecomendado = baseVooRecomendado + baseHotelRecomendado;
 
   // Base para os seletores: diferença em relação ao item atualmente selecionado,

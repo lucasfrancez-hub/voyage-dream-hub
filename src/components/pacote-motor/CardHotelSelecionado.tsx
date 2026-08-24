@@ -70,7 +70,7 @@ export function CardHotelSelecionado({
       </div>
 
       <div className="sel-body">
-        {carregando && <div className="state-box">Consultando hospedagens na operadora…</div>}
+        {carregando && <div className="state-box">Consultando hospedagens…</div>}
         {!carregando && !hotel && <div className="state-box">Nenhuma hospedagem selecionada para este período.</div>}
 
         {hotel && (
@@ -91,7 +91,7 @@ export function CardHotelSelecionado({
                 <h3>{hotel.nome}</h3>
                 <p>
                   {[hotel.localizacao, avaliacao ? `avaliação ${avaliacao}/5` : null].filter(Boolean).join(" · ") ||
-                    "Localização conforme a operadora"}
+                    "Localização não informada"}
                 </p>
               </div>
               <button type="button" className="hotel-about-toggle" onClick={() => setAberto((v) => !v)}>
@@ -125,7 +125,7 @@ export function CardHotelSelecionado({
                 <small>
                   {[quarto?.ocupacao, quarto?.regime ?? hotel.regime].filter(Boolean).join(" · ") || "—"}
                   <br />
-                  {quarto?.politica ?? hotel.politicas[0] ?? "Política de cancelamento conforme a operadora"}
+                  {quarto?.politica ?? hotel.politicas[0] ?? "Política de cancelamento conforme o pacote"}
                 </small>
               </div>
 
@@ -137,7 +137,7 @@ export function CardHotelSelecionado({
                     {info.isLoading && !descricao ? (
                       <p>Carregando informações do hotel…</p>
                     ) : (
-                      <p>{descricao ?? "A operadora não enviou descrição para esta hospedagem."}</p>
+                      <p>{descricao ?? "Descrição não disponível para esta hospedagem."}</p>
                     )}
                     {comodidades.length ? (
                       <div className="chips" style={{ marginTop: 10 }}>

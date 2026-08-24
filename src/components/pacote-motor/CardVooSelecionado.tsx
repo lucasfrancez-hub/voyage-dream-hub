@@ -113,7 +113,7 @@ export function CardVooSelecionado({
         </div>
       </div>
       <div className="sel-body">
-        {carregando && <div className="state-box">Consultando o motor aéreo…</div>}
+        {carregando && <div className="state-box">Consultando aéreos…</div>}
         {!carregando && !oferta && <div className="state-box">{aviso ?? "Nenhum voo selecionado para este trecho."}</div>}
         {oferta && r && (
           <>

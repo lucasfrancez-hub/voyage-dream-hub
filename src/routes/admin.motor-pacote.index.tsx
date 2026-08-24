@@ -9,7 +9,7 @@ export const Route = createFileRoute("/admin/motor-pacote/")({
       {
         name: "description",
         content:
-          "Pesquise pacotes prontos da CompreFácil em tempo real: destino, saída, período, noites e preço, com resultados atualizados na operadora.",
+          "Pesquise pacotes prontos da CompreFácil em tempo real: destino, saída, período, noites e preço, com resultados atualizados em tempo real.",
       },
       { property: "og:title", content: "Motor de Pacote CompreFácil | VIA AIR" },
       {
@@ -30,7 +30,7 @@ function MotorPacotePage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Motor de pacote</h1>
           <p className="text-sm text-muted-foreground">
-            Pacotes prontos da CompreFácil — busca no catálogo com consulta ao vivo na operadora.
+            Pacotes prontos da CompreFácil — busca no catálogo com consulta ao vivo.
           </p>
         </div>
         <ConexaoCompreFacil />
