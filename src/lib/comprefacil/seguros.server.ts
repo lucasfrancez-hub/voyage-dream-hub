@@ -119,6 +119,53 @@ function coberturasDoPlano(s: any): { nome: string; valor: string | null }[] {
   return saida.slice(0, 40);
 }
 
+/** Código da seguradora na operadora → nome comercial. */
+const SEGURADORAS: Record<string, string> = {
+  AC: "Assist Card",
+  AF: "Affinity",
+  AS: "Assist Card",
+  CI: "Coris",
+  GT: "GTA",
+  IT: "Intermac",
+  MP: "Mapfre",
+  UN: "Universal Assistance",
+  VT: "Vital Card",
+  MC: "My Care",
+};
+
+function nomeSeguradora(codigo: unknown): string | null {
+  const c = typeof codigo === "string" ? codigo.trim().toUpperCase() : "";
+  if (!c) return null;
+  if (SEGURADORAS[c]) return SEGURADORAS[c];
+  return c.length > 3 ? texto(codigo) : null;
+}
+
+/**
+ * Resumo do plano quando a operadora não devolve a tabela de coberturas.
+ * Só usa dados reais do item (nome do plano, moeda, região, vigência) —
+ * nenhum valor de cobertura é inventado.
+ */
+function resumoDoPlano(
+  s: any,
+  ctx: { pax: number; noites: number; regiaoNome: string },
+): { nome: string; valor: string | null }[] {
+  const plano = texto(s?.Nome) ?? texto(s?.Titulo) ?? "Plano";
+  const moeda = texto(s?.MoedaNet?.Sigla) ?? texto(s?.MoedaListagem?.Sigla) ?? null;
+  const lista: { nome: string; valor: string | null }[] = [
+    { nome: "Plano contratado", valor: plano },
+    { nome: "Abrangência", valor: ctx.regiaoNome },
+    { nome: "Vigência", valor: `${ctx.noites} ${ctx.noites === 1 ? "dia" : "dias"}` },
+    { nome: "Passageiros cobertos", valor: `${ctx.pax}` },
+  ];
+  if (moeda) lista.push({ nome: "Moeda das coberturas", valor: moeda });
+  lista.push({
+    nome: "Condições gerais e limites de cobertura",
+    valor: "Enviados pela seguradora junto ao voucher",
+  });
+  return lista;
+}
+
+
 
 export async function buscarSegurosCF(p: {
   cidadeId: number;
