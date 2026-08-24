@@ -80,7 +80,22 @@ export function ServicoModal({
               <p>Detalhes completos deste serviço serão confirmados pela nossa equipe.</p>
             )}
 
+            {servico.coberturas?.length ? (
+              <div className="svc-pol">
+                <h4>{seguro ? "Coberturas do plano" : "O que está incluído"}</h4>
+                <ul className="svc-cob">
+                  {servico.coberturas.map((c, i) => (
+                    <li key={`${c.nome}-${i}`}>
+                      <span>{c.nome}</span>
+                      {c.valor ? <b>{c.valor}</b> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             {servico.politica ? (
+
               <div className="svc-pol">
                 <h4>Política de cancelamento</h4>
                 <p>{servico.politica}</p>
