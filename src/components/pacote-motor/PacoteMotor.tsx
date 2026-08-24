@@ -11,26 +11,18 @@ import { ResumoPacote } from "@/components/pacote-motor/ResumoPacote";
 import { SeletorVoo } from "@/components/pacote-motor/SeletorVoo";
 import { SeletorHospedagem } from "@/components/pacote-motor/SeletorHospedagem";
 import { TimelineConexao } from "@/components/pacote-motor/TimelineConexao";
-import {
-  brl,
-  detalharHospedagem,
-  hoteisDosPacotes,
-  hora,
-  resumoVoo,
-  type HotelPacote,
-  type ServicoPacote,
-} from "@/lib/pacote-motor/mapear";
-import { buscarPacotesCompreFacil, detalharPacoteCompreFacil } from "@/lib/comprefacil/comprefacil.functions";
-import { passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
+import { brl, hora, resumoVoo, type HotelPacote, type ServicoPacote } from "@/lib/pacote-motor/mapear";
+import { listarServicosCompreFacil } from "@/lib/comprefacil/comprefacil.functions";
+import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.functions";
 import type { PassHubOferta } from "@/lib/passhub/types";
 
 type Vista = "overview" | "voo" | "hotel";
 
 /** Motor de Pacotes VIA AIR — pacote recomendado + troca de aéreo e hospedagem. */
 export function PacoteMotor() {
-  const buscarPacotes = useServerFn(buscarPacotesCompreFacil);
-  const detalhar = useServerFn(detalharPacoteCompreFacil);
-  const buscarVoos = useServerFn(passhubMotorBuscar);
+  const buscarHoteis = useServerFn(buscarHospedagemCF);
+  const listarServicos = useServerFn(listarServicosCompreFacil);
+  const buscarVoos = useServerFn(buscarAereoCF);
 
   const [destino, setDestino] = useState("");
   const [cidadeId, setCidadeId] = useState<number | null>(null);
@@ -51,15 +43,13 @@ export function PacoteMotor() {
 
   const pacotes = useMutation({
     mutationFn: (v: void) =>
-      buscarPacotes({
+      buscarHoteis({
         data: {
-          termo: destino,
-          cidadeId,
-          dataDe: ida || null,
-          dataAte: volta || ida || null,
-          aoVivo: true,
-          ordenar: "preco",
-          porPagina: 24,
+          cidadeId: cidadeId!,
+          checkin: ida,
+          checkout: volta || ida,
+          adultos,
+          criancas,
         },
       }),
   });
@@ -68,20 +58,19 @@ export function PacoteMotor() {
     mutationFn: (v: void) =>
       buscarVoos({
         data: {
-          trechos: [{ origem: origemIata, destino: destinoIata, data: ida }],
-          dataVolta: volta || null,
+          origem: origemIata,
+          destino: destinoIata,
+          ida,
+          volta: volta || null,
           adultos,
           criancas,
         },
       }),
   });
 
-  const hoteis = useMemo(
-    () => hoteisDosPacotes((pacotes.data as any)?.itens ?? [], pagantes),
-    [pacotes.data, pagantes],
-  );
+  const hoteis: HotelPacote[] = ((pacotes.data as any)?.hoteis ?? []) as HotelPacote[];
 
-  const ofertas: PassHubOferta[] = (voos.data as any)?.ok ? (voos.data as any).resultado.ofertas : [];
+  const ofertas: PassHubOferta[] = ((voos.data as any)?.ofertas ?? []) as PassHubOferta[];
   const erroVoos = (voos.data as any)?.ok === false ? (voos.data as any).erro : null;
 
   // pacote recomendado = melhor preço de cada motor
@@ -93,26 +82,29 @@ export function PacoteMotor() {
   }, [ofertas, voo]);
 
   const detalhe = useQuery({
-    queryKey: ["cf", "detalhe-motor", hotel?.id],
-    queryFn: () => detalhar({ data: { id: hotel!.id } }),
-    enabled: !!hotel?.id,
+    queryKey: ["cf", "servicos-motor", destino],
+    queryFn: () => listarServicos({ data: { busca: destino, somenteAtivos: true } }),
+    enabled: !!destino.trim() && (pacotes.isSuccess || voos.isSuccess),
     staleTime: 5 * 60_000,
   });
 
   const info = useMemo(
-    () => (detalhe.data ? detalharHospedagem((detalhe.data as any).raw, pagantes) : null),
-    [detalhe.data, pagantes],
+    () => ({
+      inclui: hotel?.regime ? [hotel.regime] : [],
+      servicos: (((detalhe.data as any)?.itens ?? []) as any[]).map((s) => ({
+        id: String(s.id),
+        titulo: s.titulo ?? "Serviço",
+        tipo: s.tipo ?? null,
+        descricao: s.fornecedor ?? null,
+        valor: null,
+      })) as ServicoPacote[],
+    }),
+    [detalhe.data, hotel],
   );
 
-  const hotelCompleto: HotelPacote | null = useMemo(
-    () => (hotel && info ? { ...hotel, fotos: info.fotos.length ? info.fotos : hotel.fotos, quartos: info.quartos } : hotel),
-    [hotel, info],
-  );
+  const hotelCompleto: HotelPacote | null = hotel;
 
-  const hoteisCompletos = useMemo(
-    () => hoteis.map((h) => (hotelCompleto && h.id === hotelCompleto.id ? hotelCompleto : h)),
-    [hoteis, hotelCompleto],
-  );
+  const hoteisCompletos = hoteis;
 
   const servicos: ServicoPacote[] = info?.servicos ?? [];
   const quarto = hotelCompleto?.quartos.find((q) => q.id === quartoId) ?? null;
@@ -122,7 +114,11 @@ export function PacoteMotor() {
   const baseHotel = hoteis[0]?.total ?? hotel?.total ?? 0;
 
   const buscou = pacotes.isSuccess || voos.isSuccess;
-  const noites = detalhe.data ? `${(detalhe.data as any).dias ?? "—"} dia(s)` : null;
+  const noites = useMemo(() => {
+    if (!ida || !volta) return null;
+    const d = Math.round((new Date(volta).getTime() - new Date(ida).getTime()) / 86400000);
+    return d > 0 ? `${d} noite(s)` : null;
+  }, [ida, volta]);
 
   function pesquisar() {
     setHotel(null);
@@ -130,9 +126,10 @@ export function PacoteMotor() {
     setQuartoId(null);
     setServicosSel([]);
     setVista("overview");
-    if (destino.trim()) pacotes.mutate();
+    if (cidadeId && ida) pacotes.mutate();
     if (origemIata && destinoIata && ida) voos.mutate();
   }
+
 
   const resumo = (
     <ResumoPacote
