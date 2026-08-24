@@ -253,6 +253,18 @@ const emptyForm: Partial<PackageRow> = {
   max_units: 9,
 };
 
+// Salvamento em paralelo: a checagem de duplicidade (que pode abrir diálogo) e a
+// reserva de slug precisam ser feitas uma de cada vez, senão dois pacotes disputam
+// o mesmo slug e um deles some silenciosamente.
+let filaExclusiva: Promise<unknown> = Promise.resolve();
+const slugsReservados = new Set<string>();
+function comExclusividade<T>(fn: () => Promise<T>): Promise<T> {
+  const proximo = filaExclusiva.then(fn, fn);
+  filaExclusiva = proximo.catch(() => {});
+  return proximo;
+}
+
+
 function AdminPackages() {
   const qc = useQueryClient();
   const [editing, setEditingState] = useState<Partial<PackageRow> | null>(null);
@@ -601,57 +613,63 @@ function AdminPackages() {
       normalized.slug = `${cleanSlug}-${n}`;
     }
 
-    // Duplicate detection: só é duplicado quando ORIGEM + DESTINO + DATAS + VALOR batem.
-    // Origens diferentes (ex.: Chapecó x Curitiba) ou valores diferentes (mesmo pacote
-    // com benefícios distintos) nunca são duplicidade.
-    if (pkg.going_date && pkg.return_date && normalized.destination) {
-      const { data: dupRows } = await supabase
-        .from("packages")
-        .select("id, title, hotel_name, going_date, return_date, destination, origin, price_per_person")
-        .ilike("destination", normalized.destination.trim())
-        .eq("going_date", pkg.going_date)
-        .eq("return_date", pkg.return_date);
-      const hotelTrim = (pkg.hotel_name || "").trim().toLowerCase();
-      const originTrim = originKey((pkg as any).origin);
-      const priceKey = Math.round(Number((pkg as any).price_per_person) || 0);
-      const matches = (dupRows ?? []).filter((r: any) => {
-        if (pkg.id && r.id === pkg.id) return false;
-        if (originKey(r.origin) !== originTrim) return false;
-        if (Math.round(Number(r.price_per_person) || 0) !== priceKey) return false;
-        if (!hotelTrim) return true;
-        return (r.hotel_name || "").trim().toLowerCase() === hotelTrim;
-      });
-      if (matches.length > 0) {
-        const list = matches
-          .slice(0, 3)
-          .map((r: any) => `• ${r.title}${r.origin ? ` — saindo de ${r.origin}` : ""}${r.hotel_name ? ` — ${r.hotel_name}` : ""}`)
-          .join("\n");
-        const proceed = await confirm({
-          title: "Pacote duplicado?",
-          description: `Já existe ${matches.length === 1 ? "1 pacote" : `${matches.length} pacotes`} com a mesma origem, destino, datas e valor${hotelTrim ? " (e hotel)" : ""}:\n\n${list}\n\nSalvar mesmo assim?`,
-          confirmText: "Salvar mesmo assim",
-          cancelText: "Cancelar",
-          destructive: true,
+    // Duplicidade + reserva de slug rodam em fila (um por vez), mesmo quando o
+    // "Salvar todos" dispara vários pacotes em paralelo.
+    const availableSlug = await comExclusividade(async () => {
+      // Duplicate detection: só é duplicado quando ORIGEM + DESTINO + DATAS + VALOR batem.
+      // Origens diferentes (ex.: Chapecó x Curitiba) ou valores diferentes (mesmo pacote
+      // com benefícios distintos) nunca são duplicidade.
+      if (pkg.going_date && pkg.return_date && normalized.destination) {
+        const { data: dupRows } = await supabase
+          .from("packages")
+          .select("id, title, hotel_name, going_date, return_date, destination, origin, price_per_person")
+          .ilike("destination", normalized.destination.trim())
+          .eq("going_date", pkg.going_date)
+          .eq("return_date", pkg.return_date);
+        const hotelTrim = (pkg.hotel_name || "").trim().toLowerCase();
+        const originTrim = originKey((pkg as any).origin);
+        const priceKey = Math.round(Number((pkg as any).price_per_person) || 0);
+        const matches = (dupRows ?? []).filter((r: any) => {
+          if (pkg.id && r.id === pkg.id) return false;
+          if (originKey(r.origin) !== originTrim) return false;
+          if (Math.round(Number(r.price_per_person) || 0) !== priceKey) return false;
+          if (!hotelTrim) return true;
+          return (r.hotel_name || "").trim().toLowerCase() === hotelTrim;
         });
-        if (!proceed) throw new Error("Duplicado — salvamento cancelado");
+        if (matches.length > 0) {
+          const list = matches
+            .slice(0, 3)
+            .map((r: any) => `• ${r.title}${r.origin ? ` — saindo de ${r.origin}` : ""}${r.hotel_name ? ` — ${r.hotel_name}` : ""}`)
+            .join("\n");
+          const proceed = await confirm({
+            title: "Pacote duplicado?",
+            description: `Já existe ${matches.length === 1 ? "1 pacote" : `${matches.length} pacotes`} com a mesma origem, destino, datas e valor${hotelTrim ? " (e hotel)" : ""}:\n\n${list}\n\nSalvar mesmo assim?`,
+            confirmText: "Salvar mesmo assim",
+            cancelText: "Cancelar",
+            destructive: true,
+          });
+          if (!proceed) throw new Error("Duplicado — salvamento cancelado");
+        }
       }
-    }
 
-    const baseSlug = normalized.slug;
-    const { data: existingSlugs, error: slugLookupError } = await supabase
-      .from("packages")
-      .select("id, slug")
-      .like("slug", `${baseSlug}%`);
-    if (slugLookupError) throw slugLookupError;
-    const usedSlugs = new Set(
-      (existingSlugs ?? []).filter((row) => row.id !== pkg.id).map((row) => row.slug),
-    );
-    let availableSlug = baseSlug;
-    let suffix = 2;
-    while (usedSlugs.has(availableSlug)) {
-      availableSlug = `${baseSlug}-${suffix}`;
-      suffix += 1;
-    }
+      const baseSlug = normalized.slug;
+      const { data: existingSlugs, error: slugLookupError } = await supabase
+        .from("packages")
+        .select("id, slug")
+        .like("slug", `${baseSlug}%`);
+      if (slugLookupError) throw slugLookupError;
+      const usedSlugs = new Set(
+        (existingSlugs ?? []).filter((row) => row.id !== pkg.id).map((row) => row.slug),
+      );
+      let slug = baseSlug;
+      let suffix = 2;
+      while (usedSlugs.has(slug) || slugsReservados.has(slug)) {
+        slug = `${baseSlug}-${suffix}`;
+        suffix += 1;
+      }
+      slugsReservados.add(slug);
+      return slug;
+    });
     const payload = {
       slug: availableSlug,
       title: normalized.title,
@@ -756,9 +774,19 @@ function AdminPackages() {
       // Pacote: sem dados de cruzeiro
       payload.cruise_details = null;
     }
-    const savedPackage = pkg.id
+    let savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
       : await supabase.from("packages").insert(payload).select("id").single();
+    // Slug tomado por outra gravação simultânea: tenta de novo com sufixo novo.
+    if (!pkg.id && savedPackage.error && String((savedPackage.error as any)?.code) === "23505") {
+      for (let tentativa = 2; tentativa <= 6 && savedPackage.error; tentativa += 1) {
+        const novoSlug = `${availableSlug}-${tentativa}`;
+        if (slugsReservados.has(novoSlug)) continue;
+        slugsReservados.add(novoSlug);
+        payload.slug = novoSlug;
+        savedPackage = await supabase.from("packages").insert(payload).select("id").single();
+      }
+    }
     const { error } = savedPackage;
     if (error) throw error;
     // Passeio novo: grava o calendário importado que ainda estava só na prévia.
@@ -869,7 +897,9 @@ function AdminPackages() {
       };
       await Promise.all(Array.from({ length: Math.min(PARALELO, fila.length) }, trabalhador));
 
-      if (ok > 0) toast.success(`${ok} pacote(s) salvo(s)`);
+      if (ok > 0) toast.success(`${ok} de ${list.length} pacote(s) salvo(s)`);
+      if (ok < list.length && errors.length === 0)
+        toast.error(`${list.length - ok} pacote(s) não foram salvos — confira a lista.`);
       if (errors.length > 0) toast.error(errors.join(" • "));
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
       qc.invalidateQueries({ queryKey: ["packages"] });
