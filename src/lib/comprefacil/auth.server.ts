@@ -301,6 +301,7 @@ export async function statusSessaoCompreFacil(): Promise<{
   expiraEm: string | null;
   agenciaId: string | null;
   usuarioId: string | null;
+  bloqueadoAte: string | null;
 }> {
   const atual = sessao && sessao.expiraEm > Date.now() ? sessao : await lerSessaoSalva();
   if (atual) sessao = atual;
@@ -309,8 +310,10 @@ export async function statusSessaoCompreFacil(): Promise<{
     expiraEm: atual ? new Date(atual.expiraEm).toISOString() : null,
     agenciaId: atual?.agenciaId ?? null,
     usuarioId: atual?.usuarioId ?? null,
+    bloqueadoAte: bloqueadoAte > Date.now() ? new Date(bloqueadoAte).toISOString() : null,
   };
 }
+
 
 /** Força um novo login (descarta a sessão salva). Resolve o 2FA sozinho. */
 export async function reconectarCompreFacil(): Promise<Sessao> {
