@@ -10,6 +10,7 @@ const entrada = z.object({
   adultos: z.number().int().min(1).max(24),
   idades: z.array(z.number().int().min(0).max(17)).max(20).optional(),
   destino: z.string().max(120).nullish(),
+  destinoIata: z.string().min(3).max(3).nullish(),
 });
 
 async function executar(data: z.infer<typeof entrada>) {

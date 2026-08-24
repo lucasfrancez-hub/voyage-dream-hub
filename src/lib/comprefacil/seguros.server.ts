@@ -7,7 +7,9 @@
  * quando a operadora devolve valor unitário).
  */
 import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.server";
+import { REGIOES_SEGURO, regiaoSeguroDoDestino } from "./seguro-regioes";
 import type { ServicoDisponivel } from "./servicos.server";
+
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -55,29 +57,39 @@ export async function buscarSegurosCF(p: {
   adultos: number;
   idades?: number[];
   destino?: string | null;
+  /** IATA do destino pesquisado — usado para casar a região do seguro */
+  destinoIata?: string | null;
   /** true quando o destino é fora do Brasil (muda o plano ofertado) */
   internacional?: boolean;
 }): Promise<ServicoDisponivel[]> {
   const ses = await sessaoCompreFacil();
   const base = COMPREFACIL_BASES.servico;
   const fim = p.dataFim || p.data;
+  // A operadora cobra o mesmo valor por passageiro adulto ou criança:
+  // cotamos todos como adultos de 18 anos para manter o preço correto.
   const pax = Math.max(1, (p.adultos || 1) + (p.idades?.length ?? 0));
   const noites = dias(p.data, fim);
   const rota = "/api/Seguro/busca?Pagina=1&ItensPorPagina=40";
+  const regiao = regiaoSeguroDoDestino({
+    iata: p.destinoIata ?? null,
+    destino: p.destino ?? null,
+    internacional: p.internacional ?? false,
+  });
 
   const corpo = (guid: string | null) => ({
     AgenciaId: Number(ses.agenciaId ?? 0),
     Guid: guid,
-    PacoteId: 0,
-    Adt: Math.max(1, p.adultos || 1),
-    IdadesChd: p.idades ?? [],
-    De: p.data,
-    Ate: fim,
-    Cidade: { Id: p.cidadeId },
-    Internacional: !!p.internacional,
-    Destino: p.destino ?? null,
+    Adt: pax,
+    Chd: 0,
+    Snr: 0,
+    IdadesAdt: Array.from({ length: pax }, () => 18),
+    IdadesChd: [],
+    DestinoCodigo: regiao,
+    Partida: p.data,
+    Retorno: fim,
     EscreveLog: false,
   });
+
 
   const inicio = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(null) });
   if (!inicio.ok) return [];
@@ -113,10 +125,11 @@ export async function buscarSegurosCF(p: {
   itens.forEach((s: any, i: number) => {
     const titulo =
       texto(s?.Titulo) ?? texto(s?.Nome) ?? texto(s?.Plano) ?? texto(s?.NomePlano) ?? "Seguro viagem";
-    const total = num(s?.ValorTotal, s?.ValorVendaTotal);
+    // A operadora já devolve o total da ocupação/período em ValorTotalListagem.
+    const total = num(s?.ValorTotalListagem, s?.ValorListagem, s?.ValorTotal, s?.ValorVendaTotal);
     const unit = num(s?.ValorVenda, s?.Valor, s?.ValorPorPassageiro, s?.ValorDiaria, s?.Preco);
-    const porDia = num(s?.ValorDiaria) > 0 && !num(s?.ValorVenda, s?.Valor);
-    const calculado = total > 0 ? total : porDia ? unit * pax * noites : unit * pax;
+    const calculado = total > 0 ? total : unit * pax;
+
 
     const chave = `${titulo}|${calculado.toFixed(2)}`;
     if (vistos.has(chave)) return;
@@ -136,8 +149,9 @@ export async function buscarSegurosCF(p: {
       informacoes: [
         `${pax} ${pax === 1 ? "passageiro" : "passageiros"}`,
         `${noites} ${noites === 1 ? "dia" : "dias"} de cobertura`,
-        p.internacional ? "Cobertura internacional" : "Cobertura nacional",
+        texto(s?.DestinoNome) ?? REGIOES_SEGURO[regiao] ?? "Cobertura nacional",
       ],
+
       recomendado: false,
       valor: calculado > 0 ? Number(calculado.toFixed(2)) : null,
       moeda: "BRL" as const,
