@@ -131,11 +131,8 @@ function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ComponentT
 
 type ComboStep = 1 | 2 | 3;
 
-const COMBO_STEPS: { label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { label: "Aéreo", icon: Plane },
-  { label: "Hospedagem", icon: BedDouble },
-  { label: "Revisar pedido", icon: ClipboardCheck },
-];
+
+
 
 type ComboForm = {
   departureIata: string;
@@ -523,29 +520,14 @@ export function SearchEngine({
                 publicMode={publicMode}
               />
 
-              {runToken > 0 && (
-                <div className="mt-5 flex flex-wrap items-center gap-2">
-                  {COMBO_STEPS.map((s, i) => {
-                    const n = (i + 1) as ComboStep;
-                    const active = step === n;
-                    return (
-                      <button
-                        key={s.label}
-                        type="button"
-                        onClick={() => setStep(n)}
-                        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
-                          active
-                            ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                            : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <s.icon className="h-4 w-4" />
-                        <span className="font-medium">
-                          {n}. {s.label}
-                        </span>
-                      </button>
-                    );
-                  })}
+              {runToken > 0 && step !== 3 && (flightPick || hotelPick) && (
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <Button variant="outline" onClick={() => setStep(3)}>
+                    <ChevronLeft className="mr-1 h-4 w-4" /> Voltar ao pacote
+                  </Button>
+                  <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                    {step === 1 ? "Alterando o voo" : "Alterando a hospedagem"}
+                  </span>
                 </div>
               )}
             </div>
@@ -561,7 +543,7 @@ export function SearchEngine({
                   runToken={runToken}
                   onComboSelect={(pick) => {
                     setFlightPick(pick);
-                    setStep(2);
+                    setStep(hotelPick ? 3 : 2);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                 />
@@ -582,130 +564,189 @@ export function SearchEngine({
               </div>
 
               {step === 3 && (
-                <section className="mx-auto max-w-5xl px-4 py-10">
+                <section className="mx-auto grid max-w-7xl gap-5 px-4 py-10 lg:grid-cols-[minmax(0,1fr)_340px]">
                   <div className="rounded-[28px] border border-border/50 bg-card/60 p-6 backdrop-blur-xl">
                     <SectionHeader
                       icon={ClipboardCheck}
-                      title="Revise seu pedido"
-                      subtitle="Confira o roteiro antes de gerar o pedido."
+                      title="Pacote recomendado"
+                      subtitle="Voo e hospedagem já selecionados. Altere o que quiser."
                     />
-                    <div className="mt-5 space-y-3 text-sm">
-                      <div className="rounded-2xl border border-border/60 bg-background/50 p-4">
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                          <Plane className="h-3.5 w-3.5 text-primary" /> Aéreo
+
+                    <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                      <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/50">
+                        <div className="flex items-center justify-between border-b border-border/60 bg-primary/5 px-4 py-3">
+                          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-primary">
+                            <Plane className="h-3.5 w-3.5" /> Voo selecionado
+                          </div>
+                          <button
+                            type="button"
+                            className="text-[11px] font-bold text-primary underline-offset-2 hover:underline"
+                            onClick={() => {
+                              setStep(1);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                          >
+                            Alterar voo
+                          </button>
                         </div>
-                        {flightPick ? (
-                          flightPick.card ? (
-                            <div className="mt-3">{flightPick.card}</div>
+                        <div className="p-4">
+                          {flightPick ? (
+                            flightPick.card ? (
+                              <div>{flightPick.card}</div>
+                            ) : (
+                              <>
+                                <p className="font-semibold">{flightPick.title}</p>
+                                <p className="whitespace-pre-line text-xs text-muted-foreground">
+                                  {flightPick.summary}
+                                </p>
+                                <p className="mt-1 font-bold text-primary">{fmtBRL(flightPick.total)}</p>
+                              </>
+                            )
                           ) : (
-                          <>
-                            <p className="mt-1 font-semibold">{flightPick.title}</p>
-                            <p className="whitespace-pre-line text-xs text-muted-foreground">
-                              {flightPick.summary}
-                            </p>
-                            <p className="mt-1 font-bold text-primary">{fmtBRL(flightPick.total)}</p>
-                          </>
-                          )
-                        ) : (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Nenhum voo selecionado.{" "}
-                            <button className="underline" onClick={() => setStep(1)} type="button">
-                              Escolher aéreo
-                            </button>
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="rounded-2xl border border-border/60 bg-background/50 p-4">
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                          <BedDouble className="h-3.5 w-3.5 text-primary" /> Hospedagem
+                            <p className="text-xs text-muted-foreground">Nenhum voo selecionado.</p>
+                          )}
+                          <Button
+                            variant="outline"
+                            className="mt-4 w-full"
+                            onClick={() => {
+                              setStep(1);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                          >
+                            <Plane className="mr-2 h-4 w-4" /> Alterar voo
+                          </Button>
                         </div>
-                        {hotelPick ? (
-                          hotelPick.card ? (
-                            <div className="mt-3">{hotelPick.card}</div>
+                      </div>
+
+                      <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/50">
+                        <div className="flex items-center justify-between border-b border-border/60 bg-primary/5 px-4 py-3">
+                          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-primary">
+                            <BedDouble className="h-3.5 w-3.5" /> Hospedagem selecionada
+                          </div>
+                          <button
+                            type="button"
+                            className="text-[11px] font-bold text-primary underline-offset-2 hover:underline"
+                            onClick={() => {
+                              setStep(2);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                          >
+                            Alterar hospedagem
+                          </button>
+                        </div>
+                        <div className="p-4">
+                          {hotelPick ? (
+                            hotelPick.card ? (
+                              <div>{hotelPick.card}</div>
+                            ) : (
+                              <>
+                                <p className="font-semibold">{hotelPick.title}</p>
+                                <p className="whitespace-pre-line text-xs text-muted-foreground">
+                                  {hotelPick.summary}
+                                </p>
+                                <p className="mt-1 font-bold text-primary">{fmtBRL(hotelPick.total)}</p>
+                              </>
+                            )
                           ) : (
-                          <>
-                            <p className="mt-1 font-semibold">{hotelPick.title}</p>
-                            <p className="whitespace-pre-line text-xs text-muted-foreground">
-                              {hotelPick.summary}
-                            </p>
-                            <p className="mt-1 font-bold text-primary">{fmtBRL(hotelPick.total)}</p>
-                          </>
-                          )
-                        ) : (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Nenhuma hospedagem selecionada.{" "}
-                            <button className="underline" onClick={() => setStep(2)} type="button">
-                              Escolher hotel
-                            </button>
-                          </p>
-                        )}
+                            <p className="text-xs text-muted-foreground">Nenhuma hospedagem selecionada.</p>
+                          )}
+                          <Button
+                            variant="outline"
+                            className="mt-4 w-full"
+                            onClick={() => {
+                              setStep(2);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                          >
+                            <BedDouble className="mr-2 h-4 w-4" /> Alterar hospedagem
+                          </Button>
+                        </div>
                       </div>
+                    </div>
 
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-primary" />
-                        {combo.adults} adulto(s), {combo.children} criança(s), {combo.infants} bebê(s)
+                    <div className="mt-4 flex items-center gap-2 text-sm">
+                      <Users className="h-4 w-4 text-primary" />
+                      {combo.adults} adulto(s), {combo.children} criança(s), {combo.infants} bebê(s)
+                    </div>
+                  </div>
+
+                  <aside className="space-y-3 lg:sticky lg:top-24">
+                    <div className="rounded-[24px] border border-border/50 bg-card/60 p-5 backdrop-blur-xl">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Resumo do pacote
                       </div>
-
-                      <div className="flex items-center justify-between rounded-2xl border border-primary/40 bg-primary/5 px-4 py-3">
-                        <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                      <div className="mt-3 space-y-2 text-xs">
+                        <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-2">
+                          <span className="text-muted-foreground">Aéreo</span>
+                          <span className="font-semibold">
+                            {flightPick ? fmtBRL(flightPick.total) : "—"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-2">
+                          <span className="text-muted-foreground">Hospedagem</span>
+                          <span className="font-semibold">
+                            {hotelPick ? fmtBRL(hotelPick.total) : "—"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 rounded-2xl border border-primary/40 bg-primary/5 px-4 py-3">
+                        <span className="block text-[10px] uppercase tracking-widest text-muted-foreground">
                           Total do pacote
                         </span>
                         <span className="text-2xl font-black text-primary">{fmtBRL(comboTotal)}</span>
                       </div>
-                    </div>
 
-                    {!publicMode && (
+                      {!publicMode && (
+                        <Button
+                          size="lg"
+                          className="mt-4 w-full"
+                          disabled={!comboTotal}
+                          onClick={() => setOrderOpen(true)}
+                        >
+                          <ClipboardCheck className="mr-2 h-4 w-4" /> Fazer pedido
+                        </Button>
+                      )}
                       <Button
                         size="lg"
-                        className="mt-6 w-full"
-                        disabled={!comboTotal}
-                        onClick={() => setOrderOpen(true)}
+                        variant={publicMode ? "default" : "outline"}
+                        className="mt-3 w-full"
+                        disabled={buying || (!flightPick && !hotelPick)}
+                        onClick={buyCombo}
                       >
-                        <ClipboardCheck className="mr-2 h-4 w-4" /> Fazer pedido
+                        {buying ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                        )}
+                        {publicMode ? "Comprar agora" : "Comprar viagem"}
                       </Button>
-                    )}
-                    <Button
-                      size="lg"
-                      variant={publicMode ? "default" : "outline"}
-                      className="mt-3 w-full"
-                      disabled={buying || (!flightPick && !hotelPick)}
-                      onClick={buyCombo}
-                    >
-                      {buying ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <ExternalLink className="mr-2 h-4 w-4" />
+
+                      {cartLinks.length > 0 && !publicMode && (
+                        <div className="mt-4 space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-3">
+                          <div className="text-xs font-semibold">Links do carrinho</div>
+                          {cartLinks.map((l) => (
+                            <div key={l.url} className="space-y-1">
+                              <div className="text-[11px] font-medium">{l.label}</div>
+                              <div className="break-all text-[11px] text-muted-foreground">{l.url}</div>
+                            </div>
+                          ))}
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="w-full"
+                            onClick={() => {
+                              navigator.clipboard.writeText(
+                                cartLinks.map((l) => `${l.label}: ${l.url}`).join("\n"),
+                              );
+                              toast.success("Links copiados");
+                            }}
+                          >
+                            <Copy className="mr-2 h-3.5 w-3.5" /> Copiar links
+                          </Button>
+                        </div>
                       )}
-                      {publicMode ? "Comprar agora" : "Comprar viagem"}
-                    </Button>
-
-                    {cartLinks.length > 0 && !publicMode && (
-
-                      <div className="mt-4 space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-3">
-                        <div className="text-xs font-semibold">Links do carrinho</div>
-                        {cartLinks.map((l) => (
-                          <div key={l.url} className="space-y-1">
-                            <div className="text-[11px] font-medium">{l.label}</div>
-                            <div className="break-all text-[11px] text-muted-foreground">{l.url}</div>
-                          </div>
-                        ))}
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="w-full"
-                          onClick={() => {
-                            navigator.clipboard.writeText(
-                              cartLinks.map((l) => `${l.label}: ${l.url}`).join("\n"),
-                            );
-                            toast.success("Links copiados");
-                          }}
-                        >
-                          <Copy className="mr-2 h-3.5 w-3.5" /> Copiar links
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  </aside>
 
                   <NewOrderFromFlightsDialog
                     open={orderOpen}
@@ -717,22 +758,13 @@ export function SearchEngine({
                 </section>
               )}
 
-              <div className="mx-auto flex max-w-7xl items-center justify-between px-4 pb-12">
-                <Button
-                  variant="outline"
-                  disabled={step === 1}
-                  onClick={() => setStep((s) => (s > 1 ? ((s - 1) as ComboStep) : s))}
-                >
-                  <ChevronLeft className="mr-1 h-4 w-4" /> Voltar
-                </Button>
-                <Button
-                  disabled={step === 3}
-                  onClick={() => setStep((s) => (s < 3 ? ((s + 1) as ComboStep) : s))}
-                >
-                  {step === 1 ? "Continuar para hospedagem" : "Revisar pedido"}
-                  <ChevronRight className="ml-1 h-4 w-4" />
-                </Button>
-              </div>
+              {step !== 3 && (flightPick || hotelPick) && (
+                <div className="mx-auto flex max-w-7xl items-center justify-end px-4 pb-12">
+                  <Button onClick={() => setStep(3)}>
+                    Voltar ao pacote <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </>
