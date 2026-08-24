@@ -390,24 +390,52 @@ function limpar(v: unknown): string | null {
   return t || null;
 }
 
+/** Nome do quarto sem os avisos internos da operadora. */
+function nomeQuarto(v: unknown): string | null {
+  const t = limpar(v);
+  if (!t) return null;
+  const limpo = t
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\(\s*\d+\s*\)\s*$/, " ")
+    .replace(/\s*[-–—,;]\s*$/, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return limpo || null;
+}
+
+/** Regime padronizado (a operadora manda "BedBreakfast", "Room Only"…). */
+function regimeQuarto(q: any): string | null {
+  const bruto = limpar(q?.DescricaoPensao) ?? limpar(q?.DescricaoPensaoOriginal);
+  if (!bruto) return null;
+  if (/bed\s*breakfast|caf[ée]/i.test(bruto)) return "Café da manhã";
+  if (/room\s*only|sem\s*caf|alojament/i.test(bruto)) return "Só alojamento";
+  if (/half\s*board|meia\s*pens/i.test(bruto)) return "Meia pensão";
+  if (/full\s*board|pens[ãa]o\s*completa/i.test(bruto)) return "Pensão completa";
+  if (/all\s*inclusive|tudo\s*inclu/i.test(bruto)) return "All inclusive";
+  return bruto;
+}
+
 function mapearHotel(h: any, i: number): HotelPacote {
-  const quartosBrutos: any[] = h?.Quartos ?? [];
+  // A operadora manda um "quarto resumo" (sem descrição e sem valor) enquanto a
+  // busca ainda roda — ele nunca pode virar opção de acomodação para o cliente.
+  const todos: any[] = h?.Quartos ?? [];
+  const reais = todos.filter((q) => nomeQuarto(q?.Descricao) || Number(q?.ValorVenda ?? 0) > 0);
+  const quartosBrutos: any[] = reais.length ? reais : todos;
   const valores = quartosBrutos.map((q) => Number(q?.ValorVenda ?? 0)).filter((v) => v > 0);
   const menor = valores.length ? Math.min(...valores) : Number(h?.ValorTotalVenda ?? 0);
 
   const quartos: QuartoPacote[] = quartosBrutos.map((q, idx) => {
     const valor = Number(q?.ValorVenda ?? 0);
     const politica = limpar(q?.PoliticaListagem ?? q?.Politica);
-    const beneficios = [limpar(q?.DescricaoPensao), limpar(q?.Observacao), limpar(q?.Facilidades)].filter(
-      Boolean,
-    ) as string[];
+    const regime = regimeQuarto(q);
+    const beneficios = [regime, limpar(q?.Observacao), limpar(q?.Facilidades)].filter(Boolean) as string[];
     return {
       id: `${q?.CodigoQuarto ?? idx}-${q?.CodigoPensao ?? idx}-${idx}`,
-      nome: limpar(q?.Descricao) ?? `Acomodação ${idx + 1}`,
+      nome: nomeQuarto(q?.Descricao) ?? "Standard",
       ocupacao: q?.Adultos
         ? `${q.Adultos} adulto(s)${Number(q?.Criancas ?? 0) ? ` · ${q.Criancas} criança(s)` : ""}`
         : null,
-      regime: limpar(q?.DescricaoPensao),
+      regime,
       reembolsavel:
         typeof q?.Reembolsavel === "boolean"
           ? q.Reembolsavel
@@ -421,6 +449,7 @@ function mapearHotel(h: any, i: number): HotelPacote {
       diferenca: Number((valor - menor).toFixed(2)),
     };
   });
+
 
   const politicas = Array.from(new Set(quartos.map((q) => q.politica).filter(Boolean) as string[]));
   const comodidades = Array.from(
