@@ -209,6 +209,28 @@ function destinoConhecidoNoTexto(v: unknown): string {
   return achado ? DESTINO_CANONICO[achado]! : "";
 }
 
+const semAcento = (v: unknown) =>
+  String(v ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+/**
+ * Remove a marca do hotel colada no destino ("Makai Aracaju" → "Aracaju").
+ * Só corta quando a 1ª palavra do destino é também a 1ª palavra do nome do
+ * hotel — assim "Enotel Porto de Galinhas" não vira "de Galinhas".
+ */
+function semMarcaHotel(destino: string, hoteis: Array<Record<string, unknown>>): string {
+  const palavras = destino.trim().split(/\s+/).filter(Boolean);
+  if (palavras.length < 2) return destino;
+  const primeira = semAcento(palavras[0]);
+  for (const h of hoteis) {
+    const nomeHotel = String(h?.["nome"] ?? h?.["hotel"] ?? h?.["name"] ?? "").trim();
+    const tk = nomeHotel.split(/\s+/).filter(Boolean);
+    if (tk.length && semAcento(tk[0]) === primeira) {
+      return palavras.slice(1).join(" ");
+    }
+  }
+  return destino;
+}
+
 /**
  * Destino comercial do pacote: o lugar onde o cliente realmente fica
  * (Porto de Galinhas), e não o aeroporto de chegada (Recife).
@@ -228,7 +250,9 @@ export function destinoComercial(pacote: {
     destinoConhecidoNoTexto(pacote.nome) ||
     "";
   // O destino é onde o cliente se hospeda — não o aeroporto nem o nome de um passeio.
-  return tituloCidade(semIata(cidadeHotel || conhecido || doNome || (pacote.destino ?? "").trim()));
+  const bruto = semIata(cidadeHotel || conhecido || doNome || (pacote.destino ?? "").trim());
+  return tituloCidade(semMarcaHotel(bruto, hoteis));
+
 
 }
 
