@@ -160,18 +160,20 @@ export function ResumoPacote({
 
       <div className="total">
         <span>Valor total do pacote</span>
-
-
         <strong>{brl(total, moeda)}</strong>
-        <small>
-          {Math.abs(diferenca) < 0.005
-            ? "Opções atuais sem acréscimo"
-            : diferenca > 0
-              ? `Acréscimo de ${brl(diferenca, moeda)}`
-              : `Economia de ${brl(Math.abs(diferenca), moeda)}`}
-        </small>
-        <small className="sum-parcel">{parcelamento.completo}</small>
+        {/* Parcelamento em destaque + forma de pagamento ao lado (modelo aprovado). */}
+        <div className="total-parcela">
+          <b>
+            em até {parcelamento.max}x de {brl(total / parcelamento.max, moeda)}
+          </b>
+          <i>
+            {parcelamento.completo.includes("boleto")
+              ? "no cartão de crédito ou boleto bancário"
+              : "no cartão de crédito"}
+          </i>
+        </div>
       </div>
+
 
       {acao ?? (
         <button type="button" className="primary">
