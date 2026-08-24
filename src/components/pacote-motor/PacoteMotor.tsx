@@ -183,7 +183,47 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
     },
   });
 
+  /** Guarda a montagem atual na cesta para virar uma opção do orçamento. */
+  function salvarNaCesta() {
+    if (!hotel && !voo) return;
+    const idaVoo = voo?.ida ?? null;
+    const voltaVoo = voo?.voltas?.[0] ?? null;
+    addToQuoteBasket({
+      label: `${destino || hotel?.nome || "Pacote"}${hotel?.nome ? ` • ${hotel.nome}` : ""}${
+        idaVoo ? ` • ${idaVoo.companhia}` : ""
+      }`,
+      total,
+      adults: pax.adultos,
+      children: pax.criancas,
+      origin: origemIata || origem || null,
+      destination: destinoIata || destino || null,
+      startDate: ida || null,
+      endDate: volta || null,
+      services: [
+        ...(hotel
+          ? [
+              `Hospedagem: ${hotel.nome}${quarto?.nome ? ` — ${quarto.nome}` : ""}${
+                quarto?.regime || hotel.regime ? ` (${quarto?.regime ?? hotel.regime})` : ""
+              }`,
+              noites ? `${noites} ${plural(noites, "noite", "noites")}` : "",
+            ].filter(Boolean)
+          : []),
+        ...(idaVoo ? [`Aéreo ida: ${idaVoo.origem} → ${idaVoo.destino} • ${idaVoo.companhia}`] : []),
+        ...(voltaVoo ? [`Aéreo volta: ${voltaVoo.origem} → ${voltaVoo.destino} • ${voltaVoo.companhia}`] : []),
+      ],
+      flights: [
+        ...(idaVoo ? [passhubToQuoteFlight(idaVoo, voltaVoo ? "OUTBOUND" : null, total)] : []),
+        ...(voltaVoo ? [passhubToQuoteFlight(voltaVoo, "INBOUND", null)] : []),
+      ],
+      notes: `${pax.adultos} adulto(s)${pax.criancas ? ` • ${pax.criancas} criança(s)` : ""}${
+        pax.bebes ? ` • ${pax.bebes} bebê(s)` : ""
+      } • ${quartos.length} ${plural(quartos.length, "quarto", "quartos")}`,
+    });
+    toast.success("Pacote salvo na cesta de orçamento");
+  }
+
   const resumo = (
+
     <ResumoPacote
       destino={destino}
       quartos={quartos}
