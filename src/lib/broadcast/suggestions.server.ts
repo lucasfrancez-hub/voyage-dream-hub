@@ -78,6 +78,7 @@ export async function generateBroadcastSuggestions(userId: string | null) {
     .from("packages")
     .select("id, destination, origin, going_date, price_per_person, nights, hotel_name, supplier_name")
     .eq("is_active", true)
+    .not("slug", "like", "motor-%")
     .order("going_date", { ascending: true, nullsFirst: false });
   if (error) throw new Error(error.message);
   const packages = (pkgs ?? []) as PackageRow[];

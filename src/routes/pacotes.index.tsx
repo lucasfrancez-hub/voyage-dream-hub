@@ -69,6 +69,7 @@ function PacotesList() {
           "id,slug,title,destination,origin,going_date,return_date,nights,price_per_person,taxes,image_url,hotel_name,sort_order,base_occupancy,supplier_name",
         )
         .eq("is_active", true)
+        .not("slug", "like", "motor-%")
         .or("kind.is.null,kind.eq.package")
         .or(`going_date.is.null,going_date.gte.${today}`)
         .order("sort_order", { ascending: true });
