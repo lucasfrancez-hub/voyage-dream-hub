@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { tripAdvisorFetch } from "@/lib/tripadvisor-api";
 
 const BASE = "https://terra.tripadvisor.com/api";
 
@@ -24,25 +25,8 @@ export type TAHotelDetails = TAHotelSuggestion & {
   hotel_class: number | null;
 };
 
-/**
- * Controle de limite (HTTP 429) da chave do TripAdvisor. Ao estourar,
- * pausamos as chamadas por alguns minutos — insistir só queima mais cota.
- */
-let taBloqueadoAte = 0;
-function taLimitado() {
-  return Date.now() < taBloqueadoAte;
-}
-
 async function taFetch(path: string, params?: Record<string, string>): Promise<Response> {
-  const key = process.env.TRIPADVISOR_API_KEY;
-  if (!key) throw new Error("TRIPADVISOR_API_KEY não configurada");
-  const url = new URL(`${BASE}${path}`);
-  Object.entries(params ?? {}).forEach(([name, value]) => url.searchParams.set(name, value));
-  const res = await fetch(url.toString(), {
-    headers: { accept: "application/json", "X-API-KEY": key },
-  });
-  if (res.status === 429) taBloqueadoAte = Date.now() + 10 * 60_000;
-  return res;
+  return tripAdvisorFetch(`${BASE}${path}`, { params });
 }
 
 // Traduz um lote de textos para português usando Lovable AI. Se falhar, retorna os originais.
@@ -206,7 +190,6 @@ export const searchTripAdvisorHotels = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<TAHotelSuggestion[]> => {
     const q = (data.query || "").trim();
     if (q.length < 3) return [];
-    if (taLimitado() && !data.force) throw new Error("TRIPADVISOR_RATE_LIMIT");
 
     // 1) Colou uma URL/ID do TripAdvisor? Resolve direto pelo location id.
     const idMatch = q.match(/(?:-d|location_id=|\/locations?\/)(\d{3,})/i) ?? (/^\d{4,}$/.test(q) ? [q, q] : null);
@@ -246,7 +229,6 @@ export const searchTripAdvisorHotels = createServerFn({ method: "POST" })
     let houveResposta = false;
 
     for (const u of urls) {
-      if (taLimitado() && houveResposta) break;
       try {
         const r = await taFetch(u);
         if (r.status === 429) { limitado = true; break; }
@@ -804,8 +786,7 @@ export const getTripAdvisorHotelByUrl = createServerFn({ method: "POST" })
     if (!locationId || !url) throw new Error("Link do TripAdvisor inválido");
 
     let det: TAHotelDetails | null = null;
-    if (!taLimitado()) {
-      try {
+    try {
         const [rDet, rPhotos] = await Promise.all([
           taFetch(`/locations/${locationId}`),
           taFetch(`/locations/${locationId}/photos?limit=${limit}`),
@@ -844,9 +825,8 @@ export const getTripAdvisorHotelByUrl = createServerFn({ method: "POST" })
             hotel_class: extractHotelClass(d),
           };
         }
-      } catch {
-        det = null;
-      }
+    } catch {
+      det = null;
     }
 
     // Fallback: leitura da página pública (o TripAdvisor bloqueia fetch direto,
