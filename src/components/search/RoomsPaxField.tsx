@@ -93,7 +93,7 @@ export function RoomsPaxField({
         <button
           type="button"
           className={
-            "flex h-11 w-full items-center justify-between gap-2 rounded-md border border-border/60 bg-background px-3 text-sm font-medium transition hover:border-primary/60 " +
+            "flex h-12 w-full items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 text-sm font-medium transition hover:border-primary/60 " +
             (className ?? "")
           }
         >
