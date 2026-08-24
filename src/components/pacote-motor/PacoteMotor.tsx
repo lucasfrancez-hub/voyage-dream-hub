@@ -23,6 +23,7 @@ import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.fu
 import { buscarAereoCFPublic, buscarHospedagemCFPublic } from "@/lib/comprefacil/publico.functions";
 import { criarPacoteMotorCheckout } from "@/lib/pacote-motor/checkout.functions";
 import type { PassHubOferta } from "@/lib/passhub/types";
+import type { PacotePreset } from "@/lib/pacote-motor/preset";
 
 type Vista = "overview" | "voo" | "hotel";
 
@@ -30,20 +31,26 @@ type Vista = "overview" | "voo" | "hotel";
  * Motor de Pacotes VIA AIR — padrão visual aprovado.
  * Busca com distribuição real por quarto e opções vindas da operadora.
  */
-export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolean; publico?: boolean } = {}) {
+export function PacoteMotor({
+  embed = false,
+  publico = embed,
+  preset,
+}: { embed?: boolean; publico?: boolean; preset?: PacotePreset } = {}) {
   const buscarHoteis = useServerFn(publico ? buscarHospedagemCFPublic : buscarHospedagemCF);
   const buscarVoos = useServerFn(publico ? buscarAereoCFPublic : buscarAereoCF);
   const criarCheckout = useServerFn(criarPacoteMotorCheckout);
 
 
-  const [origem, setOrigem] = useState("");
-  const [destino, setDestino] = useState("");
-  const [cidadeId, setCidadeId] = useState<number | null>(null);
-  const [origemIata, setOrigemIata] = useState("");
-  const [destinoIata, setDestinoIata] = useState("");
-  const [ida, setIda] = useState("");
-  const [volta, setVolta] = useState("");
-  const [quartos, setQuartos] = useState<OcupacaoQuarto[]>([ocupacaoPadrao()]);
+  const [origem, setOrigem] = useState(preset?.origem ?? "");
+  const [destino, setDestino] = useState(preset?.destino ?? "");
+  const [cidadeId, setCidadeId] = useState<number | null>(preset?.cidadeId ?? null);
+  const [origemIata, setOrigemIata] = useState(preset?.origemIata ?? "");
+  const [destinoIata, setDestinoIata] = useState(preset?.destinoIata ?? "");
+  const [ida, setIda] = useState(preset?.ida ?? "");
+  const [volta, setVolta] = useState(preset?.volta ?? "");
+  const [quartos, setQuartos] = useState<OcupacaoQuarto[]>(
+    preset?.quartos?.length ? preset.quartos : [ocupacaoPadrao()],
+  );
 
   const [vista, setVista] = useState<Vista>("overview");
   const [hotel, setHotel] = useState<HotelPacote | null>(null);
@@ -137,6 +144,14 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
       return lista;
     });
   }
+
+  /** Preset vindo da URL (/voar?m=combo&...): já dispara a busca ao abrir. */
+  useEffect(() => {
+    if (!preset) return;
+    if (preset.cidadeId && preset.ida) pacotes.mutate();
+    if (preset.origemIata && preset.destinoIata && preset.ida) voos.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function pesquisar() {
     setHotel(null);

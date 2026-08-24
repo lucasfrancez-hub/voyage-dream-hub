@@ -48,12 +48,18 @@ type VoarSearch = {
   fm?: string;
   /** Viagem multi-trecho: CWB-GRU-2026-09-01_GRU-REC-2026-09-05 */
   ms?: string;
+  /** Pacote vindo do motor recolhível da página /pacotes. */
+  cid?: number;
+  pon?: string;
+  pdn?: string;
+  q?: string;
   /** Voo já escolhido por trecho (cia+horário): AD-1150_LA-0445 */
   ps?: string;
 };
 
 import { encodeTrail, decodeTrail } from "@/lib/md-trail";
 import { decodeSegments, decodePicks } from "@/lib/multicity";
+import { decodeQuartos, type PacotePreset } from "@/lib/pacote-motor/preset";
 
 
 const MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", "seguro"];
@@ -119,6 +125,10 @@ export const Route = createFileRoute("/voar")({
     fm: typeof search.fm === "string" ? search.fm.slice(0, 7) : undefined,
     ms: typeof search.ms === "string" ? search.ms.slice(0, 300) : undefined,
     ps: typeof search.ps === "string" ? search.ps.slice(0, 120) : undefined,
+    cid: Number(search.cid) > 0 ? Number(search.cid) : undefined,
+    pon: typeof search.pon === "string" ? search.pon.slice(0, 80) : undefined,
+    pdn: typeof search.pdn === "string" ? search.pdn.slice(0, 80) : undefined,
+    q: typeof search.q === "string" ? search.q.slice(0, 60) : undefined,
   }),
 
   loaderDeps: ({ search }) => ({
@@ -166,6 +176,19 @@ function VoarPublicPage() {
   const hasMulti = multiPreset.length >= 2;
   const hasPreset = !hasMulti && !!(s.o && s.d && s.ida);
   const hasHotelPreset = !hasMulti && s.m === "hotel" && !!(s.hd && s.ci && s.co);
+  const isPacote = s.m === "combo";
+  const pacotePreset: PacotePreset | undefined = isPacote
+    ? {
+        origem: s.pon ?? "",
+        destino: s.pdn ?? "",
+        cidadeId: s.cid ?? null,
+        origemIata: s.o ?? "",
+        destinoIata: s.d ?? "",
+        ida: s.ida ?? "",
+        volta: s.volta ?? "",
+        quartos: decodeQuartos(s.q),
+      }
+    : undefined;
 
 
   return (
@@ -178,7 +201,9 @@ function VoarPublicPage() {
         backLabel="Voltar ao site"
         whatsappMessage="Olá! Estou pesquisando passagens aéreas no site da Via Air."
       />
-      {hasMulti || hasHotelPreset || hasPreset ? (
+      {isPacote ? (
+        <SearchEngine publicMode initialMode="combo" pacotePreset={pacotePreset} />
+      ) : hasMulti || hasHotelPreset || hasPreset ? (
         <SearchEngine
           publicMode
           initialMode={hasHotelPreset ? "hotel" : "aereo"}
