@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as CruzeirosRouteImport } from './routes/cruzeiros'
+import { Route as DevMotorPreviewRouteImport } from './routes/dev-motor-preview'
 import { Route as EditairRouteImport } from './routes/editair'
 import { Route as EmbedTesteRouteImport } from './routes/embed-teste'
 import { Route as ExclusaoDeDadosRouteImport } from './routes/exclusao-de-dados'
@@ -213,6 +214,11 @@ const ChatRoute = ChatRouteImport.update({
 const CruzeirosRoute = CruzeirosRouteImport.update({
   id: '/cruzeiros',
   path: '/cruzeiros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevMotorPreviewRoute = DevMotorPreviewRouteImport.update({
+  id: '/dev-motor-preview',
+  path: '/dev-motor-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EditairRoute = EditairRouteImport.update({
@@ -1139,6 +1145,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
+  '/dev-motor-preview': typeof DevMotorPreviewRoute
   '/editair': typeof EditairRouteWithChildren
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
@@ -1321,6 +1328,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
+  '/dev-motor-preview': typeof DevMotorPreviewRoute
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
   '/ingressos': typeof IngressosRoute
@@ -1501,6 +1509,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/chat': typeof ChatRouteWithChildren
   '/cruzeiros': typeof CruzeirosRoute
+  '/dev-motor-preview': typeof DevMotorPreviewRoute
   '/editair': typeof EditairRouteWithChildren
   '/embed-teste': typeof EmbedTesteRoute
   '/exclusao-de-dados': typeof ExclusaoDeDadosRoute
@@ -1685,6 +1694,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
+    | '/dev-motor-preview'
     | '/editair'
     | '/embed-teste'
     | '/exclusao-de-dados'
@@ -1867,6 +1877,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
+    | '/dev-motor-preview'
     | '/embed-teste'
     | '/exclusao-de-dados'
     | '/ingressos'
@@ -2046,6 +2057,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chat'
     | '/cruzeiros'
+    | '/dev-motor-preview'
     | '/editair'
     | '/embed-teste'
     | '/exclusao-de-dados'
@@ -2229,6 +2241,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ChatRoute: typeof ChatRouteWithChildren
   CruzeirosRoute: typeof CruzeirosRoute
+  DevMotorPreviewRoute: typeof DevMotorPreviewRoute
   EditairRoute: typeof EditairRouteWithChildren
   EmbedTesteRoute: typeof EmbedTesteRoute
   ExclusaoDeDadosRoute: typeof ExclusaoDeDadosRoute
@@ -2353,6 +2366,13 @@ declare module '@tanstack/react-router' {
       path: '/cruzeiros'
       fullPath: '/cruzeiros'
       preLoaderRoute: typeof CruzeirosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev-motor-preview': {
+      id: '/dev-motor-preview'
+      path: '/dev-motor-preview'
+      fullPath: '/dev-motor-preview'
+      preLoaderRoute: typeof DevMotorPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/editair': {
@@ -3818,6 +3838,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ChatRoute: ChatRouteWithChildren,
   CruzeirosRoute: CruzeirosRoute,
+  DevMotorPreviewRoute: DevMotorPreviewRoute,
   EditairRoute: EditairRouteWithChildren,
   EmbedTesteRoute: EmbedTesteRoute,
   ExclusaoDeDadosRoute: ExclusaoDeDadosRoute,
