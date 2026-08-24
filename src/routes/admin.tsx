@@ -733,6 +733,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     pathname.startsWith("/admin/app-celular") ||
     pathname.startsWith("/admin/metricas") ||
     pathname.startsWith("/admin/pacotes-cativa") ||
+    pathname.startsWith("/admin/comprefacil") ||
     pathname.startsWith("/admin/regras-parcelamento") ||
     pathname.startsWith("/admin/codigos-auth") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
