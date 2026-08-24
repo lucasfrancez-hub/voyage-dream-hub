@@ -156,6 +156,8 @@ export function ResumoPacote({
       </div>
 
       <div className="total">
+        <span>Valor total do pacote</span>
+
 
         <strong>{brl(total, moeda)}</strong>
         <small>
