@@ -140,9 +140,13 @@ export function SeletorServicos({
                 ) : null}
                 <div className="svcmain">
                   <div className="svchead">
+                    {s.logo ? (
+                      <img className="svclogo" src={s.logo} alt={s.fornecedor ?? "Seguradora"} loading="lazy" />
+                    ) : null}
                     <span className="svccat">{grupoServico(s)}</span>
                     {s.recomendado ? <span className="selo-rec">Recomendado</span> : null}
                   </div>
+
                   <h3>{s.titulo}</h3>
                   {s.descricao ? (
                     <p>{s.descricao.length > 260 ? `${s.descricao.slice(0, 260)}…` : s.descricao}</p>
