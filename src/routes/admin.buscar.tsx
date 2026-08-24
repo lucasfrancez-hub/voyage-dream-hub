@@ -523,29 +523,14 @@ export function SearchEngine({
                 publicMode={publicMode}
               />
 
-              {runToken > 0 && (
-                <div className="mt-5 flex flex-wrap items-center gap-2">
-                  {COMBO_STEPS.map((s, i) => {
-                    const n = (i + 1) as ComboStep;
-                    const active = step === n;
-                    return (
-                      <button
-                        key={s.label}
-                        type="button"
-                        onClick={() => setStep(n)}
-                        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
-                          active
-                            ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                            : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <s.icon className="h-4 w-4" />
-                        <span className="font-medium">
-                          {n}. {s.label}
-                        </span>
-                      </button>
-                    );
-                  })}
+              {runToken > 0 && step !== 3 && (flightPick || hotelPick) && (
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <Button variant="outline" onClick={() => setStep(3)}>
+                    <ChevronLeft className="mr-1 h-4 w-4" /> Voltar ao pacote
+                  </Button>
+                  <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                    {step === 1 ? "Alterando o voo" : "Alterando a hospedagem"}
+                  </span>
                 </div>
               )}
             </div>
