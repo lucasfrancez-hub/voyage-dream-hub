@@ -97,3 +97,29 @@ export const sincronizarCompreFacil = createServerFn({ method: "POST" })
     const { importarCompreFacil } = await import("./sync.server");
     return importarCompreFacil(data.escopo ?? "tudo");
   });
+
+/** Motor de busca de pacotes (catálogo + consulta ao vivo na operadora). */
+export const buscarPacotesCompreFacil = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: import("./busca.server").FiltrosBuscaCF) => input)
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const { buscarPacotesCF } = await import("./busca.server");
+    return buscarPacotesCF(data);
+  });
+
+/** Puxa o pacote direto na operadora e devolve a versão atualizada. */
+export const atualizarPacoteCompreFacil = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { externoId: number }) => input)
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const { atualizarPacoteAoVivo } = await import("./busca.server");
+    const ok = await atualizarPacoteAoVivo(data.externoId);
+    const { data: pacote } = await context.supabase
+      .from("comprefacil_pacotes")
+      .select("*")
+      .eq("externo_id", data.externoId)
+      .maybeSingle();
+    return { ok, pacote: (pacote as any) ?? null };
+  });
