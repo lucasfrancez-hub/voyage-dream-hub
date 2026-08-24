@@ -13,7 +13,9 @@ export const Route = createFileRoute("/api/public/probe-cf")({
           method?: string;
           body?: unknown;
         }>;
-        const { chamarCompreFacil, COMPREFACIL_BASES } = await import("@/lib/comprefacil/auth.server");
+        const { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } = await import("@/lib/comprefacil/auth.server");
+        const ses = await sessaoCompreFacil();
+        const ag = Number(ses.agenciaId ?? 0);
         const out: unknown[] = [];
         for (const a of alvos) {
           try {
@@ -21,7 +23,7 @@ export const Route = createFileRoute("/api/public/probe-cf")({
             const r = await chamarCompreFacil(a.path, {
               base,
               method: a.method ?? "GET",
-              body: a.body,
+              body: JSON.parse(JSON.stringify(a.body ?? null)?.replace?.("\"__AG__\"", String(ag)) ?? "null"),
             });
             out.push({ ...a, status: r.status, amostra: JSON.stringify(r.dados).slice(0, 1200) });
           } catch (e) {
