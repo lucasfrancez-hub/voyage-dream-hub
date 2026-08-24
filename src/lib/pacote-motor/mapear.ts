@@ -22,6 +22,8 @@ export type QuartoPacote = {
 
 export type HotelPacote = {
   id: string;
+  /** posição na ordem "recomendados" devolvida pela operadora (0 = mais recomendado) */
+  posicao: number;
   /** id externo do pacote CompreFácil que originou esta hospedagem */
   pacoteExternoId: number;
   nome: string;
@@ -77,8 +79,9 @@ export function totalPacote(p: PacoteBuscaCF, pagantes: number) {
 
 /** Converte a lista de pacotes encontrados em opções de hospedagem reais. */
 export function hoteisDosPacotes(pacotes: PacoteBuscaCF[], pagantes: number): HotelPacote[] {
-  return pacotes.map((p) => ({
+  return pacotes.map((p, i) => ({
     id: p.id,
+    posicao: i,
     pacoteExternoId: p.externo_id,
     nome: p.hoteis[0] ?? p.nome,
     categoria: null,

@@ -263,6 +263,7 @@ function mapearHotel(h: any, i: number): HotelPacote {
   }));
 
   return {
+    posicao: i,
     id: `cfh-${i}-${h?.CodigoFornecedor ?? ""}-${h?.Fornecedor ?? ""}`,
     pacoteExternoId: Number(h?.CodigoFornecedor ?? 0) || 0,
     nome: h?.Nome ?? "Hotel",

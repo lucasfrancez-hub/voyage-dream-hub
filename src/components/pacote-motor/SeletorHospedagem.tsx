@@ -3,6 +3,8 @@ import { ArrowLeft, Hotel, Loader2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { brl, diferencaTexto, type HotelPacote } from "@/lib/pacote-motor/mapear";
 
+type Ordem = "recomendado" | "preco" | "estrelas" | "nome";
+
 /** Marketplace de hospedagem: filtros, cards de hotel com fotos e opções de quarto. */
 export function SeletorHospedagem({
   hoteis,
@@ -24,13 +26,19 @@ export function SeletorHospedagem({
   resumo: React.ReactNode;
 }) {
   const [busca, setBusca] = useState("");
-  const [ordem, setOrdem] = useState<"preco" | "nome">("preco");
+  const [ordem, setOrdem] = useState<Ordem>("recomendado");
   const [expandido, setExpandido] = useState<string | null>(hotelSelecionadoId);
 
   const lista = useMemo(() => {
     const b = busca.trim().toLowerCase();
     const arr = hoteis.filter((h) => !b || h.nome.toLowerCase().includes(b) || (h.localizacao ?? "").toLowerCase().includes(b));
-    return arr.sort((a, z) => (ordem === "preco" ? a.total - z.total : a.nome.localeCompare(z.nome)));
+    return arr.sort((a, z) => {
+      if (ordem === "preco") return a.total - z.total;
+      if (ordem === "nome") return a.nome.localeCompare(z.nome, "pt-BR");
+      if (ordem === "estrelas") return (z.categoria ?? 0) - (a.categoria ?? 0) || a.posicao - z.posicao;
+      // recomendados: mesma ordem que a operadora devolve (FRT/CompreFácil)
+      return a.posicao - z.posicao;
+    });
   }, [hoteis, busca, ordem]);
 
   return (
@@ -51,10 +59,12 @@ export function SeletorHospedagem({
           <h4 className="mb-2 mt-4 text-xs font-bold">Ordenar por</h4>
           <select
             value={ordem}
-            onChange={(e) => setOrdem(e.target.value as "preco" | "nome")}
+            onChange={(e) => setOrdem(e.target.value as Ordem)}
             className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-xs outline-none"
           >
+            <option value="recomendado">Recomendados</option>
             <option value="preco">Menor valor</option>
+            <option value="estrelas">Mais estrelas</option>
             <option value="nome">Nome</option>
           </select>
         </div>
@@ -96,7 +106,12 @@ export function SeletorHospedagem({
                     </div>
 
                     <div>
-                      <strong className="text-sm">{h.nome}</strong>
+                      {h.posicao < 3 && ordem === "recomendado" ? (
+                        <span className="mb-1 inline-block rounded-full bg-brand-orange/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-orange">
+                          {h.posicao === 0 ? "Mais recomendado" : "Recomendado"}
+                        </span>
+                      ) : null}
+                      <strong className="block text-sm">{h.nome}</strong>
                       <p className="text-[11px] text-muted-foreground">{h.localizacao ?? "—"}</p>
                       {h.categoria ? (
                         <p className="mt-0.5 flex items-center gap-0.5 text-[11px] text-brand-orange">
