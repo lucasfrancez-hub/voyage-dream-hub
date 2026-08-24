@@ -114,8 +114,9 @@ export function ReservaFrtDialog({
     | undefined;
 
   const podeReservar =
-    pax.every((p) => p.nome.trim() && p.sobrenome.trim()) &&
+    pax.every((p) => p.nome.trim() && p.sobrenome.trim() && p.nascimento && p.cpf.replace(/\D/g, "").length === 11) &&
     (Boolean(voo?.buscaToken) || Boolean(hotel?.buscaToken));
+
 
   function alterar(i: number, campo: keyof Pax, valor: string) {
     setPax((atual) => atual.map((p, k) => (k === i ? { ...p, [campo]: valor } : p)));
