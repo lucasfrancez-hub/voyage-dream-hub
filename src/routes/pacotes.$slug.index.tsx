@@ -851,11 +851,7 @@ function PackageDetails() {
               </div>
             ) : null}
 
-
-
-
-
-            <dl className="mt-6 space-y-3 text-sm">
+            <dl className="mt-5 space-y-3 border-y border-border/60 py-4 text-sm">
               <Row label="Destino" value={pkg.destination} />
               {isTicket ? (
                 eventDateLabel && <Row label="Data do evento" value={eventDateLabel} />
@@ -875,9 +871,8 @@ function PackageDetails() {
               )}
             </dl>
 
-
             {hasHotelChoice && hotelName ? (
-              <div className="mt-5 flex items-center gap-2 rounded-2xl border border-brand-orange/30 bg-brand-orange/10 px-3 py-2.5 text-xs">
+              <div className="mt-4 flex items-center gap-2 rounded-2xl border border-brand-orange/30 bg-brand-orange/10 px-3 py-2.5 text-xs">
                 <Hotel className="h-4 w-4 text-brand-orange shrink-0" />
                 <span className="text-muted-foreground">
                   Com hospedagem no <span className="font-semibold text-foreground">{hotelName}</span>
@@ -885,7 +880,7 @@ function PackageDetails() {
               </div>
             ) : null}
 
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white">
                 5% off no Pix
               </span>
@@ -894,6 +889,26 @@ function PackageDetails() {
                 Parcele em até {maxParcelasCard}x
               </span>
             </div>
+
+            {!isPerUnit ? (
+              <p className="mt-5 text-[11px] leading-relaxed text-muted-foreground">
+                Este pacote foi montado para{" "}
+                <span className="font-semibold text-foreground">
+                  {baseOccupancy === 1 ? "1 adulto" : `${baseOccupancy} adultos`}
+                </span>
+                . Precisa de outra quantidade?{" "}
+                <a
+                  href={customQuoteWhatsappUrl(pkg.title)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-brand-orange hover:underline"
+                >
+                  Fale no WhatsApp
+                </a>
+                .
+              </p>
+            ) : null}
+
 
             {flexibleDates ? (
               <button
