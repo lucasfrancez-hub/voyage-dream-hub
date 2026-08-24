@@ -546,7 +546,7 @@ export function SearchEngine({
                   runToken={runToken}
                   onComboSelect={(pick) => {
                     setFlightPick(pick);
-                    setStep(2);
+                    setStep(hotelPick ? 3 : 2);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                 />
