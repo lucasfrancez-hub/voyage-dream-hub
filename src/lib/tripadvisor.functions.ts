@@ -226,14 +226,12 @@ export const searchTripAdvisorHotels = createServerFn({ method: "POST" })
     const out: TAHotelSuggestion[] = [];
     const seen = new Set<number>();
     let limitado = false;
-    let houveResposta = false;
 
     for (const u of urls) {
       try {
         const r = await taFetch(u);
         if (r.status === 429) { limitado = true; break; }
         if (!r.ok) continue;
-        houveResposta = true;
         const j = (await r.json()) as { data?: Array<{ location?: Record<string, unknown> }> };
         for (const item of mapSearch(j.data ?? [], 30)) {
           if (!item.location_id || seen.has(item.location_id) || !item.name) continue;

@@ -101,8 +101,8 @@ export function locationIdDaUrl(texto: string): number | null {
 }
 
 /** Dados básicos de uma propriedade pelo ID (usado quando colam a URL). */
-async function locationPorId(id: number, signal: AbortSignal, apiKey: string): Promise<HotelCandidate | null> {
-  const det = await jsonOf(`${BASE}/locations/${id}`, signal, apiKey);
+async function locationPorId(id: number, signal: AbortSignal): Promise<HotelCandidate | null> {
+  const det = await jsonOf(`${BASE}/locations/${id}`, signal);
   const d = ((det?.data as Record<string, unknown> | undefined) ?? det ?? {}) as Record<string, unknown>;
   const nome = pickName(d.names);
   if (!nome) return null;
@@ -128,14 +128,13 @@ export async function searchHotelLocations(query: string): Promise<HotelCandidat
     // Colou o link da ficha? Resolve direto pelo ID, sem gastar busca.
     const idUrl = locationIdDaUrl(termo);
     if (idUrl) {
-      const unico = await locationPorId(idUrl, ctrl.signal, apiKey);
+      const unico = await locationPorId(idUrl, ctrl.signal);
       return unico ? [unico] : [];
     }
 
     const search = await jsonOf(
       `${BASE}/catalog/locations/search?query=${encodeURIComponent(termo)}&search_type=NAME&category=HOTEL`,
       ctrl.signal,
-      apiKey,
     );
     const brutos = ((search?.data ?? []) as Array<{ location?: Record<string, unknown> }>)
       .map((item) => (item.location ?? item) as Record<string, unknown>)
@@ -239,7 +238,6 @@ function pickAddress(addresses: Array<Record<string, unknown>> | undefined): str
 async function jsonOf(
   url: string,
   signal: AbortSignal,
-  apiKey: string,
 ): Promise<Record<string, unknown> | null> {
   try {
     const r = await tripAdvisorFetch(url, { signal });
@@ -309,7 +307,7 @@ export async function enrichHotel(params: {
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12_000);
-  const api = (path: string) => jsonOf(`${BASE}${path}`, ctrl.signal, apiKey);
+  const api = (path: string) => jsonOf(`${BASE}${path}`, ctrl.signal);
 
   const vazio: HotelEnrichment = {
     name: nome, location_id: fixado ?? null, rating: null, num_reviews: null, ranking: null, address: null,
