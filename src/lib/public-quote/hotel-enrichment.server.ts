@@ -93,14 +93,30 @@ export type HotelCandidate = {
 };
 
 /**
- * Quando a chave do TripAdvisor estoura o limite (HTTP 429), paramos de
- * chamar a API por alguns minutos — insistir só queima mais cota e deixa
- * todo hotel sem foto.
+ * A chave do TripAdvisor não tem cota mensal, mas tem limite de requisições
+ * por segundo. Quando um 429 acontece (rajada nossa, ex.: vínculo automático
+ * de vários hotéis), fazemos uma pausa curta — nunca minutos.
  */
 let bloqueadoAte = 0;
 export function tripAdvisorLimitado(): boolean {
   return Date.now() < bloqueadoAte;
 }
+
+/** Serializa as chamadas com um intervalo mínimo, evitando estourar o QPS. */
+let filaTripAdvisor: Promise<unknown> = Promise.resolve();
+let ultimaChamada = 0;
+const INTERVALO_MS = 220;
+function naFila<T>(fn: () => Promise<T>): Promise<T> {
+  const proximo = filaTripAdvisor.then(async () => {
+    const espera = ultimaChamada + INTERVALO_MS - Date.now();
+    if (espera > 0) await new Promise((r) => setTimeout(r, espera));
+    ultimaChamada = Date.now();
+    return fn();
+  });
+  filaTripAdvisor = proximo.catch(() => undefined);
+  return proximo;
+}
+
 
 /** Extrai o location_id de uma URL do TripAdvisor (…-d736663-…). */
 export function locationIdDaUrl(texto: string): number | null {
