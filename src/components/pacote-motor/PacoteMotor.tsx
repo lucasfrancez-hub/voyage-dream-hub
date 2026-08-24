@@ -268,6 +268,7 @@ export function PacoteMotor({
           : []),
         ...(idaVoo ? [`Aéreo ida: ${idaVoo.origem} → ${idaVoo.destino} • ${idaVoo.companhia}`] : []),
         ...(voltaVoo ? [`Aéreo volta: ${voltaVoo.origem} → ${voltaVoo.destino} • ${voltaVoo.companhia}`] : []),
+        ...servicosSel.map((s) => `${s.categoria}: ${s.titulo}`),
       ],
       flights: [
         ...(idaVoo ? [passhubToQuoteFlight(idaVoo, voltaVoo ? "OUTBOUND" : null, total)] : []),
