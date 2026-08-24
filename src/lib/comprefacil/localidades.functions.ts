@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type LocalidadeCF = { nome: string; cidadeId: number | null; total: number };
+export type LocalidadeCF = { nome: string; cidadeId: number | null; iata: string | null; total: number };
 
 /**
  * Autopreencher de origem/destino do CompreFácil: junta as cidades do catálogo
@@ -36,7 +36,7 @@ export const autocompleteLocalidadeCF = createServerFn({ method: "POST" })
         atual.total += 1;
         if (atual.cidadeId == null && campo === "cidade") atual.cidadeId = l.cidade_id ?? null;
       } else {
-        mapa.set(chave, { nome, cidadeId: campo === "cidade" ? (l.cidade_id ?? null) : null, total: 1 });
+        mapa.set(chave, { nome, cidadeId: campo === "cidade" ? (l.cidade_id ?? null) : null, iata: null, total: 1 });
       }
     }
 
@@ -49,8 +49,9 @@ export const autocompleteLocalidadeCF = createServerFn({ method: "POST" })
         const atual = mapa.get(chave);
         if (atual) {
           if (atual.cidadeId == null) atual.cidadeId = c.id;
+          if (!atual.iata) atual.iata = c.iata;
         } else {
-          mapa.set(chave, { nome: c.nome, cidadeId: c.id, total: 0 });
+          mapa.set(chave, { nome: c.nome, cidadeId: c.id, iata: c.iata, total: 0 });
         }
       }
     } catch (e) {

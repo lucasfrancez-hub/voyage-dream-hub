@@ -7,7 +7,7 @@ import { autocompleteLocalidadeCF } from "@/lib/comprefacil/localidades.function
 
 type Props = {
   valor: string;
-  onChange: (nome: string, cidadeId: number | null) => void;
+  onChange: (nome: string, cidadeId: number | null, iata?: string | null) => void;
   campo: "destino" | "saida";
   placeholder?: string;
 };
@@ -74,7 +74,7 @@ export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder }: Pr
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 setTermo(c.nome);
-                onChange(c.nome, c.cidadeId);
+                onChange(c.nome, c.cidadeId, c.iata ?? null);
                 setAberto(false);
               }}
               className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-muted"

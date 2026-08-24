@@ -5,7 +5,6 @@ import { CalendarDays, Hotel, Loader2, Plane, Search, Users } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { CidadeAutocompleteCF } from "@/components/comprefacil/CidadeAutocompleteCF";
 import { ResumoPacote } from "@/components/pacote-motor/ResumoPacote";
 import { SeletorVoo } from "@/components/pacote-motor/SeletorVoo";
@@ -24,6 +23,7 @@ export function PacoteMotor() {
   const listarServicos = useServerFn(listarServicosCompreFacil);
   const buscarVoos = useServerFn(buscarAereoCF);
 
+  const [origem, setOrigem] = useState("");
   const [destino, setDestino] = useState("");
   const [cidadeId, setCidadeId] = useState<number | null>(null);
   const [origemIata, setOrigemIata] = useState("");
@@ -152,23 +152,29 @@ export function PacoteMotor() {
   return (
     <div className="motor-navy rounded-3xl p-4 md:p-6">
       {/* Barra de busca */}
-      <div className="mb-5 grid gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-lg lg:grid-cols-[1.2fr_1fr_1fr_.8fr_.8fr_.9fr_auto]">
+      <div className="mb-5 grid gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-lg lg:grid-cols-[1.2fr_1.2fr_.8fr_.8fr_.9fr_auto]">
+        <Campo icone={<Plane className="h-3.5 w-3.5" />} label="Origem">
+          <CidadeAutocompleteCF
+            valor={origem}
+            campo="saida"
+            placeholder="Cidade de saída"
+            onChange={(nome, _id, iata) => {
+              setOrigem(nome);
+              setOrigemIata(iata ?? "");
+            }}
+          />
+        </Campo>
         <Campo icone={<Hotel className="h-3.5 w-3.5" />} label="Destino">
           <CidadeAutocompleteCF
             valor={destino}
             campo="destino"
             placeholder="Cidade do pacote"
-            onChange={(nome, id) => {
+            onChange={(nome, id, iata) => {
               setDestino(nome);
               setCidadeId(id);
+              setDestinoIata(iata ?? "");
             }}
           />
-        </Campo>
-        <Campo icone={<Plane className="h-3.5 w-3.5" />} label="Origem (aéreo)">
-          <AirportAutocomplete value={origemIata} onSelect={setOrigemIata} placeholder="Ex.: MGF" />
-        </Campo>
-        <Campo icone={<Plane className="h-3.5 w-3.5" />} label="Destino (aéreo)">
-          <AirportAutocomplete value={destinoIata} onSelect={setDestinoIata} placeholder="Ex.: GRU" isDeparture={false} />
         </Campo>
         <Campo icone={<CalendarDays className="h-3.5 w-3.5" />} label="Ida">
           <Input type="date" value={ida} onChange={(e) => setIda(e.target.value)} />
@@ -224,11 +230,11 @@ export function PacoteMotor() {
       )}
 
       {vista === "overview" && (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_310px]">
+        <div className={buscou ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_310px]" : "grid gap-4"}>
           <div className="space-y-3">
             {!buscou && (
               <p className="rounded-2xl border border-border/60 bg-card p-6 text-sm text-muted-foreground">
-                Informe destino, trecho aéreo e datas para montar o pacote recomendado.
+                Informe origem, destino e datas para montar o pacote recomendado.
               </p>
             )}
 
@@ -375,7 +381,7 @@ export function PacoteMotor() {
             )}
           </div>
 
-          {resumo}
+          {buscou ? resumo : null}
         </div>
       )}
     </div>
