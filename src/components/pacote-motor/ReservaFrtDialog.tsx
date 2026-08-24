@@ -237,6 +237,17 @@ export function ReservaFrtDialog({
               ))}
             </div>
 
+            {alertasIdade.length > 0 && (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                {alertasIdade.map((a, i) => (
+                  <p key={i}>{a}</p>
+                ))}
+                <p className="mt-1">Corrija a data de nascimento ou refaça a busca com a idade correta.</p>
+              </div>
+            )}
+
+
+
             <Button className="w-full" disabled={!podeReservar || m.isPending} onClick={() => m.mutate()}>
               {m.isPending ? (
                 <>
