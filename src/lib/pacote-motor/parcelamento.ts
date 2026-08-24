@@ -35,17 +35,11 @@ export function useParcelamentoPacote(fornecedor = FORNECEDOR_MOTOR): Parcelamen
 
   const curto = `Em até ${max}x sem juros no cartão`;
 
-  const partes = [
-    `Em até ${max}x sem juros no cartão de crédito`,
+  const completo =
     regra?.boleto_financiado_enabled === false
-      ? null
-      : `${boletoMax}x sem juros no boleto bancário`,
-  ].filter(Boolean);
+      ? `Em até ${max}x sem juros no cartão de crédito.`
+      : `Em até ${max}x sem juros no cartão de crédito ou boleto bancário.`;
 
-  let completo = partes.join(" e ") + ".";
-  if (regra?.valid_until && max > DEFAULT_MAX_INSTALLMENTS) {
-    completo += ` Condição válida até ${ddmm(regra.valid_until)} — depois passa para ${DEFAULT_MAX_INSTALLMENTS}x sem juros.`;
-  }
 
   return { max, curto, completo };
 }
