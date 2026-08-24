@@ -231,11 +231,11 @@ export function PacoteMotor() {
       )}
 
       {vista === "overview" && (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_310px]">
+        <div className={buscou ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_310px]" : "grid gap-4"}>
           <div className="space-y-3">
             {!buscou && (
               <p className="rounded-2xl border border-border/60 bg-card p-6 text-sm text-muted-foreground">
-                Informe destino, trecho aéreo e datas para montar o pacote recomendado.
+                Informe origem, destino e datas para montar o pacote recomendado.
               </p>
             )}
 
@@ -382,7 +382,7 @@ export function PacoteMotor() {
             )}
           </div>
 
-          {resumo}
+          {buscou ? resumo : null}
         </div>
       )}
     </div>
