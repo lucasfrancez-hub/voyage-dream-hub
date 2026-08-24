@@ -69,6 +69,8 @@ function PacotesCativaPage() {
   const historico = useServerFn(historicoPacoteCativa);
   const liberar = useServerFn(liberarPacoteCativa);
   const excluir = useServerFn(excluirPacoteCativa);
+  const conferir = useServerFn(conferirSalvamentosCativa);
+  const [conferindo, setConferindo] = useState(false);
 
 
   const [busca, setBusca] = useState("");
