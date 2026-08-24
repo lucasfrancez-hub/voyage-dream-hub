@@ -11,7 +11,7 @@ import { whatsappUrl } from "@/lib/checkout-config";
 
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
-import { FeaturedCarousel } from "@/components/packages/FeaturedCarousel";
+import { MotorPacotePersonalizado } from "@/components/packages/MotorPacotePersonalizado";
 import { dedupeOrigins, originKey } from "@/lib/packages/origin";
 import { dedupeDestinations, destinationKey } from "@/lib/packages/destination";
 import { Button } from "@/components/ui/button";
@@ -393,9 +393,7 @@ function PacotesList() {
 
 
 
-        <div className="mt-8">
-          <FeaturedCarousel packages={(packages || []) as any} mixMode />
-        </div>
+        <MotorPacotePersonalizado />
 
         <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:flex-wrap sm:items-end">
           <div className="flex shrink-0 items-center gap-2 pb-2.5 text-sm font-medium text-foreground">
