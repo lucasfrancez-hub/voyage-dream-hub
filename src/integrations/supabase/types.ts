@@ -6741,6 +6741,7 @@ export type Database = {
         Row: {
           comissao_extra: number
           created_at: string
+          criado_por: string | null
           id_passagem: number
           localizador: string | null
           observacao: string | null
@@ -6750,6 +6751,7 @@ export type Database = {
         Insert: {
           comissao_extra?: number
           created_at?: string
+          criado_por?: string | null
           id_passagem: number
           localizador?: string | null
           observacao?: string | null
@@ -6759,6 +6761,7 @@ export type Database = {
         Update: {
           comissao_extra?: number
           created_at?: string
+          criado_por?: string | null
           id_passagem?: number
           localizador?: string | null
           observacao?: string | null
@@ -8455,6 +8458,27 @@ export type Database = {
           last_used_at?: string
           token_hash?: string
           user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_modules: {
+        Row: {
+          created_at: string
+          id: string
+          module_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          module_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          module_key?: string
           user_id?: string
         }
         Relationships: []
@@ -10563,6 +10587,11 @@ export type Database = {
         Returns: undefined
       }
       nfse_next_rps: { Args: { _prestador_id?: string }; Returns: number }
+      pode_ver_tudo: { Args: { _user_id: string }; Returns: boolean }
+      tem_modulo: {
+        Args: { _modulo: string; _user_id: string }
+        Returns: boolean
+      }
       verify_protocol_hash: {
         Args: { _hash: string }
         Returns: {
@@ -10578,7 +10607,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user" | "partner" | "marketing"
+      app_role: "admin" | "user" | "partner" | "marketing" | "gestor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -10706,7 +10735,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "partner", "marketing"],
+      app_role: ["admin", "user", "partner", "marketing", "gestor"],
     },
   },
 } as const
