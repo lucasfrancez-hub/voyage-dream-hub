@@ -323,6 +323,8 @@ export async function statusSessaoCompreFacil(): Promise<{
 /** Força um novo login (descarta a sessão salva). Resolve o 2FA sozinho. */
 export async function reconectarCompreFacil(): Promise<Sessao> {
   await limparSessaoCompreFacil();
+  bloqueadoAte = 0; // reconexão é manual: sempre tenta de novo
+
   const nova = await autenticar();
   sessao = nova;
   await salvarSessao(nova);
