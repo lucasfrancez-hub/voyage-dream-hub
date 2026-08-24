@@ -464,7 +464,7 @@ export function PacoteMotor({
         )}
 
         {buscou && vista === "overview" && (
-          <section className="screen active">
+          <section className="screen active" id="overview">
             <div className="title">
               <div>
                 <h2>Pacote recomendado</h2>
