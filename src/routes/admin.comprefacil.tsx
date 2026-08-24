@@ -99,11 +99,16 @@ function CompreFacilPage() {
         </div>
       </header>
 
-      <Tabs defaultValue="pacotes">
+      <Tabs defaultValue="motor">
         <TabsList>
+          <TabsTrigger value="motor">Motor de busca</TabsTrigger>
           <TabsTrigger value="pacotes">Pacotes</TabsTrigger>
           <TabsTrigger value="servicos">Serviços</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="motor" className="space-y-4">
+          <MotorBuscaCF />
+        </TabsContent>
 
         <TabsContent value="pacotes" className="space-y-4">
           <div className="relative max-w-md">
