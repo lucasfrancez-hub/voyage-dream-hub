@@ -34,7 +34,14 @@ export const buscarAereoCF = createServerFn({ method: "POST" })
 export const buscarHospedagemCF = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (input: { cidadeId: number; checkin: string; checkout: string; adultos: number; criancas?: number }) => input,
+    (input: {
+      cidadeId: number;
+      checkin: string;
+      checkout: string;
+      adultos: number;
+      criancas?: number;
+      quartos?: { adultos: number; criancas: number; bebes: number; idades: number[] }[];
+    }) => input,
   )
   .handler(async ({ data, context }) => {
     await exigirAdmin(context);
