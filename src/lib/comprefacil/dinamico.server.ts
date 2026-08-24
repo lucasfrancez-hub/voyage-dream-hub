@@ -269,7 +269,7 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     Checkout: p.checkout,
     Cidade: { Id: p.cidadeId },
     Quartos: distribuicaoQuartos(p),
-    FiltroHotel: FILTRO_HOTEL,
+    FiltroHotel: { ...FILTRO_HOTEL, Ordenacao: ordenacao },
   });
 
   const inicio = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(null) });
