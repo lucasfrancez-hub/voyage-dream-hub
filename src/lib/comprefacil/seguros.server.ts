@@ -119,6 +119,53 @@ function coberturasDoPlano(s: any): { nome: string; valor: string | null }[] {
   return saida.slice(0, 40);
 }
 
+/** Código da seguradora na operadora → nome comercial. */
+const SEGURADORAS: Record<string, string> = {
+  AC: "Assist Card",
+  AF: "Affinity",
+  AS: "Assist Card",
+  CI: "Coris",
+  GT: "GTA",
+  IT: "Intermac",
+  MP: "Mapfre",
+  UN: "Universal Assistance",
+  VT: "Vital Card",
+  MC: "My Care",
+};
+
+function nomeSeguradora(codigo: unknown): string | null {
+  const c = typeof codigo === "string" ? codigo.trim().toUpperCase() : "";
+  if (!c) return null;
+  if (SEGURADORAS[c]) return SEGURADORAS[c];
+  return c.length > 3 ? texto(codigo) : null;
+}
+
+/**
+ * Resumo do plano quando a operadora não devolve a tabela de coberturas.
+ * Só usa dados reais do item (nome do plano, moeda, região, vigência) —
+ * nenhum valor de cobertura é inventado.
+ */
+function resumoDoPlano(
+  s: any,
+  ctx: { pax: number; noites: number; regiaoNome: string },
+): { nome: string; valor: string | null }[] {
+  const plano = texto(s?.Nome) ?? texto(s?.Titulo) ?? "Plano";
+  const moeda = texto(s?.MoedaNet?.Sigla) ?? texto(s?.MoedaListagem?.Sigla) ?? null;
+  const lista: { nome: string; valor: string | null }[] = [
+    { nome: "Plano contratado", valor: plano },
+    { nome: "Abrangência", valor: ctx.regiaoNome },
+    { nome: "Vigência", valor: `${ctx.noites} ${ctx.noites === 1 ? "dia" : "dias"}` },
+    { nome: "Passageiros cobertos", valor: `${ctx.pax}` },
+  ];
+  if (moeda) lista.push({ nome: "Moeda das coberturas", valor: moeda });
+  lista.push({
+    nome: "Condições gerais e limites de cobertura",
+    valor: "Enviados pela seguradora junto ao voucher",
+  });
+  return lista;
+}
+
+
 
 export async function buscarSegurosCF(p: {
   cidadeId: number;
@@ -212,6 +259,14 @@ export async function buscarSegurosCF(p: {
     if (vistos.has(chave)) return;
     vistos.add(chave);
 
+    const seguradora =
+      nomeSeguradora(s?.Fornecedor) ??
+      texto(s?.NomeFornecedor) ??
+      texto(s?.Seguradora) ??
+      texto(s?.Fornecedor);
+    const regiaoNome = texto(s?.DestinoNome) ?? REGIOES_SEGURO[regiao] ?? "Cobertura nacional";
+    const daApi = coberturasDoPlano(s);
+
     lista.push({
       id: `cfseg-${s?.CodigoFornecedor ?? s?.Id ?? i}-${i}`,
       externoId: Number(s?.CodigoFornecedor ?? s?.Id ?? 0) || 0,
@@ -220,24 +275,26 @@ export async function buscarSegurosCF(p: {
       descricao:
         texto(s?.Descricao) ??
         texto(s?.Cobertura) ??
-        `Cobertura para ${pax} ${pax === 1 ? "passageiro" : "passageiros"} · ${noites} ${noites === 1 ? "dia" : "dias"}`,
-      fornecedor: texto(s?.Fornecedor) ?? texto(s?.NomeFornecedor) ?? texto(s?.Seguradora),
+        `Plano ${titulo} para ${pax} ${pax === 1 ? "passageiro" : "passageiros"}, com ${noites} ${noites === 1 ? "dia" : "dias"} de cobertura em ${regiaoNome.toLowerCase()}.`,
+      fornecedor: seguradora,
       politica: texto(s?.PoliticaCancelamento),
       informacoes: [
         `${pax} ${pax === 1 ? "passageiro" : "passageiros"}`,
         `${noites} ${noites === 1 ? "dia" : "dias"} de cobertura`,
-        texto(s?.DestinoNome) ?? REGIOES_SEGURO[regiao] ?? "Cobertura nacional",
-      ],
+        regiaoNome,
+        seguradora ? `Seguradora ${seguradora}` : null,
+      ].filter(Boolean) as string[],
 
       recomendado: false,
       valor: calculado > 0 ? Number(calculado.toFixed(2)) : null,
       moeda: "BRL" as const,
       imagem: null,
       logo: logoSeguradora(s),
-      coberturas: coberturasDoPlano(s),
+      coberturas: daApi.length ? daApi : resumoDoPlano(s, { pax, noites, regiaoNome }),
 
     });
   });
+
 
   return lista.sort((a, b) => (a.valor ?? Infinity) - (b.valor ?? Infinity));
 }

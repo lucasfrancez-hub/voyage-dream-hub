@@ -4,6 +4,8 @@ import { brl } from "@/lib/pacote-motor/mapear";
 import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import { GRUPOS_SERVICO, grupoServico } from "@/lib/pacote-motor/categorias";
 import { ServicoModal } from "@/components/pacote-motor/ServicoModal";
+import seguroImg from "@/assets/seguro-viagem.jpg";
+
 
 
 /** Adicionar serviços — mesmo padrão: filtros | resultados | resumo. */
@@ -126,7 +128,8 @@ export function SeletorServicos({
 
           {lista.map((s) => {
             const sel = selecionados.includes(s.id);
-            const capa = s.imagens?.[0] ?? s.imagem ?? null;
+            const ehSeguro = /seguro/i.test(grupoServico(s)) || /seguro/i.test(s.titulo);
+            const capa = s.imagens?.[0] ?? s.imagem ?? (ehSeguro ? (seguroImg as unknown as string) : null);
             return (
               <article key={s.id} className={`svc${sel ? " selected" : ""}`}>
                 {capa ? (
