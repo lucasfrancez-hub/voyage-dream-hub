@@ -16,6 +16,7 @@ import {
   type OcupacaoQuarto,
 } from "@/lib/pacote-motor/mapear";
 import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.functions";
+import { criarPacoteMotorCheckout } from "@/lib/pacote-motor/checkout.functions";
 import type { PassHubOferta } from "@/lib/passhub/types";
 
 type Vista = "overview" | "voo" | "hotel";
@@ -24,9 +25,11 @@ type Vista = "overview" | "voo" | "hotel";
  * Motor de Pacotes VIA AIR — padrão visual aprovado.
  * Busca com distribuição real por quarto e opções vindas da operadora.
  */
-export function PacoteMotor() {
+export function PacoteMotor({ embed = false }: { embed?: boolean } = {}) {
   const buscarHoteis = useServerFn(buscarHospedagemCF);
   const buscarVoos = useServerFn(buscarAereoCF);
+  const criarCheckout = useServerFn(criarPacoteMotorCheckout);
+
 
   const [origem, setOrigem] = useState("");
   const [destino, setDestino] = useState("");
