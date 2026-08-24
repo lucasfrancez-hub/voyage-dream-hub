@@ -108,6 +108,8 @@ export function PacoteMotor({
           adultos: pax.adultos,
           idades: quartos.flatMap((q) => q.idades),
           destino: destino || null,
+          destinoIata: destinoIata ? destinoIata.toUpperCase() : null,
+
         },
       }),
   });
