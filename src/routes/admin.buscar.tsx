@@ -505,7 +505,7 @@ export function SearchEngine({
             <div className="relative mx-auto max-w-7xl px-4 py-8">{hero}</div>
           </header>
           {/* Motor de Pacotes VIA AIR (operadora própria — FRT/CompreFácil). */}
-          <div className="mx-auto max-w-7xl px-4 py-6">
+          <div className="mx-auto max-w-7xl px-4 py-6 [&_.mkt_.shell]:px-0">
             <PacoteMotor embed={embedMode} publico={embedMode || publicMode} />
           </div>
         </>
