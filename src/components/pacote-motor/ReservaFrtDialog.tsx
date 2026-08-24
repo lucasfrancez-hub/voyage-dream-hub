@@ -296,9 +296,11 @@ export function ReservaFrtDialog({
                 </li>
               ))}
             </ul>
+            {r.orcamentoId ? <CancelarReservaFrt orcamentoId={r.orcamentoId} /> : null}
             <Button variant="outline" className="w-full" onClick={onFechar}>
               Fechar
             </Button>
+
           </div>
         )}
       </DialogContent>
