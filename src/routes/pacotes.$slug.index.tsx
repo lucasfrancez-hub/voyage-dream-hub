@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { CruiseDetailsView } from "@/components/cruise/CruiseDetailsView";
 import { PrepaidBoletoCard } from "@/components/packages/PrepaidBoletoCard";
 import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
+import { installmentRulesQuery, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
 
 import {
   MapPin,
@@ -28,6 +29,7 @@ import {
   ChevronRight,
   ArrowRight,
   Star,
+  CreditCard,
 
   Eye,
   Coffee,
@@ -283,6 +285,9 @@ function PackageDetails() {
       return data ?? [];
     },
   });
+
+  const { data: installmentRules } = useQuery(installmentRulesQuery);
+  const maxParcelasCard = maxInstallmentsForPackage(installmentRules, { supplierName: (pkg as any)?.supplier_name });
 
   const [hotelDialogOpen, setHotelDialogOpen] = useState(false);
   const [dialogPhotoIndex, setDialogPhotoIndex] = useState(0);
@@ -896,6 +901,15 @@ function PackageDetails() {
               </div>
             ) : null}
 
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white">
+                5% off no Pix
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-brand-orange px-2.5 py-1 text-[11px] font-bold text-white shadow-lg">
+                <CreditCard className="h-3 w-3" />
+                Parcele em até {maxParcelasCard}x
+              </span>
+            </div>
 
             {flexibleDates ? (
               <button
