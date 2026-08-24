@@ -308,7 +308,7 @@ export function PacoteMotor({
       hotel={hotel}
       quarto={quarto}
       total={total}
-      diferenca={Number((total - baseTotal).toFixed(2))}
+      diferenca={Number((total - baseTotalRecomendado).toFixed(2))}
       moeda={hotel?.moeda ?? "BRL"}
       servicos={servicosSel.map((s) => ({ id: s.id, titulo: s.titulo, valor: s.valor }))}
       onServicos={() => setVista("servico")}
