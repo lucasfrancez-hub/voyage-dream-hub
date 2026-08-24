@@ -24,6 +24,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device-session.functions";
 import { ChatPinUnlock, ChatPinSetup } from "@/components/chat/ChatPinUnlock";
 import { tokenAppLembrado } from "@/lib/chat/app-token";
+import { AcessoProvider, useAcesso } from "@/lib/permissions/acesso";
+import { moduloDaRota } from "@/lib/permissions/modules";
 
 /** App instalado no celular (PWA em modo standalone). */
 function ehAppInstalado() {
@@ -51,7 +53,7 @@ export const Route = createFileRoute("/admin")({
   }),
 });
 
-type Role = "admin" | "partner" | "marketing" | null;
+type Role = "admin" | "gestor" | "partner" | "marketing" | "equipe" | null;
 
 // O link secreto (/admin/app/<token>) entra pelo PIN — não passa pelo guard
 // de login/2FA do painel.
@@ -69,7 +71,7 @@ function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [role, setRole] = useState<Role | undefined>(undefined);
-  const isAdmin = role === "admin";
+  const isAdmin = role === "admin" || role === "gestor";
   const isPartner = role === "partner";
   // marketing role is redirected to /chat/broadcast on entry
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -232,7 +234,7 @@ function AdminLayout() {
     let temCache = false;
     try {
       const salvo = localStorage.getItem(chaveCache);
-      if (salvo === "admin" || salvo === "partner" || salvo === "marketing") {
+      if (salvo === "admin" || salvo === "gestor" || salvo === "partner" || salvo === "marketing" || salvo === "equipe") {
         temCache = true;
         setRole(salvo as Role);
       }
@@ -248,8 +250,7 @@ function AdminLayout() {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", sessaoAtual.user.id)
-        .in("role", ["admin", "partner", "marketing"]);
+        .eq("user_id", sessaoAtual.user.id);
       if (cancelled) return;
       if (roleFailsafe) clearTimeout(roleFailsafe);
       if (error) {
@@ -259,14 +260,25 @@ function AdminLayout() {
         }
         return;
       }
-      const roles = (data ?? []).map((r) => r.role);
-      const novo: Role = roles.includes("admin")
+      const roles = (data ?? []).map((r) => String(r.role));
+      let novo: Role = roles.includes("admin")
         ? "admin"
-        : roles.includes("partner")
-          ? "partner"
-          : roles.includes("marketing")
-            ? "marketing"
-            : null;
+        : roles.includes("gestor")
+          ? "gestor"
+          : roles.includes("partner")
+            ? "partner"
+            : roles.includes("marketing")
+              ? "marketing"
+              : null;
+      // Usuário comum entra no painel quando tem ao menos um módulo liberado.
+      if (!novo) {
+        const { count } = await supabase
+          .from("user_modules")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", sessaoAtual.user.id);
+        if (cancelled) return;
+        if ((count ?? 0) > 0) novo = "equipe";
+      }
       setRole(novo);
       try {
         if (novo) localStorage.setItem(chaveCache, novo);
@@ -346,7 +358,7 @@ function AdminLayout() {
   }
 
 
-  if (!isAdmin && !isPartner && role !== "marketing") {
+  if (!isAdmin && !isPartner && role !== "marketing" && role !== "equipe") {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
         <div>
