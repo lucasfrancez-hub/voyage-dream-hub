@@ -153,7 +153,6 @@ export function PacoteMotor() {
   return (
     <div className="motor-navy rounded-3xl p-4 md:p-6">
       {/* Barra de busca */}
-      <div className="mb-5 grid gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-lg lg:grid-cols-[1.2fr_1fr_1fr_.8fr_.8fr_.9fr_auto]">
       <div className="mb-5 grid gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-lg lg:grid-cols-[1.2fr_1.2fr_.8fr_.8fr_.9fr_auto]">
         <Campo icone={<Plane className="h-3.5 w-3.5" />} label="Origem">
           <CidadeAutocompleteCF
