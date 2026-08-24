@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { CruiseDetailsView } from "@/components/cruise/CruiseDetailsView";
 import { PrepaidBoletoCard } from "@/components/packages/PrepaidBoletoCard";
 import { getPrepaidBoletoConditions } from "@/lib/packages/prepaid-boleto";
+import { installmentRulesQuery, maxInstallmentsForPackage } from "@/lib/packages/installment-rules";
 
 import {
   MapPin,
