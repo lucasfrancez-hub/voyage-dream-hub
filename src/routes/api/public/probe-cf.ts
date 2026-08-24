@@ -23,7 +23,7 @@ export const Route = createFileRoute("/api/public/probe-cf")({
             const r = await chamarCompreFacil(a.path, {
               base,
               method: a.method ?? "GET",
-              body: JSON.parse(JSON.stringify(a.body ?? null)?.replace?.("\"__AG__\"", String(ag)) ?? "null"),
+              ...(a.body === undefined || a.body === null ? {} : { body: JSON.parse(JSON.stringify(a.body ?? null)?.replace?.("\"__AG__\"", String(ag)) ?? "null") }),
             });
             out.push({ ...a, status: r.status, amostra: JSON.stringify(r.dados).slice(0, 1200) });
           } catch (e) {
