@@ -124,8 +124,10 @@ export function ReservaFrtDialog({
             email,
             telefone,
             tipo: p.tipo,
+            idade: idadeDe(p.nascimento) ?? p.idade,
             quarto: p.quarto,
           })),
+
         },
       }),
   });
