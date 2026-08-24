@@ -53,6 +53,10 @@ export type PassHubVoo = {
 export type PassHubOferta = {
   id: string;
   precoTotal: number;
+  /** token da busca na operadora (CompreFácil/FRT) — usado para reservar de verdade */
+  buscaToken?: string;
+  /** índice do item bruto dentro da busca guardada */
+  buscaIndice?: number;
   ida: PassHubVoo;
   voltas: PassHubVoo[];
 };

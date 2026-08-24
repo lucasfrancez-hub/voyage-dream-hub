@@ -43,6 +43,10 @@ export const plural = (n: number, singular: string, pluralStr: string) => `${n} 
 
 export type HotelPacote = {
   id: string;
+  /** token da busca na operadora (CompreFácil/FRT) — usado para reservar de verdade */
+  buscaToken?: string;
+  /** índice do item bruto dentro da busca guardada */
+  buscaIndice?: number;
   /** posição na ordem "recomendados" devolvida pela operadora (0 = mais recomendado) */
   posicao: number;
   /** id externo do pacote CompreFácil que originou esta hospedagem */
