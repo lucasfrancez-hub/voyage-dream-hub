@@ -330,9 +330,9 @@ export function PacoteMotor({
       <div className="shell">
         {/* Mesma linguagem visual das abas Aéreo/Hotel: card do design system,
             labels com ícone, calendário e seletor de hóspedes padrão. */}
-        <section className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
-          <div className="grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <section className="w-full overflow-hidden rounded-[32px] border border-border/50 bg-card/60 p-4 shadow-2xl backdrop-blur-xl sm:p-6">
+          <div className="grid w-full min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto]">
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                   <MapPin className="h-3 w-3" /> Origem
@@ -366,7 +366,7 @@ export function PacoteMotor({
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                 <CalendarDays className="h-3 w-3" /> Ida e volta
               </Label>
@@ -382,7 +382,7 @@ export function PacoteMotor({
               />
             </div>
 
-            <div className="flex items-end">
+            <div className="flex min-w-0 items-end">
               <Button size="lg" className="h-11 w-full lg:w-auto" onClick={pesquisar} disabled={carregando}>
                 {carregando ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
