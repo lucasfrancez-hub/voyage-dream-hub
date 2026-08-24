@@ -549,6 +549,30 @@ body:has([data-chat-root]),
 .mkt .room-total {margin-left:auto;padding-bottom:8px;color:#7f96a8;font-size:8px;white-space:nowrap}
 .mkt .hotel .more {display:inline-flex;align-items:center;gap:5px;padding:7px 9px;border:1px solid rgba(255,255,255,.07);border-radius:9px;background:rgba(255,255,255,.025);color:#d4e1eb}
 .mkt .hotel .more:hover {border-color:rgba(245,155,69,.24);color:#ffc47f}
+.mkt .roomacts {display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.mkt .hotel .more {white-space:nowrap;height:32px;padding:0 12px;font-size:10px;font-weight:700;line-height:1}
+.mkt .hotel .more.ghost-btn {background:transparent;border-color:rgba(245,155,69,.35);color:#ffb367}
+.mkt .hotel .more.ghost-btn:hover {background:rgba(245,155,69,.12)}
+
+/* Lightbox e modal do hotel */
+.mkt-lightbox {position:fixed;inset:0;z-index:120;background:rgba(4,10,16,.92);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px}
+.mkt-lightbox .lb-inner {position:relative;max-width:min(1100px,94vw);max-height:88vh;display:flex;align-items:center;justify-content:center}
+.mkt-lightbox img {max-width:100%;max-height:88vh;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.mkt-lightbox .lb-close {position:absolute;top:-14px;right:-14px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:#0e1720;color:#fff;font-size:15px;cursor:pointer}
+.mkt-lightbox .lb-nav {position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(10,18,26,.8);color:#fff;font-size:26px;line-height:1;cursor:pointer}
+.mkt-lightbox .lb-nav.prev {left:-20px}
+.mkt-lightbox .lb-nav.next {right:-20px}
+.mkt-lightbox .lb-caption {position:absolute;left:0;right:0;bottom:-30px;display:flex;justify-content:space-between;color:#cbd8e3;font-size:11px}
+.mkt-modal {position:fixed;inset:0;z-index:110;background:rgba(4,10,16,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px}
+.mkt-modal-card {width:min(920px,94vw);max-height:88vh;overflow:auto;border-radius:18px;border:1px solid rgba(255,255,255,.09);background:#0c141c;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.mkt-modal-head {display:flex;justify-content:space-between;gap:16px;padding:20px 22px;border-bottom:1px solid rgba(255,255,255,.07)}
+.mkt-modal-head h3 {margin:4px 0 2px;font-size:18px;color:#eef4f9}
+.mkt-modal-head p {margin:0;font-size:11px;color:#8aa0b1}
+.mkt-modal-close {width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:transparent;color:#cfdbe5;cursor:pointer}
+.mkt-modal-body {padding:20px 22px 26px}
+.mkt-modal-body h4 {margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#f59b45}
+.mkt-modal-body p {margin:0;font-size:12px;line-height:1.6;color:#c3d2de}
+.mkt-modal-list {margin:6px 0 0;padding-left:16px;font-size:11px;line-height:1.6;color:#a9bccb}
 .mkt .tabs {display:flex;gap:8px;margin:18px 0}
 .mkt .tab {border:1px solid var(--line);background:rgba(255,255,255,.02);color:#8fa4b4;border-radius:11px;padding:10px 13px;font-size:10px;font-weight:900}
 .mkt .tab.active {border-color:rgba(245,155,69,.30);background:rgba(245,155,69,.10);color:#ffc787}

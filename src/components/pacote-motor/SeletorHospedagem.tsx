@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { brl, plural, type HotelPacote } from "@/lib/pacote-motor/mapear";
 import { Chips } from "@/components/pacote-motor/SeletorVoo";
+import { SobreHotelModal } from "@/components/pacote-motor/SobreHotelModal";
+import { Lightbox } from "@/components/pacote-motor/Lightbox";
 
 type OrdemHotel = "recomendado" | "preco" | "precoDesc" | "estrelas" | "avaliacao";
 
@@ -38,6 +40,8 @@ export function SeletorHospedagem({
   const [soReembolsavel, setSoReembolsavel] = useState(false);
   const [ordem, setOrdem] = useState<OrdemHotel>("recomendado");
   const [aberto, setAberto] = useState<string | null>(null);
+  const [sobre, setSobre] = useState<HotelPacote | null>(null);
+  const [galeria, setGaleria] = useState<{ hotel: HotelPacote; i: number } | null>(null);
 
   const opcoes = useMemo(() => {
     const reg = new Set<string>();
@@ -238,10 +242,12 @@ export function SeletorHospedagem({
             return (
               <article key={h.id} className={`hotel${sel ? " selected" : ""}${expandido ? " open" : ""}`}>
                 <div className="hotelgrid">
-                  <div
+                  <button
+                    type="button"
                     className="photo"
-                    style={h.fotos[0] ? { backgroundImage: `url('${h.fotos[0]}')` } : undefined}
-                    aria-label={`Foto do hotel ${h.nome}`}
+                    style={h.fotos[0] ? { backgroundImage: `url('${h.fotos[0]}')`, cursor: "zoom-in" } : undefined}
+                    aria-label={`Ver fotos do hotel ${h.nome}`}
+                    onClick={() => h.fotos.length && setGaleria({ hotel: h, i: 0 })}
                   />
                   <div className="hotelmain">
                     <div className="hotelhead">
@@ -282,9 +288,14 @@ export function SeletorHospedagem({
                             .join(" · ") || "—"}
                         </span>
                       </div>
-                      <button type="button" className="more" onClick={() => setAberto(expandido ? null : h.id)}>
-                        {expandido ? "Fechar quartos ⌃" : "Alterar quarto ⌄"}
-                      </button>
+                      <div className="roomacts">
+                        <button type="button" className="more ghost-btn" onClick={() => setSobre(h)}>
+                          Sobre o hotel
+                        </button>
+                        <button type="button" className="more" onClick={() => setAberto(expandido ? null : h.id)}>
+                          {expandido ? "Fechar quartos ⌃" : "Alterar quarto ⌄"}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -354,6 +365,17 @@ export function SeletorHospedagem({
 
         {resumo}
       </div>
+
+      {sobre ? <SobreHotelModal hotel={sobre} onFechar={() => setSobre(null)} /> : null}
+      {galeria ? (
+        <Lightbox
+          fotos={galeria.hotel.fotos}
+          indice={galeria.i}
+          titulo={galeria.hotel.nome}
+          onIndice={(i) => setGaleria((g) => (g ? { ...g, i } : g))}
+          onFechar={() => setGaleria(null)}
+        />
+      ) : null}
     </section>
   );
 }

@@ -163,6 +163,8 @@ function Checkout() {
   const [travelers, setTravelers] = useState<Traveler[]>([emptyTraveler(), emptyTraveler()]);
   const [payment, setPayment] = useState<PaymentMethod>("credit_card");
   const [installments, setInstallments] = useState<number>(DEFAULT_INSTALLMENTS);
+  const [parcelasEscolhidas, setParcelasEscolhidas] = useState(false);
+  const [boletoParcelasEscolhidas, setBoletoParcelasEscolhidas] = useState(false);
   const [boletoInstallments, setBoletoInstallments] = useState<number>(1);
 
   const { data: card, patch: patchCard } = useCardData();
@@ -380,14 +382,18 @@ function Checkout() {
     supplierName: supplierNamePkg,
     brand: card.brand || detectBrand(card.cardNumber),
   });
+  // Enquanto o cliente não escolher manualmente, o padrão é o máximo
+  // sem juros permitido pela regra do fornecedor (ex.: FRT 15x).
   useEffect(() => {
-    setInstallments((n) => Math.min(n, maxCardParcelas));
-  }, [maxCardParcelas]);
+    setInstallments((n) => (parcelasEscolhidas ? Math.min(n, maxCardParcelas) : maxCardParcelas));
+  }, [maxCardParcelas, parcelasEscolhidas]);
 
   useEffect(() => {
-    setBoletoInstallments((n) => Math.min(n, MAX_BOLETO_INSTALLMENTS));
+    setBoletoInstallments((n) =>
+      boletoParcelasEscolhidas ? Math.min(n, MAX_BOLETO_INSTALLMENTS) : MAX_BOLETO_INSTALLMENTS,
+    );
     if (!boletoRules.financedEnabled) setPayment((p) => (p === "boleto" ? "credit_card" : p));
-  }, [MAX_BOLETO_INSTALLMENTS, boletoRules.financedEnabled]);
+  }, [MAX_BOLETO_INSTALLMENTS, boletoRules.financedEnabled, boletoParcelasEscolhidas]);
 
 
   // Abre já no Boleto Pré-pago quando veio do card do pacote.
@@ -1170,7 +1176,10 @@ function Checkout() {
                       </span>
                       <select
                         value={boletoInstallments}
-                        onChange={(e) => setBoletoInstallments(Number(e.target.value))}
+                        onChange={(e) => {
+                          setBoletoParcelasEscolhidas(true);
+                          setBoletoInstallments(Number(e.target.value));
+                        }}
                         className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/40"
                       >
                         {Array.from({ length: MAX_BOLETO_INSTALLMENTS }, (_, i) => i + 1).map((n) => (
@@ -1225,7 +1234,10 @@ function Checkout() {
                     data={card}
                     onChange={patchCard}
                     installments={installments}
-                    onInstallmentsChange={setInstallments}
+                    onInstallmentsChange={(n: number) => {
+                      setParcelasEscolhidas(true);
+                      setInstallments(n);
+                    }}
                     installmentsOptions={cardInstallmentOptions(maxCardParcelas)}
                     total={totalPrice}
                   />

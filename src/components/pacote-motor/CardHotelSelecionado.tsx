@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { infoHotelMotor } from "@/lib/pacote-motor/hotel-info.functions";
 import { plural, type HotelPacote, type QuartoPacote } from "@/lib/pacote-motor/mapear";
+import { Lightbox } from "@/components/pacote-motor/Lightbox";
 
 const dataBr = (d: string) => (d ? d.split("-").reverse().join("/") : "—");
 
@@ -42,6 +43,7 @@ export function CardHotelSelecionado({
   onAlterar: () => void;
 }) {
   const [aberto, setAberto] = useState(false);
+  const [foto, setFoto] = useState<number | null>(null);
   const info = useInfoHotel(hotel);
   const extra = info.data;
 
@@ -81,6 +83,8 @@ export function CardHotelSelecionado({
                   src={capa}
                   alt={`Foto do hotel ${hotel.nome}`}
                   loading="lazy"
+                  style={{ cursor: "zoom-in" }}
+                  onClick={() => setFoto(0)}
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).style.display = "none";
                   }}
@@ -199,7 +203,13 @@ export function CardHotelSelecionado({
                   <div className="hotel-gallery">
                     {fotos.map((f, i) => (
                       <figure key={`${f}-${i}`}>
-                        <img src={f} alt={`Foto ${i + 1} do hotel ${hotel.nome}`} loading="lazy" />
+                        <img
+                          src={f}
+                          alt={`Foto ${i + 1} do hotel ${hotel.nome}`}
+                          loading="lazy"
+                          style={{ cursor: "zoom-in" }}
+                          onClick={() => setFoto(i)}
+                        />
                       </figure>
                     ))}
                   </div>
@@ -211,6 +221,10 @@ export function CardHotelSelecionado({
           </>
         )}
       </div>
+
+      {foto !== null && fotos.length ? (
+        <Lightbox fotos={fotos} indice={foto} titulo={hotel!.nome} onIndice={setFoto} onFechar={() => setFoto(null)} />
+      ) : null}
     </article>
   );
 }
