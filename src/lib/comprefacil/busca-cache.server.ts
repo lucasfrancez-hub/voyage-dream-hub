@@ -12,7 +12,7 @@ export type TipoBuscaCF = "aereo" | "hotel" | "servico";
 export async function guardarBuscaCF(tipo: TipoBuscaCF, itens: unknown[]): Promise<string | null> {
   if (!itens.length) return null;
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = (await import("@/integrations/supabase/client.server")) as any;
     const token = crypto.randomUUID();
     const { error } = await supabaseAdmin.from("comprefacil_busca_cache").insert({
       token,
@@ -32,7 +32,7 @@ export async function itemBrutoCF(
   tipo: TipoBuscaCF,
   indice: number,
 ): Promise<any | null> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { supabaseAdmin } = (await import("@/integrations/supabase/client.server")) as any;
   const { data } = await supabaseAdmin
     .from("comprefacil_busca_cache")
     .select("itens")

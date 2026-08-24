@@ -219,7 +219,7 @@ async function registrarReservaFRT(r: {
   passageiros: PaxReserva[];
 }) {
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = (await import("@/integrations/supabase/client.server")) as any;
     await supabaseAdmin.from("frt_reservas").upsert(
       {
         orcamento_id: r.orcamentoId,
