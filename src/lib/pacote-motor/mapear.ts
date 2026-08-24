@@ -121,6 +121,11 @@ export function hoteisDosPacotes(pacotes: PacoteBuscaCF[], pagantes: number): Ho
     beneficios: p.hoteis.slice(1),
     regime: null,
     reembolsavel: null,
+    endereco: null,
+    descricao: null,
+    comodidades: [],
+    politicas: [],
+    numAvaliacoes: null,
     total: totalPacote(p, pagantes),
     moeda: p.moeda ?? "BRL",
     quartos: [],
@@ -144,6 +149,9 @@ export function detalharHospedagem(raw: any, pagantes: number) {
       regime: a?.Regime ?? a?.Pensao ?? null,
       reembolsavel: typeof a?.Reembolsavel === "boolean" ? a.Reembolsavel : null,
       beneficios: [],
+      politica: null,
+      pesquisa: null,
+      valor,
       diferenca: valor ? Number((valor - base).toFixed(2)) : 0,
     };
   });
