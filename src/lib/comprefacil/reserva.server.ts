@@ -8,7 +8,9 @@
  *   4. GET  /api/aereo/{aereoId}/TemDuplicidade  → checa duplicidade
  *   5. POST /api/Aereo/tarifar/{aereoId}         → revalida a tarifa
  *   6. POST /api/aereo/reservar/{aereoId}        → gera o PNR (LocalizadorAereo)
- *   7. POST /api/Hotel/reservar                  → reserva a hospedagem
+ *   7. PATCH /api/hotel/politica/{oid}/{hid}    → política do hotel (corpo da reserva)
+ *   8. POST /api/Hotel/reservar                  → reserva a hospedagem
+
  */
 import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.server";
 import { itemBrutoCF } from "./busca-cache.server";
