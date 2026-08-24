@@ -30,20 +30,26 @@ type Vista = "overview" | "voo" | "hotel";
  * Motor de Pacotes VIA AIR — padrão visual aprovado.
  * Busca com distribuição real por quarto e opções vindas da operadora.
  */
-export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolean; publico?: boolean } = {}) {
+export function PacoteMotor({
+  embed = false,
+  publico = embed,
+  preset,
+}: { embed?: boolean; publico?: boolean; preset?: PacotePreset } = {}) {
   const buscarHoteis = useServerFn(publico ? buscarHospedagemCFPublic : buscarHospedagemCF);
   const buscarVoos = useServerFn(publico ? buscarAereoCFPublic : buscarAereoCF);
   const criarCheckout = useServerFn(criarPacoteMotorCheckout);
 
 
-  const [origem, setOrigem] = useState("");
-  const [destino, setDestino] = useState("");
-  const [cidadeId, setCidadeId] = useState<number | null>(null);
-  const [origemIata, setOrigemIata] = useState("");
-  const [destinoIata, setDestinoIata] = useState("");
-  const [ida, setIda] = useState("");
-  const [volta, setVolta] = useState("");
-  const [quartos, setQuartos] = useState<OcupacaoQuarto[]>([ocupacaoPadrao()]);
+  const [origem, setOrigem] = useState(preset?.origem ?? "");
+  const [destino, setDestino] = useState(preset?.destino ?? "");
+  const [cidadeId, setCidadeId] = useState<number | null>(preset?.cidadeId ?? null);
+  const [origemIata, setOrigemIata] = useState(preset?.origemIata ?? "");
+  const [destinoIata, setDestinoIata] = useState(preset?.destinoIata ?? "");
+  const [ida, setIda] = useState(preset?.ida ?? "");
+  const [volta, setVolta] = useState(preset?.volta ?? "");
+  const [quartos, setQuartos] = useState<OcupacaoQuarto[]>(
+    preset?.quartos?.length ? preset.quartos : [ocupacaoPadrao()],
+  );
 
   const [vista, setVista] = useState<Vista>("overview");
   const [hotel, setHotel] = useState<HotelPacote | null>(null);
