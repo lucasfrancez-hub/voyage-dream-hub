@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, ChevronRight, type LucideIcon } from "lucide-react";
 import {
@@ -6,6 +6,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAcesso } from "@/lib/permissions/acesso";
 
 export type NavMenuItem = {
   to: string;
@@ -154,6 +155,18 @@ export function NavMegaMenu({
   columns?: 1 | 2;
   width?: string;
 }) {
+  const { podeRota } = useAcesso();
+  // Esconde do menu tudo que o usuário não tem permissão de abrir.
+  const permitidos = useMemo(
+    () =>
+      groups
+        .map((g) => ({ ...g, items: g.items.filter((i) => podeRota(i.to)) }))
+        .filter((g) => g.items.length > 0),
+    [groups, podeRota],
+  );
+  if (permitidos.length === 0) return null;
+  groups = permitidos;
+
   const half = Math.ceil(groups.length / 2);
   const left = columns === 2 ? groups.slice(0, half) : groups;
   const right = columns === 2 ? groups.slice(half) : [];
