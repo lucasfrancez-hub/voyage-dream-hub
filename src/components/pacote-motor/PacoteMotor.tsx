@@ -33,6 +33,7 @@ import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import type { PassHubOferta } from "@/lib/passhub/types";
 import { encodeQuartos, type PacotePreset } from "@/lib/pacote-motor/preset";
 import { ResumoDock } from "./ResumoDock";
+import { ReservaFrtDialog } from "./ReservaFrtDialog";
 
 type Vista = "overview" | "voo" | "hotel" | "servico" | "revisar";
 
@@ -68,6 +69,7 @@ export function PacoteMotor({
   const [quartoId, setQuartoId] = useState<string | null>(null);
   const [voo, setVoo] = useState<PassHubOferta | null>(null);
   const [servicosSel, setServicosSel] = useState<ServicoDisponivel[]>([]);
+  const [reservaAberta, setReservaAberta] = useState(false);
 
   const pax = somaOcupacao(quartos);
 
@@ -358,6 +360,12 @@ export function PacoteMotor({
               Gerar orçamento
             </button>
           )}
+          {/* Reserva real na operadora (uso interno): cria o orçamento na FRT e gera o localizador. */}
+          {!publico && (
+            <button type="button" className="ghost" disabled={!hotel && !voo} onClick={() => setReservaAberta(true)}>
+              Reservar na operadora
+            </button>
+          )}
         </div>
       }
 
@@ -367,6 +375,16 @@ export function PacoteMotor({
 
   return (
     <div className="mkt inset">
+      {!publico && (
+        <ReservaFrtDialog
+          aberto={reservaAberta}
+          onFechar={() => setReservaAberta(false)}
+          voo={voo}
+          hotel={hotel}
+          quartoId={quartoId}
+          quartos={quartos}
+        />
+      )}
       <div className="shell">
         {/* Mesma linguagem visual das abas Aéreo/Hotel: card do design system,
             labels com ícone, calendário e seletor de hóspedes padrão. */}

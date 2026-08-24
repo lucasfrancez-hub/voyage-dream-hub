@@ -2645,6 +2645,27 @@ export type Database = {
         }
         Relationships: []
       }
+      comprefacil_busca_cache: {
+        Row: {
+          created_at: string
+          itens: Json
+          tipo: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          itens: Json
+          tipo: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          itens?: Json
+          tipo?: string
+          token?: string
+        }
+        Relationships: []
+      }
       comprefacil_import_runs: {
         Row: {
           erro: string | null
@@ -4477,6 +4498,42 @@ export type Database = {
           id?: boolean
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      frt_reservas: {
+        Row: {
+          created_at: string
+          detalhes: Json | null
+          id: string
+          limite_emissao: string | null
+          localizador_aereo: string | null
+          localizador_hotel: string | null
+          orcamento_id: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          limite_emissao?: string | null
+          localizador_aereo?: string | null
+          localizador_hotel?: string | null
+          orcamento_id: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          limite_emissao?: string | null
+          localizador_aereo?: string | null
+          localizador_hotel?: string | null
+          orcamento_id?: number
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }

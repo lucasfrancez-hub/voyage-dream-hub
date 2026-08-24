@@ -6,6 +6,7 @@
  * `BuscasAtivas` esvaziar).
  */
 import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.server";
+import { guardarBuscaCF } from "./busca-cache.server";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 import type { HotelPacote, OcupacaoQuarto, QuartoPacote } from "@/lib/pacote-motor/mapear";
 
@@ -146,7 +147,14 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
     if (vazio || itens.length >= MAX_ITENS) break;
   }
 
-  return itens.map((it, idx) => mapearOfertaAereo(it, idx)).filter(Boolean) as PassHubOferta[];
+  // guarda o JSON bruto da operadora: a reserva real precisa do objeto original
+  const buscaToken = await guardarBuscaCF("aereo", itens);
+  return itens
+    .map((it, idx) => {
+      const o = mapearOfertaAereo(it, idx);
+      return o && buscaToken ? { ...o, buscaToken, buscaIndice: idx } : o;
+    })
+    .filter(Boolean) as PassHubOferta[];
 }
 
 const minutos = (dur: string) => {
@@ -374,8 +382,10 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   // mesclamos para o cliente ver todas as acomodações disponíveis.
   acumular(itens, mapa, primeiraPassada);
 
+  const buscaTokenH = await guardarBuscaCF("hotel", itens);
   return itens.map((h, i) => ({
     ...mapearHotel(h, i),
+    ...(buscaTokenH ? { buscaToken: buscaTokenH, buscaIndice: i } : {}),
     recomendado: recomendados.has(chaveHotel(h)),
   }));
 }
