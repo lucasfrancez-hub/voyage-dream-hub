@@ -71,20 +71,16 @@ export const Route = createFileRoute("/api/public/debug-seguro")({
           },
         };
         const out: Record<string, any> = {};
-        const bases: Record<string, any> = {
-          nested_viagem: { ...comum, Cidade: { Id: cidade }, Viagem: { De: de, Ate: ate } },
-          nested_periodo: { ...comum, Cidade: { Id: cidade }, Periodo: { De: de, Ate: ate } },
-          filtro: { ...comum, Cidade: { Id: cidade }, FiltroSeguro: { De: de, Ate: ate } },
-          datas_arr: { ...comum, Cidade: { Id: cidade }, Datas: [de, ate] },
-          br: { ...comum, Cidade: { Id: cidade }, De: "10/10/2026", Ate: "15/10/2026" },
-          pacote: { ...comum, PacoteId: 1, Cidade: { Id: cidade }, De: de, Ate: ate },
-          dtSlash: { ...comum, Cidade: { Id: cidade }, De: "2026/10/10", Ate: "2026/10/15" },
-          utc: { ...comum, Cidade: { Id: cidade }, De: `${de}T03:00:00.000Z`, Ate: `${ate}T03:00:00.000Z` },
+        const body = { ...comum, Cidade: { Id: cidade }, De: de, Ate: ate, Internacional: false };
+        const rotas: Record<string, string> = {
+          qs_de_ate: `/api/Seguro/busca?Pagina=1&ItensPorPagina=40&De=${de}&Ate=${ate}`,
+          qs_datas: `/api/Seguro/busca?Pagina=1&ItensPorPagina=40&DataInicio=${de}&DataFim=${ate}`,
+          qs_br: `/api/Seguro/busca?Pagina=1&ItensPorPagina=40&De=10/10/2026&Ate=15/10/2026`,
         };
-        for (const [nome, body] of Object.entries(bases)) {
-          const r = await chamarCompreFacil(rota, { base, method: "POST", body });
+        for (const [nome, rt] of Object.entries(rotas)) {
+          const r = await chamarCompreFacil(rt, { base, method: "POST", body });
           const d: any = r.dados;
-          out[nome] = { ok: r.ok, status: (r as any).status, msg: d?.mensagem, itens: (d?.Items ?? []).length, guid: d?.MetaData?.Guid ?? null };
+          out[nome] = { ok: r.ok, status: (r as any).status, msg: d?.mensagem, guid: d?.MetaData?.Guid ?? null, itens: (d?.Items ?? []).length };
         }
         return Response.json(out);
       },
