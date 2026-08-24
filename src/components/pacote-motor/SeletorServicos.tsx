@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { brl } from "@/lib/pacote-motor/mapear";
 import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
+import { GRUPOS_SERVICO, grupoServico } from "@/lib/pacote-motor/categorias";
 
 /** Adicionar serviços — mesmo padrão: filtros | resultados | resumo. */
 export function SeletorServicos({
@@ -110,7 +111,7 @@ export function SeletorServicos({
                     className={`chip${categoria === c ? " active" : ""}`}
                     onClick={() => setCategoria(c)}
                   >
-                    {c.length > 26 ? `${c.slice(0, 26)}…` : c} ({n})
+                    {c} ({n})
                   </span>
                 ))}
               </div>
@@ -131,7 +132,7 @@ export function SeletorServicos({
               <article key={s.id} className={`svc${sel ? " selected" : ""}`}>
                 <div className="svcmain">
                   <div className="svchead">
-                    <span className="svccat">{s.categoria}</span>
+                    <span className="svccat">{grupoServico(s)}</span>
                     {s.recomendado ? <span className="selo-rec">Recomendado</span> : null}
                   </div>
                   <h3>{s.titulo}</h3>
