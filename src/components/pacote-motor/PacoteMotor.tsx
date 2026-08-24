@@ -121,8 +121,11 @@ export function PacoteMotor({
 
   useEffect(() => {
     if (hoteis.length && !hotel) {
-      setHotel(hoteis[0]);
-      setQuartoId(hoteis[0].quartos[0]?.id ?? null);
+      // O pacote recomendado deve partir do primeiro hotel recomendado,
+      // não do mais barato, quando a operadora sinaliza recomendação.
+      const recomendado = hoteis.find((h) => h.recomendado) ?? hoteis[0];
+      setHotel(recomendado);
+      setQuartoId(recomendado?.quartos[0]?.id ?? null);
     }
   }, [hoteis, hotel]);
   useEffect(() => {
@@ -134,10 +137,16 @@ export function PacoteMotor({
   const total =
     (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0) + totalServicos;
 
+  // Base do pacote recomendado: usado no resumo para mostrar a diferença
+  // entre a montagem atual e a sugestão inicial da operadora.
+  const baseVooRecomendado = ofertas[0]?.precoTotal ?? 0;
+  const baseHotelRecomendado = hoteis[0]?.total ?? 0;
+  const baseTotalRecomendado = baseVooRecomendado + baseHotelRecomendado;
 
-  const baseVoo = ofertas[0]?.precoTotal ?? voo?.precoTotal ?? 0;
-  const baseHotel = hoteis[0]?.total ?? hotel?.total ?? 0;
-  const baseTotal = baseVoo + baseHotel;
+  // Base para os seletores: diferença em relação ao item atualmente selecionado,
+  // para que o cliente veja o impacto financeiro ao trocar de voo ou hotel.
+  const baseVoo = voo?.precoTotal ?? baseVooRecomendado;
+  const baseHotel = (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) || baseHotelRecomendado;
 
   const buscou = pacotes.isSuccess || voos.isSuccess;
   const carregando = pacotes.isPending || voos.isPending;
@@ -299,7 +308,7 @@ export function PacoteMotor({
       hotel={hotel}
       quarto={quarto}
       total={total}
-      diferenca={Number((total - baseTotal).toFixed(2))}
+      diferenca={Number((total - baseTotalRecomendado).toFixed(2))}
       moeda={hotel?.moeda ?? "BRL"}
       servicos={servicosSel.map((s) => ({ id: s.id, titulo: s.titulo, valor: s.valor }))}
       onServicos={() => setVista("servico")}
@@ -343,7 +352,7 @@ export function PacoteMotor({
                   valor={origem}
                   campo="saida"
                   placeholder="Cidade de saída"
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-sm font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
+                  className="h-12 rounded-xl border-border/40 bg-input px-4 text-sm font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
                   onChange={(nome, _id, iata) => {
                     setOrigem(nome);
                     setOrigemIata(iata ?? "");
@@ -359,7 +368,7 @@ export function PacoteMotor({
                   valor={destino}
                   campo="destino"
                   placeholder="Cidade do pacote"
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-sm font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
+                  className="h-12 rounded-xl border-border/40 bg-input px-4 text-sm font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
                   onChange={(nome, id, iata) => {
                     setDestino(nome);
                     setCidadeId(id);
@@ -378,6 +387,7 @@ export function PacoteMotor({
                 returnDate={volta}
                 allowOneWay={false}
                 labels={{ start: "Ida", end: "Volta" }}
+                className="bg-input"
                 onChange={(d, v) => {
                   setIda(d);
                   setVolta(v);
@@ -414,6 +424,7 @@ export function PacoteMotor({
               </Label>
               <RoomsPaxField
                 quartos={quartos}
+                className="h-12 rounded-xl border-border/60 bg-input px-3 text-sm font-semibold hover:border-primary/50"
                 onChange={(novos) =>
                   // Preserva as idades já informadas para cada quarto ao redistribuir.
                   setQuartos(
