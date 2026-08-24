@@ -32,8 +32,11 @@ export type PaxReserva = {
   telefone?: string | null;
   /** 0 = adulto, 1 = criança, 2 = bebê */
   tipo?: 0 | 1 | 2;
+  /** idade pesquisada (obrigatória para criança/bebê na operadora) */
+  idade?: number | null;
   quarto?: number;
 };
+
 
 export type EntradaReservaFRT = {
   aereo?: { token: string; indice: number } | null;
