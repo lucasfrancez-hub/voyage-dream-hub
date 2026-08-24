@@ -264,7 +264,7 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
 
 
   return (
-    <div className="mkt">
+    <div className="mkt inset">
       <div className="shell">
         <section className="search">
           <div className="search-grid">

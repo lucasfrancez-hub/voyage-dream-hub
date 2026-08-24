@@ -1512,3 +1512,6 @@ body:has([data-chat-root]),
 .mkt .hotel-gallery figure { margin: 0; }
 .mkt .hotel-gallery img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .mkt .results .state-box { grid-column: 1 / -1; }
+
+/* Motor de pacotes embutido: herda as margens do container da página. */
+.mkt.inset .shell {padding:0}
