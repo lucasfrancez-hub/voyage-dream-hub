@@ -50,6 +50,76 @@ const dias = (de: string, ate: string) => {
   return Math.max(1, Math.round((b - a) / 86_400_000));
 };
 
+/** URL absoluta de imagem/logo vinda da operadora (aceita caminho relativo). */
+function urlImagem(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  if (t.startsWith("//")) return `https:${t}`;
+  if (t.startsWith("/")) return `https://www.frt.com.br${t}`;
+  return null;
+}
+
+/** Procura a logomarca da seguradora em qualquer campo plausível do item. */
+function logoSeguradora(s: any): string | null {
+  const candidatos = [
+    s?.UrlLogo, s?.Logo, s?.LogoUrl, s?.LogoFornecedor, s?.UrlLogoFornecedor,
+    s?.ImagemFornecedor, s?.UrlImagemFornecedor, s?.Imagem, s?.UrlImagem,
+    s?.Seguradora?.Logo, s?.Seguradora?.UrlLogo, s?.Fornecedor?.Logo, s?.Fornecedor?.UrlLogo,
+  ];
+  for (const c of candidatos) {
+    const u = urlImagem(c);
+    if (u) return u;
+  }
+  // varredura genérica: qualquer chave com "logo"/"imagem" que aponte para arquivo
+  for (const [k, v] of Object.entries(s ?? {})) {
+    if (!/logo|imagem|image|icone/i.test(k)) continue;
+    const u = urlImagem(v);
+    if (u && /\.(png|jpe?g|svg|webp)/i.test(u)) return u;
+  }
+  return null;
+}
+
+/** Normaliza as coberturas detalhadas do plano (nome + valor coberto). */
+function coberturasDoPlano(s: any): { nome: string; valor: string | null }[] {
+  const fontes = [
+    s?.Coberturas, s?.ListaCoberturas, s?.ItensCobertura, s?.Beneficios,
+    s?.Detalhes, s?.DetalhesCobertura, s?.Servicos, s?.Garantias,
+  ];
+  const saida: { nome: string; valor: string | null }[] = [];
+  const vistos = new Set<string>();
+  for (const fonte of fontes) {
+    if (!Array.isArray(fonte)) continue;
+    for (const c of fonte) {
+      if (typeof c === "string") {
+        const t = texto(c);
+        if (t && !vistos.has(t)) { vistos.add(t); saida.push({ nome: t, valor: null }); }
+        continue;
+      }
+      const nome =
+        texto(c?.Nome) ?? texto(c?.Titulo) ?? texto(c?.Descricao) ??
+        texto(c?.NomeCobertura) ?? texto(c?.Cobertura);
+      if (!nome) continue;
+      const bruto =
+        c?.ValorCobertura ?? c?.Valor ?? c?.ValorFormatado ?? c?.Limite ?? c?.LimiteCobertura ?? c?.Texto;
+      let valor: string | null = null;
+      if (typeof bruto === "number" && Number.isFinite(bruto) && bruto > 0) {
+        const moeda = texto(c?.Moeda) ?? texto(s?.Moeda) ?? "";
+        valor = `${moeda ? `${moeda} ` : ""}${bruto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`.trim();
+      } else {
+        valor = texto(bruto);
+      }
+      const chave = `${nome}|${valor ?? ""}`;
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      saida.push({ nome, valor });
+    }
+  }
+  return saida.slice(0, 40);
+}
+
+
 export async function buscarSegurosCF(p: {
   cidadeId: number;
   data: string;
