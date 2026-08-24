@@ -30,7 +30,7 @@ import { buscarAereoCFPublic, buscarHospedagemCFPublic } from "@/lib/comprefacil
 import { criarPacoteMotorCheckout } from "@/lib/pacote-motor/checkout.functions";
 import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import type { PassHubOferta } from "@/lib/passhub/types";
-import type { PacotePreset } from "@/lib/pacote-motor/preset";
+import { encodeQuartos, type PacotePreset } from "@/lib/pacote-motor/preset";
 import { ResumoDock } from "./ResumoDock";
 
 type Vista = "overview" | "voo" | "hotel" | "servico";
@@ -198,7 +198,31 @@ export function PacoteMotor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** No widget (WordPress) a busca de pacote abre o site VIA AIR fora do iframe. */
+  function abrirNoSite() {
+    const p = new URLSearchParams();
+    p.set("m", "combo");
+    if (origemIata) p.set("o", origemIata);
+    if (destinoIata) p.set("d", destinoIata);
+    if (origem) p.set("pon", origem);
+    if (destino) p.set("pdn", destino);
+    if (cidadeId) p.set("cid", String(cidadeId));
+    if (ida) p.set("ida", ida);
+    if (volta) p.set("volta", volta);
+    p.set("q", encodeQuartos(quartos));
+    const url = `https://pedidos.viaair.tur.br/voar?${p.toString()}`;
+    try {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      window.open(url, "_top");
+    }
+  }
+
   function pesquisar() {
+    if (embed) {
+      abrirNoSite();
+      return;
+    }
     setHotel(null);
     setVoo(null);
     setQuartoId(null);
