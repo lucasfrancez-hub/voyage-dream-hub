@@ -12,6 +12,7 @@ import { CardVooSelecionado } from "@/components/pacote-motor/CardVooSelecionado
 import { ResumoPacote } from "@/components/pacote-motor/ResumoPacote";
 import { SeletorVoo } from "@/components/pacote-motor/SeletorVoo";
 import { SeletorHospedagem } from "@/components/pacote-motor/SeletorHospedagem";
+import { SeletorServicos } from "@/components/pacote-motor/SeletorServicos";
 import {
   ocupacaoPadrao,
   plural,
@@ -20,12 +21,14 @@ import {
   type OcupacaoQuarto,
 } from "@/lib/pacote-motor/mapear";
 import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.functions";
+import { buscarServicosCF, buscarServicosCFPublic } from "@/lib/comprefacil/servicos.functions";
 import { buscarAereoCFPublic, buscarHospedagemCFPublic } from "@/lib/comprefacil/publico.functions";
 import { criarPacoteMotorCheckout } from "@/lib/pacote-motor/checkout.functions";
+import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import type { PassHubOferta } from "@/lib/passhub/types";
 import type { PacotePreset } from "@/lib/pacote-motor/preset";
 
-type Vista = "overview" | "voo" | "hotel";
+type Vista = "overview" | "voo" | "hotel" | "servico";
 
 /**
  * Motor de Pacotes VIA AIR — padrão visual aprovado.
@@ -39,6 +42,8 @@ export function PacoteMotor({
   const buscarHoteis = useServerFn(publico ? buscarHospedagemCFPublic : buscarHospedagemCF);
   const buscarVoos = useServerFn(publico ? buscarAereoCFPublic : buscarAereoCF);
   const criarCheckout = useServerFn(criarPacoteMotorCheckout);
+  const buscarServicos = useServerFn(publico ? buscarServicosCFPublic : buscarServicosCF);
+
 
 
   const [origem, setOrigem] = useState(preset?.origem ?? "");
@@ -56,6 +61,7 @@ export function PacoteMotor({
   const [hotel, setHotel] = useState<HotelPacote | null>(null);
   const [quartoId, setQuartoId] = useState<string | null>(null);
   const [voo, setVoo] = useState<PassHubOferta | null>(null);
+  const [servicosSel, setServicosSel] = useState<ServicoDisponivel[]>([]);
 
   const pax = somaOcupacao(quartos);
 
@@ -87,10 +93,25 @@ export function PacoteMotor({
       }),
   });
 
+  /** Serviços do destino pesquisado (transfers, passeios, proteção). */
+  const servicos = useMutation({
+    mutationFn: (_v: void) =>
+      buscarServicos({
+        data: {
+          cidadeId: cidadeId!,
+          data: ida,
+          adultos: pax.adultos,
+          idades: quartos.flatMap((q) => q.idades),
+        },
+      }),
+  });
+
   const hoteis: HotelPacote[] = ((pacotes.data as any)?.hoteis ?? []) as HotelPacote[];
   const ofertas: PassHubOferta[] = ((voos.data as any)?.ofertas ?? []) as PassHubOferta[];
+  const listaServicos: ServicoDisponivel[] = ((servicos.data as any)?.servicos ?? []) as ServicoDisponivel[];
   const erroVoos = (voos.data as any)?.ok === false ? (voos.data as any).erro : null;
   const erroHoteis = (pacotes.data as any)?.ok === false ? (pacotes.data as any).erro : null;
+  const erroServicos = (servicos.data as any)?.ok === false ? (servicos.data as any).erro : null;
 
   useEffect(() => {
     if (hoteis.length && !hotel) {
@@ -103,7 +124,10 @@ export function PacoteMotor({
   }, [ofertas, voo]);
 
   const quarto = hotel?.quartos.find((q) => q.id === quartoId) ?? hotel?.quartos[0] ?? null;
-  const total = (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0);
+  const totalServicos = servicosSel.reduce((s, x) => s + (x.valor ?? 0), 0);
+  const total =
+    (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0) + totalServicos;
+
 
   const baseVoo = ofertas[0]?.precoTotal ?? voo?.precoTotal ?? 0;
   const baseHotel = hoteis[0]?.total ?? hotel?.total ?? 0;
@@ -148,7 +172,10 @@ export function PacoteMotor({
   /** Preset vindo da URL (/voar?m=combo&...): já dispara a busca ao abrir. */
   useEffect(() => {
     if (!preset) return;
-    if (preset.cidadeId && preset.ida) pacotes.mutate();
+    if (preset.cidadeId && preset.ida) {
+      pacotes.mutate();
+      servicos.mutate();
+    }
     if (preset.origemIata && preset.destinoIata && preset.ida) voos.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -157,16 +184,28 @@ export function PacoteMotor({
     setHotel(null);
     setVoo(null);
     setQuartoId(null);
+    setServicosSel([]);
     setVista("overview");
-    if (cidadeId && ida) pacotes.mutate();
+    if (cidadeId && ida) {
+      pacotes.mutate();
+      servicos.mutate();
+    }
     if (origemIata && destinoIata && ida) voos.mutate();
   }
 
-  const totalComVoo = (o: PassHubOferta) => (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + o.precoTotal;
+  const totalComVoo = (o: PassHubOferta) =>
+    (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + o.precoTotal + totalServicos;
   const totalComHotel = (h: HotelPacote, qId: string | null) => {
     const q = h.quartos.find((x) => x.id === qId) ?? h.quartos[0] ?? null;
-    return h.total + (q?.diferenca ?? 0) + (voo?.precoTotal ?? 0);
+    return h.total + (q?.diferenca ?? 0) + (voo?.precoTotal ?? 0) + totalServicos;
   };
+
+  function alternarServico(s: ServicoDisponivel) {
+    setServicosSel((atual) =>
+      atual.some((x) => x.id === s.id) ? atual.filter((x) => x.id !== s.id) : [...atual, s],
+    );
+  }
+
 
   /** Gera o link de pagamento (mesmo checkout dos pacotes prontos). */
   const checkout = useMutation({
@@ -229,6 +268,7 @@ export function PacoteMotor({
           : []),
         ...(idaVoo ? [`Aéreo ida: ${idaVoo.origem} → ${idaVoo.destino} • ${idaVoo.companhia}`] : []),
         ...(voltaVoo ? [`Aéreo volta: ${voltaVoo.origem} → ${voltaVoo.destino} • ${voltaVoo.companhia}`] : []),
+        ...servicosSel.map((s) => `${s.categoria}: ${s.titulo}`),
       ],
       flights: [
         ...(idaVoo ? [passhubToQuoteFlight(idaVoo, voltaVoo ? "OUTBOUND" : null, total)] : []),
@@ -255,6 +295,8 @@ export function PacoteMotor({
       total={total}
       diferenca={Number((total - baseTotal).toFixed(2))}
       moeda={hotel?.moeda ?? "BRL"}
+      servicos={servicosSel.map((s) => ({ id: s.id, titulo: s.titulo, valor: s.valor }))}
+      onServicos={() => setVista("servico")}
       acao={
         <div style={{ display: "grid", gap: 8 }}>
           <button
@@ -414,6 +456,9 @@ export function PacoteMotor({
           <button type="button" className={`tab${vista === "hotel" ? " active" : ""}`} onClick={() => setVista("hotel")}>
             Alterar hospedagem
           </button>
+          <button type="button" className={`tab${vista === "servico" ? " active" : ""}`} onClick={() => setVista("servico")}>
+            Adicionar serviços
+          </button>
         </div>
 
         )}
@@ -450,6 +495,27 @@ export function PacoteMotor({
                       carregando={pacotes.isPending}
                       onAlterar={() => setVista("hotel")}
                     />
+                  </div>
+
+                  {/* Bloco resumido de serviços adicionais (catálogo fica na aba própria). */}
+                  <div className={`svcbox${servicosSel.length ? " on" : ""}`}>
+                    <div className="svcbox-head">
+                      <b>Serviços adicionais</b>
+                      <span className={servicosSel.length ? "svcbox-on" : "svcbox-off"}>
+                        {servicosSel.length
+                          ? plural(servicosSel.length, "serviço incluído", "serviços incluídos")
+                          : "Não incluso"}
+                      </span>
+                    </div>
+                    <p>
+                      {servicosSel.length
+                        ? servicosSel.slice(0, 3).map((s) => s.titulo).join(" · ") +
+                          (servicosSel.length > 3 ? ` +${servicosSel.length - 3}` : "")
+                        : "Transfers, passeios e proteção são opcionais e podem ser incluídos no seu pacote."}
+                    </p>
+                    <button type="button" className="ghost" onClick={() => setVista("servico")}>
+                      {servicosSel.length ? "Alterar serviços" : "Ver mais serviços"}
+                    </button>
                   </div>
                 </div>
               {resumo}
@@ -488,6 +554,17 @@ export function PacoteMotor({
               setQuartoId(q);
               setVista("overview");
             }}
+            resumo={resumo}
+          />
+        )}
+
+        {buscou && vista === "servico" && (
+          <SeletorServicos
+            servicos={listaServicos}
+            carregando={servicos.isPending}
+            erro={erroServicos}
+            selecionados={servicosSel.map((s) => s.id)}
+            onAlternar={alternarServico}
             resumo={resumo}
           />
         )}
