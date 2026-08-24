@@ -54,26 +54,47 @@ export const listarPacotesCompreFacil = createServerFn({ method: "POST" })
 
 export const listarServicosCompreFacil = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { busca?: string; tipoId?: number | null; pagina?: number; somenteAtivos?: boolean }) => input)
+  .inputValidator(
+    (input: {
+      busca?: string;
+      tipoId?: number | null;
+      pagina?: number;
+      somenteAtivos?: boolean;
+      cidadeId?: number | null;
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
     await exigirAdmin(context);
     const pagina = Math.max(1, data.pagina ?? 1);
-    let q = context.supabase
-      .from("comprefacil_servicos")
-      .select("id, externo_id, titulo, tipo, tipo_id, fornecedor, combo, destaque, ativo, internacional", {
-        count: "exact",
-      })
-      .order("titulo");
-    if (data.somenteAtivos !== false) q = q.eq("ativo", true);
-    if (data.tipoId) q = q.eq("tipo_id", data.tipoId);
-    if (data.busca?.trim()) {
-      const b = `%${data.busca.trim()}%`;
-      q = q.or(`titulo.ilike.${b},fornecedor.ilike.${b}`);
+    const colunas =
+      "id, externo_id, titulo, descricao, tipo, tipo_id, fornecedor, fornecedor_cidade_id, combo, destaque, ativo, internacional";
+    const montar = (comCidade: boolean) => {
+      let q = context.supabase.from("comprefacil_servicos").select(colunas, { count: "exact" }).order("titulo");
+      if (data.somenteAtivos !== false) q = q.eq("ativo", true);
+      if (data.tipoId) q = q.eq("tipo_id", data.tipoId);
+      if (comCidade && data.cidadeId) q = q.eq("fornecedor_cidade_id", data.cidadeId);
+      if (!comCidade && data.busca?.trim()) {
+        const b = `%${data.busca.trim()}%`;
+        q = q.or(`titulo.ilike.${b},fornecedor.ilike.${b}`);
+      }
+      return q.range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
+    };
+
+    // Preferência: serviços da cidade de destino (mesma base da operadora);
+    // se não houver nada cadastrado para a cidade, cai na busca textual.
+    if (data.cidadeId) {
+      const { data: porCidade, count, error } = await montar(true);
+      if (error) throw new Error(error.message);
+      if ((porCidade as any[])?.length) {
+        return { itens: (porCidade as any[]) ?? [], total: count ?? 0, pagina, porPagina: POR_PAGINA };
+      }
     }
-    const { data: itens, count, error } = await q.range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
+
+    const { data: itens, count, error } = await montar(false);
     if (error) throw new Error(error.message);
     return { itens: (itens as any[]) ?? [], total: count ?? 0, pagina, porPagina: POR_PAGINA };
   });
+
 
 export const detalharPacoteCompreFacil = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

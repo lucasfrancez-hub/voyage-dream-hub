@@ -15,6 +15,18 @@ import { listarServicosCompreFacil } from "@/lib/comprefacil/comprefacil.functio
 import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.functions";
 import type { PassHubOferta } from "@/lib/passhub/types";
 
+/** Remove HTML/entidades da descrição vinda da operadora. */
+function textoSimples(v: unknown): string {
+  if (!v) return "";
+  return String(v)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 type Vista = "overview" | "voo" | "hotel";
 
 /** Motor de Pacotes VIA AIR — pacote recomendado + troca de aéreo e hospedagem. */
@@ -82,9 +94,10 @@ export function PacoteMotor() {
   }, [ofertas, voo]);
 
   const detalhe = useQuery({
-    queryKey: ["cf", "servicos-motor", destino],
-    queryFn: () => listarServicos({ data: { busca: destino, somenteAtivos: true } }),
-    enabled: !!destino.trim() && (pacotes.isSuccess || voos.isSuccess),
+    queryKey: ["cf", "servicos-motor", destino, cidadeId],
+    queryFn: () =>
+      listarServicos({ data: { busca: destino, cidadeId: cidadeId ?? null, somenteAtivos: true } }),
+    enabled: (!!destino.trim() || !!cidadeId) && (pacotes.isSuccess || voos.isSuccess),
     staleTime: 5 * 60_000,
   });
 
@@ -95,7 +108,7 @@ export function PacoteMotor() {
         id: String(s.id),
         titulo: s.titulo ?? "Serviço",
         tipo: s.tipo ?? null,
-        descricao: s.fornecedor ?? null,
+        descricao: textoSimples(s.descricao) || s.fornecedor || null,
         valor: null,
       })) as ServicoPacote[],
     }),
@@ -108,8 +121,10 @@ export function PacoteMotor() {
 
   const servicos: ServicoPacote[] = info?.servicos ?? [];
   const quarto = hotelCompleto?.quartos.find((q) => q.id === quartoId) ?? null;
-  const servicosTotal = servicos.filter((s) => servicosSel.includes(s.id)).reduce((a, s) => a + (s.valor ?? 0), 0);
+  const servicosEscolhidos = servicos.filter((s) => servicosSel.includes(s.id));
+  const servicosTotal = servicosEscolhidos.reduce((a, s) => a + (s.valor ?? 0), 0);
   const total = (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0) + servicosTotal;
+
   const baseVoo = ofertas[0]?.precoTotal ?? voo?.precoTotal ?? 0;
   const baseHotel = hoteis[0]?.total ?? hotel?.total ?? 0;
 
@@ -141,7 +156,18 @@ export function PacoteMotor() {
         { rotulo: "Aéreo", valor: voo ? brl(voo.precoTotal) : "Não selecionado" },
         { rotulo: "Hospedagem", valor: hotel ? brl(hotel.total, hotel.moeda) : "Não selecionada" },
         { rotulo: "Acomodação", valor: quarto?.nome ?? "Conforme pacote" },
-        { rotulo: "Serviços", valor: servicosTotal ? brl(servicosTotal) : "Incluídos no pacote" },
+        {
+          rotulo: "Serviços",
+          valor: servicosEscolhidos.length
+            ? servicosTotal
+              ? `${servicosEscolhidos.length} adicionado(s) · ${brl(servicosTotal)}`
+              : `${servicosEscolhidos.length} adicionado(s) · sob consulta`
+            : "Nenhum adicionado",
+        },
+        ...servicosEscolhidos.map((s) => ({
+          rotulo: `· ${s.titulo}`,
+          valor: s.valor ? brl(s.valor) : "Sob consulta",
+        })),
       ]}
       total={total}
       moeda={hotel?.moeda ?? "BRL"}
@@ -340,17 +366,24 @@ export function PacoteMotor() {
 
                 {/* Serviços */}
                 <section className="rounded-2xl border border-border/60 bg-card p-4">
-                  <h3 className="mb-2 text-sm font-semibold">Serviços</h3>
-                  {servicos.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Sem serviços adicionais para este pacote.</p>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold">Serviços</h3>
+                    <span className="text-[10px] text-muted-foreground">
+                      Não entram no pacote até serem adicionados
+                    </span>
+                  </div>
+                  {detalhe.isPending ? (
+                    <p className="text-xs text-muted-foreground">Buscando serviços do destino…</p>
+                  ) : servicos.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sem serviços adicionais para este destino.</p>
                   ) : (
                     <div className="grid gap-2">
                       {servicos.map((s) => {
                         const marcado = servicosSel.includes(s.id);
                         return (
-                          <label
+                          <div
                             key={s.id}
-                            className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border px-3 py-2 ${marcado ? "border-brand-blue" : "border-border/60"}`}
+                            className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 ${marcado ? "border-brand-blue bg-brand-blue/5" : "border-border/60"}`}
                           >
                             <span>
                               <b className="text-xs">{s.titulo}</b>
@@ -360,23 +393,27 @@ export function PacoteMotor() {
                                 </span>
                               ) : null}
                             </span>
-                            <span className="flex items-center gap-2 text-[11px] font-semibold">
-                              {s.valor ? brl(s.valor) : "Incluído"}
-                              <input
-                                type="checkbox"
-                                checked={marcado}
-                                onChange={() =>
+                            <span className="flex shrink-0 items-center gap-2 text-[11px] font-semibold">
+                              {s.valor ? brl(s.valor) : "Sob consulta"}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={marcado ? "secondary" : "outline"}
+                                className="h-7 text-[11px]"
+                                onClick={() =>
                                   setServicosSel((v) => (marcado ? v.filter((x) => x !== s.id) : [...v, s.id]))
                                 }
-                                className="accent-[var(--brand-blue)]"
-                              />
+                              >
+                                {marcado ? "Remover" : "Adicionar"}
+                              </Button>
                             </span>
-                          </label>
+                          </div>
                         );
                       })}
                     </div>
                   )}
                 </section>
+
               </>
             )}
           </div>
