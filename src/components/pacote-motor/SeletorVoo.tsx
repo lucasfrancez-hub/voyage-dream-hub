@@ -145,6 +145,7 @@ export function SeletorVoo({
   onSelecionar: (o: PassHubOferta) => void;
   resumo: React.ReactNode;
 }) {
+  const parcelamento = useParcelamentoPacote();
   const [somenteBagagem, setSomenteBagagem] = useState(false);
   const [paradas, setParadas] = useState<Paradas>("todos");
   const [cias, setCias] = useState<string[]>([]);
