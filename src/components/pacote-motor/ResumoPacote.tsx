@@ -2,8 +2,9 @@ import { brl } from "@/lib/pacote-motor/mapear";
 
 export type LinhaResumo = { rotulo: string; valor: string };
 
-/** Resumo lateral do pacote — mesma estrutura nas três telas. */
+/** Resumo do pacote — bloco `.summary-card` do modelo aprovado. */
 export function ResumoPacote({
+  titulo = "Resumo do pacote",
   destino,
   periodo,
   pax,
@@ -14,6 +15,7 @@ export function ResumoPacote({
   rodape,
   acao,
 }: {
+  titulo?: string;
   destino: string;
   periodo: string;
   pax: string;
@@ -25,24 +27,22 @@ export function ResumoPacote({
   acao?: React.ReactNode;
 }) {
   return (
-    <aside className="rounded-2xl border border-border/60 bg-card p-5 shadow-lg lg:sticky lg:top-24">
-      <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Resumo do pacote</p>
-      <h3 className="mt-1 text-xl font-semibold">{destino}</h3>
-      <p className="mb-3 text-xs text-muted-foreground">
-        {[noites, pax, periodo].filter(Boolean).join(" · ")}
-      </p>
+    <aside className="summary-card">
+      <p className="mini">{titulo}</p>
+      <h3>{destino}</h3>
+      <p className="installment">{[noites, pax, periodo].filter(Boolean).join(" · ")}</p>
 
       {linhas.map((l) => (
-        <div key={l.rotulo} className="flex justify-between gap-3 border-t border-border/60 py-2.5 text-xs">
-          <span className="text-muted-foreground">{l.rotulo}</span>
-          <span className="text-right font-medium">{l.valor}</span>
+        <div key={l.rotulo} className="summary-row">
+          <span>{l.rotulo}</span>
+          <b>{l.valor}</b>
         </div>
       ))}
 
-      <div className="mt-3 rounded-xl bg-muted/50 p-3">
-        <small className="block text-[11px] text-muted-foreground">Valor total do pacote</small>
-        <strong className="text-2xl text-brand-blue">{brl(total, moeda)}</strong>
-        {rodape ? <p className="mt-0.5 text-[11px] text-muted-foreground">{rodape}</p> : null}
+      <div className="summary-total">
+        <small>Valor total do pacote</small>
+        <strong>{brl(total, moeda)}</strong>
+        {rodape ? <small>{rodape}</small> : null}
       </div>
 
       {acao}

@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarDays, Hotel, Loader2, Plane, Search, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Loader2, Search } from "lucide-react";
 import { CidadeAutocompleteCF } from "@/components/comprefacil/CidadeAutocompleteCF";
 import { ResumoPacote } from "@/components/pacote-motor/ResumoPacote";
 import { SeletorVoo } from "@/components/pacote-motor/SeletorVoo";
 import { SeletorHospedagem } from "@/components/pacote-motor/SeletorHospedagem";
-import { TimelineConexao } from "@/components/pacote-motor/TimelineConexao";
 import { brl, hora, resumoVoo, type HotelPacote, type ServicoPacote } from "@/lib/pacote-motor/mapear";
 import { listarServicosCompreFacil } from "@/lib/comprefacil/comprefacil.functions";
 import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.functions";
@@ -27,9 +23,11 @@ function textoSimples(v: unknown): string {
     .trim();
 }
 
+const dataBr = (d: string) => (d ? d.split("-").reverse().join("/") : "—");
+
 type Vista = "overview" | "voo" | "hotel";
 
-/** Motor de Pacotes VIA AIR — pacote recomendado + troca de aéreo e hospedagem. */
+/** Motor de Pacotes VIA AIR — modelo aprovado: visão geral, alterar voo, alterar hospedagem. */
 export function PacoteMotor() {
   const buscarHoteis = useServerFn(buscarHospedagemCF);
   const listarServicos = useServerFn(listarServicosCompreFacil);
@@ -56,36 +54,22 @@ export function PacoteMotor() {
   const pacotes = useMutation({
     mutationFn: (v: void) =>
       buscarHoteis({
-        data: {
-          cidadeId: cidadeId!,
-          checkin: ida,
-          checkout: volta || ida,
-          adultos,
-          criancas,
-        },
+        data: { cidadeId: cidadeId!, checkin: ida, checkout: volta || ida, adultos, criancas },
       }),
   });
 
   const voos = useMutation({
     mutationFn: (v: void) =>
       buscarVoos({
-        data: {
-          origem: origemIata,
-          destino: destinoIata,
-          ida,
-          volta: volta || null,
-          adultos,
-          criancas,
-        },
+        data: { origem: origemIata, destino: destinoIata, ida, volta: volta || null, adultos, criancas },
       }),
   });
 
   const hoteis: HotelPacote[] = ((pacotes.data as any)?.hoteis ?? []) as HotelPacote[];
-
   const ofertas: PassHubOferta[] = ((voos.data as any)?.ofertas ?? []) as PassHubOferta[];
   const erroVoos = (voos.data as any)?.ok === false ? (voos.data as any).erro : null;
 
-  // pacote recomendado = melhor preço de cada motor
+  // pacote recomendado = primeira opção devolvida por cada motor
   useEffect(() => {
     if (hoteis.length && !hotel) setHotel(hoteis[0]);
   }, [hoteis, hotel]);
@@ -101,26 +85,19 @@ export function PacoteMotor() {
     staleTime: 5 * 60_000,
   });
 
-  const info = useMemo(
-    () => ({
-      inclui: hotel?.regime ? [hotel.regime] : [],
-      servicos: (((detalhe.data as any)?.itens ?? []) as any[]).map((s) => ({
+  const servicos: ServicoPacote[] = useMemo(
+    () =>
+      (((detalhe.data as any)?.itens ?? []) as any[]).map((s) => ({
         id: String(s.id),
         titulo: s.titulo ?? "Serviço",
         tipo: s.tipo ?? null,
         descricao: textoSimples(s.descricao) || s.fornecedor || null,
         valor: null,
-      })) as ServicoPacote[],
-    }),
-    [detalhe.data, hotel],
+      })),
+    [detalhe.data],
   );
 
-  const hotelCompleto: HotelPacote | null = hotel;
-
-  const hoteisCompletos = hoteis;
-
-  const servicos: ServicoPacote[] = info?.servicos ?? [];
-  const quarto = hotelCompleto?.quartos.find((q) => q.id === quartoId) ?? null;
+  const quarto = hotel?.quartos.find((q) => q.id === quartoId) ?? null;
   const servicosEscolhidos = servicos.filter((s) => servicosSel.includes(s.id));
   const servicosTotal = servicosEscolhidos.reduce((a, s) => a + (s.valor ?? 0), 0);
   const total = (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0) + servicosTotal;
@@ -145,6 +122,7 @@ export function PacoteMotor() {
     if (origemIata && destinoIata && ida) voos.mutate();
   }
 
+  const rIda = voo ? resumoVoo(voo.ida) : null;
 
   const resumo = (
     <ResumoPacote
@@ -153,9 +131,9 @@ export function PacoteMotor() {
       pax={`${adultos} adulto(s)${criancas ? ` · ${criancas} criança(s)` : ""}`}
       noites={noites}
       linhas={[
-        { rotulo: "Aéreo", valor: voo ? brl(voo.precoTotal) : "Não selecionado" },
-        { rotulo: "Hospedagem", valor: hotel ? brl(hotel.total, hotel.moeda) : "Não selecionada" },
-        { rotulo: "Acomodação", valor: quarto?.nome ?? "Conforme pacote" },
+        { rotulo: "Voo", valor: voo ? `${rIda!.companhia} · ${rIda!.horarios}` : "Não selecionado" },
+        { rotulo: "Hotel", valor: hotel?.nome ?? "Não selecionado" },
+        { rotulo: "Quarto", valor: quarto?.nome ?? "Conforme pacote" },
         {
           rotulo: "Serviços",
           valor: servicosEscolhidos.length
@@ -176,50 +154,105 @@ export function PacoteMotor() {
   );
 
   return (
-    <div className="motor-navy rounded-3xl p-4 md:p-6">
-      {/* Barra de busca */}
-      <div className="mb-5 grid gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-lg lg:grid-cols-[1.2fr_1.2fr_.8fr_.8fr_.9fr_auto]">
-        <Campo icone={<Plane className="h-3.5 w-3.5" />} label="Origem">
-          <CidadeAutocompleteCF
-            valor={origem}
-            campo="saida"
-            placeholder="Cidade de saída"
-            onChange={(nome, _id, iata) => {
-              setOrigem(nome);
-              setOrigemIata(iata ?? "");
-            }}
-          />
-        </Campo>
-        <Campo icone={<Hotel className="h-3.5 w-3.5" />} label="Destino">
-          <CidadeAutocompleteCF
-            valor={destino}
-            campo="destino"
-            placeholder="Cidade do pacote"
-            onChange={(nome, id, iata) => {
-              setDestino(nome);
-              setCidadeId(id);
-              setDestinoIata(iata ?? "");
-            }}
-          />
-        </Campo>
-        <Campo icone={<CalendarDays className="h-3.5 w-3.5" />} label="Ida">
-          <Input type="date" value={ida} onChange={(e) => setIda(e.target.value)} />
-        </Campo>
-        <Campo icone={<CalendarDays className="h-3.5 w-3.5" />} label="Volta">
-          <Input type="date" value={volta} onChange={(e) => setVolta(e.target.value)} />
-        </Campo>
-        <Campo icone={<Users className="h-3.5 w-3.5" />} label="Passageiros">
-          <div className="flex gap-2">
-            <Input type="number" min={1} max={9} value={adultos} onChange={(e) => setAdultos(Number(e.target.value) || 1)} />
-            <Input type="number" min={0} max={8} value={criancas} onChange={(e) => setCriancas(Number(e.target.value) || 0)} />
+    <div className="mkt">
+      {/* Busca */}
+      <div className="searchbar">
+        <div className="search-fields">
+          <div className="field">
+            <label>Origem</label>
+            <CidadeAutocompleteCF
+              valor={origem}
+              campo="saida"
+              placeholder="Cidade de saída"
+              onChange={(nome, _id, iata) => {
+                setOrigem(nome);
+                setOrigemIata(iata ?? "");
+              }}
+            />
           </div>
-        </Campo>
-        <div className="flex items-end">
-          <Button className="h-10 w-full rounded-xl" onClick={pesquisar} disabled={pacotes.isPending || voos.isPending}>
-            {pacotes.isPending || voos.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            <span className="ml-2">Buscar</span>
-          </Button>
+          <div className="field">
+            <label>Destino</label>
+            <CidadeAutocompleteCF
+              valor={destino}
+              campo="destino"
+              placeholder="Cidade do pacote"
+              onChange={(nome, id, iata) => {
+                setDestino(nome);
+                setCidadeId(id);
+                setDestinoIata(iata ?? "");
+              }}
+            />
+          </div>
+          <div className="field">
+            <label>Ida</label>
+            <input type="date" value={ida} onChange={(e) => setIda(e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Volta</label>
+            <input type="date" value={volta} onChange={(e) => setVolta(e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Viajantes</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type="number"
+                min={1}
+                max={9}
+                value={adultos}
+                onChange={(e) => setAdultos(Number(e.target.value) || 1)}
+              />
+              <input
+                type="number"
+                min={0}
+                max={8}
+                value={criancas}
+                onChange={(e) => setCriancas(Number(e.target.value) || 0)}
+              />
+            </div>
+            <small>adultos · crianças</small>
+          </div>
+          <button
+            type="button"
+            className="search-action"
+            onClick={pesquisar}
+            disabled={pacotes.isPending || voos.isPending}
+          >
+            {pacotes.isPending || voos.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+            Pesquisar
+          </button>
         </div>
+      </div>
+
+      {/* Abas de tela (não é a linha de etapas) */}
+      <div className="screen-tabs">
+        <button
+          type="button"
+          className={`screen-tab${vista === "overview" ? " active" : ""}`}
+          onClick={() => setVista("overview")}
+        >
+          <b>Visão geral</b>
+          <span>Primeira tela já com hospedagem</span>
+        </button>
+        <button
+          type="button"
+          className={`screen-tab${vista === "voo" ? " active" : ""}`}
+          onClick={() => setVista("voo")}
+        >
+          <b>Alterar voo</b>
+          <span>Conexões e detalhes do aéreo</span>
+        </button>
+        <button
+          type="button"
+          className={`screen-tab${vista === "hotel" ? " active" : ""}`}
+          onClick={() => setVista("hotel")}
+        >
+          <b>Alterar hospedagem</b>
+          <span>Troca de hotel/quarto</span>
+        </button>
       </div>
 
       {vista === "voo" && (
@@ -233,14 +266,13 @@ export function PacoteMotor() {
             setVoo(o);
             setVista("overview");
           }}
-          onVoltar={() => setVista("overview")}
           resumo={resumo}
         />
       )}
 
       {vista === "hotel" && (
         <SeletorHospedagem
-          hoteis={hoteisCompletos}
+          hoteis={hoteis}
           carregando={pacotes.isPending}
           hotelSelecionadoId={hotel?.id ?? null}
           quartoSelecionadoId={quartoId}
@@ -250,189 +282,206 @@ export function PacoteMotor() {
             setQuartoId(q);
             setVista("overview");
           }}
-          onVoltar={() => setVista("overview")}
           resumo={resumo}
         />
       )}
 
       {vista === "overview" && (
-        <div className={buscou ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_310px]" : "grid gap-4"}>
-          <div className="space-y-3">
-            {!buscou && (
-              <p className="rounded-2xl border border-border/60 bg-card p-6 text-sm text-muted-foreground">
-                Informe origem, destino e datas para montar o pacote recomendado.
-              </p>
-            )}
-
-            {buscou && (
+        <div className="overview-layout">
+          <div className="overview-card">
+            {!buscou ? (
+              <p className="empty">Informe origem, destino e datas para montar o pacote recomendado.</p>
+            ) : (
               <>
-                <header className="rounded-2xl bg-white/5 p-4">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-brand-orange">Pacote recomendado</p>
-                  <h2 className="text-xl font-semibold text-white">{hotel?.nome ?? destino}</h2>
-                  <p className="text-xs text-white/70">
-                    {[hotel?.localizacao, noites, `${pagantes} passageiro(s)`].filter(Boolean).join(" · ")}
-                  </p>
-                </header>
+                <p className="eyebrow">Pacote recomendado</p>
+                <h2>{hotel?.nome ?? destino ?? "Pacote VIA AIR"}</h2>
 
-                {/* Voo atualmente selecionado */}
-                <section className="rounded-2xl border border-border/60 bg-card p-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold">Voo selecionado</h3>
-                    <Button size="sm" variant="outline" className="h-8 rounded-lg text-[11px]" onClick={() => setVista("voo")}>
-                      Alterar voo
-                    </Button>
-                  </div>
-                  {voos.isPending && (
-                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Consultando o motor aéreo…
-                    </p>
-                  )}
-                  {!voos.isPending && !voo && (
-                    <p className="text-xs text-muted-foreground">{erroVoos ?? "Nenhum voo selecionado para este trecho."}</p>
-                  )}
-                  {voo && (
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <b className="text-sm">{resumoVoo(voo.ida).companhia}</b>
-                          <p className="text-[11px] text-muted-foreground">
-                            {resumoVoo(voo.ida).rota} · {resumoVoo(voo.ida).horarios} · {resumoVoo(voo.ida).escalas} ·{" "}
-                            {resumoVoo(voo.ida).bagagem}
-                          </p>
-                          {voo.voltas.map((v) => (
-                            <p key={v.numeroVoo + v.partida} className="text-[11px] text-muted-foreground">
-                              {v.origem} → {v.destino} · {hora(v.partida)} → {hora(v.chegada)} ·{" "}
-                              {v.paradas === 0 ? "Direto" : `${v.paradas} conexão`}
-                            </p>
-                          ))}
-                        </div>
-                        <b className="text-sm text-brand-blue">{brl(voo.precoTotal)}</b>
-                      </div>
-                      {voo.ida.paradas > 0 && <TimelineConexao titulo="Detalhes da conexão · ida" voo={voo.ida} />}
+                <div className="overview-grid">
+                  {/* Voo selecionado */}
+                  <div className="resume-card">
+                    <div className="resume-head">
+                      <b>Voo selecionado</b>
+                      <button type="button" onClick={() => setVista("voo")}>
+                        Alterar voo
+                      </button>
                     </div>
-                  )}
-                </section>
-
-                {/* Hospedagem atualmente selecionada */}
-                <section className="rounded-2xl border border-border/60 bg-card p-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold">Hospedagem selecionada</h3>
-                    <Button size="sm" variant="outline" className="h-8 rounded-lg text-[11px]" onClick={() => setVista("hotel")}>
-                      Alterar hospedagem
-                    </Button>
-                  </div>
-                  {pacotes.isPending && (
-                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando pacotes na operadora…
-                    </p>
-                  )}
-                  {!pacotes.isPending && !hotel && (
-                    <p className="text-xs text-muted-foreground">Nenhum pacote encontrado para este destino e período.</p>
-                  )}
-                  {hotelCompleto && (
-                    <div className="grid gap-3 sm:grid-cols-[150px_1fr_auto]">
-                      <div className="h-[100px] overflow-hidden rounded-xl bg-muted">
-                        {hotelCompleto.fotos[0] ? (
-                          <img
-                            src={hotelCompleto.fotos[0]}
-                            alt={`Foto do hotel ${hotelCompleto.nome}`}
-                            loading="lazy"
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="grid h-full place-items-center text-muted-foreground">
-                            <Hotel className="h-5 w-5" />
+                    <div className="resume-body">
+                      {voos.isPending && <p style={{ fontSize: 12, color: "var(--muted)" }}>Consultando o motor aéreo…</p>}
+                      {!voos.isPending && !voo && (
+                        <p style={{ fontSize: 12, color: "var(--muted)" }}>
+                          {erroVoos ?? "Nenhum voo selecionado para este trecho."}
+                        </p>
+                      )}
+                      {voo && rIda && (
+                        <>
+                          <div className="quick-flight">
+                            <div className="time">
+                              <strong>{hora(voo.ida.partida)}</strong>
+                              <small>{voo.ida.origem}</small>
+                            </div>
+                            <div className="midline">
+                              <div className="bar" />
+                              <span>
+                                {rIda.escalas} · {rIda.duracao}
+                              </span>
+                            </div>
+                            <div className="time" style={{ textAlign: "right" }}>
+                              <strong>{hora(voo.ida.chegada)}</strong>
+                              <small>{voo.ida.destino}</small>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <div>
-                        <b className="text-sm">{hotelCompleto.nome}</b>
-                        <p className="text-[11px] text-muted-foreground">{hotelCompleto.localizacao ?? "—"}</p>
-                        <p className="text-[11px] text-muted-foreground">{quarto?.nome ?? "Acomodação conforme o pacote"}</p>
-                        {info?.inclui?.length ? (
-                          <ul className="mt-1.5 flex flex-wrap gap-1">
-                            {info.inclui.slice(0, 6).map((i) => (
-                              <li key={i} className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                                {i.length > 48 ? `${i.slice(0, 48)}…` : i}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </div>
-                      <b className="text-sm text-brand-blue">{brl(hotelCompleto.total, hotelCompleto.moeda)}</b>
-                    </div>
-                  )}
-                </section>
 
-                {/* Serviços */}
-                <section className="rounded-2xl border border-border/60 bg-card p-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold">Serviços</h3>
-                    <span className="text-[10px] text-muted-foreground">
+                          {voo.voltas.map((v) => (
+                            <div className="quick-flight" key={v.numeroVoo + v.partida}>
+                              <div className="time">
+                                <strong>{hora(v.partida)}</strong>
+                                <small>{v.origem}</small>
+                              </div>
+                              <div className="midline">
+                                <div className="bar" />
+                                <span>
+                                  {v.paradas === 0 ? "Direto" : `${v.paradas} conexão`} · {v.duracao}
+                                </span>
+                              </div>
+                              <div className="time" style={{ textAlign: "right" }}>
+                                <strong>{hora(v.chegada)}</strong>
+                                <small>{v.destino}</small>
+                              </div>
+                            </div>
+                          ))}
+
+                          <div className="resume-tags">
+                            <span>{rIda.companhia}</span>
+                            <span>{rIda.bagagem}</span>
+                            {(voo.ida.conexoes ?? []).map((c, i) => (
+                              <span key={`${c.aeroporto}-${i}`}>Conexão em {c.aeroporto}</span>
+                            ))}
+                            <span>{brl(voo.precoTotal)}</span>
+                          </div>
+
+                          <button type="button" className="outline-btn" onClick={() => setVista("voo")}>
+                            Ver detalhes da conexão
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Hospedagem selecionada */}
+                  <div className="resume-card">
+                    <div className="resume-head">
+                      <b>Hospedagem selecionada</b>
+                      <button type="button" onClick={() => setVista("hotel")}>
+                        Alterar hospedagem
+                      </button>
+                    </div>
+                    <div className="resume-body">
+                      {pacotes.isPending && (
+                        <p style={{ fontSize: 12, color: "var(--muted)" }}>Buscando pacotes na operadora…</p>
+                      )}
+                      {!pacotes.isPending && !hotel && (
+                        <p style={{ fontSize: 12, color: "var(--muted)" }}>
+                          Nenhum pacote encontrado para este destino e período.
+                        </p>
+                      )}
+                      {hotel && (
+                        <>
+                          <div className="hotel-snap">
+                            {hotel.fotos[0] ? (
+                              <img src={hotel.fotos[0]} alt={`Foto do hotel ${hotel.nome}`} loading="lazy" />
+                            ) : (
+                              <div className="noimg" style={{ width: 84, height: 84, borderRadius: 12 }}>
+                                —
+                              </div>
+                            )}
+                            <div>
+                              {hotel.categoria ? <p className="stars">{"★".repeat(hotel.categoria)}</p> : null}
+                              <h4>{hotel.nome}</h4>
+                              <p>
+                                {[
+                                  hotel.localizacao,
+                                  quarto?.nome ?? "Acomodação conforme o pacote",
+                                  quarto?.regime ?? hotel.regime,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="resume-tags">
+                            {hotel.avaliacao ? <span>{hotel.avaliacao} / 5</span> : null}
+                            {hotel.beneficios.slice(0, 3).map((b) => (
+                              <span key={b}>{b.length > 30 ? `${b.slice(0, 30)}…` : b}</span>
+                            ))}
+                            <span>{brl(hotel.total, hotel.moeda)}</span>
+                          </div>
+
+                          <button type="button" className="outline-btn" onClick={() => setVista("hotel")}>
+                            Trocar hotel ou quarto
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Serviços — só entram no pacote quando adicionados */}
+                <div className="servicos">
+                  <div className="resume-head" style={{ borderRadius: 12, border: "1px solid var(--line)" }}>
+                    <b>Serviços</b>
+                    <span style={{ fontSize: 10, color: "var(--muted)" }}>
                       Não entram no pacote até serem adicionados
                     </span>
                   </div>
-                  {detalhe.isPending ? (
-                    <p className="text-xs text-muted-foreground">Buscando serviços do destino…</p>
-                  ) : servicos.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Sem serviços adicionais para este destino.</p>
-                  ) : (
-                    <div className="grid gap-2">
-                      {servicos.map((s) => {
+                  <div style={{ marginTop: 10 }}>
+                    {detalhe.isPending ? (
+                      <p style={{ fontSize: 12, color: "var(--muted)" }}>Buscando serviços do destino…</p>
+                    ) : servicos.length === 0 ? (
+                      <p style={{ fontSize: 12, color: "var(--muted)" }}>Sem serviços adicionais para este destino.</p>
+                    ) : (
+                      servicos.map((s) => {
                         const marcado = servicosSel.includes(s.id);
                         return (
-                          <div
-                            key={s.id}
-                            className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 ${marcado ? "border-brand-blue bg-brand-blue/5" : "border-border/60"}`}
-                          >
+                          <div key={s.id} className={`servico-row${marcado ? " on" : ""}`}>
                             <span>
-                              <b className="text-xs">{s.titulo}</b>
+                              <b>{s.titulo}</b>
                               {s.descricao ? (
-                                <span className="block text-[10px] text-muted-foreground">
+                                <span className="desc">
                                   {s.descricao.length > 120 ? `${s.descricao.slice(0, 120)}…` : s.descricao}
                                 </span>
                               ) : null}
                             </span>
-                            <span className="flex shrink-0 items-center gap-2 text-[11px] font-semibold">
+                            <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
                               {s.valor ? brl(s.valor) : "Sob consulta"}
-                              <Button
+                              <button
                                 type="button"
-                                size="sm"
-                                variant={marcado ? "secondary" : "outline"}
-                                className="h-7 text-[11px]"
                                 onClick={() =>
                                   setServicosSel((v) => (marcado ? v.filter((x) => x !== s.id) : [...v, s.id]))
                                 }
                               >
                                 {marcado ? "Remover" : "Adicionar"}
-                              </Button>
+                              </button>
                             </span>
                           </div>
                         );
-                      })}
-                    </div>
-                  )}
-                </section>
+                      })
+                    )}
+                  </div>
+                </div>
 
+                <p className="overview-note">
+                  Período {dataBr(ida)}
+                  {volta ? ` a ${dataBr(volta)}` : ""} · {pagantes} passageiro(s). Voo e hospedagem vêm dos motores
+                  reais; alterar um não altera o outro.
+                </p>
               </>
             )}
           </div>
 
-          {buscou ? resumo : null}
+          {resumo}
         </div>
       )}
-    </div>
-  );
-}
-
-function Campo({ icone, label, children }: { icone: React.ReactNode; label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <Label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-        {icone}
-        {label}
-      </Label>
-      {children}
     </div>
   );
 }
