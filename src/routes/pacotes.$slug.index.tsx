@@ -844,6 +844,26 @@ function PackageDetails() {
               </div>
             ) : null}
 
+            {!isPerUnit ? (
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                Este pacote foi montado para{" "}
+                <span className="font-semibold text-foreground">
+                  {baseOccupancy === 1 ? "1 adulto" : `${baseOccupancy} adultos`}
+                </span>
+                . Precisa de outra quantidade?{" "}
+                <a
+                  href={customQuoteWhatsappUrl(pkg.title)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-brand-orange hover:underline"
+                >
+                  Fale no WhatsApp
+                </a>
+                .
+              </p>
+            ) : null}
+
+
             <dl className="mt-6 space-y-3 text-sm">
               <Row label="Destino" value={pkg.destination} />
               {isTicket ? (
