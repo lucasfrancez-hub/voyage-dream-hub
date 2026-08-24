@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateRange } from "@/lib/format";
-import { whatsappUrl } from "@/lib/checkout-config";
+import { whatsappUrl, customQuoteWhatsappUrl } from "@/lib/checkout-config";
 
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
@@ -737,9 +737,30 @@ function PacotesList() {
                   <div className="text-[11px] text-muted-foreground">
                     para {p.base_occupancy === 1 ? "1 pessoa" : `${p.base_occupancy ?? 2} pessoas`}
                   </div>
+                  <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+                    Este pacote foi montado para{" "}
+                    <span className="font-semibold text-foreground">
+                      {(p.base_occupancy ?? 2) === 1 ? "1 adulto" : `${p.base_occupancy ?? 2} adultos`}
+                    </span>
+                    . Precisa de outra quantidade?{" "}
+                    <span
+                      role="link"
+                      tabIndex={0}
+                      className="font-semibold text-brand-orange hover:underline cursor-pointer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(customQuoteWhatsappUrl(p.title), "_blank", "noopener");
+                      }}
+                    >
+                      Fale no WhatsApp
+                    </span>
+                    .
+                  </p>
                   <div className="mt-2 text-[10px] text-muted-foreground text-center">
                     Sujeito à disponibilidade.
                   </div>
+
                 </div>
               </div>
             </Link>
