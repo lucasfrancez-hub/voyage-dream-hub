@@ -1715,6 +1715,21 @@ body:has([data-chat-root]),
 .mkt .primary:hover {background:#ff7a2e;transform:translateY(-2px)}
 .mkt .primary:active {transform:none}
 
+/* Botão "Adicionar ao pacote" (serviços/seguro) — mesmo padrão aprovado do .primary */
+.svc-aside-btn {margin-top:12px;padding:16px;border-radius:14px;font-size:11px;font-weight:1000;text-transform:uppercase;letter-spacing:.16em;color:#fff;background:#F26B1F;box-shadow:0 4px 20px -5px rgba(242,107,31,.55);transition:.18s}
+.svc-aside-btn:hover {background:#ff7a2e;filter:none;transform:translateY(-2px)}
+.svc-aside-btn:active {transform:none}
+.svc-aside-btn.ghost {background:transparent;box-shadow:none;border:1px solid rgba(245,155,69,.5);color:#ffb367}
+.svc-aside-btn.ghost:hover {background:rgba(245,155,69,.14)}
+
+/* Logo da seguradora e coberturas detalhadas */
+.mkt .svclogo {height:26px;width:auto;max-width:110px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,.9);padding:3px 6px}
+.svc-hero-logo {height:34px;max-width:150px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,.92);padding:4px 8px;margin-bottom:8px}
+.svc-cob {list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.svc-cob li {display:flex;justify-content:space-between;gap:12px;font-size:11.5px;line-height:1.4;color:#cfe0ec;border-bottom:1px dashed rgba(255,255,255,.10);padding-bottom:6px}
+.svc-cob li b {color:#fff;font-weight:800;white-space:nowrap}
+
+
 /* ===== Modal "Sobre o hotel" — direção "Slate refinado" ===== */
 .mkt-modal {z-index:1200;padding:clamp(12px,3vh,32px)}
 .mkt-modal-card {width:min(1024px,94vw);max-height:min(90vh,900px);height:auto;overflow:hidden;display:flex;flex-direction:column;border-radius:20px;background:#0B1E26;border-color:rgba(255,255,255,.1)}
