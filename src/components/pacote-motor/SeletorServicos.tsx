@@ -64,12 +64,24 @@ export function SeletorServicos({
               onClick={() => {
                 setCategoria("todos");
                 setBusca("");
+                setOrdem("preco");
               }}
             >
               Limpar
             </button>
           </div>
           <div className="filter-body">
+            <div className="fb">
+              <span className="flabel">Ordenar por</span>
+              <select
+                className="fselect"
+                value={ordem}
+                onChange={(e) => setOrdem(e.target.value as "preco" | "precoDesc")}
+              >
+                <option value="preco">Menor preço</option>
+                <option value="precoDesc">Maior preço</option>
+              </select>
+            </div>
             <div className="fb">
               <span className="flabel">Buscar</span>
               <input
