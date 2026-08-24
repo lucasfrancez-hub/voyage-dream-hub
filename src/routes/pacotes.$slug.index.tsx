@@ -29,6 +29,7 @@ import {
   ChevronRight,
   ArrowRight,
   Star,
+  CreditCard,
 
   Eye,
   Coffee,
