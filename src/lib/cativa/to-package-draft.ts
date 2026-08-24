@@ -119,7 +119,21 @@ const DESTINO_CANONICO: Record<string, string> = {
   "gramado": "Gramado", "foz do iguacu": "Foz do Iguaçu", "sao paulo": "São Paulo",
   "rio de janeiro": "Rio de Janeiro", "nova york": "Nova York", "new york": "Nova York",
   "miami": "Miami", "aruba": "Aruba", "curacao": "Curaçao", "montevideu": "Montevidéu",
+  "aracaju": "Aracaju", "joao pessoa": "João Pessoa", "sao luis": "São Luís",
+  "jericoacoara": "Jericoacoara", "arraial d ajuda": "Arraial d'Ajuda",
+  "morro de sao paulo": "Morro de São Paulo", "ilheus": "Ilhéus", "vitoria": "Vitória",
+  "balneario camboriu": "Balneário Camboriú", "florianopolis": "Florianópolis",
+  "campos do jordao": "Campos do Jordão", "caldas novas": "Caldas Novas",
+  "bonito": "Bonito", "brasilia": "Brasília", "belem": "Belém", "manaus": "Manaus",
+  "curitiba": "Curitiba", "belo horizonte": "Belo Horizonte", "cabo frio": "Cabo Frio",
+  "buzios": "Búzios", "angra dos reis": "Angra dos Reis", "paraty": "Paraty",
+  "ubatuba": "Ubatuba", "guaruja": "Guarujá", "torres": "Torres",
+  "santos": "Santos", "olinda": "Olinda", "maragogi": "Maragogi", "japaratinga": "Japaratinga",
+  "trancoso": "Trancoso", "itacare": "Itacaré", "praia do forte": "Praia do Forte",
+  "porto": "Porto",
 };
+
+
 
 const MINUSCULAS_TITULO = new Set(["de", "da", "do", "das", "dos", "e", "em", "na", "no", "a", "o"]);
 
@@ -195,6 +209,28 @@ function destinoConhecidoNoTexto(v: unknown): string {
   return achado ? DESTINO_CANONICO[achado]! : "";
 }
 
+const semAcento = (v: unknown) =>
+  String(v ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+/**
+ * Remove a marca do hotel colada no destino ("Makai Aracaju" → "Aracaju").
+ * Só corta quando a 1ª palavra do destino é também a 1ª palavra do nome do
+ * hotel — assim "Enotel Porto de Galinhas" não vira "de Galinhas".
+ */
+function semMarcaHotel(destino: string, hoteis: Array<Record<string, unknown>>): string {
+  const palavras = destino.trim().split(/\s+/).filter(Boolean);
+  if (palavras.length < 2) return destino;
+  const primeira = semAcento(palavras[0]);
+  for (const h of hoteis) {
+    const nomeHotel = String(h?.["nome"] ?? h?.["hotel"] ?? h?.["name"] ?? "").trim();
+    const tk = nomeHotel.split(/\s+/).filter(Boolean);
+    if (tk.length && semAcento(tk[0]) === primeira) {
+      return palavras.slice(1).join(" ");
+    }
+  }
+  return destino;
+}
+
 /**
  * Destino comercial do pacote: o lugar onde o cliente realmente fica
  * (Porto de Galinhas), e não o aeroporto de chegada (Recife).
@@ -214,7 +250,9 @@ export function destinoComercial(pacote: {
     destinoConhecidoNoTexto(pacote.nome) ||
     "";
   // O destino é onde o cliente se hospeda — não o aeroporto nem o nome de um passeio.
-  return tituloCidade(semIata(cidadeHotel || conhecido || doNome || (pacote.destino ?? "").trim()));
+  const bruto = semIata(cidadeHotel || conhecido || doNome || (pacote.destino ?? "").trim());
+  return tituloCidade(semMarcaHotel(bruto, hoteis));
+
 
 }
 
@@ -832,9 +870,23 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
   const destino = destinoComercial(pacote);
 
   const origem = tituloCidade(semIata((pacote.origem_cidade ?? pacote.origem_iata ?? "").trim()));
+  // Alguns inclusos vêm com a marca do hotel colada no destino
+  // ("Transfer em Makai Aracaju" → "Transfer em Aracaju").
+  const marcasHotel = ((pacote.hoteis ?? []) as any[])
+    .map((h) => String(h?.nome ?? h?.hotel ?? "").trim().split(/\s+/)[0] ?? "")
+    .filter((m) => m.length >= 3);
+  const limparMarca = (t: string) => {
+    let s = t;
+    for (const m of marcasHotel) {
+      const esc = m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (destino) s = s.replace(new RegExp(`\\b${esc}\\s+(?=${destino.split(" ")[0]}\\b)`, "gi"), "");
+    }
+    return s.replace(/\s{2,}/g, " ").trim();
+  };
   const incluso = Array.isArray(pacote.incluso)
-    ? [...new Set(pacote.incluso.map(nomePublicoServico).filter(Boolean))]
+    ? [...new Set(pacote.incluso.map((i) => limparMarca(nomePublicoServico(i))).filter(Boolean))]
     : [];
+
 
   // Título padronizado: "<destino> - Saindo de <origem>".
   // Só mantém o texto comercial quando ele é um TEMA/EVENTO ("Halloween na Disney",
