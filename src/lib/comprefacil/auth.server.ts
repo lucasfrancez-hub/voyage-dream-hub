@@ -8,7 +8,7 @@
 const BASE = "https://api.comprefacil.tur.br";
 const CLIENT_ID = "portaloperadora:2026";
 const FINGERPRINT = "viaair-servidor-01";
-const TEMPO_LIMITE_REQUISICAO_MS = 20_000;
+const TEMPO_LIMITE_REQUISICAO_MS = 60_000;
 
 type Sessao = { token: string; expiraEm: number; agenciaId: string | null; usuarioId: string | null };
 
@@ -76,32 +76,24 @@ async function autenticar(): Promise<Sessao> {
     throw new Error("Credenciais do CompreFácil não configuradas no servidor.");
   }
 
-  let resp: Response;
-  try {
-    resp = await fetch(`${BASE}/token`, {
-      method: "POST",
-      headers: {
-        // o /token é OAuth clássico: precisa ser form-urlencoded (com JSON a
-        // operadora devolve 400 e ainda dispara código 2FA à toa)
-        "Content-Type": "application/x-www-form-urlencoded",
-        noauth: "t",
-        fingerprint: FINGERPRINT,
-        navegador: "Chrome",
-      },
-      body: new URLSearchParams({
-        grant_type: "password",
-        username: usuario,
-        password: senha,
-        client_id: CLIENT_ID,
-      }).toString(),
-      signal: AbortSignal.timeout(TEMPO_LIMITE_REQUISICAO_MS),
-    });
-  } catch (erro) {
-    if (erro instanceof Error && (erro.name === "TimeoutError" || erro.name === "AbortError")) {
-      throw new Error("A autenticação da operadora demorou para responder. Tente novamente.");
-    }
-    throw erro;
-  }
+  const resp = await fetch(`${BASE}/token`, {
+    method: "POST",
+    headers: {
+      // o /token é OAuth clássico: precisa ser form-urlencoded (com JSON a
+      // operadora devolve 400 e ainda dispara código 2FA à toa)
+      "Content-Type": "application/x-www-form-urlencoded",
+      noauth: "t",
+      fingerprint: FINGERPRINT,
+      navegador: "Chrome",
+    },
+    body: new URLSearchParams({
+      grant_type: "password",
+      username: usuario,
+      password: senha,
+      client_id: CLIENT_ID,
+    }).toString(),
+  });
+
 
   const texto = await resp.text();
   if (!resp.ok && resp.status !== 202) {
@@ -157,25 +149,17 @@ async function validarDoisFatores(otpToken: string): Promise<{ access_token?: st
     throw new Error("Não recebemos o código de dois fatores do CompreFácil a tempo.");
   }
 
-  let resp: Response;
-  try {
-    resp = await fetch(`${BASE}/api/autenticacao/validaracesso`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        noauth: "t",
-        fingerprint: FINGERPRINT,
-        navegador: "Chrome",
-      },
-      body: JSON.stringify({ token: otpToken, codigo: espera.code }),
-      signal: AbortSignal.timeout(TEMPO_LIMITE_REQUISICAO_MS),
-    });
-  } catch (erro) {
-    if (erro instanceof Error && (erro.name === "TimeoutError" || erro.name === "AbortError")) {
-      throw new Error("A validação da operadora demorou para responder. Tente novamente.");
-    }
-    throw erro;
-  }
+  const resp = await fetch(`${BASE}/api/autenticacao/validaracesso`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      noauth: "t",
+      fingerprint: FINGERPRINT,
+      navegador: "Chrome",
+    },
+    body: JSON.stringify({ token: otpToken, codigo: espera.code }),
+  });
+
 
   const texto = await resp.text();
   if (!resp.ok && resp.status !== 202) {
