@@ -792,7 +792,7 @@ body:has([data-chat-root]),
   .mkt .photo {height:190px}
   .mkt .detailgrid {grid-template-columns:1fr}
 }
-.mkt /* ===== V3 PROFESSIONAL POLISH ===== */
+/* ===== V3 PROFESSIONAL POLISH ===== */
 :root {
   --bg:#031017;
   --card:#071b27;
@@ -1028,7 +1028,7 @@ body:has([data-chat-root]),
   .mkt .detailgrid {grid-template-columns:1fr}
   .mkt .connect {margin-left:0}
 }
-.mkt /* ===== V9 — refinamento da VISÃO GERAL ===== */
+/* ===== V9 — refinamento da VISÃO GERAL ===== */
 #overview .title {
   margin-top:20px;
   margin-bottom:14px;
@@ -1092,7 +1092,7 @@ body:has([data-chat-root]),
 .mkt #overview .sel-body {
   padding:17px;
 }
-.mkt /* Flight stays more technical/compact */
+/* Flight stays more technical/compact */
 #overview #selectedFlightCard .air img {
   width:42px;
   height:42px;
@@ -1111,7 +1111,7 @@ body:has([data-chat-root]),
 .mkt #overview #selectedFlightCard .pt strong {
   font-size:22px;
 }
-.mkt /* Hotel becomes the emotional/protagonist block */
+/* Hotel becomes the emotional/protagonist block */
 #overview .hotel-hero-v9 {
   position:relative;
   height:208px;
@@ -1197,7 +1197,7 @@ body:has([data-chat-root]),
   line-height:1.55;
   color:#8fa5b6;
 }
-.mkt /* Summary feels like the final "checkout" card */
+/* Summary feels like the final "checkout" card */
 .mkt .summary {
   padding:18px;
   border-radius:24px;
@@ -1324,7 +1324,7 @@ body:has([data-chat-root]),
   .mkt #overview .overview-grid {grid-template-columns:1fr}
   .mkt #overview .hotel-hero-v9 {height:190px}
 }
-.mkt /* V10 - conexões dentro do pacote recomendado */
+/* V10 - conexões dentro do pacote recomendado */
 #overview .overview-flight-toggle-row {
   display:flex;justify-content:flex-end;margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.055)
 }
@@ -1352,7 +1352,7 @@ body:has([data-chat-root]),
   .mkt #overview .overview-conn-grid {grid-template-columns:1fr}
   .mkt #overview .overview-layover {margin-left:0}
 }
-.mkt /* ===== V11 — botão "Sobre o hotel" na foto + detalhes ===== */
+/* ===== V11 — botão "Sobre o hotel" na foto + detalhes ===== */
 #overview .hotel-hero-v9 {
   overflow:visible;
   margin-bottom:18px;
@@ -1483,7 +1483,7 @@ body:has([data-chat-root]),
   .mkt #overview .hotel-gallery figure {height:105px}
   .mkt #overview .hotel-gallery figure:first-child {grid-column:1/3;height:145px}
 }
-.mkt /* ===== V12 — destaque de passageiros / quartos / noites no resumo ===== */
+/* ===== V12 — destaque de passageiros / quartos / noites no resumo ===== */
 .mkt .summary-meta {
   display:flex;
   gap:7px;
