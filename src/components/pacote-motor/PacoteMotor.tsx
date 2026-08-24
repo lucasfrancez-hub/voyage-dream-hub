@@ -383,7 +383,7 @@ export function PacoteMotor({
                   valor={origem}
                   campo="saida"
                   placeholder="De onde sairemos?"
-                  className="h-11 text-sm font-semibold sm:text-base"
+                  className="h-12 rounded-xl border-border bg-muted/40 text-sm font-semibold sm:text-base"
                   onChange={(nome, _id, iata) => {
                     setOrigem(nome);
                     setOrigemIata(iata ?? "");
@@ -403,7 +403,7 @@ export function PacoteMotor({
                   setDestinoIata(oi);
                   setCidadeId(null);
                 }}
-                className="absolute left-1/2 top-[calc(50%+0.5rem)] z-10 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border/60 bg-card text-muted-foreground shadow-lg transition hover:text-primary active:scale-95"
+                className="absolute left-1/2 top-[calc(50%+0.55rem)] z-10 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border/60 bg-card text-muted-foreground shadow-lg transition hover:text-primary active:scale-95"
               >
                 <ArrowLeftRight className="h-3.5 w-3.5" />
               </button>
@@ -416,7 +416,7 @@ export function PacoteMotor({
                   valor={destino}
                   campo="destino"
                   placeholder="Para onde vamos?"
-                  className="h-11 text-sm font-semibold sm:text-base"
+                  className="h-12 rounded-xl border-border bg-muted/40 text-sm font-semibold sm:text-base"
                   onChange={(nome, id, iata) => {
                     setDestino(nome);
                     setCidadeId(id);
@@ -445,7 +445,7 @@ export function PacoteMotor({
             <div className="flex items-end">
               <Button
                 size="lg"
-                className="h-11 w-full lg:w-auto"
+                className="h-12 w-full lg:w-auto"
                 onClick={pesquisar}
                 disabled={carregando}
               >
