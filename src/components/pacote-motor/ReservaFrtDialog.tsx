@@ -183,8 +183,6 @@ export function ReservaFrtDialog({
                       <Input type="date" value={p.nascimento} onChange={(e) => alterar(i, "nascimento", e.target.value)} />
                     </div>
                   </div>
-
-                  </div>
                 </div>
               ))}
             </div>
