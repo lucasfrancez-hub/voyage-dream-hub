@@ -900,6 +900,15 @@ function Checkout() {
                     Cada ingresso é individual. Preencha os dados de cada pessoa abaixo. Máximo de {maxUnits} por pedido — para mais, faça um novo pedido.
                   </p>
                 </>
+              ) : paxTravado ? (
+                <p className="text-xs text-muted-foreground">
+                  Pesquisa feita para{" "}
+                  <span className="text-foreground font-medium">
+                    {adults} adulto{adults > 1 ? "s" : ""}
+                    {children > 0 ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}
+                  </span>
+                  . Preencha os dados de cada passageiro abaixo.
+                </p>
               ) : (
                 <>
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -947,6 +956,7 @@ function Checkout() {
                   )}
                 </>
               )}
+
             </Card>
 
 
