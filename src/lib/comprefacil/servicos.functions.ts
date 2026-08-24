@@ -14,9 +14,14 @@ const entrada = z.object({
 
 async function executar(data: z.infer<typeof entrada>) {
   const { buscarServicosDestinoCF } = await import("./servicos.server");
+  const { buscarSegurosCF } = await import("./seguros.server");
   try {
-    const servicos = await buscarServicosDestinoCF(data);
-    return { ok: true as const, servicos };
+    const [servicos, seguros] = await Promise.all([
+      buscarServicosDestinoCF(data),
+      buscarSegurosCF(data).catch(() => []),
+    ]);
+    // seguro viagem entra primeiro na lista de serviços adicionais
+    return { ok: true as const, servicos: [...seguros, ...servicos] };
   } catch (e) {
     return {
       ok: false as const,
@@ -25,6 +30,7 @@ async function executar(data: z.infer<typeof entrada>) {
     };
   }
 }
+
 
 export const buscarServicosCF = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
