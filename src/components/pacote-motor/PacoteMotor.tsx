@@ -496,6 +496,27 @@ export function PacoteMotor({
                       onAlterar={() => setVista("hotel")}
                     />
                   </div>
+
+                  {/* Bloco resumido de serviços adicionais (catálogo fica na aba própria). */}
+                  <div className={`svcbox${servicosSel.length ? " on" : ""}`}>
+                    <div className="svcbox-head">
+                      <b>Serviços adicionais</b>
+                      <span className={servicosSel.length ? "svcbox-on" : "svcbox-off"}>
+                        {servicosSel.length
+                          ? `${servicosSel.length} ${plural(servicosSel.length, "serviço incluído", "serviços incluídos").replace(/^\d+\s/, "")}`
+                          : "Não incluso"}
+                      </span>
+                    </div>
+                    <p>
+                      {servicosSel.length
+                        ? servicosSel.slice(0, 3).map((s) => s.titulo).join(" · ") +
+                          (servicosSel.length > 3 ? ` +${servicosSel.length - 3}` : "")
+                        : "Transfers, passeios e proteção são opcionais e podem ser incluídos no seu pacote."}
+                    </p>
+                    <button type="button" className="ghost" onClick={() => setVista("servico")}>
+                      {servicosSel.length ? "Alterar serviços" : "Ver mais serviços"}
+                    </button>
+                  </div>
                 </div>
               {resumo}
             </div>
