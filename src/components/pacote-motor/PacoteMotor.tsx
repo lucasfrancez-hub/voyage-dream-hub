@@ -59,6 +59,7 @@ export function PacoteMotor({
   const [hotel, setHotel] = useState<HotelPacote | null>(null);
   const [quartoId, setQuartoId] = useState<string | null>(null);
   const [voo, setVoo] = useState<PassHubOferta | null>(null);
+  const [servicosSel, setServicosSel] = useState<ServicoDisponivel[]>([]);
 
   const pax = somaOcupacao(quartos);
 
