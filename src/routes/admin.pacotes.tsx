@@ -3142,34 +3142,54 @@ function PackageEditorModal({
                   onSelectIndex={setHotelOptIdx}
 
                   onChange={(next, base) =>
-                    setEditing({
-                      ...editing,
-                      hotel_options: next as any,
-                      ...(base
-                        ? {
-                            hotel_name: base.hotel_name,
-                            room_type: base.room_type ?? editing.room_type,
-                            room_category: (base as any).room_category ?? editing.room_category,
-                            bed_type: (base as any).bed_type ?? editing.bed_type,
-                            meal_plan: base.meal_plan ?? editing.meal_plan,
-                            hotel_stays:
-                              Array.isArray((base as any).stays) && (base as any).stays.length > 1
-                                ? ((base as any).stays as any[])
-                                : null,
-                            price_per_person: Number(base.price_per_person) || editing.price_per_person,
-                            ...(base.tripadvisor_location_id
-                              ? {
-                                  hotel_stars: base.hotel_stars ?? editing.hotel_stars,
-                                  tripadvisor_location_id: base.tripadvisor_location_id,
-                                  tripadvisor_url: base.tripadvisor_url ?? null,
-                                  tripadvisor_address: base.tripadvisor_address ?? null,
-                                  tripadvisor_photos: base.tripadvisor_photos ?? null,
-                                }
-                              : {}),
-                          }
-                        : {}),
+                    setEditing((prev: any) => {
+                      const atual: any[] = Array.isArray(prev?.hotel_options) ? prev.hotel_options : [];
+                      // Preserva o vínculo do TripAdvisor gravado em segundo
+                      // plano em cada opção (o painel pode estar com a versão
+                      // anterior da lista).
+                      const merge = (o: any, i: number) => {
+                        const ant = atual[i];
+                        if (!ant || o?.tripadvisor_location_id) return o;
+                        if (String(ant.hotel_name ?? "") !== String(o?.hotel_name ?? "")) return o;
+                        return {
+                          ...o,
+                          hotel_stars: o?.hotel_stars ?? ant.hotel_stars,
+                          tripadvisor_location_id: ant.tripadvisor_location_id ?? null,
+                          tripadvisor_url: ant.tripadvisor_url ?? null,
+                          tripadvisor_address: ant.tripadvisor_address ?? null,
+                          tripadvisor_photos: ant.tripadvisor_photos ?? null,
+                        };
+                      };
+                      const lista = (next as any[]).map(merge);
+                      const b: any = base ? (lista.find((o) => o.hotel_name === base.hotel_name) ?? base) : null;
+                      return {
+                        ...prev,
+                        hotel_options: lista as any,
+                        ...(b
+                          ? {
+                              hotel_name: b.hotel_name,
+                              room_type: b.room_type ?? prev.room_type,
+                              room_category: b.room_category ?? prev.room_category,
+                              bed_type: b.bed_type ?? prev.bed_type,
+                              meal_plan: b.meal_plan ?? prev.meal_plan,
+                              hotel_stays:
+                                Array.isArray(b.stays) && b.stays.length > 1 ? (b.stays as any[]) : null,
+                              price_per_person: Number(b.price_per_person) || prev.price_per_person,
+                              ...(b.tripadvisor_location_id
+                                ? {
+                                    hotel_stars: b.hotel_stars ?? prev.hotel_stars,
+                                    tripadvisor_location_id: b.tripadvisor_location_id,
+                                    tripadvisor_url: b.tripadvisor_url ?? null,
+                                    tripadvisor_address: b.tripadvisor_address ?? null,
+                                    tripadvisor_photos: b.tripadvisor_photos ?? null,
+                                  }
+                                : {}),
+                            }
+                          : {}),
+                      };
                     })
                   }
+
 
                 />
 
