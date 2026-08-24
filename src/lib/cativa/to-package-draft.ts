@@ -217,18 +217,53 @@ const PREPOSICOES = new Set(["de", "do", "da", "dos", "das", "e"]);
 /** "porto de galinhas" → true (nome de destino conhecido inteiro). */
 const ehCanonico = (v: string) => !!DESTINO_CANONICO[semAcento(v)];
 
+/** Palavras que são de hotel/resort e nunca podem virar nome de destino. */
+const PALAVRAS_HOTEL = new Set([
+  "beach", "resort", "resorts", "hotel", "hoteis", "pousada", "palace", "plaza", "suites", "suite",
+  "inn", "flat", "park", "parque", "village", "grand", "grande", "spa", "club", "clube", "lodge",
+  "tower", "towers", "apart", "apartments", "residence", "residencial", "by", "the", "premium",
+  "luxury", "all", "inclusive", "exclusive", "prime", "plus", "boutique", "eco", "camboa",
+]);
+
+const soPalavrasDeHotel = (v: string) =>
+  v
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((p) => PALAVRAS_HOTEL.has(semAcento(p)) || PREPOSICOES.has(semAcento(p)));
+
+/** Tira sufixos de hotel colados na cidade ("Maceió Beach" → "Maceió"). */
+function semSufixoHotel(v: string): string {
+  const palavras = v.split(/\s+/).filter(Boolean);
+  while (palavras.length > 1 && PALAVRAS_HOTEL.has(semAcento(palavras[palavras.length - 1]!))) {
+    palavras.pop();
+  }
+  while (palavras.length > 1 && PREPOSICOES.has(semAcento(palavras[palavras.length - 1]!))) {
+    palavras.pop();
+  }
+  return palavras.join(" ");
+}
+
 /**
  * Remove a marca do hotel colada no destino ("Makai Aracaju" → "Aracaju").
  * Nunca corta destinos compostos conhecidos ("Porto de Galinhas",
- * "Foz do Iguaçu") nem deixa sobra começando por preposição.
+ * "Foz do Iguaçu") nem deixa sobra começando por preposição, nem devolve
+ * pedaço de nome de hotel ("Maceió Beach Resort" → "Maceió", nunca "Beach").
  */
 function semMarcaHotel(destino: string, hoteis: Array<Record<string, unknown>>): string {
-  const palavras = destino.trim().split(/\s+/).filter(Boolean);
-  if (palavras.length < 2) return destino;
   if (ehCanonico(destino)) return destino;
+  // Se a cidade conhecida aparece dentro do texto, ela vence qualquer corte.
+  const conhecido = destinoConhecidoNoTexto(destino);
+  if (conhecido) return conhecido;
+
+  const limpo = semSufixoHotel(destino.trim()) || destino.trim();
+  if (ehCanonico(limpo)) return limpo;
+
+  const palavras = limpo.split(/\s+/).filter(Boolean);
+  if (palavras.length < 2) return limpo;
   const primeira = semAcento(palavras[0]);
   const resto = palavras.slice(1).join(" ");
-  if (PREPOSICOES.has(semAcento(palavras[1]))) return destino;
+  if (PREPOSICOES.has(semAcento(palavras[1]))) return limpo;
+  if (!resto || soPalavrasDeHotel(resto)) return limpo;
   for (const h of hoteis) {
     const nomeHotel = String(h?.["nome"] ?? h?.["hotel"] ?? h?.["name"] ?? "").trim();
     const tk = nomeHotel.split(/\s+/).filter(Boolean);
@@ -236,8 +271,9 @@ function semMarcaHotel(destino: string, hoteis: Array<Record<string, unknown>>):
       return resto;
     }
   }
-  return destino;
+  return limpo;
 }
+
 
 /**
  * Destino comercial do pacote: o lugar onde o cliente realmente fica
