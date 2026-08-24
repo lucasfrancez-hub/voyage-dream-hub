@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2 } from "lucide-react";
+import { ArrowLeftRight, BedDouble, CalendarDays, Loader2, MapPin, Search, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { DateRangeField } from "@/components/search/DateRangeField";
+import { RoomsPaxField } from "@/components/search/RoomsPaxField";
 import { toast } from "sonner";
 import { QuoteBasketBar } from "@/components/quote/QuoteBasketBar";
 import { addToQuoteBasket } from "@/lib/quote-basket";
