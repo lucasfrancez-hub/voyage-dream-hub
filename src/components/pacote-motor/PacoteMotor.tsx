@@ -197,15 +197,24 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
       diferenca={Number((total - baseTotal).toFixed(2))}
       moeda={hotel?.moeda ?? "BRL"}
       acao={
-        <button
-          type="button"
-          className="primary"
-          disabled={checkout.isPending || (!hotel && !voo)}
-          onClick={() => checkout.mutate()}
-        >
-          {checkout.isPending ? "Gerando link de pagamento…" : "Reservar pacote"}
-        </button>
+        <div style={{ display: "grid", gap: 8 }}>
+          <button
+            type="button"
+            className="primary"
+            disabled={checkout.isPending || (!hotel && !voo)}
+            onClick={() => checkout.mutate()}
+          >
+            {checkout.isPending ? "Gerando link de pagamento…" : "Reservar pacote"}
+          </button>
+          {/* Cesta: junta várias montagens e vira UM orçamento com várias opções. */}
+          {!publico && (
+            <button type="button" className="ghost" disabled={!hotel && !voo} onClick={salvarNaCesta}>
+              Gerar orçamento
+            </button>
+          )}
+        </div>
       }
+
     />
   );
 
