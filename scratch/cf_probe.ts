@@ -1,4 +1,4 @@
-import { chamarCompreFacil } from "./src/lib/comprefacil/auth.server";
+import { chamarCompreFacil } from "../src/lib/comprefacil/auth.server";
 const paths = [
   "/api/pacote?Pagina=1&ItensPorPagina=2&Filtro=cancun",
   "/api/pacote?Pagina=1&ItensPorPagina=2&Nome=cancun",
