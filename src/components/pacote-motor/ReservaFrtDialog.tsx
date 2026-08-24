@@ -20,6 +20,8 @@ type Pax = {
   cpf: string;
   sexo: "M" | "F";
   tipo: 0 | 1 | 2;
+  /** idade pesquisada — a operadora exige para criança/bebê */
+  idade: number | null;
   quarto: number;
 };
 
@@ -27,16 +29,42 @@ type Pax = {
 function paxIniciais(quartos: OcupacaoQuarto[]): Pax[] {
   const lista: Pax[] = [];
   quartos.forEach((q, i) => {
-    const base = { nome: "", sobrenome: "", nascimento: "", cpf: "", sexo: "M" as const, quarto: i + 1 };
+    const base = {
+      nome: "",
+      sobrenome: "",
+      nascimento: "",
+      cpf: "",
+      sexo: "M" as const,
+      quarto: i + 1,
+      idade: null as number | null,
+    };
+    const idades = q.idades ?? [];
     for (let a = 0; a < q.adultos; a++) lista.push({ ...base, tipo: 0 });
-    for (let c = 0; c < q.criancas; c++) lista.push({ ...base, tipo: 1 });
-    for (let b = 0; b < q.bebes; b++) lista.push({ ...base, tipo: 2 });
+    for (let c = 0; c < q.criancas; c++) lista.push({ ...base, tipo: 1, idade: idades[c] ?? null });
+    for (let b = 0; b < q.bebes; b++) lista.push({ ...base, tipo: 2, idade: 0 });
   });
-  return lista.length ? lista : [{ nome: "", sobrenome: "", nascimento: "", cpf: "", sexo: "M", tipo: 0, quarto: 1 }];
+  return lista.length
+    ? lista
+    : [{ nome: "", sobrenome: "", nascimento: "", cpf: "", sexo: "M", tipo: 0, idade: null, quarto: 1 }];
+}
+
+/** Idade em anos completos a partir da data de nascimento. */
+function idadeDe(nascimento: string): number | null {
+  if (!nascimento) return null;
+  const d = new Date(`${nascimento}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  const hoje = new Date();
+  let anos = hoje.getFullYear() - d.getFullYear();
+  const m = hoje.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < d.getDate())) anos--;
+  return anos >= 0 ? anos : null;
 }
 
 const rotulo = (p: Pax, i: number) =>
-  `${p.tipo === 0 ? "Adulto" : p.tipo === 1 ? "Criança" : "Bebê"} ${i + 1} • Quarto ${p.quarto}`;
+  `${p.tipo === 0 ? "Adulto" : p.tipo === 1 ? "Criança" : "Bebê"} ${i + 1} • Quarto ${p.quarto}${
+    p.tipo !== 0 && p.idade != null ? ` • ${p.idade} ano(s) na pesquisa` : ""
+  }`;
+
 
 /**
  * Reserva de verdade na operadora (CompreFácil/FRT) direto do portal:
