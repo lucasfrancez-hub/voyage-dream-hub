@@ -456,6 +456,9 @@ export function PacoteMotor({
           <button type="button" className={`tab${vista === "hotel" ? " active" : ""}`} onClick={() => setVista("hotel")}>
             Alterar hospedagem
           </button>
+          <button type="button" className={`tab${vista === "servico" ? " active" : ""}`} onClick={() => setVista("servico")}>
+            Adicionar serviços
+          </button>
         </div>
 
         )}
