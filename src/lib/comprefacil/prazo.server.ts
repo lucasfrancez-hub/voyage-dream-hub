@@ -7,8 +7,6 @@
  * com a data mais próxima — que é o prazo real que o cliente precisa honrar.
  */
 
-const CHAVE_PRAZO =
-  /^(prazo|data(limite)?|limite)?_?(de)?_?(pagamento|pgto|payment)|^(prazopagamento|datalimitepagamento|limitepagamento|timelimit|ticketingtimelimit)/i;
 
 function ehChavePrazo(chave: string): boolean {
   const k = chave.replace(/[\s_-]/g, "").toLowerCase();
