@@ -59,11 +59,12 @@ const ENABLED_MODES: Mode[] = ["aereo", "hotel", "carro", "combo", "exclusivo", 
 const MODES: { id: Mode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "aereo", label: "Aéreo", icon: Plane },
   { id: "hotel", label: "Hotel", icon: BedDouble },
+  { id: "combo", label: "Pacotes", icon: Layers },
   { id: "carro", label: "Carro", icon: Car },
-  { id: "combo", label: "Aéreo + Hotel", icon: Layers },
   { id: "exclusivo", label: "Exclusivos", icon: Sparkles },
   { id: "seguro", label: "Seguros", icon: ShieldCheck },
 ];
+
 
 
 function ModeHeader({
