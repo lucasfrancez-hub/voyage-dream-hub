@@ -291,20 +291,21 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   if (!guid) return [];
 
   let dados: any = inicio.dados;
-  // Polling adaptativo: começa curto e cresce, para devolver a lista assim que a
-  // operadora já tem resultado útil em vez de esperar ciclos fixos de 3s.
-  const intervalos = [700, 900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000];
+  // Polling adaptativo. Só encerramos quando a operadora termina as buscas
+  // (`BuscasAtivas` vazio): até lá ela devolve hotéis com um "quarto resumo"
+  // sem nome nem regime, o que fazia o portal mostrar "Acomodação 1".
+  const intervalos = [900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000, 3000];
+  const temQuartoReal = (d: any) =>
+    ((d?.Items ?? []) as any[]).some((h) => (h?.Quartos ?? []).some((q: any) => typeof q?.Descricao === "string" && q.Descricao.trim()));
   for (let i = 0; i < intervalos.length; i++) {
     await espera(intervalos[i]!);
     const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
     dados = r.dados;
     const meta = dados?.MetaData;
     const total = Number(meta?.TotalItens ?? 0);
-    if (buscasAtivas(meta) === 0 && total > 0) break;
-    // Já há catálogo suficiente: entrega sem esperar fornecedores lentos.
-    if (total >= 60 && i >= 2) break;
-    if (buscasAtivas(meta) === 0 && i > 1) break;
+    if (buscasAtivas(meta) === 0 && total > 0 && temQuartoReal(dados)) break;
   }
+
 
   const chaveHotel = (h: any) => `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`;
 
@@ -389,24 +390,52 @@ function limpar(v: unknown): string | null {
   return t || null;
 }
 
+/** Nome do quarto sem os avisos internos da operadora. */
+function nomeQuarto(v: unknown): string | null {
+  const t = limpar(v);
+  if (!t) return null;
+  const limpo = t
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\(\s*\d+\s*\)\s*$/, " ")
+    .replace(/\s*[-–—,;]\s*$/, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return limpo || null;
+}
+
+/** Regime padronizado (a operadora manda "BedBreakfast", "Room Only"…). */
+function regimeQuarto(q: any): string | null {
+  const bruto = limpar(q?.DescricaoPensao) ?? limpar(q?.DescricaoPensaoOriginal);
+  if (!bruto) return null;
+  if (/bed\s*breakfast|caf[ée]/i.test(bruto)) return "Café da manhã";
+  if (/room\s*only|sem\s*caf|alojament/i.test(bruto)) return "Só alojamento";
+  if (/half\s*board|meia\s*pens/i.test(bruto)) return "Meia pensão";
+  if (/full\s*board|pens[ãa]o\s*completa/i.test(bruto)) return "Pensão completa";
+  if (/all\s*inclusive|tudo\s*inclu/i.test(bruto)) return "All inclusive";
+  return bruto;
+}
+
 function mapearHotel(h: any, i: number): HotelPacote {
-  const quartosBrutos: any[] = h?.Quartos ?? [];
+  // A operadora manda um "quarto resumo" (sem descrição e sem valor) enquanto a
+  // busca ainda roda — ele nunca pode virar opção de acomodação para o cliente.
+  const todos: any[] = h?.Quartos ?? [];
+  const reais = todos.filter((q) => nomeQuarto(q?.Descricao) || Number(q?.ValorVenda ?? 0) > 0);
+  const quartosBrutos: any[] = reais.length ? reais : todos;
   const valores = quartosBrutos.map((q) => Number(q?.ValorVenda ?? 0)).filter((v) => v > 0);
   const menor = valores.length ? Math.min(...valores) : Number(h?.ValorTotalVenda ?? 0);
 
   const quartos: QuartoPacote[] = quartosBrutos.map((q, idx) => {
     const valor = Number(q?.ValorVenda ?? 0);
     const politica = limpar(q?.PoliticaListagem ?? q?.Politica);
-    const beneficios = [limpar(q?.DescricaoPensao), limpar(q?.Observacao), limpar(q?.Facilidades)].filter(
-      Boolean,
-    ) as string[];
+    const regime = regimeQuarto(q);
+    const beneficios = [regime, limpar(q?.Observacao), limpar(q?.Facilidades)].filter(Boolean) as string[];
     return {
       id: `${q?.CodigoQuarto ?? idx}-${q?.CodigoPensao ?? idx}-${idx}`,
-      nome: limpar(q?.Descricao) ?? `Acomodação ${idx + 1}`,
+      nome: nomeQuarto(q?.Descricao) ?? "Standard",
       ocupacao: q?.Adultos
         ? `${q.Adultos} adulto(s)${Number(q?.Criancas ?? 0) ? ` · ${q.Criancas} criança(s)` : ""}`
         : null,
-      regime: limpar(q?.DescricaoPensao),
+      regime,
       reembolsavel:
         typeof q?.Reembolsavel === "boolean"
           ? q.Reembolsavel
@@ -420,6 +449,7 @@ function mapearHotel(h: any, i: number): HotelPacote {
       diferenca: Number((valor - menor).toFixed(2)),
     };
   });
+
 
   const politicas = Array.from(new Set(quartos.map((q) => q.politica).filter(Boolean) as string[]));
   const comodidades = Array.from(
