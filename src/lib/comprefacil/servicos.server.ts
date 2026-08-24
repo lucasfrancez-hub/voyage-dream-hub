@@ -1,11 +1,11 @@
 /**
  * Serviços adicionais do motor de pacotes (transfers, passeios, proteção...).
  *
- * Fonte real: catálogo já sincronizado da operadora (`comprefacil_servicos`,
- * filtrado pela cidade do destino pesquisado) + tarifas oficiais lidas em
- * `/api/offlineservicotarifa/{id}` (faixas etárias ADT/CHD por período).
+ * Fonte real: busca ao vivo da operadora (`POST /api/Servico/busca` na base de
+ * serviços), exatamente como o portal faz — sempre atrelada à cidade de destino
+ * e ao período pesquisado, já com o valor tarifado para a ocupação.
  */
-import { chamarCompreFacil } from "./auth.server";
+import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.server";
 
 export type ServicoDisponivel = {
   id: string;
@@ -17,27 +17,10 @@ export type ServicoDisponivel = {
   politica: string | null;
   informacoes: string[];
   recomendado: boolean;
-  /** acréscimo total já multiplicado pelos passageiros; null = sob consulta */
+  /** valor total já tarifado para a ocupação pesquisada; null = sob consulta */
   valor: number | null;
   moeda: "BRL";
-};
-
-type FaixaEtaria = {
-  Tipo?: string;
-  IdadeMinima?: number;
-  IdadeMaxima?: number;
-  QuantidadeMinima?: number;
-  QuantidadeMaxima?: number;
-  Valor?: number;
-};
-
-type Tarifa = {
-  Ativo?: boolean;
-  De?: string;
-  Ate?: string;
-  ValidadeDe?: string;
-  ValidadeAte?: string;
-  TarifaFaixasEtarias?: FaixaEtaria[];
+  imagem?: string | null;
 };
 
 const semHtml = (v: unknown): string | null => {
@@ -47,142 +30,140 @@ const semHtml = (v: unknown): string | null => {
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&#(\d+);/g, (_, c) => String.fromCharCode(Number(c)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, c) => String.fromCharCode(parseInt(c, 16)))
     .replace(/\s+/g, " ")
     .trim();
   return t || null;
 };
 
-const dia = (v: unknown) => (typeof v === "string" ? v.slice(0, 10) : null);
+const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function tarifaVigente(tarifas: Tarifa[], data: string): Tarifa | null {
-  const validas = tarifas.filter((t) => {
-    if (t?.Ativo === false) return false;
-    const de = dia(t?.De ?? t?.ValidadeDe);
-    const ate = dia(t?.Ate ?? t?.ValidadeAte);
-    if (de && data < de) return false;
-    if (ate && data > ate) return false;
-    return true;
-  });
-  return validas[0] ?? null;
-}
-
-/** Aplica a tabela de faixas etárias sobre a ocupação pesquisada. */
-function calcularValor(t: Tarifa, adultos: number, idades: number[]): number | null {
-  const faixas = t?.TarifaFaixasEtarias ?? [];
-  if (!faixas.length) return null;
-
-  const adt = faixas.filter((f) => (f.Tipo ?? "ADT").toUpperCase() === "ADT");
-  const chd = faixas.filter((f) => (f.Tipo ?? "").toUpperCase() === "CHD");
-
-  const porQuantidade =
-    adt.find(
-      (f) =>
-        adultos >= (f.QuantidadeMinima ?? 1) &&
-        adultos <= (f.QuantidadeMaxima ?? 99),
-    ) ?? adt[0];
-  if (!porQuantidade && !chd.length) return null;
-
-  let total = (porQuantidade?.Valor ?? 0) * adultos;
-  for (const idade of idades) {
-    const faixa =
-      chd.find((f) => idade >= (f.IdadeMinima ?? 0) && idade <= (f.IdadeMaxima ?? 17)) ?? chd[0];
-    total += faixa?.Valor ?? 0;
-  }
-  return Number(total.toFixed(2));
-}
-
-async function tarifasDoServico(externoId: number): Promise<Tarifa[]> {
+function buscasAtivas(meta: any): number {
   try {
-    const r = await chamarCompreFacil(`/api/offlineservicotarifa/${externoId}`);
-    return ((r.dados as any)?.Items ?? []) as Tarifa[];
+    const v = meta?.BuscasAtivas;
+    if (Array.isArray(v)) return v.length;
+    if (typeof v === "string") return (JSON.parse(v) as unknown[]).length;
   } catch {
-    return [];
+    /* ignora */
   }
+  return 0;
 }
 
-const COLUNAS =
-  "externo_id, titulo, descricao, tipo, fornecedor, politica_cancelamento, destaque, combo, dias_semana";
+const TIPOS: Record<number, string> = {
+  0: "Serviços",
+  1: "Passeios",
+  2: "Ingressos",
+  3: "Transfers",
+};
+
+function mapear(s: any, i: number): ServicoDisponivel {
+  let extra: any = {};
+  try {
+    extra = s?.ExtraIntegracao ? JSON.parse(String(s.ExtraIntegracao)) : {};
+  } catch {
+    extra = {};
+  }
+  const valor = Number(s?.ValorVenda ?? 0);
+  const informacoes = [
+    s?.Combo ? "Combo de serviços" : null,
+    extra?.CategoriaServico ? `Categoria ${String(extra.CategoriaServico).toLowerCase()}` : null,
+    extra?.NomeFornecedor ? `Operado por ${String(extra.NomeFornecedor).trim()}` : null,
+  ].filter(Boolean) as string[];
+
+  return {
+    id: `cfs-${s?.CodigoFornecedor ?? i}-${i}`,
+    externoId: Number(s?.CodigoFornecedor ?? 0) || 0,
+    titulo: semHtml(s?.Titulo) ?? "Serviço",
+    categoria:
+      semHtml(s?.TipoServicoDesc)?.replace(/^\w/, (c) => c.toUpperCase()) ??
+      TIPOS[Number(s?.TipoServico ?? 0)] ??
+      "Serviços",
+    descricao: semHtml(s?.Descricao),
+    fornecedor: extra?.NomeFornecedor ? String(extra.NomeFornecedor).trim() : (s?.Fornecedor ?? null),
+    politica: semHtml(s?.PoliticaCancelamento),
+    informacoes,
+    recomendado: false,
+    valor: valor > 0 ? Number(valor.toFixed(2)) : null,
+    moeda: "BRL" as const,
+    imagem: Array.isArray(s?.Imagens) && s.Imagens.length ? String(s.Imagens[0]) : null,
+  };
+}
 
 export async function buscarServicosDestinoCF(p: {
   cidadeId: number;
   data: string;
+  /** fim do período (volta / checkout); default = mesma data */
+  dataFim?: string | null;
   adultos: number;
   idades?: number[];
   limite?: number;
-  /** Nome da cidade de destino: fallback quando o catálogo não tem a cidade do fornecedor. */
   destino?: string | null;
 }): Promise<ServicoDisponivel[]> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const limite = Math.min(60, Math.max(1, p.limite ?? 40));
+  const ses = await sessaoCompreFacil();
+  const base = COMPREFACIL_BASES.servico;
+  const porPagina = Math.min(100, Math.max(10, p.limite ?? 60));
+  const rota = (pagina: number) =>
+    `/api/Servico/busca?Pagina=${pagina}&ItensPorPagina=${porPagina}`;
 
-  const { data: linhas, error } = await supabaseAdmin
-    .from("comprefacil_servicos")
-    .select(COLUNAS)
-    .eq("ativo", true)
-    .eq("fornecedor_cidade_id", p.cidadeId)
-    .order("destaque", { ascending: false })
-    .order("titulo")
-    .limit(limite);
-  if (error) throw new Error(error.message);
+  const corpo = (guid: string | null) => ({
+    AgenciaId: Number(ses.agenciaId ?? 0),
+    Guid: guid,
+    PacoteId: 0,
+    Adt: Math.max(1, p.adultos || 1),
+    IdadesChd: p.idades ?? [],
+    De: p.data,
+    Ate: p.dataFim || p.data,
+    Cidade: { Id: p.cidadeId },
+    TipoServico: 0,
+    ServicoExclusivo: false,
+    BuscaEsim: false,
+    EscreveLog: false,
+    FiltroServico: {
+      Ativo: null,
+      Categoria: -1,
+      TipoServico: "",
+      Ordenacao: "",
+      Tipo: "",
+      Fornecedores: [],
+    },
+  });
 
-  let brutos = ((linhas as any[]) ?? []).filter((s) => Number(s?.externo_id) > 0);
+  const inicio = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(null) });
+  const guid = (inicio.dados as any)?.MetaData?.Guid as string | undefined;
+  if (!guid) return [];
 
-  // Fallback pelo nome do destino: muitos receptivos estão cadastrados em
-  // outra cidade do fornecedor, mas o serviço cita o destino no título.
-  const destino = (p.destino ?? "").trim();
-  if (!brutos.length && destino.length >= 3) {
-    const termo = destino.split(/[,-]/)[0].trim();
-    const { data: porNome } = await supabaseAdmin
-      .from("comprefacil_servicos")
-      .select(COLUNAS)
-      .eq("ativo", true)
-      .or(`titulo.ilike.%${termo}%,descricao.ilike.%${termo}%`)
-      .order("destaque", { ascending: false })
-      .order("titulo")
-      .limit(limite);
-    brutos = ((porNome as any[]) ?? []).filter((s) => Number(s?.externo_id) > 0);
+  let dados: any = inicio.dados;
+  for (let i = 0; i < 8; i++) {
+    await espera(2500);
+    const r = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) });
+    dados = r.dados;
+    const meta = dados?.MetaData;
+    const total = Number(meta?.TotalItens ?? 0);
+    if (buscasAtivas(meta) === 0 && total > 0) break;
+    if (buscasAtivas(meta) === 0 && i >= 2) break;
   }
 
-  const itens = brutos;
-  const idades = p.idades ?? [];
-
-  // Tarifas em lotes pequenos para não estourar a operadora.
-  const resultados: ServicoDisponivel[] = [];
-  const lote = 6;
-  for (let i = 0; i < itens.length; i += lote) {
-    const parte = await Promise.all(
-      itens.slice(i, i + lote).map(async (s) => {
-        const tarifas = await tarifasDoServico(Number(s.externo_id));
-        const vigente = tarifaVigente(tarifas, p.data);
-        const valor = vigente ? calcularValor(vigente, p.adultos, idades) : null;
-        const informacoes = [
-          s.combo ? "Combo de serviços" : null,
-          s.dias_semana ? `Dias: ${s.dias_semana}` : null,
-          s.fornecedor ? `Operado por ${s.fornecedor}` : null,
-        ].filter(Boolean) as string[];
-        return {
-          id: `cfs-${s.externo_id}`,
-          externoId: Number(s.externo_id),
-          titulo: String(s.titulo ?? "Serviço"),
-          categoria: String(s.tipo ?? "Serviços"),
-          descricao: semHtml(s.descricao),
-          fornecedor: s.fornecedor ?? null,
-          politica: semHtml(s.politica_cancelamento),
-          informacoes,
-          recomendado: s.destaque === true,
-          valor,
-          moeda: "BRL" as const,
-        };
-      }),
-    );
-    resultados.push(...parte);
+  const itens: any[] = [...((dados?.Items ?? []) as any[])];
+  const totalPaginas = Math.min(6, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
+  for (let pagina = 2; pagina <= totalPaginas; pagina++) {
+    const r = await chamarCompreFacil(rota(pagina), { base, method: "POST", body: corpo(guid) });
+    const lote: any[] = (r.dados as any)?.Items ?? [];
+    if (!lote.length) break;
+    itens.push(...lote);
   }
 
-  // Com tarifa vigente primeiro; dentro disso, recomendados e menor preço.
-  return resultados.sort(
+  const vistos = new Set<string>();
+  const lista = itens
+    .map(mapear)
+    .filter((s) => {
+      const chave = `${s.titulo}|${s.valor}`;
+      if (vistos.has(chave)) return false;
+      vistos.add(chave);
+      return true;
+    });
+
+  return lista.sort(
     (a, b) =>
-      Number(b.valor != null) - Number(a.valor != null) ||
-      Number(b.recomendado) - Number(a.recomendado) ||
-      (a.valor ?? 0) - (b.valor ?? 0),
+      Number(b.valor != null) - Number(a.valor != null) || (a.valor ?? 0) - (b.valor ?? 0),
   );
 }

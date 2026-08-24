@@ -94,7 +94,11 @@ export function CardHotelSelecionado({
                     "Localização conforme a operadora"}
                 </p>
               </div>
+              <button type="button" className="hotel-about-toggle" onClick={() => setAberto((v) => !v)}>
+                {aberto ? "Ver menos ⌃" : "Sobre o hotel ⌄"}
+              </button>
             </div>
+
 
             <div className="hotel-selected-content">
               <div className="hotel-value-row">
@@ -125,13 +129,8 @@ export function CardHotelSelecionado({
                 </small>
               </div>
 
-              <div className="overview-flight-toggle-row">
-                <button type="button" className="overview-flight-more" onClick={() => setAberto((v) => !v)}>
-                  {aberto ? "Ver menos ⌃" : "Sobre o hotel ⌄"}
-                </button>
-              </div>
-
               <div className="overview-hotel-details">
+
                 <div className="hotel-about-grid">
                   <div className="hotel-about-copy">
                     <h4>Sobre o hotel</h4>

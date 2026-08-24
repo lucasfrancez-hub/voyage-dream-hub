@@ -104,6 +104,7 @@ export function PacoteMotor({
         data: {
           cidadeId: cidadeId!,
           data: ida,
+          dataFim: volta || ida,
           adultos: pax.adultos,
           idades: quartos.flatMap((q) => q.idades),
           destino: destino || null,
