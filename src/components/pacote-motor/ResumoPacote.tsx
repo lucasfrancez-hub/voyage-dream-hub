@@ -44,6 +44,8 @@ export function ResumoPacote({
   total,
   diferenca,
   moeda = "BRL",
+  servicos = [],
+  onServicos,
   acao,
 }: {
   destino: string;
@@ -57,6 +59,8 @@ export function ResumoPacote({
   total: number;
   diferenca: number;
   moeda?: string;
+  servicos?: { id: string; titulo: string; valor: number | null }[];
+  onServicos?: () => void;
   acao?: React.ReactNode;
 }) {
   const pax = somaOcupacao(quartos);
