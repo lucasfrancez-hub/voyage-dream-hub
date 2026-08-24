@@ -405,3 +405,18 @@ export const liberarPacoteCativa = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Exclui definitivamente um pacote do catálogo. */
+export const excluirPacoteCativa = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { pacoteId: string }) => input)
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("cativa_pacotes")
+      .delete()
+      .eq("id", data.pacoteId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
