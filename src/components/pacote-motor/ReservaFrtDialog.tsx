@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { reservarPacoteFRT } from "@/lib/comprefacil/reserva.functions";
+import { CancelarReservaFrt } from "@/components/pacote-motor/CancelarReservaFrt";
+
 import type { HotelPacote, OcupacaoQuarto } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta } from "@/lib/passhub/types";
 
