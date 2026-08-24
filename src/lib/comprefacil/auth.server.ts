@@ -56,10 +56,19 @@ async function autenticar(): Promise<Sessao> {
 
   let dados: { access_token?: string; expires_in?: number };
   try {
-    dados = JSON.parse(texto);
+    dados = JSON.parse(texto || "{}");
   } catch {
     throw new Error("Resposta inesperada do CompreFácil ao autenticar.");
   }
+
+  // Quando o portal exige dois fatores, devolve o cabeçalho X-Auth-Otp-Token
+  // e o código chega em nao-responda@frt.tur.br. Buscamos e validamos sozinhos.
+  const otpToken = resp.headers.get("X-Auth-Otp-Token");
+  if (otpToken) {
+    const validado = await validarDoisFatores(otpToken);
+    if (validado) dados = validado;
+  }
+
   if (!dados.access_token) throw new Error("CompreFácil não devolveu token de acesso.");
 
   const c = claims(dados.access_token);
@@ -70,6 +79,57 @@ async function autenticar(): Promise<Sessao> {
     agenciaId: c["agency_id"] ?? null,
     usuarioId: c["sub"] ?? null,
   };
+}
+
+/**
+ * Busca o código de dois fatores na caixa de encaminhamento e valida o acesso.
+ * Remetente original: nao-responda@frt.tur.br.
+ * Assunto: "Código de acesso ao sistema FRT Operadora - <usuário>".
+ */
+async function validarDoisFatores(otpToken: string): Promise<{ access_token?: string; expires_in?: number } | null> {
+  const { obterCodigoAutenticacao } = await import("@/lib/auth-code/service.server");
+  const espera = await obterCodigoAutenticacao({
+    provider: "comprefacil",
+    loginHint: process.env["COMPREFACIL_USUARIO"] ?? null,
+    timeoutMs: 120_000,
+  });
+
+  if (!espera.success || !espera.code) {
+    throw new Error("Não recebemos o código de dois fatores do CompreFácil a tempo.");
+  }
+
+  const resp = await fetch(`${BASE}/api/autenticacao/validaracesso`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      noauth: "t",
+      fingerprint: FINGERPRINT,
+      navegador: "Chrome",
+    },
+    body: JSON.stringify({ token: otpToken, codigo: espera.code }),
+  });
+
+  const texto = await resp.text();
+  if (!resp.ok && resp.status !== 202) {
+    console.error(`CompreFácil validaracesso [${resp.status}]: ${texto.slice(0, 200)}`);
+    throw new Error(`Código de dois fatores do CompreFácil recusado [${resp.status}]`);
+  }
+
+  let corpo: any = {};
+  try {
+    corpo = texto ? JSON.parse(texto) : {};
+  } catch {
+    corpo = {};
+  }
+
+  const token: string | undefined =
+    corpo.access_token ??
+    corpo.AccessToken ??
+    corpo.token ??
+    resp.headers.get("X-Auth-Token") ??
+    undefined;
+
+  return token ? { access_token: token, expires_in: corpo.expires_in ?? corpo.ExpiresIn } : null;
 }
 
 export async function sessaoCompreFacil(): Promise<Sessao> {
