@@ -424,6 +424,7 @@ export function PacoteMotor({
               </Label>
               <RoomsPaxField
                 quartos={quartos}
+                className="h-12 rounded-xl border-border/60 bg-input px-3 text-sm font-semibold hover:border-primary/50"
                 onChange={(novos) =>
                   // Preserva as idades já informadas para cada quarto ao redistribuir.
                   setQuartos(
