@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2 } from "lucide-react";
+import { ArrowLeftRight, BedDouble, CalendarDays, Loader2, MapPin, Search, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { DateRangeField } from "@/components/search/DateRangeField";
+import { RoomsPaxField } from "@/components/search/RoomsPaxField";
 import { toast } from "sonner";
 import { QuoteBasketBar } from "@/components/quote/QuoteBasketBar";
 import { addToQuoteBasket } from "@/lib/quote-basket";
@@ -324,11 +328,15 @@ export function PacoteMotor({
   return (
     <div className="mkt inset">
       <div className="shell">
-        <section className="search">
-          <div className="search-grid">
-            <div>
-              <div className="label">Origem</div>
-              <div className="field">
+        {/* Mesma linguagem visual das abas Aéreo/Hotel: card do design system,
+            labels com ícone, calendário e seletor de hóspedes padrão. */}
+        <section className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
+          <div className="grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <MapPin className="h-3 w-3" /> Origem
+                </Label>
                 <CidadeAutocompleteCF
                   publico={publico}
                   valor={origem}
@@ -340,10 +348,10 @@ export function PacoteMotor({
                   }}
                 />
               </div>
-            </div>
-            <div>
-              <div className="label">Destino</div>
-              <div className="field">
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <ArrowLeftRight className="h-3 w-3" /> Destino
+                </Label>
                 <CidadeAutocompleteCF
                   publico={publico}
                   valor={destino}
@@ -357,90 +365,57 @@ export function PacoteMotor({
                 />
               </div>
             </div>
-            <div>
-              <div className="label">Ida</div>
-              <div className="field">
-                <input type="date" value={ida} onChange={(e) => setIda(e.target.value)} />
-              </div>
+
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <CalendarDays className="h-3 w-3" /> Ida e volta
+              </Label>
+              <DateRangeField
+                departureDate={ida}
+                returnDate={volta}
+                allowOneWay={false}
+                labels={{ start: "Ida", end: "Volta" }}
+                onChange={(d, v) => {
+                  setIda(d);
+                  setVolta(v);
+                }}
+              />
             </div>
-            <div>
-              <div className="label">Volta</div>
-              <div className="field">
-                <input type="date" value={volta} onChange={(e) => setVolta(e.target.value)} />
-              </div>
+
+            <div className="flex items-end">
+              <Button size="lg" className="h-11 w-full lg:w-auto" onClick={pesquisar} disabled={carregando}>
+                {carregando ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="mr-2 h-4 w-4" />
+                )}
+                Buscar pacote
+              </Button>
             </div>
-            <button type="button" className="search-btn" onClick={pesquisar} disabled={carregando}>
-              {carregando ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Buscar pacote
-            </button>
           </div>
 
-          <div className="occupancy-wrap">
-            <div className="occupancy-top">
-              <div className="occupancy-left">
-                <div className="room-count">
-                  <span>Quartos</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={4}
-                    value={quartos.length}
-                    onChange={(e) => alterarQtdQuartos(Number(e.target.value))}
-                  />
-                </div>
-                <div className="occupancy-summary">
-                  {plural(pax.hospedes, "passageiro", "passageiros")} ·{" "}
-                  {plural(quartos.length, "quarto", "quartos")}
-                </div>
-              </div>
-              <button type="button" className="mode">
-                <span />
-                Pacote de viagens
-              </button>
+          <div className="mt-3 grid gap-3 border-t border-border/60 pt-3 md:grid-cols-[1fr_auto]">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Users className="h-3.5 w-3.5" />
+              {plural(pax.hospedes, "passageiro", "passageiros")} ·{" "}
+              {plural(quartos.length, "quarto", "quartos")}
             </div>
-
-            <div className="room-lines">
-              {quartos.map((q, i) => (
-                <div className="room-line" key={i}>
-                  <div className="room-name">
-                    <b>Quarto {i + 1}</b>
-                    <small>Distribuição dos hóspedes</small>
-                  </div>
-                  <label className="guest-field">
-                    <span>Adultos</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={6}
-                      value={q.adultos}
-                      onChange={(e) => alterarQuarto(i, "adultos", Number(e.target.value))}
-                    />
-                  </label>
-                  <label className="guest-field">
-                    <span>Crianças</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={5}
-                      value={q.criancas}
-                      onChange={(e) => alterarQuarto(i, "criancas", Number(e.target.value))}
-                    />
-                  </label>
-                  <label className="guest-field">
-                    <span>Bebês</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={3}
-                      value={q.bebes}
-                      onChange={(e) => alterarQuarto(i, "bebes", Number(e.target.value))}
-                    />
-                  </label>
-                  <div className="room-total">
-                    {plural(q.adultos + q.criancas + q.bebes, "hóspede", "hóspedes")}
-                  </div>
-                </div>
-              ))}
+            <div className="w-full space-y-1 md:w-72">
+              <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <BedDouble className="h-3 w-3" /> Quartos e hóspedes
+              </Label>
+              <RoomsPaxField
+                quartos={quartos}
+                onChange={(novos) =>
+                  // Preserva as idades já informadas para cada quarto ao redistribuir.
+                  setQuartos(
+                    novos.map((q, i) => ({
+                      ...q,
+                      idades: (quartos[i]?.idades ?? []).slice(0, q.criancas),
+                    })),
+                  )
+                }
+              />
             </div>
           </div>
         </section>
