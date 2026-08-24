@@ -8,6 +8,7 @@
 const BASE = "https://api.comprefacil.tur.br";
 const CLIENT_ID = "portaloperadora:2026";
 const FINGERPRINT = "viaair-servidor-01";
+const TEMPO_LIMITE_REQUISICAO_MS = 20_000;
 
 type Sessao = { token: string; expiraEm: number; agenciaId: string | null; usuarioId: string | null };
 
@@ -75,23 +76,32 @@ async function autenticar(): Promise<Sessao> {
     throw new Error("Credenciais do CompreFácil não configuradas no servidor.");
   }
 
-  const resp = await fetch(`${BASE}/token`, {
-    method: "POST",
-    headers: {
-      // o /token é OAuth clássico: precisa ser form-urlencoded (com JSON a
-      // operadora devolve 400 e ainda dispara código 2FA à toa)
-      "Content-Type": "application/x-www-form-urlencoded",
-      noauth: "t",
-      fingerprint: FINGERPRINT,
-      navegador: "Chrome",
-    },
-    body: new URLSearchParams({
-      grant_type: "password",
-      username: usuario,
-      password: senha,
-      client_id: CLIENT_ID,
-    }).toString(),
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(`${BASE}/token`, {
+      method: "POST",
+      headers: {
+        // o /token é OAuth clássico: precisa ser form-urlencoded (com JSON a
+        // operadora devolve 400 e ainda dispara código 2FA à toa)
+        "Content-Type": "application/x-www-form-urlencoded",
+        noauth: "t",
+        fingerprint: FINGERPRINT,
+        navegador: "Chrome",
+      },
+      body: new URLSearchParams({
+        grant_type: "password",
+        username: usuario,
+        password: senha,
+        client_id: CLIENT_ID,
+      }).toString(),
+      signal: AbortSignal.timeout(TEMPO_LIMITE_REQUISICAO_MS),
+    });
+  } catch (erro) {
+    if (erro instanceof Error && (erro.name === "TimeoutError" || erro.name === "AbortError")) {
+      throw new Error("A autenticação da operadora demorou para responder. Tente novamente.");
+    }
+    throw erro;
+  }
 
   const texto = await resp.text();
   if (!resp.ok && resp.status !== 202) {
@@ -147,16 +157,25 @@ async function validarDoisFatores(otpToken: string): Promise<{ access_token?: st
     throw new Error("Não recebemos o código de dois fatores do CompreFácil a tempo.");
   }
 
-  const resp = await fetch(`${BASE}/api/autenticacao/validaracesso`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      noauth: "t",
-      fingerprint: FINGERPRINT,
-      navegador: "Chrome",
-    },
-    body: JSON.stringify({ token: otpToken, codigo: espera.code }),
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(`${BASE}/api/autenticacao/validaracesso`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        noauth: "t",
+        fingerprint: FINGERPRINT,
+        navegador: "Chrome",
+      },
+      body: JSON.stringify({ token: otpToken, codigo: espera.code }),
+      signal: AbortSignal.timeout(TEMPO_LIMITE_REQUISICAO_MS),
+    });
+  } catch (erro) {
+    if (erro instanceof Error && (erro.name === "TimeoutError" || erro.name === "AbortError")) {
+      throw new Error("A validação da operadora demorou para responder. Tente novamente.");
+    }
+    throw erro;
+  }
 
   const texto = await resp.text();
   if (!resp.ok && resp.status !== 202) {
@@ -291,16 +310,25 @@ export async function chamarCompreFacil(
 ): Promise<{ status: number; ok: boolean; dados: unknown }> {
   const { token } = await sessaoCompreFacil();
   const url = `${init.base ?? BASE}${path}`;
-  const resp = await fetch(url, {
-    method: init.method ?? "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      fingerprint: FINGERPRINT,
-      ...(init.headers ?? {}),
-    },
-    ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: init.method ?? "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        fingerprint: FINGERPRINT,
+        ...(init.headers ?? {}),
+      },
+      ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+      signal: AbortSignal.timeout(TEMPO_LIMITE_REQUISICAO_MS),
+    });
+  } catch (erro) {
+    if (erro instanceof Error && (erro.name === "TimeoutError" || erro.name === "AbortError")) {
+      throw new Error("A operadora demorou para responder. Tente a busca novamente.");
+    }
+    throw erro;
+  }
 
   const texto = await resp.text();
   let dados: unknown = texto;
