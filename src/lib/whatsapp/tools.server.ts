@@ -279,6 +279,7 @@ export function buildCamilaTools(conversation: WaConversation) {
           .from("packages")
           .select(COLS)
           .eq("is_active", true)
+          .not("slug", "like", "motor-%")
           .order("going_date", { ascending: true });
         if (destino) base = base.ilike("destination", `%${destino}%`);
 
@@ -299,6 +300,7 @@ export function buildCamilaTools(conversation: WaConversation) {
               .from("packages")
               .select(COLS)
               .eq("is_active", true)
+              .not("slug", "like", "motor-%")
               .order("going_date", { ascending: true });
             if (destino) base2 = base2.ilike("destination", `%${destino}%`);
             const { data: rest } = await base2.not("origin", "ilike", `%${origem}%`).limit(POOL);

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CreditCard, QrCode, FileText, Loader2, Check, MessageCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, QrCode, FileText, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange, maskCPF } from "@/lib/format";
@@ -713,25 +713,6 @@ function Checkout() {
           Preencha seus dados e escolha a forma de pagamento. Nosso time confirma sua reserva em seguida.
         </p>
 
-        {!isPerUnit && !paxTravado && (
-          <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-
-            Este pacote foi montado para{" "}
-            <span className="text-foreground font-medium">
-              {baseOccupancy} adulto{baseOccupancy > 1 ? "s" : ""}
-            </span>
-            . Para outra quantidade de viajantes, prefira solicitar um orçamento personalizado{" "}
-            <a
-              href={customQuoteWhatsappUrl(pkg.title)}
-              target="_blank"
-              rel="noreferrer"
-              className="text-brand-orange hover:underline font-medium inline-flex items-center gap-1"
-            >
-              <MessageCircle className="h-3 w-3" /> pelo WhatsApp
-            </a>
-            .
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="mt-6 grid lg:grid-cols-[1fr_360px] gap-8">
           {/* Left: form */}
