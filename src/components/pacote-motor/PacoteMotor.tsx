@@ -12,6 +12,7 @@ import { CardVooSelecionado } from "@/components/pacote-motor/CardVooSelecionado
 import { ResumoPacote } from "@/components/pacote-motor/ResumoPacote";
 import { SeletorVoo } from "@/components/pacote-motor/SeletorVoo";
 import { SeletorHospedagem } from "@/components/pacote-motor/SeletorHospedagem";
+import { SeletorServicos } from "@/components/pacote-motor/SeletorServicos";
 import {
   ocupacaoPadrao,
   plural,
@@ -20,12 +21,14 @@ import {
   type OcupacaoQuarto,
 } from "@/lib/pacote-motor/mapear";
 import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.functions";
+import { buscarServicosCF, buscarServicosCFPublic } from "@/lib/comprefacil/servicos.functions";
 import { buscarAereoCFPublic, buscarHospedagemCFPublic } from "@/lib/comprefacil/publico.functions";
 import { criarPacoteMotorCheckout } from "@/lib/pacote-motor/checkout.functions";
+import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import type { PassHubOferta } from "@/lib/passhub/types";
 import type { PacotePreset } from "@/lib/pacote-motor/preset";
 
-type Vista = "overview" | "voo" | "hotel";
+type Vista = "overview" | "voo" | "hotel" | "servico";
 
 /**
  * Motor de Pacotes VIA AIR — padrão visual aprovado.
