@@ -358,6 +358,8 @@ function AdminLayout() {
   }
 
 
+  const mostrarMenus = isAdmin || role === "equipe";
+
   if (!isAdmin && !isPartner && role !== "marketing" && role !== "equipe") {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
@@ -442,6 +444,7 @@ function AdminLayout() {
 
 
   return (
+    <AcessoProvider ativo={mostrarMenus}>
     <div className={`min-h-screen bg-background text-foreground ${theme === "light" ? "admin-light" : ""}`}>
       {oferecerPin ? (
         <ChatPinSetup
@@ -459,13 +462,13 @@ function AdminLayout() {
               <img src={viaAirLogo.url} alt="Via Air" className="h-7 sm:h-8 w-auto" />
             </Link>
             <nav className="hidden md:flex items-center gap-1 min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {isAdmin && <ProdutosNav pathname={pathname} />}
-              {isAdmin && <DashboardNav pathname={pathname} />}
-              {isAdmin
+              {mostrarMenus && <ProdutosNav pathname={pathname} />}
+              {mostrarMenus && <DashboardNav pathname={pathname} />}
+              {mostrarMenus
                 ? <PedidosNav pathname={pathname} />
                 : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
               <CartaoNav pathname={pathname} />
-              {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
+              {mostrarMenus && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
             </nav>
 
           </div>
@@ -517,20 +520,22 @@ function AdminLayout() {
         </div>
         <nav className="md:hidden border-t border-border overflow-x-auto">
           <div className="mx-auto max-w-7xl px-3 sm:px-6 py-2 flex items-center gap-1 whitespace-nowrap">
-            {isAdmin && <ProdutosNav pathname={pathname} />}
-            {isAdmin && <DashboardNav pathname={pathname} />}
-            {isAdmin
+            {mostrarMenus && <ProdutosNav pathname={pathname} />}
+            {mostrarMenus && <DashboardNav pathname={pathname} />}
+            {mostrarMenus
               ? <PedidosNav pathname={pathname} />
               : <NavItem to="/admin/pedidos" icon={ClipboardList} label="Meus pedidos" active={pathname.startsWith("/admin/pedidos")} />}
             <CartaoNav pathname={pathname} />
             
-            {isAdmin && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
+            {mostrarMenus && <SegurancaNav pathname={pathname} showUsuarios={session?.user?.email?.toLowerCase() === "lucas@voeair.com"} />}
           </div>
         </nav>
 
       </header>
 
-      <Outlet />
+      <GateModulo pathname={pathname} liberado={isAdmin}>
+        <Outlet />
+      </GateModulo>
       <DocumentoViewer />
 
       <footer className="mt-12 border-t border-border bg-background/60">
@@ -549,6 +554,39 @@ function AdminLayout() {
           </div>
         </div>
       </footer>
+    </div>
+    </AcessoProvider>
+  );
+}
+
+function GateModulo({
+  pathname,
+  liberado,
+  children,
+}: {
+  pathname: string;
+  liberado: boolean;
+  children: React.ReactNode;
+}) {
+  const { podeRota, carregando } = useAcesso();
+  if (liberado) return <>{children}</>;
+  if (carregando) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+  if (podeRota(pathname)) return <>{children}</>;
+  const modulo = moduloDaRota(pathname);
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center p-6 text-center">
+      <div>
+        <h1 className="text-2xl font-semibold">Área restrita</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Você não tem acesso ao módulo{modulo ? ` "${modulo.label}"` : ""}. Peça liberação ao administrador.
+        </p>
+      </div>
     </div>
   );
 }
