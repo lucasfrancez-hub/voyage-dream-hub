@@ -133,8 +133,30 @@ export function ResumoPacote({
         </div>
       ) : null}
 
+      <div className="sum-svc">
+        <div className="sum-svc-head">
+          <b>Serviços adicionais</b>
+          {servicos.length === 0 ? <span className="sum-svc-off">Não incluso</span> : null}
+        </div>
+        {servicos.length ? (
+          <ul className="sum-svc-list">
+            {servicos.map((s) => (
+              <li key={s.id}>
+                <span>{s.titulo}</span>
+                <b>+ {brl(s.valor ?? 0, moeda)}</b>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {onServicos ? (
+          <button type="button" className="ghost sum-svc-btn" onClick={onServicos}>
+            {servicos.length ? "Alterar serviços" : "Adicionar serviços"}
+          </button>
+        ) : null}
+      </div>
+
       <div className="total">
-        <span>Valor total do pacote</span>
+
         <strong>{brl(total, moeda)}</strong>
         <small>
           {Math.abs(diferenca) < 0.005
