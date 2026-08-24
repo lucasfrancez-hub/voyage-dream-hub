@@ -253,6 +253,18 @@ const emptyForm: Partial<PackageRow> = {
   max_units: 9,
 };
 
+// Salvamento em paralelo: a checagem de duplicidade (que pode abrir diálogo) e a
+// reserva de slug precisam ser feitas uma de cada vez, senão dois pacotes disputam
+// o mesmo slug e um deles some silenciosamente.
+let filaExclusiva: Promise<unknown> = Promise.resolve();
+const slugsReservados = new Set<string>();
+function comExclusividade<T>(fn: () => Promise<T>): Promise<T> {
+  const proximo = filaExclusiva.then(fn, fn);
+  filaExclusiva = proximo.catch(() => {});
+  return proximo;
+}
+
+
 function AdminPackages() {
   const qc = useQueryClient();
   const [editing, setEditingState] = useState<Partial<PackageRow> | null>(null);
