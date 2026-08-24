@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { infoHotelMotor } from "@/lib/pacote-motor/hotel-info.functions";
@@ -122,6 +123,12 @@ export function CardHotelSelecionado({
                   <br />
                   {quarto?.politica ?? hotel.politicas[0] ?? "Política de cancelamento conforme a operadora"}
                 </small>
+              </div>
+
+              <div className="overview-flight-toggle-row">
+                <button type="button" className="overview-flight-more" onClick={() => setAberto((v) => !v)}>
+                  {aberto ? "Ver menos ⌃" : "Sobre o hotel ⌄"}
+                </button>
               </div>
 
               <div className="overview-hotel-details">
