@@ -363,11 +363,32 @@ function PacotesCativaPage() {
                     <Check className="mr-1 h-4 w-4" />
                     {p.liberado_manual ? "Liberado" : "Ir do mesmo jeito"}
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={excluirPacote.isPending}
+                    title="Excluir pacote"
+                    onClick={() =>
+                      confirmThen(
+                        {
+                          title: "Excluir pacote",
+                          description: `Excluir "${p.nome}" do catálogo? Essa ação não pode ser desfeita.`,
+                          confirmText: "Excluir",
+                          destructive: true,
+                        },
+                        () => excluirPacote.mutate(p.id),
+                      )
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                   {p.link_orcamento ? (
                     <a href={p.link_orcamento} target="_blank" rel="noreferrer" className="p-2 text-muted-foreground hover:text-foreground">
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   ) : null}
+
                 </div>
               </li>
             ))}
