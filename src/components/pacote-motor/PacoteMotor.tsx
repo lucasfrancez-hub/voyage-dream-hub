@@ -42,6 +42,8 @@ export function PacoteMotor({
   const buscarHoteis = useServerFn(publico ? buscarHospedagemCFPublic : buscarHospedagemCF);
   const buscarVoos = useServerFn(publico ? buscarAereoCFPublic : buscarAereoCF);
   const criarCheckout = useServerFn(criarPacoteMotorCheckout);
+  const buscarServicos = useServerFn(publico ? buscarServicosCFPublic : buscarServicosCF);
+
 
 
   const [origem, setOrigem] = useState(preset?.origem ?? "");
