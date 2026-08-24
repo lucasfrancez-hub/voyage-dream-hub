@@ -126,7 +126,8 @@ export function SeletorServicos({
 
           {lista.map((s) => {
             const sel = selecionados.includes(s.id);
-            const capa = s.imagens?.[0] ?? s.imagem ?? null;
+            const ehSeguro = /seguro/i.test(grupoServico(s)) || /seguro/i.test(s.titulo);
+            const capa = s.imagens?.[0] ?? s.imagem ?? (ehSeguro ? (seguroImg as unknown as string) : null);
             return (
               <article key={s.id} className={`svc${sel ? " selected" : ""}`}>
                 {capa ? (

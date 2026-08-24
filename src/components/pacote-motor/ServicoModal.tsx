@@ -2,6 +2,7 @@ import { useState } from "react";
 import { brl } from "@/lib/pacote-motor/mapear";
 import { grupoServico } from "@/lib/pacote-motor/categorias";
 import { Lightbox } from "@/components/pacote-motor/Lightbox";
+import seguroImg from "@/assets/seguro-viagem.jpg";
 import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 
 /** Divide o texto da operadora em blocos legíveis (perguntas/bullets viram parágrafos). */
@@ -33,6 +34,7 @@ export function ServicoModal({
   const grupo = grupoServico(servico);
   const seguro = /seguro/i.test(grupo) || /seguro/i.test(servico.titulo);
   const partes = servico.descricao ? blocos(servico.descricao) : [];
+  const capa = fotos[0] ?? (seguro ? (seguroImg as unknown as string) : null);
 
   return (
     <div
@@ -43,9 +45,9 @@ export function ServicoModal({
       onClick={onFechar}
     >
       <div className="mkt-modal-card svc-card" onClick={(e) => e.stopPropagation()}>
-        <div className={`svc-hero${fotos.length ? "" : " sem-foto"}`}>
-          {fotos[0] ? (
-            <img src={fotos[0]} alt={servico.titulo} loading="lazy" onClick={() => setFoto(0)} />
+        <div className={`svc-hero${capa ? "" : " sem-foto"}`}>
+          {capa ? (
+            <img src={capa} alt={servico.titulo} loading="lazy" onClick={() => fotos.length && setFoto(0)} />
           ) : (
             <div className="svc-hero-ph" aria-hidden="true">
               <span>{seguro ? "🛡️" : /transfer/i.test(grupo) ? "🚐" : /ingresso/i.test(grupo) ? "🎟️" : "🌤️"}</span>
