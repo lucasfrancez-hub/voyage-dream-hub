@@ -503,7 +503,7 @@ export function PacoteMotor({
                       <b>Serviços adicionais</b>
                       <span className={servicosSel.length ? "svcbox-on" : "svcbox-off"}>
                         {servicosSel.length
-                          ? `${servicosSel.length} ${plural(servicosSel.length, "serviço incluído", "serviços incluídos").replace(/^\d+\s/, "")}`
+                          ? plural(servicosSel.length, "serviço incluído", "serviços incluídos")
                           : "Não incluso"}
                       </span>
                     </div>
