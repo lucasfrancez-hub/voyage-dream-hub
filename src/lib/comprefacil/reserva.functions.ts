@@ -45,6 +45,7 @@ export const reservarPacoteFRT = createServerFn({ method: "POST" })
         localizadorAereo: null,
         localizadorHotel: null,
         limiteEmissao: null,
+        prazoPagamento: null,
         passos: [{ passo: "Reserva", ok: false, detalhe: e instanceof Error ? e.message : "Falha inesperada" }],
       };
     }

@@ -14,6 +14,7 @@
  */
 import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.server";
 import { itemBrutoCF } from "./busca-cache.server";
+import { extrairPrazoPagamento } from "./prazo.server";
 
 /** Consultor padrão das reservas do portal (Ana Beatriz). */
 export const CONSULTOR_PADRAO_FRT = 19800;
@@ -57,6 +58,8 @@ export type ResultadoReservaFRT = {
   localizadorAereo: string | null;
   localizadorHotel: string | null;
   limiteEmissao: string | null;
+  /** Prazo de pagamento informado pela operadora (ISO). */
+  prazoPagamento: string | null;
   passos: PassoReserva[];
 };
 
@@ -115,7 +118,7 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
   if (e.hotel && !hotelBrutoOriginal)
     registrar("Recuperar hospedagem da busca", false, "Busca expirada — pesquise novamente.");
   if (!aereoBruto && !hotelBrutoOriginal) {
-    return { ok: false, orcamentoId: null, localizadorAereo: null, localizadorHotel: null, limiteEmissao: null, passos };
+    return { ok: false, orcamentoId: null, localizadorAereo: null, localizadorHotel: null, limiteEmissao: null, prazoPagamento: null, passos };
   }
 
   // O hotel vai para o orçamento apenas com o quarto escolhido.
@@ -159,7 +162,7 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
   const orcamentoId = Number((criar.dados as any)?.Id ?? 0) || null;
   registrar("Criar orçamento na operadora", Boolean(orcamentoId), orcamentoId ? `#${orcamentoId}` : "Falha ao criar");
   if (!orcamentoId) {
-    return { ok: false, orcamentoId: null, localizadorAereo: null, localizadorHotel: null, limiteEmissao: null, passos };
+    return { ok: false, orcamentoId: null, localizadorAereo: null, localizadorHotel: null, limiteEmissao: null, prazoPagamento: null, passos };
   }
 
   const consultor = e.consultorId ?? CONSULTOR_PADRAO_FRT;
@@ -253,17 +256,27 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
   }
 
 
+  // Releitura final: é depois de reservar que a operadora carimba o prazo de pagamento.
+  let prazoPagamento = extrairPrazoPagamento(orc);
+  try {
+    const final = await chamarCompreFacil(`/api/Reserva/${orcamentoId}/false`);
+    prazoPagamento = extrairPrazoPagamento(final.dados) ?? prazoPagamento;
+  } catch {
+    /* mantém o prazo já lido */
+  }
+
   const ok = passos.every((p) => p.ok);
   await registrarReservaFRT({
     orcamentoId,
     localizadorAereo,
     localizadorHotel,
     limiteEmissao,
+    prazoPagamento,
     passos,
     passageiros: e.passageiros,
   });
 
-  return { ok, orcamentoId, localizadorAereo, localizadorHotel, limiteEmissao, passos };
+  return { ok, orcamentoId, localizadorAereo, localizadorHotel, limiteEmissao, prazoPagamento, passos };
 }
 
 /** Guarda a reserva no nosso banco para aparecer na Consolidadora. */
@@ -272,6 +285,7 @@ async function registrarReservaFRT(r: {
   localizadorAereo: string | null;
   localizadorHotel: string | null;
   limiteEmissao: string | null;
+  prazoPagamento: string | null;
   passos: PassoReserva[];
   passageiros: PaxReserva[];
 }) {
@@ -284,7 +298,7 @@ async function registrarReservaFRT(r: {
         localizador_hotel: r.localizadorHotel,
         limite_emissao: r.limiteEmissao,
         status: r.localizadorAereo || r.localizadorHotel ? "reservado" : "pendente",
-        detalhes: { passos: r.passos, passageiros: r.passageiros } as never,
+        detalhes: { passos: r.passos, passageiros: r.passageiros, prazo_pagamento: r.prazoPagamento } as never,
       },
       { onConflict: "orcamento_id" },
     );
