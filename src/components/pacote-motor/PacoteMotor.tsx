@@ -560,7 +560,8 @@ export function PacoteMotor({
                 </div>
               {resumo}
             </div>
-          </section>
+            )}
+
         )}
 
         {buscou && vista === "voo" && (
