@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, Hotel, Plane, Check, Star, Luggage, Clock } from "lucide-react";
 
-export const Route = createFileRoute("/admin/motor-pacote_/modelos")({
+export const Route = createFileRoute("/admin/motor-pacote/modelos")({
   head: () => ({
     meta: [
       { title: "Modelos do Motor de Pacotes | VIA AIR" },
