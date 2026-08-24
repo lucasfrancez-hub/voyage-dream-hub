@@ -28,7 +28,7 @@ import {
   ChevronRight,
   ArrowRight,
   Star,
-  MessageCircle,
+
   Eye,
   Coffee,
   Utensils,
