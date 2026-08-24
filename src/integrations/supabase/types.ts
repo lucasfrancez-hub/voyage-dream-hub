@@ -2645,6 +2645,228 @@ export type Database = {
         }
         Relationships: []
       }
+      comprefacil_import_runs: {
+        Row: {
+          erro: string | null
+          escopo: string
+          finalizado_em: string | null
+          id: string
+          iniciado_em: string
+          pacotes_atualizados: number
+          pacotes_inativados: number
+          pacotes_novos: number
+          servicos_atualizados: number
+          servicos_inativados: number
+          servicos_novos: number
+          status: string
+        }
+        Insert: {
+          erro?: string | null
+          escopo: string
+          finalizado_em?: string | null
+          id?: string
+          iniciado_em?: string
+          pacotes_atualizados?: number
+          pacotes_inativados?: number
+          pacotes_novos?: number
+          servicos_atualizados?: number
+          servicos_inativados?: number
+          servicos_novos?: number
+          status?: string
+        }
+        Update: {
+          erro?: string | null
+          escopo?: string
+          finalizado_em?: string | null
+          id?: string
+          iniciado_em?: string
+          pacotes_atualizados?: number
+          pacotes_inativados?: number
+          pacotes_novos?: number
+          servicos_atualizados?: number
+          servicos_inativados?: number
+          servicos_novos?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      comprefacil_pacotes: {
+        Row: {
+          ativo: boolean
+          casamento: boolean
+          cidade: string | null
+          cidade_id: number | null
+          cidade_saida: string | null
+          circuito: boolean
+          created_at: string
+          data_limite: string | null
+          destaque: boolean
+          destino_id: number | null
+          dias: number | null
+          evento: boolean
+          externo_id: number
+          hoteis: Json
+          id: string
+          imagens: Json
+          inclui: Json
+          minimo_noites: number | null
+          moeda: string | null
+          nome: string
+          observacao: string | null
+          periodos: Json
+          quantidade_disponivel: number | null
+          raw: Json | null
+          referencia: string | null
+          sob_pedido: boolean
+          updated_at: string
+          validade_ate: string | null
+          validade_de: string | null
+          valor_servico: number | null
+          valor_taxa: number | null
+          visto_em: string
+        }
+        Insert: {
+          ativo?: boolean
+          casamento?: boolean
+          cidade?: string | null
+          cidade_id?: number | null
+          cidade_saida?: string | null
+          circuito?: boolean
+          created_at?: string
+          data_limite?: string | null
+          destaque?: boolean
+          destino_id?: number | null
+          dias?: number | null
+          evento?: boolean
+          externo_id: number
+          hoteis?: Json
+          id?: string
+          imagens?: Json
+          inclui?: Json
+          minimo_noites?: number | null
+          moeda?: string | null
+          nome: string
+          observacao?: string | null
+          periodos?: Json
+          quantidade_disponivel?: number | null
+          raw?: Json | null
+          referencia?: string | null
+          sob_pedido?: boolean
+          updated_at?: string
+          validade_ate?: string | null
+          validade_de?: string | null
+          valor_servico?: number | null
+          valor_taxa?: number | null
+          visto_em?: string
+        }
+        Update: {
+          ativo?: boolean
+          casamento?: boolean
+          cidade?: string | null
+          cidade_id?: number | null
+          cidade_saida?: string | null
+          circuito?: boolean
+          created_at?: string
+          data_limite?: string | null
+          destaque?: boolean
+          destino_id?: number | null
+          dias?: number | null
+          evento?: boolean
+          externo_id?: number
+          hoteis?: Json
+          id?: string
+          imagens?: Json
+          inclui?: Json
+          minimo_noites?: number | null
+          moeda?: string | null
+          nome?: string
+          observacao?: string | null
+          periodos?: Json
+          quantidade_disponivel?: number | null
+          raw?: Json | null
+          referencia?: string | null
+          sob_pedido?: boolean
+          updated_at?: string
+          validade_ate?: string | null
+          validade_de?: string | null
+          valor_servico?: number | null
+          valor_taxa?: number | null
+          visto_em?: string
+        }
+        Relationships: []
+      }
+      comprefacil_servicos: {
+        Row: {
+          ativo: boolean
+          combo: boolean
+          created_at: string
+          descricao: string | null
+          destaque: boolean
+          dias_antecedencia: number | null
+          dias_semana: string | null
+          externo_id: number
+          fornecedor: string | null
+          fornecedor_cidade_id: number | null
+          fornecedor_id: number | null
+          id: string
+          internacional: boolean
+          politica_cancelamento: string | null
+          prazo_cancelamento: number | null
+          raw: Json | null
+          tipo: string | null
+          tipo_id: number | null
+          titulo: string
+          updated_at: string
+          visto_em: string
+        }
+        Insert: {
+          ativo?: boolean
+          combo?: boolean
+          created_at?: string
+          descricao?: string | null
+          destaque?: boolean
+          dias_antecedencia?: number | null
+          dias_semana?: string | null
+          externo_id: number
+          fornecedor?: string | null
+          fornecedor_cidade_id?: number | null
+          fornecedor_id?: number | null
+          id?: string
+          internacional?: boolean
+          politica_cancelamento?: string | null
+          prazo_cancelamento?: number | null
+          raw?: Json | null
+          tipo?: string | null
+          tipo_id?: number | null
+          titulo: string
+          updated_at?: string
+          visto_em?: string
+        }
+        Update: {
+          ativo?: boolean
+          combo?: boolean
+          created_at?: string
+          descricao?: string | null
+          destaque?: boolean
+          dias_antecedencia?: number | null
+          dias_semana?: string | null
+          externo_id?: number
+          fornecedor?: string | null
+          fornecedor_cidade_id?: number | null
+          fornecedor_id?: number | null
+          id?: string
+          internacional?: boolean
+          politica_cancelamento?: string | null
+          prazo_cancelamento?: number | null
+          raw?: Json | null
+          tipo?: string | null
+          tipo_id?: number | null
+          titulo?: string
+          updated_at?: string
+          visto_em?: string
+        }
+        Relationships: []
+      }
       cruise_additional_categories: {
         Row: {
           created_at: string
