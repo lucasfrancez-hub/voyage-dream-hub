@@ -127,7 +127,8 @@ export async function buscarPacotesCF(filtros: FiltrosBuscaCF): Promise<{
     const b = `%${termo}%`;
     q = q.or(`nome.ilike.${b},cidade.ilike.${b},cidade_saida.ilike.${b},referencia.ilike.${b}`);
   }
-  if (filtros.cidade?.trim()) q = q.ilike("cidade", `%${filtros.cidade.trim()}%`);
+  if (filtros.cidadeId) q = q.eq("cidade_id", filtros.cidadeId);
+  else if (filtros.cidade?.trim()) q = q.ilike("cidade", `%${filtros.cidade.trim()}%`);
   if (filtros.saida?.trim()) q = q.ilike("cidade_saida", `%${filtros.saida.trim()}%`);
   if (filtros.noitesMin) q = q.gte("dias", filtros.noitesMin);
   if (filtros.noitesMax) q = q.lte("dias", filtros.noitesMax);
