@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { formatarPrazoPagamento } from "@/lib/comprefacil/prazo";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,6 +142,7 @@ export function ReservaFrtDialog({
         localizadorAereo: string | null;
         localizadorHotel: string | null;
         limiteEmissao: string | null;
+        prazoPagamento: string | null;
         passos: { passo: string; ok: boolean; detalhe?: string | null }[];
       }
     | undefined;
@@ -269,8 +271,13 @@ export function ReservaFrtDialog({
           <div className="space-y-4">
             <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/30 p-4 text-sm">
               <p>
-                Orçamento na operadora: <strong>{r.orcamentoId ?? "—"}</strong>
+                ID FRT (orçamento): <strong>{r.orcamentoId ?? "—"}</strong>
               </p>
+              {r.prazoPagamento && (
+                <p className="text-amber-600 dark:text-amber-400">
+                  Prazo de Pagamento: <strong>{formatarPrazoPagamento(r.prazoPagamento)}</strong>
+                </p>
+              )}
               <p>
                 Localizador aéreo: <strong>{r.localizadorAereo ?? "—"}</strong>
               </p>

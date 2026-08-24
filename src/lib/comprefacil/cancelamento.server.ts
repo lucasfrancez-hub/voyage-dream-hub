@@ -11,6 +11,7 @@
  * por isso varremos todos os produtos do orçamento e cancelamos cada um.
  */
 import { chamarCompreFacil, COMPREFACIL_BASES } from "./auth.server";
+import { extrairPrazoPagamento } from "./prazo.server";
 
 export type ItemReservaFRT = {
   tipo: "aereo" | "hotel" | "servico" | "seguro";
@@ -102,7 +103,7 @@ export function itensDoOrcamento(orc: any): ItemReservaFRT[] {
 /** Consulta os itens de um orçamento na operadora (sem cancelar nada). */
 export async function consultarReservaFRT(orcamentoId: number) {
   const orc = await lerOrcamento(orcamentoId);
-  return { orcamentoId, itens: itensDoOrcamento(orc) };
+  return { orcamentoId, itens: itensDoOrcamento(orc), prazoPagamento: extrairPrazoPagamento(orc) };
 }
 
 /**

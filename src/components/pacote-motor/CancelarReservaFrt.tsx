@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { confirmThen } from "@/lib/confirm";
+import { formatarPrazoPagamento } from "@/lib/comprefacil/prazo";
 import { cancelarReservaFRTFn, consultarReservaFRTFn } from "@/lib/comprefacil/cancelamento.functions";
 
 type Item = {
@@ -26,13 +27,18 @@ export function CancelarReservaFrt({ orcamentoId }: { orcamentoId: number }) {
   const cancelar = useServerFn(cancelarReservaFRTFn);
 
   const [itens, setItens] = useState<Item[]>([]);
+  const [prazo, setPrazo] = useState<string | null>(null);
   const [selecionados, setSelecionados] = useState<Record<string, boolean>>({});
   const [motivo, setMotivo] = useState("");
   const [passos, setPassos] = useState<Passo[] | null>(null);
 
   const carga = useMutation({
-    mutationFn: async () => (await consultar({ data: { orcamentoId } })) as { itens: Item[] },
-    onSuccess: (r) => setItens(r.itens ?? []),
+    mutationFn: async () =>
+      (await consultar({ data: { orcamentoId } })) as { itens: Item[]; prazoPagamento?: string | null },
+    onSuccess: (r) => {
+      setItens(r.itens ?? []);
+      setPrazo(r.prazoPagamento ?? null);
+    },
   });
 
   const acao = useMutation({
@@ -58,7 +64,14 @@ export function CancelarReservaFrt({ orcamentoId }: { orcamentoId: number }) {
   return (
     <div className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold">Cancelamento na operadora — orçamento #{orcamentoId}</p>
+        <div>
+          <p className="text-sm font-semibold">Cancelamento na operadora — ID FRT #{orcamentoId}</p>
+          {prazo && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              Prazo de Pagamento: <strong>{formatarPrazoPagamento(prazo)}</strong>
+            </p>
+          )}
+        </div>
         <Button size="sm" variant="ghost" disabled={carga.isPending} onClick={() => carga.mutate()}>
           <RefreshCw className={`mr-2 h-4 w-4 ${carga.isPending ? "animate-spin" : ""}`} /> Atualizar
         </Button>
