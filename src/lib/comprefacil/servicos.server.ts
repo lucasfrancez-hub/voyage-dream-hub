@@ -133,15 +133,24 @@ export async function buscarServicosDestinoCF(p: {
   if (!guid) return [];
 
   let dados: any = inicio.dados;
-  for (let i = 0; i < 8; i++) {
+  let vazioSeguido = 0;
+  for (let i = 0; i < 14; i++) {
     await espera(2500);
     const r = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) });
-    dados = r.dados;
-    const meta = dados?.MetaData;
-    const total = Number(meta?.TotalItens ?? 0);
-    if (buscasAtivas(meta) === 0 && total > 0) break;
-    if (buscasAtivas(meta) === 0 && i >= 2) break;
+    // guarda sempre a melhor resposta já vista (a operadora às vezes devolve vazio depois de preencher)
+    if (((r.dados as any)?.Items ?? []).length >= ((dados?.Items ?? []) as any[]).length) dados = r.dados;
+    const meta = (r.dados as any)?.MetaData;
+    const itens = Number(((r.dados as any)?.Items ?? []).length);
+    if (itens > 0 && buscasAtivas(meta) === 0) break;
+    // fornecedores encerraram sem resultado: dá alguns ciclos de carência antes de desistir
+    if (buscasAtivas(meta) === 0 && itens === 0) {
+      vazioSeguido++;
+      if (vazioSeguido >= 4) break;
+    } else {
+      vazioSeguido = 0;
+    }
   }
+
 
   const itens: any[] = [...((dados?.Items ?? []) as any[])];
   const totalPaginas = Math.min(6, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
