@@ -168,14 +168,21 @@ export async function buscarSegurosCF(p: {
 
   if (guid) {
     let vazioSeguido = 0;
-    for (let i = 0; i < 12; i++) {
-      await espera(2500);
+    let anterior = -1;
+    let estavel = 0;
+    for (let i = 0; i < 14; i++) {
+      await espera(2000);
       const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
       const novos = ((r.dados as any)?.Items ?? (r.dados as any)?.Itens ?? []) as any[];
       const atuais = (dados?.Items ?? dados?.Itens ?? []) as any[];
       if (novos.length >= atuais.length) dados = r.dados;
       const meta = (r.dados as any)?.MetaData;
-      if (novos.length > 0 && ativas(meta) === 0) break;
+      // só encerra quando as seguradoras terminaram E a contagem parou de crescer
+      if (novos.length > 0 && ativas(meta) === 0) {
+        estavel = novos.length === anterior ? estavel + 1 : 0;
+        if (estavel >= 1) break;
+      }
+      anterior = novos.length;
       if (ativas(meta) === 0 && novos.length === 0) {
         vazioSeguido++;
         if (vazioSeguido >= 3) break;
