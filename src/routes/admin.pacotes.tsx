@@ -1862,13 +1862,20 @@ function PackageEditorModal({
         },
       ];
 
+  // Sempre via updater funcional: o vínculo do TripAdvisor é gravado em
+  // segundo plano e uma edição feita com o estado antigo apagaria o vínculo
+  // das outras hospedagens.
   const setHotelBase = (p: Record<string, any>) => {
     if (hotelSelIdx < 0) {
-      setEditing({ ...editing, ...p });
+      setEditing((prev: any) => ({ ...(prev ?? editing), ...p }));
       return;
     }
-    const next = hotelOpts.map((o, i) => (i === hotelSelIdx ? { ...o, ...p } : o));
-    setEditing({ ...editing, hotel_options: next as any, ...(hotelSelIdx === 0 ? p : {}) });
+    setEditing((prev: any) => {
+      const base = prev ?? editing;
+      const lista: any[] = Array.isArray(base.hotel_options) ? base.hotel_options : [];
+      const next = lista.map((o, i) => (i === hotelSelIdx ? { ...o, ...p } : o));
+      return { ...base, hotel_options: next, ...(hotelSelIdx === 0 ? p : {}) };
+    });
   };
 
   const setHotel = (p: Record<string, any>) => {
@@ -1876,12 +1883,27 @@ function PackageEditorModal({
       setHotelBase(p);
       return;
     }
-    const nextStays = staysList.map((s, i) => (i === stayIdx ? { ...s, ...p } : s));
-    const patch: Record<string, any> =
-      hotelSelIdx >= 0 ? { stays: nextStays } : { hotel_stays: nextStays };
-    // a 1ª hospedagem também espelha os campos principais do pacote
-    setHotelBase(stayIdx === 0 ? { ...patch, ...p } : patch);
+    const aplicar = (arr: any) =>
+      normalizeStays(arr).map((s: any, i: number) => (i === stayIdx ? { ...s, ...p } : s));
+    setEditing((prev: any) => {
+      const base = prev ?? editing;
+      if (hotelSelIdx < 0) {
+        return {
+          ...base,
+          hotel_stays: aplicar(base.hotel_stays),
+          ...(stayIdx === 0 ? p : {}),
+        };
+      }
+      const lista: any[] = Array.isArray(base.hotel_options) ? base.hotel_options : [];
+      const next = lista.map((o, i) => (i === hotelSelIdx ? { ...o, stays: aplicar(o?.stays) } : o));
+      return {
+        ...base,
+        hotel_options: next,
+        ...(hotelSelIdx === 0 && stayIdx === 0 ? p : {}),
+      };
+    });
   };
+
 
   useEffect(() => {
     if (staysList.length > 1 && staySelIdx < 0) setStaySelIdx(0);
