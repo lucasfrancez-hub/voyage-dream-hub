@@ -149,19 +149,14 @@ export function SeletorServicos({
 
                   <h3>{s.titulo}</h3>
                   {s.descricao ? (
-                    <p>{s.descricao.length > 260 ? `${s.descricao.slice(0, 260)}…` : s.descricao}</p>
+                    <p>{s.descricao.length > 120 ? `${s.descricao.slice(0, 120)}…` : s.descricao}</p>
                   ) : null}
                   {s.informacoes.length ? (
                     <div className="amen">
-                      {s.informacoes.map((i) => (
-                        <span key={i}>{i.length > 40 ? `${i.slice(0, 40)}…` : i}</span>
+                      {s.informacoes.slice(0, 3).map((i) => (
+                        <span key={i}>{i.length > 28 ? `${i.slice(0, 28)}…` : i}</span>
                       ))}
                     </div>
-                  ) : null}
-                  {s.politica ? (
-                    <small className="svcpol">
-                      {s.politica.length > 150 ? `${s.politica.slice(0, 150)}…` : s.politica}
-                    </small>
                   ) : null}
                   <button type="button" className="svcmais" onClick={() => setDetalhe(s)}>
                     Ver mais detalhes
