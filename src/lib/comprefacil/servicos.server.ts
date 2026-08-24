@@ -23,7 +23,12 @@ export type ServicoDisponivel = {
   imagem?: string | null;
   /** galeria completa do serviço (quando a operadora envia) */
   imagens?: string[];
+  /** logomarca do fornecedor (seguradora, operadora do passeio) */
+  logo?: string | null;
+  /** coberturas detalhadas (seguro viagem) */
+  coberturas?: { nome: string; valor: string | null }[];
 };
+
 
 const semHtml = (v: unknown): string | null => {
   if (typeof v !== "string") return null;
