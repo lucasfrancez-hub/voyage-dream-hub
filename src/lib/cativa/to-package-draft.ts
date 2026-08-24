@@ -521,6 +521,8 @@ function ajustarInclusos(lista: string[], regimeAtual?: string | null): string[]
   for (const raw of lista) {
     let item = caixaServico(semGratis(String(raw ?? "").trim()));
     if (!item) continue;
+    // Regras operacionais / avisos não são serviços inclusos.
+    if (RE_RUIDO_SERVICO.test(item)) continue;
     // Sobras de nome de plano/marca do seguro ("HERO", "Protect", "Plus"…): não são serviço.
     if (/^(hero|protect(\s*travel)?|travel|plus|premium|basic|standard|top|max)$/i.test(item)) continue;
     if (/hospedagem|di[aá]rias?\b|consulte\s+o?\s*regime/i.test(item)) {
