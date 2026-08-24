@@ -774,9 +774,19 @@ function AdminPackages() {
       // Pacote: sem dados de cruzeiro
       payload.cruise_details = null;
     }
-    const savedPackage = pkg.id
+    let savedPackage = pkg.id
       ? await supabase.from("packages").update(payload).eq("id", pkg.id).select("id").single()
       : await supabase.from("packages").insert(payload).select("id").single();
+    // Slug tomado por outra gravação simultânea: tenta de novo com sufixo novo.
+    if (!pkg.id && savedPackage.error && String((savedPackage.error as any)?.code) === "23505") {
+      for (let tentativa = 2; tentativa <= 6 && savedPackage.error; tentativa += 1) {
+        const novoSlug = `${availableSlug}-${tentativa}`;
+        if (slugsReservados.has(novoSlug)) continue;
+        slugsReservados.add(novoSlug);
+        payload.slug = novoSlug;
+        savedPackage = await supabase.from("packages").insert(payload).select("id").single();
+      }
+    }
     const { error } = savedPackage;
     if (error) throw error;
     // Passeio novo: grava o calendário importado que ainda estava só na prévia.
