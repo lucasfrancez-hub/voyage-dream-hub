@@ -82,9 +82,10 @@ export function PacoteMotor() {
   }, [ofertas, voo]);
 
   const detalhe = useQuery({
-    queryKey: ["cf", "servicos-motor", destino],
-    queryFn: () => listarServicos({ data: { busca: destino, somenteAtivos: true } }),
-    enabled: !!destino.trim() && (pacotes.isSuccess || voos.isSuccess),
+    queryKey: ["cf", "servicos-motor", destino, cidadeId],
+    queryFn: () =>
+      listarServicos({ data: { busca: destino, cidadeId: cidadeId ?? null, somenteAtivos: true } }),
+    enabled: (!!destino.trim() || !!cidadeId) && (pacotes.isSuccess || voos.isSuccess),
     staleTime: 5 * 60_000,
   });
 
@@ -95,7 +96,7 @@ export function PacoteMotor() {
         id: String(s.id),
         titulo: s.titulo ?? "Serviço",
         tipo: s.tipo ?? null,
-        descricao: s.fornecedor ?? null,
+        descricao: textoSimples(s.descricao) || s.fornecedor || null,
         valor: null,
       })) as ServicoPacote[],
     }),
@@ -108,8 +109,10 @@ export function PacoteMotor() {
 
   const servicos: ServicoPacote[] = info?.servicos ?? [];
   const quarto = hotelCompleto?.quartos.find((q) => q.id === quartoId) ?? null;
-  const servicosTotal = servicos.filter((s) => servicosSel.includes(s.id)).reduce((a, s) => a + (s.valor ?? 0), 0);
+  const servicosEscolhidos = servicos.filter((s) => servicosSel.includes(s.id));
+  const servicosTotal = servicosEscolhidos.reduce((a, s) => a + (s.valor ?? 0), 0);
   const total = (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0) + servicosTotal;
+
   const baseVoo = ofertas[0]?.precoTotal ?? voo?.precoTotal ?? 0;
   const baseHotel = hoteis[0]?.total ?? hotel?.total ?? 0;
 
