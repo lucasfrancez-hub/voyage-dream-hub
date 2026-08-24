@@ -40,6 +40,7 @@ export function CardHotelSelecionado({
   carregando: boolean;
   onAlterar: () => void;
 }) {
+  const [aberto, setAberto] = useState(false);
   const info = useInfoHotel(hotel);
   const extra = info.data;
 
@@ -53,7 +54,7 @@ export function CardHotelSelecionado({
   const capa = fotos[0] ?? null;
 
   return (
-    <article className="sel-card hotel-info-open">
+    <article id="selectedHotelCard" className={`sel-card${aberto ? " hotel-info-open" : ""}`}>
       <div className="sel-head">
         <div className="sel-main-title">
           <b>Hospedagem selecionada</b>
@@ -74,7 +75,16 @@ export function CardHotelSelecionado({
         {hotel && (
           <>
             <div className="hotel-hero-v9">
-              {capa ? <img src={capa} alt={`Foto do hotel ${hotel.nome}`} loading="lazy" /> : null}
+              {capa ? (
+                <img
+                  src={capa}
+                  alt={`Foto do hotel ${hotel.nome}`}
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              ) : null}
               <div className="hotel-photo-copy">
                 {estrelas ? <div className="stars">{"★".repeat(estrelas)}</div> : null}
                 <h3>{hotel.nome}</h3>
