@@ -254,7 +254,7 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   const rota = `/api/Hotel/buscaasync?Pagina=1&ItensPorPagina=${porPagina}`;
   const base = COMPREFACIL_BASES.hotel;
 
-  const corpo = (guid: string | null) => ({
+  const corpo = (guid: string | null, ordenacao = "") => ({
     AgenciaId: agenciaId,
     Guid: guid,
     Nacionalidade: "BR",
