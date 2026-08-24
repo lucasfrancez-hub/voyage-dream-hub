@@ -1632,3 +1632,46 @@ body:has([data-chat-root]),
   box-shadow:0 10px 24px rgba(0,0,0,.32);
 }
 .mkt .hotel-about-toggle:hover {border-color:rgba(245,155,69,.55);color:#ffc47f}
+
+/* ===== Motor de pacotes — serviços com foto + modal de detalhes ===== */
+.mkt .svc {grid-template-columns:150px minmax(0,1fr) 190px}
+.mkt .svc:not(:has(.svcfoto)) {grid-template-columns:minmax(0,1fr) 190px}
+.mkt .svcfoto {border:0;padding:0;min-height:130px;border-radius:14px;background-color:rgba(255,255,255,.05);background-size:cover;background-position:center;cursor:zoom-in;transition:.18s}
+.mkt .svcfoto:hover {filter:brightness(1.08)}
+.mkt .svcmais {margin-top:10px;border:1px solid rgba(245,155,69,.38);background:transparent;color:#ffb367;border-radius:9px;padding:7px 12px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;transition:.18s}
+.mkt .svcmais:hover {background:rgba(245,155,69,.14)}
+@media (max-width:760px){.mkt .svc, .mkt .svc:not(:has(.svcfoto)) {grid-template-columns:1fr}.mkt .svcfoto {min-height:160px}}
+
+.svc-modal .svc-card {width:min(1000px,95vw);overflow:hidden;display:flex;flex-direction:column}
+.svc-hero {position:relative;height:230px;flex:0 0 auto;background:linear-gradient(135deg,#0d1b26,#122534)}
+.svc-hero img {width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+.svc-hero:after {content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,10,16,.05) 30%,rgba(6,13,20,.92))}
+.svc-hero-ph {width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;background:radial-gradient(circle at 30% 20%,rgba(242,107,31,.28),transparent 60%),#0e1a24}
+.svc-hero-txt {position:absolute;left:24px;right:24px;bottom:18px;z-index:2}
+.svc-hero-cat {display:inline-block;padding:4px 10px;border-radius:999px;background:rgba(242,107,31,.9);color:#10171b;font-size:9px;font-weight:1000;text-transform:uppercase;letter-spacing:.08em}
+.svc-hero-txt h3 {margin:8px 0 2px;font-size:22px;line-height:1.25;color:#f4f9fd;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.svc-hero-txt p {margin:0;font-size:11px;color:#cbd9e5}
+.svc-close {position:absolute;top:14px;right:14px;z-index:3;background:rgba(8,15,22,.72)}
+.svc-body {display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:22px;padding:22px 24px 26px;overflow:auto}
+.svc-body h4 {margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#f59b45}
+.svc-body p {margin:0 0 8px;font-size:12.5px;line-height:1.65;color:#c6d5e1}
+.svc-body .svc-bullet {padding-left:2px;color:#aebfcd}
+.svc-pol {margin-top:16px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025)}
+.svc-aside {align-self:start;position:sticky;top:0;border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:16px;background:linear-gradient(160deg,rgba(242,107,31,.10),rgba(255,255,255,.02))}
+.svc-facts {list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:6px}
+.svc-facts li {font-size:11px;color:#cddbe6;padding-left:14px;position:relative}
+.svc-facts li:before {content:"•";position:absolute;left:0;color:#f59b45}
+.svc-aside-label {display:block;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#8aa0b1;font-weight:900}
+.svc-aside-val {font-size:26px;font-weight:1000;color:#f4f9fd;margin:2px 0 12px}
+.svc-aside-btn {width:100%;border:0;border-radius:11px;padding:12px;background:var(--orange,#f26b1f);color:#10171b;font-size:10px;font-weight:1000;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;transition:.18s}
+.svc-aside-btn:hover {filter:brightness(1.06);transform:translateY(-1px)}
+.svc-aside-btn.ghost {background:transparent;border:1px solid rgba(245,155,69,.5);color:#ffb367}
+.svc-aside-btn:disabled {opacity:.5;cursor:not-allowed;transform:none}
+.svc-aside small {display:block;margin-top:8px;font-size:9.5px;line-height:1.5;color:#8aa0b1}
+@media (max-width:820px){.svc-body {grid-template-columns:1fr}.svc-hero {height:180px}.svc-hero-txt h3 {font-size:18px}}
+
+/* Linha do quarto: o texto não pode espremer contra os botões */
+.mkt .roomrow {flex-wrap:wrap;align-items:center}
+.mkt .roomrow > div:first-child {flex:1 1 240px;min-width:0}
+.mkt .roomrow b {display:block;overflow-wrap:anywhere}
+.mkt .roomacts {flex-wrap:wrap}
