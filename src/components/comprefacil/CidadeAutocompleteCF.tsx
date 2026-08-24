@@ -4,17 +4,20 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { autocompleteLocalidadeCF } from "@/lib/comprefacil/localidades.functions";
+import { autocompleteLocalidadeCFPublic } from "@/lib/comprefacil/publico.functions";
 
 type Props = {
   valor: string;
   onChange: (nome: string, cidadeId: number | null, iata?: string | null) => void;
   campo: "destino" | "saida";
   placeholder?: string;
+  /** Widget/site público (sem login): usa a consulta aberta. */
+  publico?: boolean;
 };
 
 /** Campo de cidade com autopreencher do catálogo CompreFácil (traz o Id certo). */
-export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder }: Props) {
-  const sugerir = useServerFn(autocompleteLocalidadeCF);
+export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder, publico = false }: Props) {
+  const sugerir = useServerFn(publico ? autocompleteLocalidadeCFPublic : autocompleteLocalidadeCF);
   const [aberto, setAberto] = useState(false);
   const [termo, setTermo] = useState(valor);
   const [debounced, setDebounced] = useState(valor);
@@ -36,7 +39,7 @@ export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder }: Pr
   }, []);
 
   const q = useQuery({
-    queryKey: ["cf", "localidades", campo, debounced],
+    queryKey: ["cf", "localidades", campo, debounced, publico],
     queryFn: () => sugerir({ data: { termo: debounced, campo } }),
     enabled: aberto && debounced.trim().length >= 2,
     staleTime: 60_000,

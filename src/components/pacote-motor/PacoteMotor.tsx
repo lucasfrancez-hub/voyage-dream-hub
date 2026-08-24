@@ -16,6 +16,8 @@ import {
   type OcupacaoQuarto,
 } from "@/lib/pacote-motor/mapear";
 import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.functions";
+import { buscarAereoCFPublic, buscarHospedagemCFPublic } from "@/lib/comprefacil/publico.functions";
+import { criarPacoteMotorCheckout } from "@/lib/pacote-motor/checkout.functions";
 import type { PassHubOferta } from "@/lib/passhub/types";
 
 type Vista = "overview" | "voo" | "hotel";
@@ -24,9 +26,11 @@ type Vista = "overview" | "voo" | "hotel";
  * Motor de Pacotes VIA AIR — padrão visual aprovado.
  * Busca com distribuição real por quarto e opções vindas da operadora.
  */
-export function PacoteMotor() {
-  const buscarHoteis = useServerFn(buscarHospedagemCF);
-  const buscarVoos = useServerFn(buscarAereoCF);
+export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolean; publico?: boolean } = {}) {
+  const buscarHoteis = useServerFn(publico ? buscarHospedagemCFPublic : buscarHospedagemCF);
+  const buscarVoos = useServerFn(publico ? buscarAereoCFPublic : buscarAereoCF);
+  const criarCheckout = useServerFn(criarPacoteMotorCheckout);
+
 
   const [origem, setOrigem] = useState("");
   const [destino, setDestino] = useState("");
@@ -145,6 +149,40 @@ export function PacoteMotor() {
     return h.total + (q?.diferenca ?? 0) + (voo?.precoTotal ?? 0);
   };
 
+  /** Gera o link de pagamento (mesmo checkout dos pacotes prontos). */
+  const checkout = useMutation({
+    mutationFn: async () => {
+      if (!hotel && !voo) throw new Error("Monte o pacote antes de reservar.");
+      return criarCheckout({
+        data: {
+          destino: destino || hotel?.localizacao || "Pacote VIA AIR",
+          origem: origem || null,
+          ida,
+          volta: volta || null,
+          noites: noites ?? null,
+          adultos: pax.adultos,
+          criancas: pax.criancas,
+          bebes: pax.bebes,
+          quartos: quartos.length,
+          total,
+          hotelNome: hotel?.nome ?? null,
+          hotelEstrelas: hotel?.categoria ?? null,
+          regime: quarto?.regime ?? hotel?.regime ?? null,
+          quartoNome: quarto?.nome ?? null,
+          foto: hotel?.fotos?.[0] ?? null,
+          incluidos: hotel?.beneficios?.slice(0, 10) ?? [],
+          vooIda: voo?.ida ?? null,
+          vooVolta: voo?.voltas?.[0] ?? null,
+        },
+      });
+    },
+    onSuccess: (r: { url: string }) => {
+      if (typeof window === "undefined") return;
+      if (embed) window.open(r.url, "_top");
+      else window.location.href = r.url;
+    },
+  });
+
   const resumo = (
     <ResumoPacote
       destino={destino}
@@ -158,8 +196,19 @@ export function PacoteMotor() {
       total={total}
       diferenca={Number((total - baseTotal).toFixed(2))}
       moeda={hotel?.moeda ?? "BRL"}
+      acao={
+        <button
+          type="button"
+          className="primary"
+          disabled={checkout.isPending || (!hotel && !voo)}
+          onClick={() => checkout.mutate()}
+        >
+          {checkout.isPending ? "Gerando link de pagamento…" : "Reservar pacote"}
+        </button>
+      }
     />
   );
+
 
   return (
     <div className="mkt">
@@ -170,6 +219,7 @@ export function PacoteMotor() {
               <div className="label">Origem</div>
               <div className="field">
                 <CidadeAutocompleteCF
+                  publico={publico}
                   valor={origem}
                   campo="saida"
                   placeholder="Cidade de saída"
@@ -184,6 +234,7 @@ export function PacoteMotor() {
               <div className="label">Destino</div>
               <div className="field">
                 <CidadeAutocompleteCF
+                  publico={publico}
                   valor={destino}
                   campo="destino"
                   placeholder="Cidade do pacote"

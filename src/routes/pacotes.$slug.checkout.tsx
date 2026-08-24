@@ -37,6 +37,8 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     birthday?: number;
     hotel?: number;
     pay?: string;
+    /** Pacote montado no motor: ocupação travada, sem aviso de orçamento. */
+    fixed?: number;
   } => {
 
     const raw = Number(s?.qty);
@@ -53,10 +55,12 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     const hotelRaw = Number(s?.hotel);
     const hotel = Number.isFinite(hotelRaw) && hotelRaw >= 0 ? Math.floor(hotelRaw) : undefined;
     const pay = s?.pay === "prepaid" ? "prepaid" : undefined;
-    return { qty, date, addons, modality, time, nights, birthday, hotel, pay };
+    const fixed = s?.fixed === 1 || s?.fixed === "1" ? 1 : undefined;
+    return { qty, date, addons, modality, time, nights, birthday, hotel, pay, fixed };
   },
 
 });
+
 
 
 type PaymentMethod = "credit_card" | "pix" | "boleto" | "prepaid_boleto";
@@ -76,7 +80,11 @@ function Checkout() {
     birthday: birthdayFromSearch,
     hotel: hotelFromSearch,
     pay: payFromSearch,
+    fixed: fixedFromSearch,
   } = Route.useSearch();
+  /** Pacote sob medida do motor: quantidade de viajantes travada. */
+  const paxTravado = fixedFromSearch === 1;
+
   const navigate = useNavigate();
   const notifyPix = useServerFn(notifyPixOrder);
 
@@ -699,7 +707,7 @@ function Checkout() {
           Preencha seus dados e escolha a forma de pagamento. Nosso time confirma sua reserva em seguida.
         </p>
 
-        {!isPerUnit && (
+        {!isPerUnit && !paxTravado && (
           <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
 
             Este pacote foi montado para{" "}
@@ -892,6 +900,15 @@ function Checkout() {
                     Cada ingresso é individual. Preencha os dados de cada pessoa abaixo. Máximo de {maxUnits} por pedido — para mais, faça um novo pedido.
                   </p>
                 </>
+              ) : paxTravado ? (
+                <p className="text-xs text-muted-foreground">
+                  Pesquisa feita para{" "}
+                  <span className="text-foreground font-medium">
+                    {adults} adulto{adults > 1 ? "s" : ""}
+                    {children > 0 ? ` + ${children} criança${children > 1 ? "s" : ""}` : ""}
+                  </span>
+                  . Preencha os dados de cada passageiro abaixo.
+                </p>
               ) : (
                 <>
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -939,6 +956,7 @@ function Checkout() {
                   )}
                 </>
               )}
+
             </Card>
 
 
