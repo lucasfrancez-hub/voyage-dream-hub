@@ -22,6 +22,8 @@ export function SeletorServicos({
   const [categoria, setCategoria] = useState<string>("todos");
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"preco" | "precoDesc">("preco");
+  const [detalhe, setDetalhe] = useState<ServicoDisponivel | null>(null);
+
 
   const categorias = useMemo(() => {
     const mapa = new Map<string, number>();
