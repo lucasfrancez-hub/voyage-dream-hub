@@ -36,7 +36,7 @@ function MotorPacotePage() {
         </div>
         <ConexaoCompreFacil />
       </header>
-      <MotorBuscaCF />
+      <PacoteMotor />
     </div>
   );
 }
