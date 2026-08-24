@@ -844,19 +844,31 @@ function AdminPackages() {
     try {
       const base = await nextPackageBaseNumber();
       let newIdx = 0;
-      for (let i = 0; i < list.length; i++) {
-        try {
-          const numbering = list[i].id ? undefined : { number: base + newIdx };
-          if (!list[i].id) newIdx += 1;
-          await persistPackage(list[i], numbering);
-          ok += 1;
-        } catch (e) {
-          console.error("[packages] falha ao salvar draft", i + 1, e);
-          const label = list[i].title?.trim() || list[i].destination?.trim() || `#${i + 1}`;
-          errors.push(`${label}: ${errMsg(e)}`);
+      const fila = list.map((p, i) => {
+        const numbering = p.id ? undefined : { number: base + newIdx };
+        if (!p.id) newIdx += 1;
+        return { p, i, numbering };
+      });
+      // Salva em paralelo (4 por vez): 10 pacotes deixam de esperar um a um.
+      const PARALELO = 4;
+      let cursor = 0;
+      const trabalhador = async () => {
+        for (;;) {
+          const item = fila[cursor++];
+          if (!item) return;
+          try {
+            await persistPackage(item.p, item.numbering);
+            ok += 1;
+          } catch (e) {
+            console.error("[packages] falha ao salvar draft", item.i + 1, e);
+            const label =
+              item.p.title?.trim() || item.p.destination?.trim() || `#${item.i + 1}`;
+            errors.push(`${label}: ${errMsg(e)}`);
+          }
         }
+      };
+      await Promise.all(Array.from({ length: Math.min(PARALELO, fila.length) }, trabalhador));
 
-      }
       if (ok > 0) toast.success(`${ok} pacote(s) salvo(s)`);
       if (errors.length > 0) toast.error(errors.join(" • "));
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
