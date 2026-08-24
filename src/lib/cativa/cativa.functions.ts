@@ -297,6 +297,70 @@ export const arquivarPacotesCativa = createServerFn({ method: "POST" })
   });
 
 /**
+ * Confere quais pacotes marcados como "salvos" (arquivados) não viraram
+ * pacote de verdade no site. Com `corrigir`, devolve esses pacotes para a
+ * lista de importação para poderem ser salvos novamente.
+ */
+export const conferirSalvamentosCativa = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { corrigir?: boolean } | undefined) => input ?? {})
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Todos os ids de pacotes Cativa que já viraram pacote no site.
+    const salvos = new Set<string>();
+    for (let de = 0; ; de += 1000) {
+      const { data: rows, error } = await supabaseAdmin
+        .from("packages")
+        .select("cativa_pacote_id")
+        .not("cativa_pacote_id", "is", null)
+        .range(de, de + 999);
+      if (error) throw new Error(error.message);
+      for (const r of rows ?? []) salvos.add(String((r as any).cativa_pacote_id));
+      if (!rows || rows.length < 1000) break;
+    }
+
+    // Pacotes arquivados (marcados como importados) sem pacote correspondente.
+    const faltantes: { id: string; nome: string | null; destino: string | null; importado_em: string | null }[] = [];
+    for (let de = 0; ; de += 1000) {
+      const { data: rows, error } = await supabaseAdmin
+        .from("cativa_pacotes")
+        .select("id, nome, destino, importado_em")
+        .not("importado_em", "is", null)
+        .range(de, de + 999);
+      if (error) throw new Error(error.message);
+      for (const r of rows ?? []) {
+        if (!salvos.has(String((r as any).id))) faltantes.push(r as any);
+      }
+      if (!rows || rows.length < 1000) break;
+    }
+
+    if (data.corrigir && faltantes.length) {
+      const ids = faltantes.map((f) => f.id);
+      for (let i = 0; i < ids.length; i += 200) {
+        const { error } = await supabaseAdmin
+          .from("cativa_pacotes")
+          .update({ importado_em: null } as any)
+          .in("id", ids.slice(i, i + 200));
+        if (error) throw new Error(error.message);
+      }
+    }
+
+    return {
+      salvos: salvos.size,
+      naoSalvos: faltantes.length,
+      corrigidos: data.corrigir ? faltantes.length : 0,
+      exemplos: faltantes.slice(0, 20).map((f) => ({
+        id: f.id,
+        nome: f.nome,
+        destino: f.destino,
+        importado_em: f.importado_em,
+      })),
+    };
+  });
+
+/**
  * Reprocessa em lote os pacotes cuja consulta à Infotravel veio zerada
  * (sem opções, sem voos ou com erro) — ou todos os ativos quando `tudo`.
  */
