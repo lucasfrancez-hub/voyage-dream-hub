@@ -398,7 +398,7 @@ export function SearchEngine({
       </>
     ) : mode === "combo" ? (
       <>
-        Aéreo <span className="font-bold text-primary">+</span> hotel juntos
+        Pacotes de <span className="font-bold text-primary">viagens</span>
       </>
     ) : mode === "exclusivo" ? (
       <>
@@ -418,8 +418,9 @@ export function SearchEngine({
     mode === "hotel"
       ? ""
       : mode === "combo"
-        ? "Uma única busca. Todas as opções de voo + hospedagem para sua viagem."
+        ? "Aéreo + hospedagem no mesmo pacote, com quartos e viajantes do seu jeito."
         : "";
+
 
 
   const hero = <ModeHeader mode={mode} setMode={changeMode} title={heroTitle} subtitle={subtitle} />;
