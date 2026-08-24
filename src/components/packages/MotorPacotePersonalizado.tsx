@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { whatsappUrl } from "@/lib/checkout-config";
+import { useNavigate } from "@tanstack/react-router";
+import { CidadeAutocompleteCF } from "@/components/comprefacil/CidadeAutocompleteCF";
+import { encodeQuartos } from "@/lib/pacote-motor/preset";
 
 type Quarto = { adultos: number; criancas: number; bebes: number };
 
