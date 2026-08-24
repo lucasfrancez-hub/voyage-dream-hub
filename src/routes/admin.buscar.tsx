@@ -131,11 +131,8 @@ function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ComponentT
 
 type ComboStep = 1 | 2 | 3;
 
-const COMBO_STEPS: { label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { label: "Aéreo", icon: Plane },
-  { label: "Hospedagem", icon: BedDouble },
-  { label: "Revisar pedido", icon: ClipboardCheck },
-];
+
+
 
 type ComboForm = {
   departureIata: string;
