@@ -277,12 +277,18 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   if (!guid) return [];
 
   let dados: any = inicio.dados;
-  for (let i = 0; i < 12; i++) {
-    await espera(3000);
+  // Polling adaptativo: começa curto e cresce, para devolver a lista assim que a
+  // operadora já tem resultado útil em vez de esperar ciclos fixos de 3s.
+  const intervalos = [700, 900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000];
+  for (let i = 0; i < intervalos.length; i++) {
+    await espera(intervalos[i]!);
     const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
     dados = r.dados;
     const meta = dados?.MetaData;
-    if (buscasAtivas(meta) === 0 && Number(meta?.TotalItens ?? 0) > 0) break;
+    const total = Number(meta?.TotalItens ?? 0);
+    if (buscasAtivas(meta) === 0 && total > 0) break;
+    // Já há catálogo suficiente: entrega sem esperar fornecedores lentos.
+    if (total >= 60 && i >= 2) break;
     if (buscasAtivas(meta) === 0 && i > 1) break;
   }
 
@@ -303,22 +309,33 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   const itens: any[] = [...(dadosAsc?.Items ?? [])];
   const vistos = new Set(itens.map(chaveHotel));
 
+  // Páginas restantes em paralelo (lotes de 4) — antes era uma requisição por vez.
   const faltamH = paginasRestantes(dadosAsc?.MetaData, porPagina, itens.length);
-  for (let pagina = 2; pagina <= faltamH + 1; pagina++) {
-    const r = await chamarCompreFacil(
-      `/api/Hotel/buscaasync?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
-      { base, method: "POST", body: corpo(guid, "asc") },
+  const paginas = Array.from({ length: faltamH }, (_, k) => k + 2);
+  for (let ini = 0; ini < paginas.length; ini += 4) {
+    const lote = paginas.slice(ini, ini + 4);
+    const respostas = await Promise.all(
+      lote.map((pagina) =>
+        chamarCompreFacil(
+          `/api/Hotel/buscaasync?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
+          { base, method: "POST", body: corpo(guid, "asc") },
+        ).catch(() => null),
+      ),
     );
-    const lote: any[] = (r.dados as any)?.Items ?? [];
-    if (!lote.length) break;
-    for (const h of lote) {
-      const chave = chaveHotel(h);
-      if (vistos.has(chave)) continue;
-      vistos.add(chave);
-      itens.push(h);
+    let vazio = true;
+    for (const r of respostas) {
+      const its: any[] = (r?.dados as any)?.Items ?? [];
+      if (its.length) vazio = false;
+      for (const h of its) {
+        const chave = chaveHotel(h);
+        if (vistos.has(chave)) continue;
+        vistos.add(chave);
+        itens.push(h);
+      }
     }
-    if (itens.length >= MAX_ITENS) break;
+    if (vazio || itens.length >= MAX_ITENS) break;
   }
+
 
   // fallback: se por algum motivo a ordenação por preço não devolveu nada,
   // mantém o resultado da 1ª passada.
