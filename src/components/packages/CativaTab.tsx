@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Search, PackageSearch, Plane, RefreshCw, Archive, ArchiveRestore, Route as RouteIcon, AlertTriangle } from "lucide-react";
+import { Loader2, Search, PackageSearch, Plane, RefreshCw, Archive, ArchiveRestore, Route as RouteIcon, AlertTriangle, ShieldCheck } from "lucide-react";
+import { confirm } from "@/lib/confirm";
 import {
   resumoCativa,
   listarPacotesCativa,
@@ -11,6 +12,7 @@ import {
   arquivarPacotesCativa,
   reprocessarLoteCativa,
   recalcularTudoCativa,
+  conferirSalvamentosCativa,
 } from "@/lib/cativa/cativa.functions";
 import { montarDraftsCativa, destinoComercial, type CativaDraft } from "@/lib/cativa/to-package-draft";
 
@@ -52,6 +54,8 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
   const reprocessarLote = useServerFn(reprocessarLoteCativa);
   const recalcularTudo = useServerFn(recalcularTudoCativa);
   const resumo = useServerFn(resumoCativa);
+  const conferir = useServerFn(conferirSalvamentosCativa);
+
 
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("");
