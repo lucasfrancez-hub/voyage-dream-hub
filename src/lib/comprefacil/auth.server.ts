@@ -25,7 +25,50 @@ function claims(token: string): Record<string, string> {
   }
 }
 
+/** Momento (epoch ms) até quando novos logins ficam bloqueados pela operadora. */
+let bloqueadoAte = 0;
+
+/** Traduz o erro do /token da CompreFácil para uma mensagem útil. */
+function mensagemErroLogin(status: number, texto: string): string {
+  let corpo: any = {};
+  try {
+    corpo = texto ? JSON.parse(texto) : {};
+  } catch {
+    corpo = {};
+  }
+  let detalhe: any = {};
+  try {
+    detalhe = corpo.error_description ? JSON.parse(corpo.error_description) : {};
+  } catch {
+    detalhe = { mensagem: corpo.error_description };
+  }
+
+  if (corpo.error === "otp_rate_limit") {
+    const segundos = Number(detalhe.segundosRestantes) || 0;
+    bloqueadoAte = Date.now() + segundos * 1000;
+    const horas = Math.floor(segundos / 3600);
+    const minutos = Math.round((segundos % 3600) / 60);
+    const quando = horas > 0 ? `${horas}h${String(minutos).padStart(2, "0")}` : `${minutos} min`;
+    return `A CompreFácil bloqueou o envio de novos códigos de verificação (limite atingido). Tente reconectar em ${quando}.`;
+  }
+  if (corpo.error === "invalid_grant" && !detalhe.segundosRestantes) {
+    return detalhe.mensagem
+      ? `CompreFácil recusou o login: ${detalhe.mensagem}`
+      : "CompreFácil recusou o usuário ou a senha.";
+  }
+  return detalhe.mensagem
+    ? `Falha ao autenticar no CompreFácil: ${detalhe.mensagem}`
+    : `Falha ao autenticar no CompreFácil [${status}]`;
+}
+
 async function autenticar(): Promise<Sessao> {
+  if (bloqueadoAte > Date.now()) {
+    const minutos = Math.ceil((bloqueadoAte - Date.now()) / 60000);
+    throw new Error(
+      `A CompreFácil está com o envio de códigos bloqueado. Tente novamente em ~${minutos} min.`,
+    );
+  }
+
   const usuario = process.env["COMPREFACIL_USUARIO"];
   const senha = process.env["COMPREFACIL_SENHA"];
   if (!usuario || !senha) {
@@ -51,8 +94,9 @@ async function autenticar(): Promise<Sessao> {
   const texto = await resp.text();
   if (!resp.ok && resp.status !== 202) {
     console.error(`CompreFácil login falhou [${resp.status}]: ${texto.slice(0, 300)}`);
-    throw new Error(`Falha ao autenticar no CompreFácil [${resp.status}]`);
+    throw new Error(mensagemErroLogin(resp.status, texto));
   }
+
 
   let dados: { access_token?: string; expires_in?: number };
   try {
@@ -257,6 +301,7 @@ export async function statusSessaoCompreFacil(): Promise<{
   expiraEm: string | null;
   agenciaId: string | null;
   usuarioId: string | null;
+  bloqueadoAte: string | null;
 }> {
   const atual = sessao && sessao.expiraEm > Date.now() ? sessao : await lerSessaoSalva();
   if (atual) sessao = atual;
@@ -265,8 +310,10 @@ export async function statusSessaoCompreFacil(): Promise<{
     expiraEm: atual ? new Date(atual.expiraEm).toISOString() : null,
     agenciaId: atual?.agenciaId ?? null,
     usuarioId: atual?.usuarioId ?? null,
+    bloqueadoAte: bloqueadoAte > Date.now() ? new Date(bloqueadoAte).toISOString() : null,
   };
 }
+
 
 /** Força um novo login (descarta a sessão salva). Resolve o 2FA sozinho. */
 export async function reconectarCompreFacil(): Promise<Sessao> {
