@@ -18,7 +18,7 @@ export const MODULOS: Modulo[] = [
   { key: "pacotes", label: "Command Center", grupo: "Produtos", paths: ["/admin/pacotes"] },
   { key: "cruzeiros", label: "Cruzeiros", grupo: "Produtos", paths: ["/admin/cruzeiros"] },
   { key: "promocoes-aereo", label: "Promoções de Aéreo", grupo: "Produtos", paths: ["/admin/promocoes-aereo"] },
-  { key: "buscar", label: "Motor de busca", grupo: "Produtos", paths: ["/admin/buscar"] },
+  { key: "buscar", label: "Motor de busca", grupo: "Produtos", paths: ["/admin/buscar", "/admin/motor-pacote"] },
   { key: "passhub", label: "Consolidadora", grupo: "Produtos", paths: ["/admin/passhub"] },
 
   // Dashboard e cadastros

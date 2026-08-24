@@ -60,6 +60,7 @@ import { Route as AdminLinkPagamentoRouteImport } from './routes/admin.link-paga
 import { Route as AdminMelhoresDestinosRouteImport } from './routes/admin.melhores-destinos'
 import { Route as AdminMetricasRouteImport } from './routes/admin.metricas'
 import { Route as AdminMotorFrtRouteImport } from './routes/admin.motor-frt'
+import { Route as AdminMotorPacoteRouteImport } from './routes/admin.motor-pacote'
 import { Route as AdminMotorTremRouteImport } from './routes/admin.motor-trem'
 import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
@@ -439,6 +440,11 @@ const AdminMetricasRoute = AdminMetricasRouteImport.update({
 const AdminMotorFrtRoute = AdminMotorFrtRouteImport.update({
   id: '/motor-frt',
   path: '/motor-frt',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMotorPacoteRoute = AdminMotorPacoteRouteImport.update({
+  id: '/motor-pacote',
+  path: '/motor-pacote',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMotorTremRoute = AdminMotorTremRouteImport.update({
@@ -1160,6 +1166,7 @@ export interface FileRoutesByFullPath {
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/metricas': typeof AdminMetricasRoute
   '/admin/motor-frt': typeof AdminMotorFrtRoute
+  '/admin/motor-pacote': typeof AdminMotorPacoteRoute
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
@@ -1336,6 +1343,7 @@ export interface FileRoutesByTo {
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/metricas': typeof AdminMetricasRoute
   '/admin/motor-frt': typeof AdminMotorFrtRoute
+  '/admin/motor-pacote': typeof AdminMotorPacoteRoute
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
@@ -1515,6 +1523,7 @@ export interface FileRoutesById {
   '/admin/melhores-destinos': typeof AdminMelhoresDestinosRoute
   '/admin/metricas': typeof AdminMetricasRoute
   '/admin/motor-frt': typeof AdminMotorFrtRoute
+  '/admin/motor-pacote': typeof AdminMotorPacoteRoute
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/pacotes': typeof AdminPacotesRoute
@@ -1695,6 +1704,7 @@ export interface FileRouteTypes {
     | '/admin/melhores-destinos'
     | '/admin/metricas'
     | '/admin/motor-frt'
+    | '/admin/motor-pacote'
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
@@ -1871,6 +1881,7 @@ export interface FileRouteTypes {
     | '/admin/melhores-destinos'
     | '/admin/metricas'
     | '/admin/motor-frt'
+    | '/admin/motor-pacote'
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
@@ -2049,6 +2060,7 @@ export interface FileRouteTypes {
     | '/admin/melhores-destinos'
     | '/admin/metricas'
     | '/admin/motor-frt'
+    | '/admin/motor-pacote'
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/pacotes'
@@ -2627,6 +2639,13 @@ declare module '@tanstack/react-router' {
       path: '/motor-frt'
       fullPath: '/admin/motor-frt'
       preLoaderRoute: typeof AdminMotorFrtRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/motor-pacote': {
+      id: '/admin/motor-pacote'
+      path: '/motor-pacote'
+      fullPath: '/admin/motor-pacote'
+      preLoaderRoute: typeof AdminMotorPacoteRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/motor-trem': {
@@ -3550,6 +3569,7 @@ interface AdminRouteChildren {
   AdminMelhoresDestinosRoute: typeof AdminMelhoresDestinosRoute
   AdminMetricasRoute: typeof AdminMetricasRoute
   AdminMotorFrtRoute: typeof AdminMotorFrtRoute
+  AdminMotorPacoteRoute: typeof AdminMotorPacoteRoute
   AdminMotorTremRoute: typeof AdminMotorTremRoute
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
@@ -3616,6 +3636,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMelhoresDestinosRoute: AdminMelhoresDestinosRoute,
   AdminMetricasRoute: AdminMetricasRoute,
   AdminMotorFrtRoute: AdminMotorFrtRoute,
+  AdminMotorPacoteRoute: AdminMotorPacoteRoute,
   AdminMotorTremRoute: AdminMotorTremRoute,
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminPacotesRoute: AdminPacotesRoute,

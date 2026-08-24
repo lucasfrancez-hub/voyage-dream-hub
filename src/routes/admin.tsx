@@ -624,6 +624,7 @@ function ProdutosNav({ pathname }: { pathname: string }) {
   const active =
     pathname.startsWith("/admin/pacotes") ||
     pathname.startsWith("/admin/buscar") ||
+    pathname.startsWith("/admin/motor-pacote") ||
     pathname.startsWith("/admin/cruzeiros") ||
     pathname.startsWith("/admin/promocoes-aereo") ||
     pathname.startsWith("/admin/voos-teste") ||
@@ -643,6 +644,7 @@ function ProdutosNav({ pathname }: { pathname: string }) {
             { to: "/admin/cruzeiros", label: "Cruzeiros" },
             { to: "/admin/promocoes-aereo", label: "Promoções de Aéreo" },
             { to: "/admin/buscar", label: "Motor de busca" },
+            { to: "/admin/motor-pacote", label: "Motor de pacote" },
             { to: "/admin/passhub", label: "Consolidadora" },
           ],
         },
