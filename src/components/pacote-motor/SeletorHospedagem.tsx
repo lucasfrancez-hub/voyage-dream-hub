@@ -308,36 +308,48 @@ export function SeletorHospedagem({
                     )}
                     {h.quartos.map((q) => {
                       const ativo = sel && q.id === (quartoSelecionadoId ?? h.quartos[0]?.id);
+                      const regime = (q.regime ?? "").trim();
+                      const semCafe = /alojament|room only|sem caf/i.test(regime);
                       return (
                         <div key={q.id} className={`room-card${ativo ? " active" : ""}`}>
                           <div className="room-main">
-                            <b>{q.nome}</b>
-                            <span>
-                              {[q.ocupacao ?? plural(qtdQuartos, "quarto", "quartos"), q.regime].filter(Boolean).join(" · ")}
-                              <br />
-                              {q.reembolsavel === true
-                                ? "Reembolsável"
-                                : q.reembolsavel === false
-                                  ? "Não reembolsável"
-                                  : "Política conforme tarifa"}
-                            </span>
+                            <div className="room-head">
+                              <b>{q.nome}</b>
+                              {regime ? (
+                                <span className={`room-tag${semCafe ? " alert" : ""}`}>
+                                  {semCafe ? "Só alojamento · sem café da manhã" : regime}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="room-facts">
+                              <span className="rf-occ">
+                                {q.ocupacao ?? plural(qtdQuartos, "quarto", "quartos")}
+                              </span>
+                              <span className={q.reembolsavel === true ? "rf-ok" : "rf-mute"}>
+                                {q.reembolsavel === true
+                                  ? "Reembolsável"
+                                  : q.reembolsavel === false
+                                    ? "Não reembolsável"
+                                    : "Política conforme tarifa"}
+                              </span>
+                              <span className="rf-pol">{q.politica ?? "Conforme o pacote"}</span>
+                            </div>
                           </div>
-                          <div className="room-meta">
-                            <strong>Política</strong>
-                            {q.politica ?? "Conforme o pacote"}
+                          <div className="room-side">
+                            <div className="room-price">
+                              {Math.abs(q.diferenca) < 0.005 ? null : <small>Diferença</small>}
+                              <b>
+                                {Math.abs(q.diferenca) < 0.005 ? "Incluído" : `+ ${brl(q.diferenca, h.moeda)}`}
+                              </b>
+                            </div>
+                            <button type="button" className="room-select" onClick={() => onSelecionar(h, q.id)}>
+                              {ativo ? "Selecionado" : "Selecionar quarto"}
+                            </button>
                           </div>
-                          <div className="room-price">
-                            <small>Diferença</small>
-                            <b>
-                              {Math.abs(q.diferenca) < 0.005 ? "Incluído" : `+ ${brl(q.diferenca, h.moeda)}`}
-                            </b>
-                          </div>
-                          <button type="button" className="room-select" onClick={() => onSelecionar(h, q.id)}>
-                            {ativo ? "Selecionado" : "Selecionar quarto"}
-                          </button>
                         </div>
                       );
                     })}
+
                   </div>
                 </div>
               </article>
