@@ -55,45 +55,20 @@ export const Route = createFileRoute("/api/public/debug-seguro")({
         });
         const guidCtx = (svc.dados as any)?.MetaData?.Guid ?? null;
 
-        const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
-        const buscaServico = async (tipo: number) => {
-          const corpo = (g: string | null) => ({
-            AgenciaId: Number(ses.agenciaId ?? 0),
-            Guid: g,
-            PacoteId: 0,
-            Adt: 2,
-            IdadesChd: [],
-            De: de,
-            Ate: ate,
-            Cidade: { Id: cidadeId },
-            TipoServico: tipo,
-            ServicoExclusivo: false,
-            BuscaEsim: false,
-            EscreveLog: false,
-            FiltroServico: { Ativo: null, Categoria: -1, TipoServico: "", Ordenacao: "", Tipo: "", Fornecedores: [] },
-          });
-          const rt = "/api/Servico/busca?Pagina=1&ItensPorPagina=40";
-          const ini = await chamarCompreFacil(rt, { base, method: "POST", body: corpo(null) });
-          const g = (ini.dados as any)?.MetaData?.Guid ?? null;
-          let dd: any = ini.dados;
-          if (g) {
-            for (let k = 0; k < 6; k++) {
-              await espera(2500);
-              const rr = await chamarCompreFacil(rt, { base, method: "POST", body: corpo(g) });
-              const it = ((rr.dados as any)?.Items ?? []) as any[];
-              if (it.length >= ((dd?.Items ?? []) as any[]).length) dd = rr.dados;
-              if (it.length) break;
-            }
-          }
-          const its = ((dd?.Items ?? []) as any[]);
-          return {
-            total: its.length,
-            tipos: [...new Set(its.map((x: any) => `${x?.TipoServico}:${x?.TipoServicoDesc}`))],
-            seguros: its.filter((x: any) => /seguro|assist/i.test(String(x?.Titulo ?? ""))).slice(0, 3).map((x: any) => x?.Titulo),
-          };
-        };
         const out: Record<string, any> = {};
-        for (const tipo of [0, 4, 5, 6]) out[`tipo${tipo}`] = await buscaServico(tipo);
+        const fmts: Record<string, [string, string]> = {
+          br: ["05/11/2026", "12/11/2026"],
+          brHora: ["05/11/2026 00:00", "12/11/2026 00:00"],
+          isoT: ["2026-11-05T12:00:00", "2026-11-12T12:00:00"],
+          isoZ: ["2026-11-05T12:00:00.000Z", "2026-11-12T12:00:00.000Z"],
+          usa: ["11/05/2026", "11/12/2026"],
+          net: ["2026-11-05T00:00:00-03:00", "2026-11-12T00:00:00-03:00"],
+        };
+        for (const [nome, [a, b]] of Object.entries(fmts)) {
+          const r2 = await chamarCompreFacil(rota, { base, method: "POST", body: { ...body, De: a, Ate: b } });
+          const dd: any = r2.dados;
+          out[nome] = { status: (r2 as any).status, msg: dd?.mensagem, guid: dd?.MetaData?.Guid ?? null, itens: (dd?.Items ?? []).length };
+        }
         const r = { ok: false } as any;
         const d: any = {};
         return Response.json({ out, base: { ok: r.ok, msg: d?.mensagem } });
