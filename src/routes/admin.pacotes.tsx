@@ -897,7 +897,9 @@ function AdminPackages() {
       };
       await Promise.all(Array.from({ length: Math.min(PARALELO, fila.length) }, trabalhador));
 
-      if (ok > 0) toast.success(`${ok} pacote(s) salvo(s)`);
+      if (ok > 0) toast.success(`${ok} de ${list.length} pacote(s) salvo(s)`);
+      if (ok < list.length && errors.length === 0)
+        toast.error(`${list.length - ok} pacote(s) não foram salvos — confira a lista.`);
       if (errors.length > 0) toast.error(errors.join(" • "));
       qc.invalidateQueries({ queryKey: ["admin", "packages"] });
       qc.invalidateQueries({ queryKey: ["packages"] });
