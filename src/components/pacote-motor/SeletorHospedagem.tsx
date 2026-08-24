@@ -230,13 +230,14 @@ export function SeletorHospedagem({
                     style={h.fotos[0] ? { backgroundImage: `url('${h.fotos[0]}')`, cursor: "zoom-in" } : undefined}
                     aria-label={`Ver fotos do hotel ${h.nome}`}
                     onClick={() => h.fotos.length && setGaleria({ hotel: h, i: 0 })}
-                  />
+                  >
+                    {h.recomendado ? <span className="selo-rec photo-badge">Recomendado</span> : null}
+                  </button>
                   <div className="hotelmain">
                     <div className="hotelhead">
                       <div>
                         <div className="hotelselos">
                           {h.categoria ? <div className="stars">{"★".repeat(h.categoria)}</div> : null}
-                          {h.recomendado ? <span className="selo-rec">Recomendado</span> : null}
                         </div>
                         <h3>{h.nome}</h3>
                         <p>{h.endereco ?? h.localizacao ?? "Localização não informada"}</p>
@@ -271,9 +272,6 @@ export function SeletorHospedagem({
                         </span>
                       </div>
                       <div className="roomacts">
-                        <button type="button" className="more ghost-btn" onClick={() => setSobre(h)}>
-                          Sobre o hotel
-                        </button>
                         <button type="button" className="more" onClick={() => setAberto(expandido ? null : h.id)}>
                           {expandido ? "Fechar quartos ⌃" : "Alterar quarto ⌄"}
                         </button>

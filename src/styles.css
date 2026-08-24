@@ -773,7 +773,8 @@ body:has([data-chat-root]),
 .mkt .segtext span {display:block;color:#73899a;font-size:6px;margin-top:2px}
 .mkt .connect {margin:4px 0 4px 60px;padding:6px 7px;border:1px dashed rgba(245,155,69,.22);background:rgba(245,155,69,.06);border-radius:8px;color:#ffc47f;font-size:6px;font-weight:800}
 .mkt .hotelgrid {display:grid;grid-template-columns:160px minmax(0,1fr) 170px}
-.mkt .photo {min-height:165px;background-position:center;background-size:cover}
+.mkt .photo {width:160px;height:165px;background-position:center;background-size:cover;position:relative;border-radius:0;overflow:hidden}
+.mkt .photo .photo-badge {position:absolute;top:10px;left:10px;z-index:2}
 .mkt .hotelmain {padding:12px 13px}
 .mkt .hotelhead {display:flex;justify-content:space-between;gap:10px}
 .mkt .hotelhead h3 {font-size:13px;margin:3px 0}
@@ -996,7 +997,7 @@ body:has([data-chat-root]),
 .mkt .segtext span {font-size:7px}
 .mkt .connect {margin-left:66px;padding:7px 8px;font-size:7px}
 .mkt .hotelgrid {grid-template-columns:185px minmax(0,1fr) 190px}
-.mkt .photo {min-height:190px;position:relative}
+.mkt .photo {width:185px;height:190px;position:relative}
 .mkt .photo:after {content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 72%,rgba(5,24,35,.28))}
 .mkt .hotelmain {padding:15px 16px}
 .mkt .hotelhead h3 {font-size:15px}
@@ -1072,7 +1073,7 @@ body:has([data-chat-root]),
   .mkt .flightgrid, .mkt .hotelgrid {grid-template-columns:1fr}
   .mkt .flightmain, .mkt .hotelmain {padding:14px}
   .mkt .priceside, .mkt .hotelprice {padding:14px}
-  .mkt .photo {height:210px}
+  .mkt .photo {width:100%;height:210px}
   .mkt .detailgrid {grid-template-columns:1fr}
   .mkt .connect {margin-left:0}
 }
