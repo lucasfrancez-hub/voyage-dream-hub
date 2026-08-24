@@ -144,7 +144,18 @@ export function PacoteMotor() {
         { rotulo: "Aéreo", valor: voo ? brl(voo.precoTotal) : "Não selecionado" },
         { rotulo: "Hospedagem", valor: hotel ? brl(hotel.total, hotel.moeda) : "Não selecionada" },
         { rotulo: "Acomodação", valor: quarto?.nome ?? "Conforme pacote" },
-        { rotulo: "Serviços", valor: servicosTotal ? brl(servicosTotal) : "Incluídos no pacote" },
+        {
+          rotulo: "Serviços",
+          valor: servicosEscolhidos.length
+            ? servicosTotal
+              ? `${servicosEscolhidos.length} adicionado(s) · ${brl(servicosTotal)}`
+              : `${servicosEscolhidos.length} adicionado(s) · sob consulta`
+            : "Nenhum adicionado",
+        },
+        ...servicosEscolhidos.map((s) => ({
+          rotulo: `· ${s.titulo}`,
+          valor: s.valor ? brl(s.valor) : "Sob consulta",
+        })),
       ]}
       total={total}
       moeda={hotel?.moeda ?? "BRL"}
