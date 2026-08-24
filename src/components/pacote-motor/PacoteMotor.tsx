@@ -14,6 +14,7 @@ import { CidadeAutocompleteCF } from "@/components/comprefacil/CidadeAutocomplet
 import { CardHotelSelecionado } from "@/components/pacote-motor/CardHotelSelecionado";
 import { CardVooSelecionado } from "@/components/pacote-motor/CardVooSelecionado";
 import { ResumoPacote } from "@/components/pacote-motor/ResumoPacote";
+import { EsqueletoPacote } from "@/components/pacote-motor/EsqueletoPacote";
 import { SeletorVoo } from "@/components/pacote-motor/SeletorVoo";
 import { SeletorHospedagem } from "@/components/pacote-motor/SeletorHospedagem";
 import { SeletorServicos } from "@/components/pacote-motor/SeletorServicos";
@@ -515,6 +516,7 @@ export function PacoteMotor({
               </span>
             </div>
 
+            {carregando ? <EsqueletoPacote /> : (
             <div className="overview">
                 <div className="overview-main">
                   <div className="overview-grid">
@@ -559,8 +561,10 @@ export function PacoteMotor({
                 </div>
               {resumo}
             </div>
+            )}
           </section>
         )}
+
 
         {buscou && vista === "voo" && (
           <SeletorVoo
