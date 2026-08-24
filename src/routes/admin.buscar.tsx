@@ -26,6 +26,7 @@ import { DateRangeField } from "@/components/search/DateRangeField";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 
 import { PublicEngineProvider } from "@/lib/public-engine";
+import { PacoteMotor } from "@/components/pacote-motor/PacoteMotor";
 
 
 
