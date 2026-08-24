@@ -411,7 +411,7 @@ export function SeletorVoo({
                 <div className="flightgrid">
                   <div className="flight-media">
                     <div className="airline-badge">
-                      <LogoCia iata={o.ida.companhiaIata} nome={r.companhia} size={42} />
+                      <LogoCia iata={o.ida.companhiaIata} nome={r.companhia} size={34} />
                       <span>{r.companhia}</span>
                     </div>
                     <div className="badge engine-badge">
