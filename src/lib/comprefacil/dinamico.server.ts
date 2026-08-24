@@ -291,20 +291,21 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   if (!guid) return [];
 
   let dados: any = inicio.dados;
-  // Polling adaptativo: começa curto e cresce, para devolver a lista assim que a
-  // operadora já tem resultado útil em vez de esperar ciclos fixos de 3s.
-  const intervalos = [700, 900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000];
+  // Polling adaptativo. Só encerramos quando a operadora termina as buscas
+  // (`BuscasAtivas` vazio): até lá ela devolve hotéis com um "quarto resumo"
+  // sem nome nem regime, o que fazia o portal mostrar "Acomodação 1".
+  const intervalos = [900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000, 3000];
+  const temQuartoReal = (d: any) =>
+    ((d?.Items ?? []) as any[]).some((h) => (h?.Quartos ?? []).some((q: any) => typeof q?.Descricao === "string" && q.Descricao.trim()));
   for (let i = 0; i < intervalos.length; i++) {
     await espera(intervalos[i]!);
     const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
     dados = r.dados;
     const meta = dados?.MetaData;
     const total = Number(meta?.TotalItens ?? 0);
-    if (buscasAtivas(meta) === 0 && total > 0) break;
-    // Já há catálogo suficiente: entrega sem esperar fornecedores lentos.
-    if (total >= 60 && i >= 2) break;
-    if (buscasAtivas(meta) === 0 && i > 1) break;
+    if (buscasAtivas(meta) === 0 && total > 0 && temQuartoReal(dados)) break;
   }
+
 
   const chaveHotel = (h: any) => `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`;
 
