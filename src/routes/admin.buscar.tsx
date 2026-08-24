@@ -505,7 +505,7 @@ export function SearchEngine({
 
       {mode === "combo" && (
         <>
-          <header className="relative overflow-hidden border-b border-border/60">
+          <section className="relative overflow-hidden">
             <div
               className="absolute inset-0 opacity-60"
               style={{
@@ -519,7 +519,7 @@ export function SearchEngine({
               <div className="mb-6">{hero}</div>
               <PacoteMotor embed={embedMode} publico={embedMode || publicMode} preset={pacotePreset} />
             </div>
-          </header>
+          </section>
 
         </>
       )}
