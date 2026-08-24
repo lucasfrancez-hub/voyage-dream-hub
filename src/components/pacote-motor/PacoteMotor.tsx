@@ -91,10 +91,25 @@ export function PacoteMotor({
       }),
   });
 
+  /** Serviços do destino pesquisado (transfers, passeios, proteção). */
+  const servicos = useMutation({
+    mutationFn: (_v: void) =>
+      buscarServicos({
+        data: {
+          cidadeId: cidadeId!,
+          data: ida,
+          adultos: pax.adultos,
+          idades: quartos.flatMap((q) => q.idades),
+        },
+      }),
+  });
+
   const hoteis: HotelPacote[] = ((pacotes.data as any)?.hoteis ?? []) as HotelPacote[];
   const ofertas: PassHubOferta[] = ((voos.data as any)?.ofertas ?? []) as PassHubOferta[];
+  const listaServicos: ServicoDisponivel[] = ((servicos.data as any)?.servicos ?? []) as ServicoDisponivel[];
   const erroVoos = (voos.data as any)?.ok === false ? (voos.data as any).erro : null;
   const erroHoteis = (pacotes.data as any)?.ok === false ? (pacotes.data as any).erro : null;
+  const erroServicos = (servicos.data as any)?.ok === false ? (servicos.data as any).erro : null;
 
   useEffect(() => {
     if (hoteis.length && !hotel) {
@@ -107,7 +122,10 @@ export function PacoteMotor({
   }, [ofertas, voo]);
 
   const quarto = hotel?.quartos.find((q) => q.id === quartoId) ?? hotel?.quartos[0] ?? null;
-  const total = (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0);
+  const totalServicos = servicosSel.reduce((s, x) => s + (x.valor ?? 0), 0);
+  const total =
+    (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0) + totalServicos;
+
 
   const baseVoo = ofertas[0]?.precoTotal ?? voo?.precoTotal ?? 0;
   const baseHotel = hoteis[0]?.total ?? hotel?.total ?? 0;
