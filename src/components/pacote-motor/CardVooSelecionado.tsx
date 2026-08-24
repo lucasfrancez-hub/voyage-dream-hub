@@ -35,7 +35,7 @@ function Trecho({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
 }
 
 function Conexoes({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
-  const trechos = voo.conexoes?.length ? voo.conexoes : [];
+  const trechos: any[] = voo.conexoes?.length ? (voo.conexoes as any[]) : [];
   return (
     <div className="overview-conn-box">
       <h4>
