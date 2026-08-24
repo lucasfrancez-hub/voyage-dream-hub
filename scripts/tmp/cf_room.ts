@@ -5,7 +5,7 @@ const rota = `/api/Hotel/buscaasync?Pagina=1&ItensPorPagina=20`;
 const corpo = (guid: string | null, ordenacao = "") => ({
   AgenciaId: Number(ses.agenciaId ?? 0), Guid: guid, Nacionalidade: "BR", PacoteId: 0, EventoId: 0,
   SomentePromocao: false, BuscaPacote: true, BuscaEvento: false, FiltrarEstrelasWebService: false, EscreveLog: false,
-  Checkin: "2026-10-10", Checkout: "2026-10-14", Cidade: { Id: 4813 },
+  Checkin: "2026-10-10", Checkout: "2026-10-14", Cidade: { Id: 365 },
   Quartos: [{ NumeroPesquisa: 1, Qtde: 1, Adultos: 2, Criancas: [] }],
   FiltroHotel: { EstrelasMinimo: 0, EstrelasMaximo: 5, Fornecedores: [], Reembolsavel: -1, Pensao: [], Pensoes: [], Ordenacao: ordenacao },
 });
