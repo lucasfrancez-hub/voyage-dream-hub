@@ -34,7 +34,7 @@ import type { PassHubOferta } from "@/lib/passhub/types";
 import { encodeQuartos, type PacotePreset } from "@/lib/pacote-motor/preset";
 import { ResumoDock } from "./ResumoDock";
 
-type Vista = "overview" | "voo" | "hotel" | "servico";
+type Vista = "overview" | "voo" | "hotel" | "servico" | "revisar";
 
 /**
  * Motor de Pacotes VIA AIR — padrão visual aprovado.
@@ -501,6 +501,9 @@ export function PacoteMotor({
           <button type="button" className={`tab${vista === "servico" ? " active" : ""}`} onClick={() => setVista("servico")}>
             Adicionar serviços
           </button>
+          <button type="button" className={`tab${vista === "revisar" ? " active" : ""}`} onClick={() => setVista("revisar")}>
+            Revise e compre
+          </button>
         </div>
 
         )}
@@ -612,6 +615,18 @@ export function PacoteMotor({
             onAlternar={alternarServico}
             resumo={<ResumoDock>{resumo}</ResumoDock>}
           />
+        )}
+
+        {buscou && vista === "revisar" && (
+          <section className="screen active" id="revisar">
+            <div className="title">
+              <div>
+                <h2>Revise e compre</h2>
+                <p>Confira tudo o que está incluído e finalize a sua reserva.</p>
+              </div>
+            </div>
+            <div className="mx-auto w-full max-w-2xl">{resumo}</div>
+          </section>
         )}
       </div>
       {!publico && <QuoteBasketBar />}
