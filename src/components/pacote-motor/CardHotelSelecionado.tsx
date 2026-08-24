@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { infoHotelMotor } from "@/lib/pacote-motor/hotel-info.functions";
@@ -40,6 +41,7 @@ export function CardHotelSelecionado({
   carregando: boolean;
   onAlterar: () => void;
 }) {
+  const [aberto, setAberto] = useState(false);
   const info = useInfoHotel(hotel);
   const extra = info.data;
 
@@ -53,7 +55,7 @@ export function CardHotelSelecionado({
   const capa = fotos[0] ?? null;
 
   return (
-    <article className="sel-card hotel-info-open">
+    <article id="selectedHotelCard" className={`sel-card${aberto ? " hotel-info-open" : ""}`}>
       <div className="sel-head">
         <div className="sel-main-title">
           <b>Hospedagem selecionada</b>
@@ -74,7 +76,16 @@ export function CardHotelSelecionado({
         {hotel && (
           <>
             <div className="hotel-hero-v9">
-              {capa ? <img src={capa} alt={`Foto do hotel ${hotel.nome}`} loading="lazy" /> : null}
+              {capa ? (
+                <img
+                  src={capa}
+                  alt={`Foto do hotel ${hotel.nome}`}
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              ) : null}
               <div className="hotel-photo-copy">
                 {estrelas ? <div className="stars">{"★".repeat(estrelas)}</div> : null}
                 <h3>{hotel.nome}</h3>
@@ -112,6 +123,12 @@ export function CardHotelSelecionado({
                   <br />
                   {quarto?.politica ?? hotel.politicas[0] ?? "Política de cancelamento conforme a operadora"}
                 </small>
+              </div>
+
+              <div className="overview-flight-toggle-row">
+                <button type="button" className="overview-flight-more" onClick={() => setAberto((v) => !v)}>
+                  {aberto ? "Ver menos ⌃" : "Sobre o hotel ⌄"}
+                </button>
               </div>
 
               <div className="overview-hotel-details">

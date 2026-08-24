@@ -102,6 +102,7 @@ export function PacoteMotor({
           data: ida,
           adultos: pax.adultos,
           idades: quartos.flatMap((q) => q.idades),
+          destino: destino || null,
         },
       }),
   });
@@ -464,7 +465,7 @@ export function PacoteMotor({
         )}
 
         {buscou && vista === "overview" && (
-          <section className="screen active">
+          <section className="screen active" id="overview">
             <div className="title">
               <div>
                 <h2>Pacote recomendado</h2>

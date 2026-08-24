@@ -1512,6 +1512,18 @@ body:has([data-chat-root]),
 
 /* --- Ajustes da implementação real (mesmo padrão visual aprovado) --- */
 .mkt .field input, .mkt .field select { width: 100%; border: 0; background: transparent; color: var(--text); font-size: 13px; font-weight: 700; outline: none; }
+/* o input do design system traz ring/borda próprios: sem isso aparece uma
+   segunda borda laranja dentro do campo ao focar */
+.mkt .field input, .mkt .field input:focus, .mkt .field input:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+  border: 0 !important;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-ring-offset-shadow: 0 0 #0000;
+  height: auto;
+  padding: 0;
+}
+.mkt .field:focus-within { border-color: rgba(245,155,69,.55); }
 .mkt .field input::placeholder { color: #5d7484; font-weight: 600; }
 .mkt .field input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.55); cursor: pointer; }
 .mkt .field { gap: 8px; }

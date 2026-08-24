@@ -100,21 +100,24 @@ async function tarifasDoServico(externoId: number): Promise<Tarifa[]> {
   }
 }
 
+const COLUNAS =
+  "externo_id, titulo, descricao, tipo, fornecedor, politica_cancelamento, destaque, combo, dias_semana";
+
 export async function buscarServicosDestinoCF(p: {
   cidadeId: number;
   data: string;
   adultos: number;
   idades?: number[];
   limite?: number;
+  /** Nome da cidade de destino: fallback quando o catálogo não tem a cidade do fornecedor. */
+  destino?: string | null;
 }): Promise<ServicoDisponivel[]> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const limite = Math.min(60, Math.max(1, p.limite ?? 40));
 
   const { data: linhas, error } = await supabaseAdmin
     .from("comprefacil_servicos")
-    .select(
-      "externo_id, titulo, descricao, tipo, fornecedor, politica_cancelamento, destaque, combo, dias_semana",
-    )
+    .select(COLUNAS)
     .eq("ativo", true)
     .eq("fornecedor_cidade_id", p.cidadeId)
     .order("destaque", { ascending: false })
@@ -122,7 +125,25 @@ export async function buscarServicosDestinoCF(p: {
     .limit(limite);
   if (error) throw new Error(error.message);
 
-  const itens = ((linhas as any[]) ?? []).filter((s) => Number(s?.externo_id) > 0);
+  let brutos = ((linhas as any[]) ?? []).filter((s) => Number(s?.externo_id) > 0);
+
+  // Fallback pelo nome do destino: muitos receptivos estão cadastrados em
+  // outra cidade do fornecedor, mas o serviço cita o destino no título.
+  const destino = (p.destino ?? "").trim();
+  if (!brutos.length && destino.length >= 3) {
+    const termo = destino.split(/[,-]/)[0].trim();
+    const { data: porNome } = await supabaseAdmin
+      .from("comprefacil_servicos")
+      .select(COLUNAS)
+      .eq("ativo", true)
+      .or(`titulo.ilike.%${termo}%,descricao.ilike.%${termo}%`)
+      .order("destaque", { ascending: false })
+      .order("titulo")
+      .limit(limite);
+    brutos = ((porNome as any[]) ?? []).filter((s) => Number(s?.externo_id) > 0);
+  }
+
+  const itens = brutos;
   const idades = p.idades ?? [];
 
   // Tarifas em lotes pequenos para não estourar a operadora.

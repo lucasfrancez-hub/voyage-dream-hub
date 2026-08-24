@@ -290,7 +290,11 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
 
   // 1ª passada (Ordenacao "") = lista de "recomendados" da operadora — poucos itens,
   // usada só para marcar o selo. A lista completa vem na 2ª passada ordenada por preço.
-  const recomendados = new Set<string>(((dados?.Items ?? []) as any[]).map(chaveHotel));
+  // Teto: a operadora só destaca os primeiros da vitrine; sem isso quase todo
+  // hotel acabava marcado como "Recomendado".
+  const recomendados = new Set<string>(
+    ((dados?.Items ?? []) as any[]).slice(0, 10).map(chaveHotel),
+  );
 
   // 2ª passada: mesma busca (mesmo Guid) ordenada do menor para o maior preço,
   // que é a única ordenação em que a operadora devolve o catálogo inteiro.

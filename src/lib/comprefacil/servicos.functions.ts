@@ -8,6 +8,7 @@ const entrada = z.object({
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   adultos: z.number().int().min(1).max(24),
   idades: z.array(z.number().int().min(0).max(17)).max(20).optional(),
+  destino: z.string().max(120).nullish(),
 });
 
 async function executar(data: z.infer<typeof entrada>) {

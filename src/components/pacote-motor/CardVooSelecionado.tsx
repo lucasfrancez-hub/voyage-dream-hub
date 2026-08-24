@@ -99,7 +99,7 @@ export function CardVooSelecionado({
   const r = oferta ? resumoVoo(oferta.ida) : null;
 
   return (
-    <article className={`sel-card${aberto ? " details-open" : ""}`}>
+    <article id="selectedFlightCard" className={`sel-card${aberto ? " details-open" : ""}`}>
       <div className="sel-head">
         <div className="sel-main-title">
           <b>Voo selecionado</b>
