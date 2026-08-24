@@ -561,8 +561,9 @@ export function PacoteMotor({
               {resumo}
             </div>
             )}
-
+          </section>
         )}
+
 
         {buscou && vista === "voo" && (
           <SeletorVoo
