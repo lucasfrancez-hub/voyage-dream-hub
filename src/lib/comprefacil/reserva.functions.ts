@@ -27,7 +27,9 @@ export const reservarPacoteFRT = createServerFn({ method: "POST" })
         email?: string | null;
         telefone?: string | null;
         tipo?: 0 | 1 | 2;
+        idade?: number | null;
         quarto?: number;
+
       }[];
     }) => input,
   )

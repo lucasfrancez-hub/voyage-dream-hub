@@ -32,8 +32,11 @@ export type PaxReserva = {
   telefone?: string | null;
   /** 0 = adulto, 1 = criança, 2 = bebê */
   tipo?: 0 | 1 | 2;
+  /** idade pesquisada (obrigatória para criança/bebê na operadora) */
+  idade?: number | null;
   quarto?: number;
 };
+
 
 export type EntradaReservaFRT = {
   aereo?: { token: string; indice: number } | null;
@@ -59,8 +62,22 @@ export type ResultadoReservaFRT = {
 
 const TIPO_DESC = ["ADT", "CHD", "INF"] as const;
 
+/** Idade em anos completos a partir da data de nascimento (ISO yyyy-mm-dd). */
+function idadePorNascimento(nascimento?: string | null): number | null {
+  if (!nascimento) return null;
+  const d = new Date(`${nascimento}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  const hoje = new Date();
+  let anos = hoje.getFullYear() - d.getFullYear();
+  const m = hoje.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < d.getDate())) anos--;
+  return anos >= 0 ? anos : null;
+}
+
 function pessoa(p: PaxReserva, seq: number) {
   const tipo = p.tipo ?? 0;
+  // A operadora rejeita CHD/INF sem idade — usamos a do nascimento e caímos na idade pesquisada.
+  const idade = idadePorNascimento(p.nascimento) ?? (p.idade ?? null);
   return {
     Nome: (p.nome || "").trim().toUpperCase(),
     Sobrenome: (p.sobrenome || "").trim().toUpperCase(),
@@ -74,10 +91,12 @@ function pessoa(p: PaxReserva, seq: number) {
     Quarto: p.quarto ?? 1,
     Tipo: tipo,
     TipoDesc: TIPO_DESC[tipo] ?? "ADT",
+    ...(tipo === 0 ? {} : { Idade: idade ?? (tipo === 2 ? 0 : 7) }),
     Sequencia: seq,
     Erros: [],
   };
 }
+
 
 /** Executa o fluxo completo de reserva na operadora. */
 export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoReservaFRT> {

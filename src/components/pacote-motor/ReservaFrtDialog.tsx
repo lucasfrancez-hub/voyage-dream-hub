@@ -20,6 +20,8 @@ type Pax = {
   cpf: string;
   sexo: "M" | "F";
   tipo: 0 | 1 | 2;
+  /** idade pesquisada — a operadora exige para criança/bebê */
+  idade: number | null;
   quarto: number;
 };
 
@@ -27,16 +29,42 @@ type Pax = {
 function paxIniciais(quartos: OcupacaoQuarto[]): Pax[] {
   const lista: Pax[] = [];
   quartos.forEach((q, i) => {
-    const base = { nome: "", sobrenome: "", nascimento: "", cpf: "", sexo: "M" as const, quarto: i + 1 };
+    const base = {
+      nome: "",
+      sobrenome: "",
+      nascimento: "",
+      cpf: "",
+      sexo: "M" as const,
+      quarto: i + 1,
+      idade: null as number | null,
+    };
+    const idades = q.idades ?? [];
     for (let a = 0; a < q.adultos; a++) lista.push({ ...base, tipo: 0 });
-    for (let c = 0; c < q.criancas; c++) lista.push({ ...base, tipo: 1 });
-    for (let b = 0; b < q.bebes; b++) lista.push({ ...base, tipo: 2 });
+    for (let c = 0; c < q.criancas; c++) lista.push({ ...base, tipo: 1, idade: idades[c] ?? null });
+    for (let b = 0; b < q.bebes; b++) lista.push({ ...base, tipo: 2, idade: 0 });
   });
-  return lista.length ? lista : [{ nome: "", sobrenome: "", nascimento: "", cpf: "", sexo: "M", tipo: 0, quarto: 1 }];
+  return lista.length
+    ? lista
+    : [{ nome: "", sobrenome: "", nascimento: "", cpf: "", sexo: "M", tipo: 0, idade: null, quarto: 1 }];
+}
+
+/** Idade em anos completos a partir da data de nascimento. */
+function idadeDe(nascimento: string): number | null {
+  if (!nascimento) return null;
+  const d = new Date(`${nascimento}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  const hoje = new Date();
+  let anos = hoje.getFullYear() - d.getFullYear();
+  const m = hoje.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < d.getDate())) anos--;
+  return anos >= 0 ? anos : null;
 }
 
 const rotulo = (p: Pax, i: number) =>
-  `${p.tipo === 0 ? "Adulto" : p.tipo === 1 ? "Criança" : "Bebê"} ${i + 1} • Quarto ${p.quarto}`;
+  `${p.tipo === 0 ? "Adulto" : p.tipo === 1 ? "Criança" : "Bebê"} ${i + 1} • Quarto ${p.quarto}${
+    p.tipo !== 0 && p.idade != null ? ` • ${p.idade} ano(s) na pesquisa` : ""
+  }`;
+
 
 /**
  * Reserva de verdade na operadora (CompreFácil/FRT) direto do portal:
@@ -96,8 +124,10 @@ export function ReservaFrtDialog({
             email,
             telefone,
             tipo: p.tipo,
+            idade: idadeDe(p.nascimento) ?? p.idade,
             quarto: p.quarto,
           })),
+
         },
       }),
   });
@@ -113,9 +143,29 @@ export function ReservaFrtDialog({
       }
     | undefined;
 
+  // Crianças/bebês: a idade tem que bater com a pesquisada, senão a operadora recusa a reserva.
+  const alertasIdade = pax
+    .map((p, i) => {
+      if (p.tipo === 0 || p.idade == null || !p.nascimento) return null;
+      const real = idadeDe(p.nascimento);
+      return real != null && real !== p.idade
+        ? `${rotulo(p, i)}: nascimento indica ${real} ano(s), mas a busca foi feita com ${p.idade}.`
+        : null;
+    })
+    .filter(Boolean) as string[];
+
   const podeReservar =
-    pax.every((p) => p.nome.trim() && p.sobrenome.trim() && p.nascimento && p.cpf.replace(/\D/g, "").length === 11) &&
+    pax.every(
+      (p) =>
+        p.nome.trim() &&
+        p.sobrenome.trim() &&
+        p.nascimento &&
+        (p.tipo !== 0 || p.cpf.replace(/\D/g, "").length === 11),
+    ) &&
+    alertasIdade.length === 0 &&
     (Boolean(voo?.buscaToken) || Boolean(hotel?.buscaToken));
+
+
 
 
   function alterar(i: number, campo: keyof Pax, valor: string) {
@@ -186,6 +236,17 @@ export function ReservaFrtDialog({
                 </div>
               ))}
             </div>
+
+            {alertasIdade.length > 0 && (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                {alertasIdade.map((a, i) => (
+                  <p key={i}>{a}</p>
+                ))}
+                <p className="mt-1">Corrija a data de nascimento ou refaça a busca com a idade correta.</p>
+              </div>
+            )}
+
+
 
             <Button className="w-full" disabled={!podeReservar || m.isPending} onClick={() => m.mutate()}>
               {m.isPending ? (
