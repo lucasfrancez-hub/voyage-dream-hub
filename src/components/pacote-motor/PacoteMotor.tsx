@@ -198,7 +198,31 @@ export function PacoteMotor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** No widget (WordPress) a busca de pacote abre o site VIA AIR fora do iframe. */
+  function abrirNoSite() {
+    const p = new URLSearchParams();
+    p.set("m", "combo");
+    if (origemIata) p.set("o", origemIata);
+    if (destinoIata) p.set("d", destinoIata);
+    if (origem) p.set("pon", origem);
+    if (destino) p.set("pdn", destino);
+    if (cidadeId) p.set("cid", String(cidadeId));
+    if (ida) p.set("ida", ida);
+    if (volta) p.set("volta", volta);
+    p.set("q", encodeQuartos(quartos));
+    const url = `https://pedidos.viaair.tur.br/voar?${p.toString()}`;
+    try {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      window.open(url, "_top");
+    }
+  }
+
   function pesquisar() {
+    if (embed) {
+      abrirNoSite();
+      return;
+    }
     setHotel(null);
     setVoo(null);
     setQuartoId(null);
