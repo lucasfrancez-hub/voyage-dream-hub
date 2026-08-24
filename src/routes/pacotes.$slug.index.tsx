@@ -865,24 +865,6 @@ function PackageDetails() {
               )}
             </dl>
 
-            {!isPerUnit && (
-              <div className="mt-5 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-                Este pacote foi montado para{" "}
-                <span className="text-foreground font-medium">
-                  {pkg.base_occupancy ?? 2} adulto{(pkg.base_occupancy ?? 2) > 1 ? "s" : ""}
-                </span>
-                . Precisa de outra quantidade de viajantes?{" "}
-                <a
-                  href={customQuoteWhatsappUrl(pkg.title)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand-orange hover:underline font-medium"
-                >
-                  Fale no WhatsApp
-                </a>
-                .
-              </div>
-            )}
 
             {hasHotelChoice && hotelName ? (
               <div className="mt-5 flex items-center gap-2 rounded-2xl border border-brand-orange/30 bg-brand-orange/10 px-3 py-2.5 text-xs">
