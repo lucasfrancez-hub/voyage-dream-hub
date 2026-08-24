@@ -212,6 +212,14 @@ export async function buscarSegurosCF(p: {
     if (vistos.has(chave)) return;
     vistos.add(chave);
 
+    const seguradora =
+      nomeSeguradora(s?.Fornecedor) ??
+      texto(s?.NomeFornecedor) ??
+      texto(s?.Seguradora) ??
+      texto(s?.Fornecedor);
+    const regiaoNome = texto(s?.DestinoNome) ?? REGIOES_SEGURO[regiao] ?? "Cobertura nacional";
+    const daApi = coberturasDoPlano(s);
+
     lista.push({
       id: `cfseg-${s?.CodigoFornecedor ?? s?.Id ?? i}-${i}`,
       externoId: Number(s?.CodigoFornecedor ?? s?.Id ?? 0) || 0,
@@ -220,24 +228,26 @@ export async function buscarSegurosCF(p: {
       descricao:
         texto(s?.Descricao) ??
         texto(s?.Cobertura) ??
-        `Cobertura para ${pax} ${pax === 1 ? "passageiro" : "passageiros"} · ${noites} ${noites === 1 ? "dia" : "dias"}`,
-      fornecedor: texto(s?.Fornecedor) ?? texto(s?.NomeFornecedor) ?? texto(s?.Seguradora),
+        `Plano ${titulo} para ${pax} ${pax === 1 ? "passageiro" : "passageiros"}, com ${noites} ${noites === 1 ? "dia" : "dias"} de cobertura em ${regiaoNome.toLowerCase()}.`,
+      fornecedor: seguradora,
       politica: texto(s?.PoliticaCancelamento),
       informacoes: [
         `${pax} ${pax === 1 ? "passageiro" : "passageiros"}`,
         `${noites} ${noites === 1 ? "dia" : "dias"} de cobertura`,
-        texto(s?.DestinoNome) ?? REGIOES_SEGURO[regiao] ?? "Cobertura nacional",
-      ],
+        regiaoNome,
+        seguradora ? `Seguradora ${seguradora}` : null,
+      ].filter(Boolean) as string[],
 
       recomendado: false,
       valor: calculado > 0 ? Number(calculado.toFixed(2)) : null,
       moeda: "BRL" as const,
       imagem: null,
       logo: logoSeguradora(s),
-      coberturas: coberturasDoPlano(s),
+      coberturas: daApi.length ? daApi : resumoDoPlano(s, { pax, noites, regiaoNome }),
 
     });
   });
+
 
   return lista.sort((a, b) => (a.valor ?? Infinity) - (b.valor ?? Infinity));
 }
