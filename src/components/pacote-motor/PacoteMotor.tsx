@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { QuoteBasketBar } from "@/components/quote/QuoteBasketBar";
+import { addToQuoteBasket } from "@/lib/quote-basket";
+import { passhubToQuoteFlight } from "@/lib/passhub/quote";
 import { CidadeAutocompleteCF } from "@/components/comprefacil/CidadeAutocompleteCF";
 import { CardHotelSelecionado } from "@/components/pacote-motor/CardHotelSelecionado";
 import { CardVooSelecionado } from "@/components/pacote-motor/CardVooSelecionado";
@@ -183,7 +187,47 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
     },
   });
 
+  /** Guarda a montagem atual na cesta para virar uma opção do orçamento. */
+  function salvarNaCesta() {
+    if (!hotel && !voo) return;
+    const idaVoo = voo?.ida ?? null;
+    const voltaVoo = voo?.voltas?.[0] ?? null;
+    addToQuoteBasket({
+      label: `${destino || hotel?.nome || "Pacote"}${hotel?.nome ? ` • ${hotel.nome}` : ""}${
+        idaVoo ? ` • ${idaVoo.companhia}` : ""
+      }`,
+      total,
+      adults: pax.adultos,
+      children: pax.criancas,
+      origin: origemIata || origem || null,
+      destination: destinoIata || destino || null,
+      startDate: ida || null,
+      endDate: volta || null,
+      services: [
+        ...(hotel
+          ? [
+              `Hospedagem: ${hotel.nome}${quarto?.nome ? ` — ${quarto.nome}` : ""}${
+                quarto?.regime || hotel.regime ? ` (${quarto?.regime ?? hotel.regime})` : ""
+              }`,
+              noites ? `${noites} ${plural(noites, "noite", "noites")}` : "",
+            ].filter(Boolean)
+          : []),
+        ...(idaVoo ? [`Aéreo ida: ${idaVoo.origem} → ${idaVoo.destino} • ${idaVoo.companhia}`] : []),
+        ...(voltaVoo ? [`Aéreo volta: ${voltaVoo.origem} → ${voltaVoo.destino} • ${voltaVoo.companhia}`] : []),
+      ],
+      flights: [
+        ...(idaVoo ? [passhubToQuoteFlight(idaVoo, voltaVoo ? "OUTBOUND" : null, total)] : []),
+        ...(voltaVoo ? [passhubToQuoteFlight(voltaVoo, "INBOUND", null)] : []),
+      ],
+      notes: `${pax.adultos} adulto(s)${pax.criancas ? ` • ${pax.criancas} criança(s)` : ""}${
+        pax.bebes ? ` • ${pax.bebes} bebê(s)` : ""
+      } • ${quartos.length} ${plural(quartos.length, "quarto", "quartos")}`,
+    });
+    toast.success("Pacote salvo na cesta de orçamento");
+  }
+
   const resumo = (
+
     <ResumoPacote
       destino={destino}
       quartos={quartos}
@@ -197,15 +241,24 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
       diferenca={Number((total - baseTotal).toFixed(2))}
       moeda={hotel?.moeda ?? "BRL"}
       acao={
-        <button
-          type="button"
-          className="primary"
-          disabled={checkout.isPending || (!hotel && !voo)}
-          onClick={() => checkout.mutate()}
-        >
-          {checkout.isPending ? "Gerando link de pagamento…" : "Reservar pacote"}
-        </button>
+        <div style={{ display: "grid", gap: 8 }}>
+          <button
+            type="button"
+            className="primary"
+            disabled={checkout.isPending || (!hotel && !voo)}
+            onClick={() => checkout.mutate()}
+          >
+            {checkout.isPending ? "Gerando link de pagamento…" : "Reservar pacote"}
+          </button>
+          {/* Cesta: junta várias montagens e vira UM orçamento com várias opções. */}
+          {!publico && (
+            <button type="button" className="ghost" disabled={!hotel && !voo} onClick={salvarNaCesta}>
+              Gerar orçamento
+            </button>
+          )}
+        </div>
       }
+
     />
   );
 
@@ -424,6 +477,7 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
           />
         )}
       </div>
+      {!publico && <QuoteBasketBar />}
     </div>
   );
 }
