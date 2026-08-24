@@ -773,7 +773,8 @@ body:has([data-chat-root]),
 .mkt .segtext span {display:block;color:#73899a;font-size:6px;margin-top:2px}
 .mkt .connect {margin:4px 0 4px 60px;padding:6px 7px;border:1px dashed rgba(245,155,69,.22);background:rgba(245,155,69,.06);border-radius:8px;color:#ffc47f;font-size:6px;font-weight:800}
 .mkt .hotelgrid {display:grid;grid-template-columns:160px minmax(0,1fr) 170px}
-.mkt .photo {min-height:165px;background-position:center;background-size:cover}
+.mkt .photo {width:160px;height:165px;background-position:center;background-size:cover;position:relative;border-radius:0;overflow:hidden}
+.mkt .photo .photo-badge {position:absolute;top:10px;left:10px;z-index:2}
 .mkt .hotelmain {padding:12px 13px}
 .mkt .hotelhead {display:flex;justify-content:space-between;gap:10px}
 .mkt .hotelhead h3 {font-size:13px;margin:3px 0}
