@@ -12,6 +12,8 @@ import { mapearPacote, gravarPacotesCF } from "./sync.server";
 export type FiltrosBuscaCF = {
   termo?: string;
   cidade?: string;
+  /** Id oficial da cidade de destino na CompreFácil (vem do autopreencher) */
+  cidadeId?: number | null;
   saida?: string;
   /** período desejado (ISO yyyy-mm-dd) */
   dataDe?: string | null;

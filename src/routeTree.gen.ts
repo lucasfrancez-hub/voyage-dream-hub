@@ -124,7 +124,6 @@ import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
 import { Route as ApiPublicAnalyticsCollectRouteImport } from './routes/api/public/analytics-collect'
 import { Route as ApiPublicAsaasTransferWebhookRouteImport } from './routes/api/public/asaas-transfer-webhook'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
-import { Route as ApiPublicCfProbeRouteImport } from './routes/api/public/cf-probe'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
 import { Route as ApiPublicFlightCardRouteImport } from './routes/api/public/flight-card'
 import { Route as ApiPublicFrt2faInboxRouteImport } from './routes/api/public/frt-2fa-inbox'
@@ -766,11 +765,6 @@ const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
   path: '/api/public/asaas-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicCfProbeRoute = ApiPublicCfProbeRouteImport.update({
-  id: '/api/public/cf-probe',
-  path: '/api/public/cf-probe',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicClicksignWebhookRoute =
   ApiPublicClicksignWebhookRouteImport.update({
     id: '/api/public/clicksign-webhook',
@@ -1232,7 +1226,6 @@ export interface FileRoutesByFullPath {
   '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
-  '/api/public/cf-probe': typeof ApiPublicCfProbeRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
@@ -1410,7 +1403,6 @@ export interface FileRoutesByTo {
   '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
-  '/api/public/cf-probe': typeof ApiPublicCfProbeRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
@@ -1591,7 +1583,6 @@ export interface FileRoutesById {
   '/api/public/analytics-collect': typeof ApiPublicAnalyticsCollectRoute
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
-  '/api/public/cf-probe': typeof ApiPublicCfProbeRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
@@ -1773,7 +1764,6 @@ export interface FileRouteTypes {
     | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
-    | '/api/public/cf-probe'
     | '/api/public/clicksign-webhook'
     | '/api/public/flight-card'
     | '/api/public/frt-2fa-inbox'
@@ -1951,7 +1941,6 @@ export interface FileRouteTypes {
     | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
-    | '/api/public/cf-probe'
     | '/api/public/clicksign-webhook'
     | '/api/public/flight-card'
     | '/api/public/frt-2fa-inbox'
@@ -2131,7 +2120,6 @@ export interface FileRouteTypes {
     | '/api/public/analytics-collect'
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
-    | '/api/public/cf-probe'
     | '/api/public/clicksign-webhook'
     | '/api/public/flight-card'
     | '/api/public/frt-2fa-inbox'
@@ -2237,7 +2225,6 @@ export interface RootRouteChildren {
   ApiPublicAnalyticsCollectRoute: typeof ApiPublicAnalyticsCollectRoute
   ApiPublicAsaasTransferWebhookRoute: typeof ApiPublicAsaasTransferWebhookRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
-  ApiPublicCfProbeRoute: typeof ApiPublicCfProbeRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
   ApiPublicFlightCardRoute: typeof ApiPublicFlightCardRoute
   ApiPublicFrt2faInboxRoute: typeof ApiPublicFrt2faInboxRoute
@@ -3102,13 +3089,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/cf-probe': {
-      id: '/api/public/cf-probe'
-      path: '/api/public/cf-probe'
-      fullPath: '/api/public/cf-probe'
-      preLoaderRoute: typeof ApiPublicCfProbeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/clicksign-webhook': {
       id: '/api/public/clicksign-webhook'
       path: '/api/public/clicksign-webhook'
@@ -3799,7 +3779,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAnalyticsCollectRoute: ApiPublicAnalyticsCollectRoute,
   ApiPublicAsaasTransferWebhookRoute: ApiPublicAsaasTransferWebhookRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
-  ApiPublicCfProbeRoute: ApiPublicCfProbeRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
   ApiPublicFlightCardRoute: ApiPublicFlightCardRoute,
   ApiPublicFrt2faInboxRoute: ApiPublicFrt2faInboxRoute,
