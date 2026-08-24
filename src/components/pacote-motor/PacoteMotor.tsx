@@ -515,6 +515,7 @@ export function PacoteMotor({
               </span>
             </div>
 
+            {carregando ? <EsqueletoPacote /> : (
             <div className="overview">
                 <div className="overview-main">
                   <div className="overview-grid">
