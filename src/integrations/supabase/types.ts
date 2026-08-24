@@ -2867,6 +2867,39 @@ export type Database = {
         }
         Relationships: []
       }
+      comprefacil_sessions: {
+        Row: {
+          agencia_id: string | null
+          atualizado_em: string
+          criado_em: string
+          expira_em: string
+          fingerprint: string | null
+          id: string
+          token: string
+          usuario_id: string | null
+        }
+        Insert: {
+          agencia_id?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          expira_em: string
+          fingerprint?: string | null
+          id?: string
+          token: string
+          usuario_id?: string | null
+        }
+        Update: {
+          agencia_id?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          expira_em?: string
+          fingerprint?: string | null
+          id?: string
+          token?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       cruise_additional_categories: {
         Row: {
           created_at: string

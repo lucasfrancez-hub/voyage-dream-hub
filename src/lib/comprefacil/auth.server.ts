@@ -132,17 +132,77 @@ async function validarDoisFatores(otpToken: string): Promise<{ access_token?: st
   return token ? { access_token: token, expires_in: corpo.expires_in ?? corpo.ExpiresIn } : null;
 }
 
+async function lerSessaoSalva(): Promise<Sessao | null> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("comprefacil_sessions")
+      .select("token, expira_em, agencia_id, usuario_id")
+      .eq("id", "default")
+      .maybeSingle();
+    if (!data?.token) return null;
+    const expiraEm = new Date(data.expira_em as string).getTime();
+    if (!Number.isFinite(expiraEm) || expiraEm <= Date.now()) return null;
+    return {
+      token: data.token as string,
+      expiraEm,
+      agenciaId: (data.agencia_id as string | null) ?? null,
+      usuarioId: (data.usuario_id as string | null) ?? null,
+    };
+  } catch (e) {
+    console.error("[comprefacil] falha ao ler sessão salva:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+async function salvarSessao(s: Sessao): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("comprefacil_sessions").upsert(
+      {
+        id: "default",
+        token: s.token,
+        expira_em: new Date(s.expiraEm).toISOString(),
+        agencia_id: s.agenciaId,
+        usuario_id: s.usuarioId,
+        fingerprint: FINGERPRINT,
+      },
+      { onConflict: "id" },
+    );
+  } catch (e) {
+    console.error("[comprefacil] falha ao salvar sessão:", e instanceof Error ? e.message : e);
+  }
+}
+
+/** Invalida a sessão salva (usado quando a operadora devolve 401). */
+export async function limparSessaoCompreFacil(): Promise<void> {
+  sessao = null;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("comprefacil_sessions").delete().eq("id", "default");
+  } catch {
+    /* ignora */
+  }
+}
+
 export async function sessaoCompreFacil(): Promise<Sessao> {
   if (sessao && sessao.expiraEm > Date.now()) return sessao;
   if (!emAndamento) {
-    emAndamento = autenticar()
-      .then((s) => {
-        sessao = s;
-        return s;
-      })
-      .finally(() => {
-        emAndamento = null;
-      });
+    emAndamento = (async () => {
+      // 1) sessão persistida (sobrevive a deploys e reinícios do servidor)
+      const salva = await lerSessaoSalva();
+      if (salva) {
+        sessao = salva;
+        return salva;
+      }
+      // 2) só então faz login (e eventual 2FA)
+      const nova = await autenticar();
+      sessao = nova;
+      await salvarSessao(nova);
+      return nova;
+    })().finally(() => {
+      emAndamento = null;
+    });
   }
   return emAndamento;
 }
@@ -151,6 +211,7 @@ export async function sessaoCompreFacil(): Promise<Sessao> {
 export async function chamarCompreFacil(
   path: string,
   init: { method?: string; body?: unknown; headers?: Record<string, string>; base?: string } = {},
+  tentativa = 0,
 ): Promise<{ status: number; ok: boolean; dados: unknown }> {
   const { token } = await sessaoCompreFacil();
   const url = `${init.base ?? BASE}${path}`;
@@ -171,6 +232,11 @@ export async function chamarCompreFacil(
     dados = texto ? JSON.parse(texto) : null;
   } catch {
     /* mantém texto cru */
+  }
+  if ((resp.status === 401 || resp.status === 403) && tentativa === 0) {
+    // token salvo expirou/foi revogado: descarta e refaz o login uma única vez
+    await limparSessaoCompreFacil();
+    return chamarCompreFacil(path, init, 1);
   }
   if (!resp.ok) {
     console.error(`CompreFácil ${path} [${resp.status}]: ${texto.slice(0, 300)}`);
