@@ -1,19 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SearchEngine } from "./admin.buscar";
+import { MotorBuscaCF } from "@/components/comprefacil/MotorBuscaCF";
 
 export const Route = createFileRoute("/admin/motor-pacote")({
   head: () => ({
     meta: [
-      { title: "Motor de Pacote — Aéreo + Hotel | VIA AIR" },
+      { title: "Motor de Pacote CompreFácil | VIA AIR" },
       {
         name: "description",
         content:
-          "Monte pacotes VIA AIR combinando aéreo e hospedagem em tempo real, com pacote recomendado e troca de voo ou hotel.",
+          "Pesquise pacotes prontos da CompreFácil em tempo real: destino, saída, período, noites e preço, com resultados atualizados na operadora.",
       },
-      { property: "og:title", content: "Motor de Pacote — Aéreo + Hotel | VIA AIR" },
+      { property: "og:title", content: "Motor de Pacote CompreFácil | VIA AIR" },
       {
         property: "og:description",
-        content: "Pesquise aéreo + hotel juntos e altere voo ou hospedagem em um clique.",
+        content: "Busque pacotes da CompreFácil por destino, saída, período e preço.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -23,5 +23,15 @@ export const Route = createFileRoute("/admin/motor-pacote")({
 });
 
 function MotorPacotePage() {
-  return <SearchEngine initialMode="combo" />;
+  return (
+    <div className="space-y-5 p-4 md:p-6">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Motor de pacote</h1>
+        <p className="text-sm text-muted-foreground">
+          Pacotes prontos da CompreFácil — busca no catálogo com consulta ao vivo na operadora.
+        </p>
+      </header>
+      <MotorBuscaCF />
+    </div>
+  );
 }
