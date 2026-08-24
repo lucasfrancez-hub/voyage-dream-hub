@@ -404,7 +404,18 @@ export function PacoteMotor({
               <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                 <BedDouble className="h-3 w-3" /> Quartos e hóspedes
               </Label>
-              <RoomsPaxField quartos={quartos} onChange={(q) => setQuartos(q)} />
+              <RoomsPaxField
+                quartos={quartos}
+                onChange={(novos) =>
+                  // Preserva as idades já informadas para cada quarto ao redistribuir.
+                  setQuartos(
+                    novos.map((q, i) => ({
+                      ...q,
+                      idades: (quartos[i]?.idades ?? []).slice(0, q.criancas),
+                    })),
+                  )
+                }
+              />
             </div>
           </div>
         </section>
