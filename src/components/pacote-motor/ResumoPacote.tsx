@@ -1,6 +1,7 @@
 import { brl, hora, plural, type HotelPacote, type OcupacaoQuarto, type QuartoPacote } from "@/lib/pacote-motor/mapear";
 import { somaOcupacao } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
+import { useParcelamentoPacote } from "@/lib/pacote-motor/parcelamento";
 
 const dataCurta = (iso: string) => (iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "—");
 
@@ -64,6 +65,7 @@ export function ResumoPacote({
   acao?: React.ReactNode;
 }) {
   const pax = somaOcupacao(quartos);
+  const parcelamento = useParcelamentoPacote();
   const volta = oferta?.voltas?.[0] ?? null;
   const companhia = oferta?.ida.companhia || oferta?.ida.companhiaIata || "";
 

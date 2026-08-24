@@ -73,7 +73,7 @@ function Detalhe({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
 type Paradas = "direto" | "ate1" | "todos";
 type Ordem = "preco" | "precoDesc" | "duracao" | "partida";
 
-/** Faixas de horário no padrão da operadora. */
+/** Faixas de horário padrão. */
 const FAIXAS: [string, string][] = [
   ["madrugada", "00h–06h"],
   ["manha", "06h–12h"],
@@ -384,7 +384,7 @@ export function SeletorVoo({
         </aside>
 
         <div className="results">
-          {carregando && <div className="state-box">Consultando a malha aérea…</div>}
+          {carregando && <div className="state-box">Consultando aéreos disponíveis…</div>}
           {!carregando && erro && <div className="state-box err">{erro}</div>}
           {!carregando && !erro && lista.length === 0 && (
             <div className="state-box">Nenhum voo encontrado para este trecho e período.</div>
@@ -443,7 +443,7 @@ export function SeletorVoo({
                     <div className="divider" />
                     <span className="plabel">Valor final do pacote</span>
                     <div className="big">{brl(totalPacote(o))}</div>
-                    <div className="parcel">Parcelamento conforme a condição da operadora</div>
+                    <div className="parcel">{parcelamento.curto}</div>
                     <button type="button" className={`select${sel ? " on" : ""}`} onClick={() => onSelecionar(o)}>
                       {sel ? "Selecionado" : "Selecionar"}
                     </button>

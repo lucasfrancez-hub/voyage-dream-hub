@@ -251,7 +251,7 @@ export function SeletorHospedagem({
                           {h.recomendado ? <span className="selo-rec">Recomendado</span> : null}
                         </div>
                         <h3>{h.nome}</h3>
-                        <p>{h.endereco ?? h.localizacao ?? "Localização conforme a operadora"}</p>
+                        <p>{h.endereco ?? h.localizacao ?? "Localização não informada"}</p>
                       </div>
                       {h.avaliacao ? (
                         <div className="rating">
@@ -311,7 +311,7 @@ export function SeletorHospedagem({
                   </div>
                   <div className="room-grid">
                     {h.quartos.length === 0 && (
-                      <div className="state-box">A operadora não devolveu quartos alternativos para esta ocupação.</div>
+                      <div className="state-box">Nenhum quarto alternativo disponível para esta ocupação.</div>
                     )}
                     {h.quartos.map((q) => {
                       const ativo = sel && q.id === (quartoSelecionadoId ?? h.quartos[0]?.id);
@@ -331,7 +331,7 @@ export function SeletorHospedagem({
                           </div>
                           <div className="room-meta">
                             <strong>Política</strong>
-                            {q.politica ?? "Conforme a operadora"}
+                            {q.politica ?? "Conforme o pacote"}
                           </div>
                           <div className="room-price">
                             <small>Diferença</small>
