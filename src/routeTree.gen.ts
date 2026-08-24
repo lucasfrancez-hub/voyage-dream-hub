@@ -113,6 +113,7 @@ import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
 import { Route as AdminCobrancaCartaoIndexRouteImport } from './routes/admin.cobranca-cartao.index'
 import { Route as AdminCobrancaCartaoIdRouteImport } from './routes/admin.cobranca-cartao.$id'
 import { Route as AdminCruzeirosIndexRouteImport } from './routes/admin.cruzeiros.index'
+import { Route as AdminMotorPacoteModelosRouteImport } from './routes/admin.motor-pacote_.modelos'
 import { Route as AdminOrcamentosIndexRouteImport } from './routes/admin.orcamentos.index'
 import { Route as AdminOrcamentosIdRouteImport } from './routes/admin.orcamentos.$id'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
@@ -708,6 +709,11 @@ const AdminCruzeirosIndexRoute = AdminCruzeirosIndexRouteImport.update({
   path: '/cruzeiros/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMotorPacoteModelosRoute = AdminMotorPacoteModelosRouteImport.update({
+  id: '/motor-pacote_/modelos',
+  path: '/motor-pacote/modelos',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminOrcamentosIndexRoute = AdminOrcamentosIndexRouteImport.update({
   id: '/orcamentos/',
   path: '/orcamentos/',
@@ -1217,6 +1223,7 @@ export interface FileRoutesByFullPath {
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
   '/admin/cobranca-cartao/$id': typeof AdminCobrancaCartaoIdRoute
+  '/admin/motor-pacote/modelos': typeof AdminMotorPacoteModelosRoute
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -1394,6 +1401,7 @@ export interface FileRoutesByTo {
   '/pacotes': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
   '/admin/cobranca-cartao/$id': typeof AdminCobrancaCartaoIdRoute
+  '/admin/motor-pacote/modelos': typeof AdminMotorPacoteModelosRoute
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -1574,6 +1582,7 @@ export interface FileRoutesById {
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
   '/admin/cobranca-cartao/$id': typeof AdminCobrancaCartaoIdRoute
+  '/admin/motor-pacote_/modelos': typeof AdminMotorPacoteModelosRoute
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
@@ -1755,6 +1764,7 @@ export interface FileRouteTypes {
     | '/pacotes/'
     | '/admin/app/$token'
     | '/admin/cobranca-cartao/$id'
+    | '/admin/motor-pacote/modelos'
     | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -1932,6 +1942,7 @@ export interface FileRouteTypes {
     | '/pacotes'
     | '/admin/app/$token'
     | '/admin/cobranca-cartao/$id'
+    | '/admin/motor-pacote/modelos'
     | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -2111,6 +2122,7 @@ export interface FileRouteTypes {
     | '/pacotes/'
     | '/admin/app/$token'
     | '/admin/cobranca-cartao/$id'
+    | '/admin/motor-pacote_/modelos'
     | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/terceiros'
@@ -3012,6 +3024,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCruzeirosIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/motor-pacote_/modelos': {
+      id: '/admin/motor-pacote_/modelos'
+      path: '/motor-pacote/modelos'
+      fullPath: '/admin/motor-pacote/modelos'
+      preLoaderRoute: typeof AdminMotorPacoteModelosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/orcamentos/': {
       id: '/admin/orcamentos/'
       path: '/orcamentos'
@@ -3592,6 +3611,7 @@ interface AdminRouteChildren {
   AdminVoosTesteRoute: typeof AdminVoosTesteRoute
   AdminAppTokenRoute: typeof AdminAppTokenRoute
   AdminCobrancaCartaoIdRoute: typeof AdminCobrancaCartaoIdRoute
+  AdminMotorPacoteModelosRoute: typeof AdminMotorPacoteModelosRoute
   AdminOrcamentosIdRoute: typeof AdminOrcamentosIdRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
   AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
@@ -3659,6 +3679,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminVoosTesteRoute: AdminVoosTesteRoute,
   AdminAppTokenRoute: AdminAppTokenRoute,
   AdminCobrancaCartaoIdRoute: AdminCobrancaCartaoIdRoute,
+  AdminMotorPacoteModelosRoute: AdminMotorPacoteModelosRoute,
   AdminOrcamentosIdRoute: AdminOrcamentosIdRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
   AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
