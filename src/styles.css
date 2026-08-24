@@ -1515,3 +1515,31 @@ body:has([data-chat-root]),
 
 /* Motor de pacotes embutido: herda as margens do container da página. */
 .mkt.inset .shell {padding:0}
+
+/* ==========================================================================
+   Motor embutido (admin/embed): responde à largura do container, não da janela.
+   Evita que o grid de busca e os blocos estourem as margens da página.
+   ========================================================================== */
+.mkt.inset {container-type:inline-size;container-name:mkt;overflow:hidden;border-radius:24px}
+.mkt.inset .shell {max-width:100%;padding:0}
+.mkt.inset main {padding:16px 0 24px}
+.mkt.inset * {min-width:0}
+@container mkt (max-width:1150px) {
+  .mkt.inset .market {grid-template-columns:1fr}
+  .mkt.inset .market>.summary {grid-column:1/-1;position:relative;top:auto}
+  .mkt.inset .overview {grid-template-columns:1fr}
+  .mkt.inset .summary {position:relative;top:auto}
+  .mkt.inset .search-grid {grid-template-columns:1fr 1fr 1fr}
+  .mkt.inset .search-btn {grid-column:span 3}
+  .mkt.inset #overview .overview-grid {grid-template-columns:1fr 1.08fr}
+}
+@container mkt (max-width:780px) {
+  .mkt.inset .search-grid {grid-template-columns:1fr 1fr}
+  .mkt.inset .search-btn {grid-column:span 2}
+  .mkt.inset .room-line {flex-wrap:wrap}
+  .mkt.inset .occupancy-top {align-items:flex-start}
+  .mkt.inset #overview .overview-grid {grid-template-columns:1fr}
+  .mkt.inset #overview .overview-conn-grid {grid-template-columns:1fr}
+  .mkt.inset #overview .overview-layover {margin-left:0}
+  .mkt.inset .results {grid-template-columns:1fr}
+}
