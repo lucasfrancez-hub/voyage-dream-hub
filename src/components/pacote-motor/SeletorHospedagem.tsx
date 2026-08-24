@@ -242,7 +242,10 @@ export function SeletorHospedagem({
                   <div className="hotelmain">
                     <div className="hotelhead">
                       <div>
-                        {h.categoria ? <div className="stars">{"★".repeat(h.categoria)}</div> : null}
+                        <div className="hotelselos">
+                          {h.categoria ? <div className="stars">{"★".repeat(h.categoria)}</div> : null}
+                          {h.recomendado ? <span className="selo-rec">Recomendado</span> : null}
+                        </div>
                         <h3>{h.nome}</h3>
                         <p>{h.endereco ?? h.localizacao ?? "Localização conforme a operadora"}</p>
                       </div>
