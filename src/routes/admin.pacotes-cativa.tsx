@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, Check, ExternalLink, Loader2, Plane, RefreshCw, Search, History, Route as RouteIcon } from "lucide-react";
+import { AlertTriangle, Check, ExternalLink, Loader2, Plane, RefreshCw, Search, History, Trash2, Route as RouteIcon } from "lucide-react";
+import { confirmThen } from "@/lib/confirm";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +24,8 @@ import {
   reprocessarLoteCativa,
   historicoPacoteCativa,
   liberarPacoteCativa,
+  excluirPacoteCativa,
+
 } from "@/lib/cativa/cativa.functions";
 
 export const Route = createFileRoute("/admin/pacotes-cativa")({
@@ -64,6 +68,8 @@ function PacotesCativaPage() {
   const reprocessarLote = useServerFn(reprocessarLoteCativa);
   const historico = useServerFn(historicoPacoteCativa);
   const liberar = useServerFn(liberarPacoteCativa);
+  const excluir = useServerFn(excluirPacoteCativa);
+
 
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("");
@@ -121,6 +127,17 @@ function PacotesCativaPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const excluirPacote = useMutation({
+    mutationFn: (pacoteId: string) => excluir({ data: { pacoteId } }),
+    onSuccess: () => {
+      toast.success("Pacote excluído");
+      qc.invalidateQueries({ queryKey: ["cativa-resumo"] });
+      qc.invalidateQueries({ queryKey: ["cativa-pacotes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const refazLote = useMutation({
     mutationFn: (tudo: boolean) => reprocessarLote({ data: { tudo, limite: 5, forcar: true } }),
@@ -363,11 +380,32 @@ function PacotesCativaPage() {
                     <Check className="mr-1 h-4 w-4" />
                     {p.liberado_manual ? "Liberado" : "Ir do mesmo jeito"}
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={excluirPacote.isPending}
+                    title="Excluir pacote"
+                    onClick={() =>
+                      confirmThen(
+                        {
+                          title: "Excluir pacote",
+                          description: `Excluir "${p.nome}" do catálogo? Essa ação não pode ser desfeita.`,
+                          confirmText: "Excluir",
+                          destructive: true,
+                        },
+                        () => excluirPacote.mutate(p.id),
+                      )
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                   {p.link_orcamento ? (
                     <a href={p.link_orcamento} target="_blank" rel="noreferrer" className="p-2 text-muted-foreground hover:text-foreground">
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   ) : null}
+
                 </div>
               </li>
             ))}
