@@ -147,6 +147,7 @@ export function DateRangeField({
         }}
         className={cn(
           "flex h-12 w-full items-center gap-2 rounded-xl border bg-muted/40 px-4 text-left text-sm font-semibold transition-all",
+          className,
           active
             ? "border-primary ring-2 ring-primary/40"
             : "border-border/40 hover:border-primary/50",
