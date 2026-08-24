@@ -77,7 +77,7 @@ export function nomeCia(codigo?: string | null, nome?: string | null): string {
 }
 
 /** Trechos com troca de aeroporto na conexão (chegada num aeroporto, saída de outro). */
-export function trocasDeAeroporto(conexoes?: { origem?: string; destino?: string }[] | null) {
+export function trocasDeAeroporto(conexoes?: readonly any[] | null) {
   const t: { de: string; para: string }[] = [];
   const cx = conexoes ?? [];
   for (let i = 0; i < cx.length - 1; i++) {

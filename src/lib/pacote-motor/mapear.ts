@@ -8,6 +8,7 @@
  */
 import type { PacoteBuscaCF } from "@/lib/comprefacil/busca.server";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
+import { nomeCia } from "@/lib/pacote-motor/cia";
 
 export type QuartoPacote = {
   id: string;
@@ -179,7 +180,7 @@ export function detalharHospedagem(raw: any, pagantes: number) {
 /** Resumo textual de um voo (usado nos cards e no resumo lateral). */
 export function resumoVoo(v: PassHubVoo) {
   return {
-    companhia: v.companhia || v.companhiaIata,
+    companhia: nomeCia(v.companhiaIata, v.companhia),
     rota: `${v.origem} → ${v.destino}`,
     horarios: `${hora(v.partida)} → ${hora(v.chegada)}`,
     duracao: v.duracao,

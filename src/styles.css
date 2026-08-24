@@ -1595,8 +1595,9 @@ body:has([data-chat-root]),
 .mkt .svc {display:grid;grid-template-columns:1fr 190px;gap:14px;border:1px solid var(--line);border-radius:18px;padding:16px;background:rgba(255,255,255,.02);transition:.18s}
 .mkt .svc:hover {background:rgba(255,255,255,.04)}
 .mkt .svc.selected {border-color:rgba(242,107,31,.55);box-shadow:0 0 0 1px rgba(242,107,31,.25) inset}
-.mkt .svc h3 {margin:6px 0 4px;font-size:14px;color:#eef6fc}
-.mkt .svc p {margin:0;font-size:11px;line-height:1.5;color:var(--muted)}
+.mkt .svc h3 {margin:6px 0 4px;font-size:13px;line-height:1.35;color:#eef6fc;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mkt .svc p {margin:0;font-size:11px;line-height:1.45;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.troca-aero {display:block;margin-top:3px;color:#f7a35c;font-style:normal;font-weight:700}
 .mkt .svchead {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .mkt .svccat {font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;color:#9fc0d8}
 .mkt .svcpol {display:block;margin-top:8px;font-size:10px;color:#7f97a8}
@@ -1634,13 +1635,13 @@ body:has([data-chat-root]),
 .mkt .hotel-about-toggle:hover {border-color:rgba(245,155,69,.55);color:#ffc47f}
 
 /* ===== Motor de pacotes — serviços com foto + modal de detalhes ===== */
-.mkt .svc {grid-template-columns:150px minmax(0,1fr) 190px}
+.mkt .svc {grid-template-columns:96px minmax(0,1fr) 170px;padding:12px}
 .mkt .svc:not(:has(.svcfoto)) {grid-template-columns:minmax(0,1fr) 190px}
-.mkt .svcfoto {border:0;padding:0;min-height:130px;border-radius:14px;background-color:rgba(255,255,255,.05);background-size:cover;background-position:center;cursor:zoom-in;transition:.18s}
+.mkt .svcfoto {border:0;padding:0;height:96px;min-height:0;align-self:start;border-radius:14px;background-color:rgba(255,255,255,.05);background-size:cover;background-position:center;cursor:zoom-in;transition:.18s}
 .mkt .svcfoto:hover {filter:brightness(1.08)}
 .mkt .svcmais {margin-top:10px;border:1px solid rgba(245,155,69,.38);background:transparent;color:#ffb367;border-radius:9px;padding:7px 12px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;transition:.18s}
 .mkt .svcmais:hover {background:rgba(245,155,69,.14)}
-@media (max-width:760px){.mkt .svc, .mkt .svc:not(:has(.svcfoto)) {grid-template-columns:1fr}.mkt .svcfoto {min-height:160px}}
+@media (max-width:760px){.mkt .svc, .mkt .svc:not(:has(.svcfoto)) {grid-template-columns:1fr}.mkt .svcfoto {height:120px}}
 
 .svc-modal .svc-card {width:min(1000px,95vw);overflow:hidden;display:flex;flex-direction:column}
 .svc-hero {position:relative;height:230px;flex:0 0 auto;background:linear-gradient(135deg,#0d1b26,#122534)}

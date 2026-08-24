@@ -3,12 +3,14 @@ import { useParcelamentoPacote } from "@/lib/pacote-motor/parcelamento";
 import { LogoCia } from "@/components/pacote-motor/LogoCia";
 import { FiltrosMkt } from "./FiltrosMkt";
 import { brl, hora, resumoVoo } from "@/lib/pacote-motor/mapear";
+import { nomeCia, trocasDeAeroporto } from "@/lib/pacote-motor/cia";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 
 const dataCurta = (iso: string) => (iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "—");
 
 function Perna({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
   const r = resumoVoo(voo);
+  const trocas = trocasDeAeroporto(voo.conexoes);
   return (
     <div className="leg">
       <div className="side">
@@ -22,6 +24,11 @@ function Perna({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
         <span>{r.duracao}</span>
         <div className="line" />
         <em>{[r.escalas, voo.escala, voo.familiaTarifaria || voo.classe].filter(Boolean).join(" · ")}</em>
+        {trocas.length ? (
+          <em className="troca-aero">
+            {trocas.map((t) => `Troca de aeroporto: ${t.de} → ${t.para}`).join(" · ")}
+          </em>
+        ) : null}
       </div>
       <div className="side r">
         <strong>{hora(voo.chegada)}</strong>
@@ -46,7 +53,14 @@ function Detalhe({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
         const chegada = c?.chegada ?? voo.chegada;
         return (
           <div key={`${origem}-${i}`}>
-            {i > 0 ? <div className="connect">Conexão em {trechos[i - 1].destino}</div> : null}
+            {i > 0 ? (
+              <div className="connect">
+                Conexão em {trechos[i - 1].destino}
+                {String(trechos[i - 1].destino ?? "").toUpperCase() !== String(origem ?? "").toUpperCase()
+                  ? ` · troca de aeroporto (${trechos[i - 1].destino} → ${origem})`
+                  : ""}
+              </div>
+            ) : null}
             <div className="segment">
               <div className="clock">
                 {hora(partida)}
