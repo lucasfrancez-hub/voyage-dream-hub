@@ -2596,9 +2596,16 @@ function PackageEditorModal({
                   <input
                     className={inp}
                     value={editing.destination ?? ""}
+                    onFocus={() => {
+                      destAnteriorRef.current = (editing.destination ?? "").trim();
+                    }}
                     onChange={(e) => setEditing({ ...editing, destination: e.target.value })}
                     onBlur={() => {
                       const dest = (editing.destination ?? "").trim();
+                      const antigo = (destAnteriorRef.current ?? "").trim();
+                      if (dest && dest.toLowerCase() !== antigo.toLowerCase()) {
+                        aplicarNovoDestino(dest, antigo);
+                      }
                       const summary = (editing.summary ?? "").trim();
                       if (dest.length >= 2 && !summary && !aiLoading) {
                         void handleGenerateSummary();
@@ -2607,6 +2614,7 @@ function PackageEditorModal({
                     placeholder={derived.destCity ?? ""}
                   />
                 </FormField>
+
                 <FormField label="Origem (auto)">
                   <input
                     className={inp}
