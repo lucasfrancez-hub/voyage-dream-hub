@@ -65,10 +65,15 @@ export function SeletorServicos({
       </div>
 
       <div className="market">
-        <FiltrosMkt titulo="Filtros de serviços" onLimpar={() => {
-                setCategoria("todos");
-                setBusca("");
-                setOrdem("preco");}>
+        <FiltrosMkt
+          titulo="Filtros de serviços"
+          onLimpar={() => {
+            setCategoria("todos");
+            setBusca("");
+            setOrdem("preco");
+          }}
+        >
+
 
             <div className="fb">
               <span className="flabel">Ordenar por</span>
