@@ -409,35 +409,20 @@ export function SeletorVoo({
             return (
               <article key={o.id} className={`flight${sel ? " selected" : ""}${expandida ? " open" : ""}`}>
                 <div className="flightgrid">
-                  <div className="flightmain">
-                    <div className="flighthead">
-                      <div className="badge">
-                        <i />
-                        {volta ? "Ida e volta" : "Somente ida"} · {dataCurta(o.ida.partida)}
-                        {volta ? ` → ${dataCurta(volta.partida)}` : ""}
-                      </div>
-                      <div className="airline">
-                        <LogoCia iata={o.ida.companhiaIata} nome={r.companhia} size={34} />
-                        <div>
-                          <b>{r.companhia}</b>
-                          <small>
-                            {o.ida.companhiaIata} {o.ida.numeroVoo}
-                            {volta ? ` / ${volta.companhiaIata} ${volta.numeroVoo}` : ""}
-                          </small>
-                        </div>
-                      </div>
+                  <div className="flight-media">
+                    <div className="airline-badge">
+                      <LogoCia iata={o.ida.companhiaIata} nome={r.companhia} size={42} />
+                      <span>{r.companhia}</span>
                     </div>
+                    <div className="badge engine-badge">
+                      {volta ? "Ida e volta" : "Somente ida"}
+                    </div>
+                  </div>
 
+                  <div className="flightmain">
                     <div className="legs">
                       <Perna voo={o.ida} rotulo="Saída" />
                       {volta ? <Perna voo={volta} rotulo="Saída" /> : null}
-                    </div>
-
-                    <div className="flightfoot">
-                      <span className="bag">{r.bagagem}</span>
-                      <button type="button" className="more" onClick={() => setAberta(expandida ? null : o.id)}>
-                        {expandida ? "Ver menos ⌃" : "Ver mais ⌄"}
-                      </button>
                     </div>
                   </div>
 
@@ -445,10 +430,6 @@ export function SeletorVoo({
                     <div className="prow">
                       <span>Diferença</span>
                       <b>{Math.abs(dif) < 0.005 ? "Incluído" : dif > 0 ? `+ ${brl(dif)}` : `- ${brl(Math.abs(dif))}`}</b>
-                    </div>
-                    <div className="prow">
-                      <span>Taxas</span>
-                      <b>{brl(o.ida.taxas)}</b>
                     </div>
                     <div className="divider" />
                     <span className="plabel">Valor final do pacote</span>

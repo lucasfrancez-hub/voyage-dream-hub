@@ -231,13 +231,14 @@ export function SeletorHospedagem({
                     aria-label={`Ver fotos do hotel ${h.nome}`}
                     onClick={() => h.fotos.length && setGaleria({ hotel: h, i: 0 })}
                   >
-                    {h.recomendado ? <span className="selo-rec photo-badge">Recomendado</span> : null}
+                    {h.recomendado ? <span className="selo-rec engine-badge">Recomendado</span> : null}
                   </button>
                   <div className="hotelmain">
                     <div className="hotelhead">
                       <div>
                         <div className="hotelselos">
                           {h.categoria ? <div className="stars">{"★".repeat(h.categoria)}</div> : null}
+                          <span className="engine-type">Hospedagem</span>
                         </div>
                         <h3>{h.nome}</h3>
                         <p>{h.endereco ?? h.localizacao ?? "Localização não informada"}</p>
