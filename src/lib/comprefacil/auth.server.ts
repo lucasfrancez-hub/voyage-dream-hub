@@ -51,8 +51,9 @@ async function autenticar(): Promise<Sessao> {
   const texto = await resp.text();
   if (!resp.ok && resp.status !== 202) {
     console.error(`CompreFácil login falhou [${resp.status}]: ${texto.slice(0, 300)}`);
-    throw new Error(`Falha ao autenticar no CompreFácil [${resp.status}]`);
+    throw new Error(mensagemErroLogin(resp.status, texto));
   }
+
 
   let dados: { access_token?: string; expires_in?: number };
   try {
