@@ -273,8 +273,8 @@ export function SeletorVoo({
             <div className="fb">
               <span className="flabel">Ordenar por</span>
               <select className="fselect" value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)}>
-                <option value="recomendado">Recomendado</option>
                 <option value="preco">Menor preço</option>
+                <option value="precoDesc">Maior preço</option>
                 <option value="duracao">Menor duração</option>
                 <option value="partida">Partida mais cedo</option>
               </select>
