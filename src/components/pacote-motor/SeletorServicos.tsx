@@ -136,31 +136,21 @@ export function SeletorServicos({
                     style={{ backgroundImage: `url('${capa}')` }}
                     aria-label={`Ver detalhes de ${s.titulo}`}
                     onClick={() => setDetalhe(s)}
-                  />
-                ) : null}
-                <div className="svcmain">
-                  <div className="svchead">
-                    {s.logo ? (
-                      <img className="svclogo" src={s.logo} alt={s.fornecedor ?? "Seguradora"} loading="lazy" />
-                    ) : null}
-                    <span className="svccat">{grupoServico(s)}</span>
-                    {s.recomendado ? <span className="selo-rec">Recomendado</span> : null}
+                  >
+                    {s.recomendado ? <span className="selo-rec engine-badge">Recomendado</span> : null}
+                  </button>
+                ) : (
+                  <div className="engine-media engine-media--empty">
+                    {s.recomendado ? <span className="selo-rec engine-badge">Recomendado</span> : null}
+                    <span className="engine-type">{grupoServico(s)}</span>
                   </div>
-
+                )}
+                <div className="svcmain">
+                  <span className="engine-type">{grupoServico(s)}</span>
                   <h3>{s.titulo}</h3>
                   {s.descricao ? (
                     <p>{s.descricao.length > 120 ? `${s.descricao.slice(0, 120)}…` : s.descricao}</p>
                   ) : null}
-                  {s.informacoes.length ? (
-                    <div className="amen">
-                      {s.informacoes.slice(0, 3).map((i) => (
-                        <span key={i}>{i.length > 28 ? `${i.slice(0, 28)}…` : i}</span>
-                      ))}
-                    </div>
-                  ) : null}
-                  <button type="button" className="svcmais" onClick={() => setDetalhe(s)}>
-                    Ver mais detalhes
-                  </button>
                 </div>
                 <div className="svcside">
                   <div className="svcval">{s.valor != null ? `+ ${brl(s.valor, s.moeda)}` : "Sob consulta"}</div>

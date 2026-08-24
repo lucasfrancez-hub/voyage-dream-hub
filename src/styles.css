@@ -1934,3 +1934,423 @@ body:has([data-chat-root]),
 .mkt .sel-actions {flex:0 0 auto;align-items:center;gap:8px}
 .mkt .sel-actions .mini {white-space:nowrap;line-height:1;padding:9px 15px}
 .mkt .sel-status {white-space:nowrap;line-height:1;padding:7px 11px;align-self:center}
+
+/* ===== UNIFIED PREMIUM ENGINE ROWS (v3 aprovado) ===== */
+/* Padroniza voo, hotel e serviço em cards de mesma altura, com mídia à
+   esquerda, conteúdo central e painel de ação à direita. */
+.mkt .flightgrid,
+.mkt .hotelgrid,
+.mkt .svc {
+  display:flex;
+  height:144px;
+  background:#0F2936;
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.05);
+  overflow:hidden;
+  transition:.18s;
+}
+.mkt .flight:hover .flightgrid,
+.mkt .hotel:hover .hotelgrid,
+.mkt .svc:hover {
+  border-color:rgba(242,107,31,.30);
+  transform:translateY(-1px);
+}
+.mkt .flight.selected .flightgrid,
+.mkt .hotel.selected .hotelgrid,
+.mkt .svc.selected {
+  border-color:rgba(242,107,31,.64);
+  box-shadow:0 0 0 1px rgba(242,107,31,.12) inset;
+}
+.mkt .svc {padding:0;}
+.mkt .svc:not(:has(.svcfoto)) {grid-template-columns:none;}
+
+/* Painel de mídia (esquerda) */
+.mkt .engine-media,
+.mkt .photo,
+.mkt .svcfoto,
+.mkt .flight-media {
+  width:192px;
+  height:144px;
+  flex-shrink:0;
+  position:relative;
+  overflow:hidden;
+}
+.mkt .engine-media img,
+.mkt .photo,
+.mkt .svcfoto {
+  background-position:center;
+  background-size:cover;
+}
+.mkt .engine-media--empty {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.01));
+  border-right:1px solid rgba(255,255,255,.04);
+}
+.mkt .photo:after,
+.mkt .svcfoto:after {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent 70%,rgba(5,24,35,.35));
+  pointer-events:none;
+}
+.mkt .engine-badge,
+.mkt .photo .photo-badge,
+.mkt .photo .selo-rec,
+.mkt .svcfoto .selo-rec {
+  position:absolute;
+  top:10px;
+  left:10px;
+  z-index:2;
+}
+.mkt .engine-badge,
+.mkt .selo-rec {
+  padding:5px 9px;
+  border-radius:999px;
+  background:#F26B1F;
+  color:#fff;
+  font-size:9px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  box-shadow:0 6px 16px rgba(242,107,31,.28);
+}
+.mkt .engine-type {
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:rgba(255,255,255,.35);
+}
+.mkt .flight-media {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(255,255,255,.03);
+}
+.mkt .flight-media .airline-badge {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  text-align:center;
+  padding:12px;
+}
+.mkt .flight-media .airline-badge img {
+  width:42px;
+  height:42px;
+  border-radius:10px;
+  background:#fff;
+  padding:4px;
+  object-fit:contain;
+}
+.mkt .flight-media .airline-badge span {
+  font-size:10px;
+  font-weight:700;
+  color:rgba(255,255,255,.75);
+  max-width:140px;
+  line-height:1.2;
+}
+
+/* Conteúdo central */
+.mkt .engine-content,
+.mkt .flightmain,
+.mkt .hotelmain,
+.mkt .svcmain {
+  flex:1;
+  min-width:0;
+  padding:14px 16px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.mkt .engine-content h3,
+.mkt .flightmain h3,
+.mkt .hotelmain h3,
+.mkt .svcmain h3 {
+  font-size:15px;
+  font-weight:800;
+  color:#fff;
+  line-height:1.25;
+  margin:3px 0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.mkt .engine-content p,
+.mkt .svcmain p,
+.mkt .hotelmain p {
+  font-size:9px;
+  color:rgba(255,255,255,.55);
+  line-height:1.45;
+  margin:0;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.mkt .hotelmain .hotelhead {display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.mkt .hotelmain .hotelselos {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mkt .hotelmain .stars {color:var(--orange);font-size:11px;letter-spacing:.02em;}
+.mkt .hotelmain .rating {padding:5px 7px;border:1px solid rgba(255,255,255,.06);border-radius:9px;background:rgba(255,255,255,.02);text-align:center;flex-shrink:0;}
+.mkt .hotelmain .rating b {display:block;font-size:11px;color:#fff;}
+.mkt .hotelmain .rating span {display:block;font-size:6px;color:#738999;}
+.mkt .hotelmain .amen {display:none;}
+.mkt .hotelmain .roomrow {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
+  padding-top:7px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.mkt .hotelmain .roomrow b {font-size:9px;color:#fff;}
+.mkt .hotelmain .roomrow span {display:block;font-size:7.5px;color:#708697;margin-top:1px;}
+.mkt .hotelmain .roomrow .more {
+  border:0;
+  background:transparent;
+  color:#9fb4c3;
+  font-size:8px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.mkt .hotelmain .roomrow .more:hover {color:#fff;}
+
+/* Timeline de voo compacta */
+.mkt .flightmain .flighthead,
+.mkt .flightmain .flightfoot {display:none;}
+.mkt .flightmain .legs {display:flex;flex-direction:column;gap:8px;}
+.mkt .flightmain .leg {
+  display:grid;
+  grid-template-columns:64px 1fr 64px;
+  gap:10px;
+  align-items:center;
+  padding:0;
+  border:0;
+}
+.mkt .flightmain .leg .side strong {font-size:20px;letter-spacing:-.03em;color:#fff;}
+.mkt .flightmain .leg .side b {font-size:10px;color:var(--orange);}
+.mkt .flightmain .leg .side small {font-size:6.5px;color:#708697;}
+.mkt .flightmain .leg .side.r {text-align:right;}
+.mkt .flightmain .leg .middle {text-align:center;}
+.mkt .flightmain .leg .middle span {font-size:7.5px;color:#8297a7;font-weight:900;}
+.mkt .flightmain .leg .middle em {
+  display:block;
+  font-style:normal;
+  font-size:6.5px;
+  color:#6f8595;
+  margin-top:2px;
+}
+.mkt .flightmain .leg .middle .line {
+  height:1px;
+  background:rgba(255,255,255,.10);
+  position:relative;
+  margin:4px 0;
+}
+.mkt .flightmain .leg .middle .line:before {
+  content:"";
+  position:absolute;
+  width:5px;
+  height:5px;
+  left:0;
+  top:-2px;
+  border-radius:50%;
+  background:var(--orange);
+}
+.mkt .flightmain .leg .middle .line:after {
+  content:"";
+  position:absolute;
+  width:5px;
+  height:5px;
+  right:0;
+  top:-2px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.14);
+  background:#071b27;
+}
+.mkt .flightmain .leg .troca-aero {
+  display:block;
+  font-size:6.5px;
+  color:#ffc47f;
+  margin-top:2px;
+  padding:3px 6px;
+  border:1px dashed rgba(245,155,69,.22);
+  background:rgba(245,155,69,.06);
+  border-radius:6px;
+}
+
+/* Serviço */
+.mkt .svcmain .svchead {display:none;}
+.mkt .svcmain .engine-type {margin-bottom:2px;}
+.mkt .svcmain .amen {display:none;}
+.mkt .svcmain .svcmais {display:none;}
+
+/* Painel de ação (direita) */
+.mkt .engine-action,
+.mkt .priceside,
+.mkt .hotelprice,
+.mkt .svcside {
+  width:192px;
+  flex-shrink:0;
+  background:rgba(0,0,0,.20);
+  border-left:1px solid rgba(255,255,255,.05);
+  padding:14px 16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.mkt .engine-action .prow,
+.mkt .priceside .prow,
+.mkt .hotelprice .prow,
+.mkt .svcside .prow {
+  display:flex;
+  justify-content:space-between;
+  width:100%;
+  color:#8297a6;
+  font-size:8px;
+  text-transform:uppercase;
+  font-weight:800;
+  margin-bottom:5px;
+}
+.mkt .engine-action .prow b,
+.mkt .priceside .prow b,
+.mkt .hotelprice .prow b {
+  font-size:10px;
+  color:#e8f0f5;
+}
+.mkt .engine-action .divider,
+.mkt .priceside .divider,
+.mkt .hotelprice .divider {
+  width:100%;
+  height:1px;
+  background:rgba(255,255,255,.06);
+  margin:2px 0 7px;
+}
+.mkt .engine-action .plabel,
+.mkt .priceside .plabel,
+.mkt .hotelprice .plabel {
+  font-size:7px;
+  color:#6d8394;
+  text-transform:uppercase;
+  font-weight:900;
+  letter-spacing:.5px;
+  width:100%;
+  text-align:left;
+}
+.mkt .engine-action .big,
+.mkt .priceside .big,
+.mkt .hotelprice .big {
+  font-size:22px;
+  font-weight:1000;
+  color:#fff;
+  margin:3px 0 2px;
+  width:100%;
+  text-align:left;
+}
+.mkt .engine-action .parcel,
+.mkt .priceside .parcel {
+  font-size:6.5px;
+  color:#ffc47f;
+  font-weight:900;
+  text-transform:uppercase;
+  width:100%;
+  text-align:left;
+  margin-bottom:6px;
+}
+.mkt .engine-action button,
+.mkt .priceside button,
+.mkt .hotelprice button,
+.mkt .svcside button,
+.mkt .svcside .primary,
+.mkt .svcside .ghost {
+  width:100%;
+  margin-top:6px;
+  border:0;
+  border-radius:10px;
+  padding:8px;
+  background:var(--orange);
+  color:#10171b;
+  font-size:8px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  cursor:pointer;
+  transition:.18s;
+}
+.mkt .engine-action button:hover,
+.mkt .priceside button:hover,
+.mkt .hotelprice button:hover,
+.mkt .svcside button:hover,
+.mkt .svcside .primary:hover {
+  filter:brightness(1.04);
+  transform:translateY(-1px);
+}
+.mkt .engine-action button.on,
+.mkt .priceside button.on,
+.mkt .hotelprice button.on,
+.mkt .svcside button.on,
+.mkt .svcside .ghost {
+  background:rgba(245,155,69,.12);
+  border:1px solid rgba(245,155,69,.20);
+  color:#ffc47f;
+}
+.mkt .svcside .svcval {
+  font-size:16px;
+  font-weight:900;
+  color:#fff;
+  margin-bottom:4px;
+}
+
+/* Responsivo: empilhar em telas estreitas */
+@media(max-width:780px) {
+  .mkt .flightgrid,
+  .mkt .hotelgrid,
+  .mkt .svc {
+    height:auto;
+    flex-direction:column;
+  }
+  .mkt .engine-media,
+  .mkt .photo,
+  .mkt .svcfoto,
+  .mkt .flight-media {
+    width:100%;
+    height:190px;
+  }
+  .mkt .engine-action,
+  .mkt .priceside,
+  .mkt .hotelprice,
+  .mkt .svcside {
+    width:100%;
+    border-left:0;
+    border-top:1px solid rgba(255,255,255,.06);
+    flex-direction:row;
+    justify-content:space-between;
+    align-items:center;
+    text-align:left;
+  }
+  .mkt .engine-action .prow,
+  .mkt .priceside .prow,
+  .mkt .hotelprice .prow,
+  .mkt .svcside .prow {width:auto;}
+  .mkt .engine-action .big,
+  .mkt .priceside .big,
+  .mkt .hotelprice .big {width:auto;}
+  .mkt .engine-action button,
+  .mkt .priceside button,
+  .mkt .hotelprice button,
+  .mkt .svcside button,
+  .mkt .svcside .primary,
+  .mkt .svcside .ghost {width:auto;min-width:120px;margin-top:0;}
+  .mkt .svcside {flex-direction:row;}
+  .mkt .svcside .svcval {margin-bottom:0;}
+}
