@@ -125,10 +125,11 @@ export async function buscarSegurosCF(p: {
   itens.forEach((s: any, i: number) => {
     const titulo =
       texto(s?.Titulo) ?? texto(s?.Nome) ?? texto(s?.Plano) ?? texto(s?.NomePlano) ?? "Seguro viagem";
-    const total = num(s?.ValorTotal, s?.ValorVendaTotal);
+    // A operadora já devolve o total da ocupação/período em ValorTotalListagem.
+    const total = num(s?.ValorTotalListagem, s?.ValorListagem, s?.ValorTotal, s?.ValorVendaTotal);
     const unit = num(s?.ValorVenda, s?.Valor, s?.ValorPorPassageiro, s?.ValorDiaria, s?.Preco);
-    const porDia = num(s?.ValorDiaria) > 0 && !num(s?.ValorVenda, s?.Valor);
-    const calculado = total > 0 ? total : porDia ? unit * pax * noites : unit * pax;
+    const calculado = total > 0 ? total : unit * pax;
+
 
     const chave = `${titulo}|${calculado.toFixed(2)}`;
     if (vistos.has(chave)) return;
