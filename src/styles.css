@@ -1826,3 +1826,49 @@ body:has([data-chat-root]),
 .mkt-modal-body .chip:hover {border-color:rgba(242,107,31,.5);background:rgba(255,255,255,.07);color:#fff}
 .mkt-modal-close {background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12)}
 .mkt-modal-close:hover {background:rgba(255,255,255,.14);color:#fff}
+
+/* Motor "Monte sua viagem do seu jeito" (página de pacotes) — mesma
+   estética petróleo do motor VIA AIR. */
+.mpp-card {
+  background:linear-gradient(180deg,rgba(9,32,45,.99),rgba(6,22,31,.99));
+  box-shadow:0 26px 60px rgba(0,0,0,.42);
+}
+.mpp-head {
+  background:
+    radial-gradient(520px 140px at 100% 0,rgba(242,107,31,.16),transparent 70%),
+    linear-gradient(135deg,#102a3a,#071b27);
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.mpp-label {
+  display:block;margin-bottom:6px;
+  font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;
+  color:rgba(255,255,255,.5);
+}
+.mpp-field {
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.045);
+  color:#fff;
+  outline:none;
+  transition:.16s;
+}
+.mpp-field:focus {border-color:rgba(242,107,31,.65);background:rgba(255,255,255,.07)}
+.mpp-field option {background:#0b1e26;color:#fff}
+.mpp-cta {
+  border-radius:14px;
+  background:linear-gradient(180deg,#F58236,#F26B1F);
+  color:#fff;
+  box-shadow:0 12px 26px rgba(242,107,31,.3);
+  transition:.16s;
+}
+.mpp-cta:hover:not(:disabled) {filter:brightness(1.08);transform:translateY(-1px)}
+.mpp-panel {
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+}
+.mpp-room {
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(0,0,0,.22);
+}
