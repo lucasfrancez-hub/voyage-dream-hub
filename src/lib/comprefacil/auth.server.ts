@@ -78,7 +78,9 @@ async function autenticar(): Promise<Sessao> {
   const resp = await fetch(`${BASE}/token`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      // o /token é OAuth clássico: precisa ser form-urlencoded (com JSON a
+      // operadora devolve 400 e ainda dispara código 2FA à toa)
+      "Content-Type": "application/x-www-form-urlencoded",
       noauth: "t",
       fingerprint: FINGERPRINT,
       navegador: "Chrome",
@@ -97,6 +99,8 @@ async function autenticar(): Promise<Sessao> {
     throw new Error(mensagemErroLogin(resp.status, texto));
   }
 
+  // login aceito: some qualquer bloqueio anterior de códigos
+  bloqueadoAte = 0;
 
   let dados: { access_token?: string; expires_in?: number };
   try {
@@ -105,13 +109,14 @@ async function autenticar(): Promise<Sessao> {
     throw new Error("Resposta inesperada do CompreFácil ao autenticar.");
   }
 
-  // Quando o portal exige dois fatores, devolve o cabeçalho X-Auth-Otp-Token
-  // e o código chega em nao-responda@frt.tur.br. Buscamos e validamos sozinhos.
+  // Só entra no fluxo de dois fatores quando a operadora NÃO devolveu token.
+  // O código chega em nao-responda@frt.tur.br e é lido automaticamente.
   const otpToken = resp.headers.get("X-Auth-Otp-Token");
-  if (otpToken) {
+  if (!dados.access_token && otpToken) {
     const validado = await validarDoisFatores(otpToken);
     if (validado) dados = validado;
   }
+
 
   if (!dados.access_token) throw new Error("CompreFácil não devolveu token de acesso.");
 
@@ -318,6 +323,8 @@ export async function statusSessaoCompreFacil(): Promise<{
 /** Força um novo login (descarta a sessão salva). Resolve o 2FA sozinho. */
 export async function reconectarCompreFacil(): Promise<Sessao> {
   await limparSessaoCompreFacil();
+  bloqueadoAte = 0; // reconexão é manual: sempre tenta de novo
+
   const nova = await autenticar();
   sessao = nova;
   await salvarSessao(nova);
