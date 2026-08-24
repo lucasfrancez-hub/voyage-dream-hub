@@ -13,6 +13,8 @@ type Props = {
   placeholder?: string;
   /** Widget/site público (sem login): usa a consulta aberta. */
   publico?: boolean;
+  /** Classe do input (mantém o mesmo visual dos motores aéreo/hotel). */
+  className?: string;
 };
 
 /** Campo de cidade com autopreencher do catálogo CompreFácil (traz o Id certo). */
