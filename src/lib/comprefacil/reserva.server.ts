@@ -36,10 +36,13 @@ export type PaxReserva = {
 export type EntradaReservaFRT = {
   aereo?: { token: string; indice: number } | null;
   hotel?: { token: string; indice: number; quartoIndice?: number | null } | null;
+  /** distribuição usada na busca — o orçamento precisa dela para casar os quartos */
+  quartos?: { adultos: number; criancas?: number; bebes?: number; idades?: number[] }[] | null;
   passageiros: PaxReserva[];
   consultorId?: number | null;
   observacao?: string | null;
 };
+
 
 export type PassoReserva = { passo: string; ok: boolean; detalhe?: string | null };
 
