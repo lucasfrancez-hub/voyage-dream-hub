@@ -132,11 +132,9 @@ export function MotorPacotePersonalizado() {
           <div className="px-5 pb-6 md:px-6">
 
 
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Origem
-              </span>
+              <span className="mpp-label">Origem</span>
               <CidadeAutocompleteCF
                 publico
                 campo="saida"
@@ -149,9 +147,7 @@ export function MotorPacotePersonalizado() {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Destino
-              </span>
+              <span className="mpp-label">Destino</span>
               <CidadeAutocompleteCF
                 publico
                 campo="destino"
@@ -165,48 +161,42 @@ export function MotorPacotePersonalizado() {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Ida
-              </span>
+              <span className="mpp-label">Ida</span>
               <input
                 type="date"
                 value={ida}
                 onChange={(e) => setIda(e.target.value)}
-                className="h-11 w-full rounded-xl border border-border bg-background/60 px-3 text-sm text-foreground outline-none transition focus:border-brand-orange"
+                className="mpp-field h-11 w-full px-3 text-sm"
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Volta
-              </span>
+              <span className="mpp-label">Volta</span>
               <input
                 type="date"
                 value={volta}
                 min={ida || undefined}
                 onChange={(e) => setVolta(e.target.value)}
-                className="h-11 w-full rounded-xl border border-border bg-background/60 px-3 text-sm text-foreground outline-none transition focus:border-brand-orange"
+                className="mpp-field h-11 w-full px-3 text-sm"
               />
             </label>
             <button
               type="button"
               onClick={pesquisar}
               disabled={!podeBuscar}
-              className="flex h-11 items-center justify-center self-end rounded-xl bg-brand-orange px-5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="mpp-cta flex h-11 items-center justify-center self-end px-5 text-sm font-black uppercase tracking-wide disabled:cursor-not-allowed disabled:opacity-40"
             >
               Buscar pacotes
             </button>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-border bg-background/40 p-4">
+          <div className="mpp-panel mt-4 p-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <label className="block w-40">
-                <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                  Quartos
-                </span>
+                <span className="mpp-label">Quartos</span>
                 <select
                   value={quartos.length}
                   onChange={(e) => setQtdQuartos(Number(e.target.value))}
-                  className="h-10 w-full rounded-xl border border-border bg-background/60 px-3 text-sm font-semibold text-foreground outline-none transition focus:border-brand-orange"
+                  className="mpp-field h-10 w-full px-3 text-sm font-semibold"
                 >
                   {[1, 2, 3, 4].map((n) => (
                     <option key={n} value={n}>
@@ -215,7 +205,7 @@ export function MotorPacotePersonalizado() {
                   ))}
                 </select>
               </label>
-              <span className="pb-2 text-xs text-muted-foreground">
+              <span className="pb-2 text-xs text-white/55">
                 {totalPax} {totalPax === 1 ? "passageiro" : "passageiros"} ·{" "}
                 {quartos.length} {quartos.length === 1 ? "quarto" : "quartos"}
               </span>
@@ -225,11 +215,11 @@ export function MotorPacotePersonalizado() {
               {quartos.map((q, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-3 items-end gap-3 rounded-xl border border-border/70 bg-card/50 p-3 sm:grid-cols-4"
+                  className="mpp-room grid grid-cols-3 items-end gap-3 p-3 sm:grid-cols-4"
                 >
-                  <div className="col-span-3 text-xs font-bold text-foreground sm:col-span-1">
+                  <div className="col-span-3 text-xs font-bold text-white sm:col-span-1">
                     Quarto {i + 1}
-                    <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                    <span className="mt-0.5 block text-[10px] font-normal text-white/50">
                       Distribuição dos hóspedes
                     </span>
                   </div>
@@ -252,13 +242,10 @@ export function MotorPacotePersonalizado() {
               ))}
             </div>
           </div>
-
-          <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-            Busca completa: ao pesquisar, abrimos o motor VIA AIR (aéreo, hotel, carro e pacotes)
-            com os resultados de aéreo + hospedagem já carregados logo abaixo.
-          </p>
+          </div>
         </div>
       )}
     </div>
+
   );
 }
