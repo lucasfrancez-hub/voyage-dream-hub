@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useParcelamentoPacote } from "@/lib/pacote-motor/parcelamento";
 import { LogoCia } from "@/components/pacote-motor/LogoCia";
 import { brl, hora, resumoVoo } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
