@@ -557,6 +557,17 @@ export function PacoteMotor({
             resumo={resumo}
           />
         )}
+
+        {buscou && vista === "servico" && (
+          <SeletorServicos
+            servicos={listaServicos}
+            carregando={servicos.isPending}
+            erro={erroServicos}
+            selecionados={servicosSel.map((s) => s.id)}
+            onAlternar={alternarServico}
+            resumo={resumo}
+          />
+        )}
       </div>
       {!publico && <QuoteBasketBar />}
     </div>
