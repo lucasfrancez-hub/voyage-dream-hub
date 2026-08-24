@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MotorBuscaCF } from "@/components/comprefacil/MotorBuscaCF";
+import { PacoteMotor } from "@/components/pacote-motor/PacoteMotor";
 import { ConexaoCompreFacil } from "@/components/comprefacil/ConexaoCompreFacil";
+
 
 export const Route = createFileRoute("/admin/motor-pacote")({
   head: () => ({
@@ -35,7 +36,7 @@ function MotorPacotePage() {
         </div>
         <ConexaoCompreFacil />
       </header>
-      <MotorBuscaCF />
+      <PacoteMotor />
     </div>
   );
 }
