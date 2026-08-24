@@ -133,7 +133,6 @@ import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/publ
 import { Route as ApiPublicItauPixWebhookRouteImport } from './routes/api/public/itau-pix-webhook'
 import { Route as ApiPublicMotorBuscaRouteImport } from './routes/api/public/motor-busca'
 import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/public/nfse-atendenet-test'
-import { Route as ApiPublicProbeCfRouteImport } from './routes/api/public/probe-cf'
 import { Route as ApiPublicPromoCardRouteImport } from './routes/api/public/promo-card'
 import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/public/test-flight-alert'
 import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
@@ -814,11 +813,6 @@ const ApiPublicNfseAtendenetTestRoute =
     path: '/api/public/nfse-atendenet-test',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicProbeCfRoute = ApiPublicProbeCfRouteImport.update({
-  id: '/api/public/probe-cf',
-  path: '/api/public/probe-cf',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicPromoCardRoute = ApiPublicPromoCardRouteImport.update({
   id: '/api/public/promo-card',
   path: '/api/public/promo-card',
@@ -1241,7 +1235,6 @@ export interface FileRoutesByFullPath {
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
-  '/api/public/probe-cf': typeof ApiPublicProbeCfRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -1419,7 +1412,6 @@ export interface FileRoutesByTo {
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
-  '/api/public/probe-cf': typeof ApiPublicProbeCfRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -1600,7 +1592,6 @@ export interface FileRoutesById {
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
-  '/api/public/probe-cf': typeof ApiPublicProbeCfRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
@@ -1782,7 +1773,6 @@ export interface FileRouteTypes {
     | '/api/public/itau-pix-webhook'
     | '/api/public/motor-busca'
     | '/api/public/nfse-atendenet-test'
-    | '/api/public/probe-cf'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -1960,7 +1950,6 @@ export interface FileRouteTypes {
     | '/api/public/itau-pix-webhook'
     | '/api/public/motor-busca'
     | '/api/public/nfse-atendenet-test'
-    | '/api/public/probe-cf'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -2140,7 +2129,6 @@ export interface FileRouteTypes {
     | '/api/public/itau-pix-webhook'
     | '/api/public/motor-busca'
     | '/api/public/nfse-atendenet-test'
-    | '/api/public/probe-cf'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
     | '/api/public/wa-diag'
@@ -2246,7 +2234,6 @@ export interface RootRouteChildren {
   ApiPublicItauPixWebhookRoute: typeof ApiPublicItauPixWebhookRoute
   ApiPublicMotorBuscaRoute: typeof ApiPublicMotorBuscaRoute
   ApiPublicNfseAtendenetTestRoute: typeof ApiPublicNfseAtendenetTestRoute
-  ApiPublicProbeCfRoute: typeof ApiPublicProbeCfRoute
   ApiPublicPromoCardRoute: typeof ApiPublicPromoCardRoute
   ApiPublicTestFlightAlertRoute: typeof ApiPublicTestFlightAlertRoute
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
@@ -3165,13 +3152,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicNfseAtendenetTestRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/probe-cf': {
-      id: '/api/public/probe-cf'
-      path: '/api/public/probe-cf'
-      fullPath: '/api/public/probe-cf'
-      preLoaderRoute: typeof ApiPublicProbeCfRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/promo-card': {
       id: '/api/public/promo-card'
       path: '/api/public/promo-card'
@@ -3808,7 +3788,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicItauPixWebhookRoute: ApiPublicItauPixWebhookRoute,
   ApiPublicMotorBuscaRoute: ApiPublicMotorBuscaRoute,
   ApiPublicNfseAtendenetTestRoute: ApiPublicNfseAtendenetTestRoute,
-  ApiPublicProbeCfRoute: ApiPublicProbeCfRoute,
   ApiPublicPromoCardRoute: ApiPublicPromoCardRoute,
   ApiPublicTestFlightAlertRoute: ApiPublicTestFlightAlertRoute,
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
