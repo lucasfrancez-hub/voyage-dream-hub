@@ -489,3 +489,12 @@ body:has([data-chat-root]),
   place-items: center;
   color: #fff;
 }
+
+/* Motor de Pacotes VIA AIR: fundo azul-marinho com cards claros. */
+.motor-navy {
+  --navy: oklch(0.28 0.07 250);
+  background:
+    radial-gradient(900px 420px at 12% -10%, color-mix(in oklab, var(--brand-blue) 45%, transparent), transparent 70%),
+    var(--navy);
+  color: color-mix(in oklab, white 92%, transparent);
+}
