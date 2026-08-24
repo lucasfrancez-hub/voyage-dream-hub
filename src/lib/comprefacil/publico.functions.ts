@@ -97,8 +97,10 @@ export const autocompleteLocalidadeCFPublic = createServerFn({ method: "POST" })
 
     try {
       const oficiais = await cidadesOficiaisCF();
+      const porIata = alvo.length === 3;
       for (const c of oficiais) {
-        if (!semAcento(c.nome).includes(alvo)) continue;
+        const casaIata = porIata && (c.iata ?? "").toLowerCase() === alvo;
+        if (!casaIata && !semAcento(c.nome).includes(alvo)) continue;
         const chave = semAcento(c.nome);
         const atual = mapa.get(chave);
         if (atual) {
