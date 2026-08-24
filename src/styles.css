@@ -1590,6 +1590,7 @@ body:has([data-chat-root]),
 .mkt .sum-svc-head {display:flex;align-items:center;justify-content:space-between;gap:8px}
 .mkt .sum-svc-head b {font-size:11px;color:#eef6fc}
 .mkt .sum-svc-off {font-size:9px;font-weight:800;text-transform:uppercase;color:#8ba3b5}
+.mkt .sum-parcel {display:block;margin-top:6px;font-size:10px;line-height:1.4;font-weight:700;color:#1f7a3d}
 .mkt .sum-svc-list {list-style:none;margin:0;padding:0;display:grid;gap:5px}
 .mkt .sum-svc-list li {display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted)}
 .mkt .sum-svc-list li b {color:#fff}
