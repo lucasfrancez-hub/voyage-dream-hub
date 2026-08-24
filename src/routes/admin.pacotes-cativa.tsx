@@ -128,6 +128,17 @@ function PacotesCativaPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const excluirPacote = useMutation({
+    mutationFn: (pacoteId: string) => excluir({ data: { pacoteId } }),
+    onSuccess: () => {
+      toast.success("Pacote excluído");
+      qc.invalidateQueries({ queryKey: ["cativa-resumo"] });
+      qc.invalidateQueries({ queryKey: ["cativa-pacotes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const refazLote = useMutation({
     mutationFn: (tudo: boolean) => reprocessarLote({ data: { tudo, limite: 5, forcar: true } }),
     onSuccess: (r: any) => {
