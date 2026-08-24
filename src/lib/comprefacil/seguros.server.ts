@@ -55,29 +55,39 @@ export async function buscarSegurosCF(p: {
   adultos: number;
   idades?: number[];
   destino?: string | null;
+  /** IATA do destino pesquisado — usado para casar a região do seguro */
+  destinoIata?: string | null;
   /** true quando o destino é fora do Brasil (muda o plano ofertado) */
   internacional?: boolean;
 }): Promise<ServicoDisponivel[]> {
   const ses = await sessaoCompreFacil();
   const base = COMPREFACIL_BASES.servico;
   const fim = p.dataFim || p.data;
+  // A operadora cobra o mesmo valor por passageiro adulto ou criança:
+  // cotamos todos como adultos de 18 anos para manter o preço correto.
   const pax = Math.max(1, (p.adultos || 1) + (p.idades?.length ?? 0));
   const noites = dias(p.data, fim);
   const rota = "/api/Seguro/busca?Pagina=1&ItensPorPagina=40";
+  const regiao = regiaoSeguroDoDestino({
+    iata: p.destinoIata ?? null,
+    destino: p.destino ?? null,
+    internacional: p.internacional ?? false,
+  });
 
   const corpo = (guid: string | null) => ({
     AgenciaId: Number(ses.agenciaId ?? 0),
     Guid: guid,
-    PacoteId: 0,
-    Adt: Math.max(1, p.adultos || 1),
-    IdadesChd: p.idades ?? [],
-    De: p.data,
-    Ate: fim,
-    Cidade: { Id: p.cidadeId },
-    Internacional: !!p.internacional,
-    Destino: p.destino ?? null,
+    Adt: pax,
+    Chd: 0,
+    Snr: 0,
+    IdadesAdt: Array.from({ length: pax }, () => 18),
+    IdadesChd: [],
+    DestinoCodigo: regiao,
+    Partida: p.data,
+    Retorno: fim,
     EscreveLog: false,
   });
+
 
   const inicio = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(null) });
   if (!inicio.ok) return [];
