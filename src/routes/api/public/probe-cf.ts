@@ -25,7 +25,7 @@ export const Route = createFileRoute("/api/public/probe-cf")({
               method: a.method ?? "GET",
               ...(a.body === undefined || a.body === null ? {} : { body: JSON.parse(JSON.stringify(a.body ?? null)?.replace?.("\"__AG__\"", String(ag)) ?? "null") }),
             });
-            out.push({ ...a, status: r.status, amostra: JSON.stringify(r.dados).slice(0, 1200) });
+            out.push({ ...a, status: r.status, amostra: JSON.stringify(r.dados).slice(0, 200000) });
           } catch (e) {
             out.push({ ...a, erro: e instanceof Error ? e.message : String(e) });
           }
