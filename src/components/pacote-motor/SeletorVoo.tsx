@@ -71,7 +71,7 @@ function Detalhe({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
 }
 
 type Paradas = "direto" | "ate1" | "todos";
-type Ordem = "recomendado" | "preco" | "duracao" | "partida";
+type Ordem = "preco" | "precoDesc" | "duracao" | "partida";
 
 /** Faixas de horário no padrão da operadora. */
 const FAIXAS: [string, string][] = [
@@ -155,7 +155,7 @@ export function SeletorVoo({
   const [faixasVolta, setFaixasVolta] = useState<string[]>([]);
   const [precoMax, setPrecoMax] = useState<number | null>(null);
   const [duracaoMax, setDuracaoMax] = useState<number | null>(null);
-  const [ordem, setOrdem] = useState<Ordem>("recomendado");
+  const [ordem, setOrdem] = useState<Ordem>("preco");
   const [aberta, setAberta] = useState<string | null>(null);
 
   const opcoes = useMemo(() => {
@@ -215,6 +215,7 @@ export function SeletorVoo({
     });
     const ordenadas = [...filtradas];
     if (ordem === "preco") ordenadas.sort((a, b) => a.precoTotal - b.precoTotal);
+    if (ordem === "precoDesc") ordenadas.sort((a, b) => b.precoTotal - a.precoTotal);
     if (ordem === "duracao") ordenadas.sort((a, b) => duracaoTotal(a) - duracaoTotal(b));
     if (ordem === "partida")
       ordenadas.sort((a, b) => String(a.ida.partida).localeCompare(String(b.ida.partida)));
@@ -246,7 +247,7 @@ export function SeletorVoo({
     setFaixasVolta([]);
     setPrecoMax(null);
     setDuracaoMax(null);
-    setOrdem("recomendado");
+    setOrdem("preco");
   };
 
 
