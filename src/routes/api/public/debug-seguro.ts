@@ -55,8 +55,30 @@ export const Route = createFileRoute("/api/public/debug-seguro")({
         });
         const guidCtx = (svc.dados as any)?.MetaData?.Guid ?? null;
 
+        const nomes = [
+          ["DataInicioVigencia","DataFimVigencia"],
+          ["InicioVigencia","FimVigencia"],
+          ["DataInicioViagem","DataFimViagem"],
+          ["DtIda","DtVolta"],
+          ["DataIdaViagem","DataVoltaViagem"],
+          ["DataPartidaViagem","DataRetornoViagem"],
+          ["DataInicioCobertura","DataFimCobertura"],
+          ["DataInicioSeguro","DataFimSeguro"],
+        ];
+        const out: Record<string, any> = {};
+        for (const [a, b] of nomes) {
+          const r2 = await chamarCompreFacil(rota, {
+            base,
+            method: "POST",
+            body: { ...body, Guid: guidCtx, [a]: de, [b]: ate },
+          });
+          const dd: any = r2.dados;
+          out[a] = { ok: r2.ok, status: (r2 as any).status, msg: dd?.mensagem, itens: (dd?.Items ?? []).length };
+        }
         const r = await chamarCompreFacil(rota, { base, method: "POST", body: { ...body, Guid: guidCtx } });
         const d: any = r.dados;
+        return Response.json({ out, base: { ok: r.ok, msg: d?.mensagem } });
+        // eslint-disable-next-line no-unreachable
         return Response.json({
           cidadeId,
           amostraCidade: alvo ?? null,
