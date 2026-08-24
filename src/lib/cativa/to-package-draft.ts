@@ -423,7 +423,8 @@ function nomeCurto(v: unknown): string {
 }
 
 const RE_RUIDO_SERVICO =
-  /programa de flexibilidade tarif[aá]ria|isen[cç][aã]o de multa|cr[eé]dito para nova viagem|voucher\)? no valor|cobre impedimentos|v[aá]lido para pacotes e servi[cç]os|cancelamento eleg[ií]vel/i;
+  /programa de flexibilidade tarif[aá]ria|isen[cç][aã]o de multa|cr[eé]dito para nova viagem|voucher\)? no valor|cobre impedimentos|v[aá]lido para pacotes e servi[cç]os|cancelamento eleg[ií]vel|^\s*reserva\s+(para|de|do|da|antecipada|sujeita)|dias?\s+livres?|tempo\s+livre|livre\s+para|[eé]\s+necess[aá]ri[oa]|obrigat[oó]ri[oa]\b|sujeit[oa]\s+a\b|mediante\s+(disponibilidade|solicita[cç][aã]o)|n[aã]o\s+(incluso|inclu[ií]d[oa]|incluem)|consulte\b|taxa\s+de\s+turismo|imposto\s+local|apresentar\s+documento|check[\s-]?(in|out)\s+a\s+partir|hor[aá]rio\s+de\s+check/i;
+
 
 /** Converte textos da planilha/API em um único nome público, sem regras operacionais. */
 function nomePublicoServico(v: unknown): string {
