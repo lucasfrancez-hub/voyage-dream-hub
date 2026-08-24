@@ -146,11 +146,23 @@ export function SeletorServicos({
                   </div>
                 )}
                 <div className="svcmain">
-                  <span className="engine-type">{grupoServico(s)}</span>
+                  <div className="svctopo">
+                    <span className="engine-type">{grupoServico(s)}</span>
+                    {s.logo ? (
+                      <img className="svclogo" src={s.logo} alt={s.fornecedor ?? "Fornecedor"} loading="lazy" />
+                    ) : s.fornecedor ? (
+                      <span className="svcforn">{s.fornecedor}</span>
+                    ) : null}
+                  </div>
                   <h3>{s.titulo}</h3>
                   {s.descricao ? (
                     <p>{s.descricao.length > 120 ? `${s.descricao.slice(0, 120)}…` : s.descricao}</p>
                   ) : null}
+                  <div className="svcacts">
+                    <button type="button" className="more solid-btn" onClick={() => setDetalhe(s)}>
+                      {s.coberturas?.length ? "Ver coberturas e detalhes" : "Ver detalhes"}
+                    </button>
+                  </div>
                 </div>
                 <div className="svcside">
                   <div className="svcval">{s.valor != null ? `+ ${brl(s.valor, s.moeda)}` : "Sob consulta"}</div>

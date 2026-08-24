@@ -424,6 +424,15 @@ export function SeletorVoo({
                       <Perna voo={o.ida} rotulo="Saída" />
                       {volta ? <Perna voo={volta} rotulo="Saída" /> : null}
                     </div>
+                    <div className="flightfoot-acts">
+                      <button
+                        type="button"
+                        className={`more solid-btn${expandida ? " on" : ""}`}
+                        onClick={() => setAberta(expandida ? null : o.id)}
+                      >
+                        {expandida ? "Fechar detalhes do voo" : "Ver detalhes do voo"}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="priceside">
