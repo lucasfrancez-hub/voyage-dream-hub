@@ -12,6 +12,8 @@ import { mapearPacote, gravarPacotesCF } from "./sync.server";
 export type FiltrosBuscaCF = {
   termo?: string;
   cidade?: string;
+  /** Id oficial da cidade de destino na CompreFácil (vem do autopreencher) */
+  cidadeId?: number | null;
   saida?: string;
   /** período desejado (ISO yyyy-mm-dd) */
   dataDe?: string | null;
@@ -125,7 +127,8 @@ export async function buscarPacotesCF(filtros: FiltrosBuscaCF): Promise<{
     const b = `%${termo}%`;
     q = q.or(`nome.ilike.${b},cidade.ilike.${b},cidade_saida.ilike.${b},referencia.ilike.${b}`);
   }
-  if (filtros.cidade?.trim()) q = q.ilike("cidade", `%${filtros.cidade.trim()}%`);
+  if (filtros.cidadeId) q = q.eq("cidade_id", filtros.cidadeId);
+  else if (filtros.cidade?.trim()) q = q.ilike("cidade", `%${filtros.cidade.trim()}%`);
   if (filtros.saida?.trim()) q = q.ilike("cidade_saida", `%${filtros.saida.trim()}%`);
   if (filtros.noitesMin) q = q.gte("dias", filtros.noitesMin);
   if (filtros.noitesMax) q = q.lte("dias", filtros.noitesMax);

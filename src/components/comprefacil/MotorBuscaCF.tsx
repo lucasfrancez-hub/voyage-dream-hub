@@ -5,6 +5,7 @@ import { Loader2, Search, RefreshCw, MapPin, CalendarDays, Star } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { CidadeAutocompleteCF } from "@/components/comprefacil/CidadeAutocompleteCF";
 import { buscarPacotesCompreFacil } from "@/lib/comprefacil/comprefacil.functions";
 import type { FiltrosBuscaCF } from "@/lib/comprefacil/busca.server";
 
@@ -23,6 +24,7 @@ export function MotorBuscaCF() {
   const [form, setForm] = useState<FiltrosBuscaCF>({
     termo: "",
     cidade: "",
+    cidadeId: null,
     saida: "",
     dataDe: null,
     dataAte: null,
@@ -58,18 +60,20 @@ export function MotorBuscaCF() {
       <form onSubmit={pesquisar} className="rounded-2xl border border-border bg-card p-4 space-y-3">
         <div className="grid gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
-            <label className="text-xs text-muted-foreground">Destino ou nome do pacote</label>
-            <Input
-              value={form.termo ?? ""}
-              onChange={(e) => setForm({ ...form, termo: e.target.value })}
-              placeholder="Ex.: Cancún, Gramado, Disney…"
+            <label className="text-xs text-muted-foreground">Destino</label>
+            <CidadeAutocompleteCF
+              campo="destino"
+              valor={form.cidade ?? ""}
+              onChange={(nome, cidadeId) => setForm({ ...form, cidade: nome, cidadeId, termo: cidadeId ? "" : nome })}
+              placeholder="Ex.: Cancún, Gramado, Orlando…"
             />
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Saindo de</label>
-            <Input
-              value={form.saida ?? ""}
-              onChange={(e) => setForm({ ...form, saida: e.target.value })}
+            <CidadeAutocompleteCF
+              campo="saida"
+              valor={form.saida ?? ""}
+              onChange={(nome) => setForm({ ...form, saida: nome })}
               placeholder="Cidade de saída"
             />
           </div>
