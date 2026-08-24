@@ -477,6 +477,7 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
           />
         )}
       </div>
+      {!publico && <QuoteBasketBar />}
     </div>
   );
 }
