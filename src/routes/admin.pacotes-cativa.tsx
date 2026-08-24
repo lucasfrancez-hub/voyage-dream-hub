@@ -228,6 +228,46 @@ function PacotesCativaPage() {
             <RouteIcon className="mr-2 h-4 w-4" />
             {modo === "circuitos" ? "Ver pacotes" : "Circuitos"}
           </Button>
+          <Button
+            variant="outline"
+            disabled={conferindo}
+            title="Verificar quais pacotes marcados como salvos não estão de fato no site"
+            onClick={async () => {
+              setConferindo(true);
+              try {
+                const r: any = await conferir({ data: {} });
+                if (!r?.naoSalvos) {
+                  toast.success(`Tudo certo: ${r?.salvos ?? 0} pacote(s) salvos de fato.`);
+                  return;
+                }
+                const nomes = (r.exemplos ?? [])
+                  .map((e: any) => e.nome || e.destino || e.id)
+                  .slice(0, 5)
+                  .join(", ");
+                const ok = await confirm({
+                  title: `${r.naoSalvos} pacote(s) não salvaram de fato`,
+                  description: `Marcados como salvos, mas não estão no site${nomes ? `: ${nomes}${r.naoSalvos > 5 ? "…" : ""}` : ""}. Devolver para a lista para salvar de novo?`,
+                  confirmText: "Devolver para a lista",
+                });
+                if (!ok) return;
+                const c: any = await conferir({ data: { corrigir: true } });
+                qc.invalidateQueries({ queryKey: ["cativa-resumo"] });
+                qc.invalidateQueries({ queryKey: ["cativa-pacotes"] });
+                toast.success(`${c?.corrigidos ?? 0} pacote(s) devolvidos para importar novamente`);
+              } catch (e: any) {
+                toast.error(e?.message || "Falha ao conferir salvamentos");
+              } finally {
+                setConferindo(false);
+              }
+            }}
+          >
+            {conferindo ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="mr-2 h-4 w-4" />
+            )}
+            Conferir salvos
+          </Button>
           <Button onClick={() => sync.mutate(20)} disabled={sync.isPending}>
             <Plane className="mr-2 h-4 w-4" />
             Sincronizar + voos
