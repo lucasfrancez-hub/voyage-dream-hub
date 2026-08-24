@@ -331,33 +331,35 @@ export function PacoteMotor({
       <div className="shell">
         {/* Mesma linguagem visual das abas Aéreo/Hotel: card do design system,
             labels com ícone, calendário e seletor de hóspedes padrão. */}
-        <section className="w-full overflow-hidden rounded-[32px] border border-border/50 bg-card/60 p-4 shadow-2xl backdrop-blur-xl sm:p-6">
-          <div className="grid w-full min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto]">
-            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <MapPin className="h-3 w-3" /> Origem
+        <section className="w-full overflow-hidden rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
+          <div className="grid w-full min-w-0 items-end gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto]">
+            <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <MapPin className="h-3 w-3 text-primary" /> Origem
                 </Label>
                 <CidadeAutocompleteCF
                   publico={publico}
                   valor={origem}
                   campo="saida"
                   placeholder="Cidade de saída"
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-sm font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
                   onChange={(nome, _id, iata) => {
                     setOrigem(nome);
                     setOrigemIata(iata ?? "");
                   }}
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <ArrowLeftRight className="h-3 w-3" /> Destino
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <ArrowLeftRight className="h-3 w-3 text-primary" /> Destino
                 </Label>
                 <CidadeAutocompleteCF
                   publico={publico}
                   valor={destino}
                   campo="destino"
                   placeholder="Cidade do pacote"
+                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-sm font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
                   onChange={(nome, id, iata) => {
                     setDestino(nome);
                     setCidadeId(id);
@@ -367,9 +369,9 @@ export function PacoteMotor({
               </div>
             </div>
 
-            <div className="min-w-0 space-y-1">
-              <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                <CalendarDays className="h-3 w-3" /> Ida e volta
+            <div className="min-w-0 space-y-2">
+              <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <CalendarDays className="h-3 w-3 text-primary" /> Ida e volta
               </Label>
               <DateRangeField
                 departureDate={ida}
@@ -384,26 +386,31 @@ export function PacoteMotor({
             </div>
 
             <div className="flex min-w-0 items-end">
-              <Button size="lg" className="h-11 w-full lg:w-auto" onClick={pesquisar} disabled={carregando}>
+              <Button
+                size="lg"
+                className="h-12 w-full rounded-xl font-bold shadow-xl shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95 lg:w-auto"
+                onClick={pesquisar}
+                disabled={carregando}
+              >
                 {carregando ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Search className="mr-2 h-4 w-4" />
                 )}
-                Buscar pacote
+                Buscar
               </Button>
             </div>
           </div>
 
-          <div className="mt-3 grid gap-3 border-t border-border/60 pt-3 md:grid-cols-[1fr_auto]">
+          <div className="mt-2 grid gap-4 border-t border-border/40 pt-6 md:grid-cols-[1fr_auto] md:items-end">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Users className="h-3.5 w-3.5" />
               {plural(pax.hospedes, "passageiro", "passageiros")} ·{" "}
               {plural(quartos.length, "quarto", "quartos")}
             </div>
-            <div className="w-full space-y-1 md:w-72">
-              <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                <BedDouble className="h-3 w-3" /> Quartos e hóspedes
+            <div className="w-full space-y-2 md:w-72">
+              <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <BedDouble className="h-3 w-3 text-primary" /> Quartos e hóspedes
               </Label>
               <RoomsPaxField
                 quartos={quartos}
