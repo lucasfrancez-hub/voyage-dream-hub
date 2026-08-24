@@ -143,9 +143,29 @@ export function ReservaFrtDialog({
       }
     | undefined;
 
+  // Crianças/bebês: a idade tem que bater com a pesquisada, senão a operadora recusa a reserva.
+  const alertasIdade = pax
+    .map((p, i) => {
+      if (p.tipo === 0 || p.idade == null || !p.nascimento) return null;
+      const real = idadeDe(p.nascimento);
+      return real != null && real !== p.idade
+        ? `${rotulo(p, i)}: nascimento indica ${real} ano(s), mas a busca foi feita com ${p.idade}.`
+        : null;
+    })
+    .filter(Boolean) as string[];
+
   const podeReservar =
-    pax.every((p) => p.nome.trim() && p.sobrenome.trim() && p.nascimento && p.cpf.replace(/\D/g, "").length === 11) &&
+    pax.every(
+      (p) =>
+        p.nome.trim() &&
+        p.sobrenome.trim() &&
+        p.nascimento &&
+        (p.tipo !== 0 || p.cpf.replace(/\D/g, "").length === 11),
+    ) &&
+    alertasIdade.length === 0 &&
     (Boolean(voo?.buscaToken) || Boolean(hotel?.buscaToken));
+
+
 
 
   function alterar(i: number, campo: keyof Pax, valor: string) {
