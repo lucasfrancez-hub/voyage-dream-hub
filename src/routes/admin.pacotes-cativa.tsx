@@ -68,6 +68,8 @@ function PacotesCativaPage() {
   const reprocessarLote = useServerFn(reprocessarLoteCativa);
   const historico = useServerFn(historicoPacoteCativa);
   const liberar = useServerFn(liberarPacoteCativa);
+  const excluir = useServerFn(excluirPacoteCativa);
+
 
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("");
