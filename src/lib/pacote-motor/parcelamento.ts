@@ -16,8 +16,6 @@ import {
 /** Fornecedor padrão do motor (pacotes dinâmicos FRT/CompreFácil). */
 export const FORNECEDOR_MOTOR = "FRT CompreFácil";
 
-const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
-
 export type ParcelamentoPacote = {
   /** Máximo de parcelas sem juros vigente hoje. */
   max: number;

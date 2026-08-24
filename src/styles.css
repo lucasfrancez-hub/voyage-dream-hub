@@ -1675,3 +1675,20 @@ body:has([data-chat-root]),
 .mkt .roomrow > div:first-child {flex:1 1 240px;min-width:0}
 .mkt .roomrow b {display:block;overflow-wrap:anywhere}
 .mkt .roomacts {flex-wrap:wrap}
+
+/* ===== Polimento dos filtros do motor + botões que estouravam ===== */
+.mkt .filters {border-color:rgba(245,155,69,.14);background:linear-gradient(180deg,#0b2534,#061b26)}
+.mkt .filter-head {font-size:13.5px;letter-spacing:.2px;color:#eaf3fa;background:linear-gradient(180deg,rgba(245,155,69,.10),transparent)}
+.mkt .fclear {font-size:9.5px;padding:5px 11px}
+.mkt .flabel {font-size:9.5px;letter-spacing:.9px;color:#8aa1b2}
+.mkt .finput, .mkt .fselect {height:40px;font-size:11.5px;border-radius:12px;border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.035)}
+.mkt .finput:focus, .mkt .fselect:focus {outline:0;border-color:rgba(245,155,69,.5);box-shadow:0 0 0 3px rgba(245,155,69,.12)}
+.mkt .chips {gap:7px}
+.mkt .chip {font-size:10.5px;padding:7px 12px;border-radius:999px;border-color:rgba(255,255,255,.1);color:#a9bccb}
+.mkt .chip:hover {border-color:rgba(245,155,69,.35);color:#ffc47f;transform:translateY(-1px)}
+.mkt .chip.active {background:linear-gradient(180deg,rgba(245,155,69,.22),rgba(245,155,69,.10));border-color:rgba(245,155,69,.5);color:#ffd6a8;box-shadow:0 6px 16px rgba(245,155,69,.14)}
+
+.mkt .roomacts {flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:100%}
+.mkt .hotel .more {font-size:9.5px;padding:0 11px;max-width:100%;overflow:hidden;text-overflow:ellipsis;letter-spacing:.3px}
+
+.svc-aside-btn {font-size:9px;letter-spacing:.05em;padding:12px 10px;line-height:1.2}
