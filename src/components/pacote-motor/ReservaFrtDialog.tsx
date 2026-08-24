@@ -114,8 +114,9 @@ export function ReservaFrtDialog({
     | undefined;
 
   const podeReservar =
-    pax.every((p) => p.nome.trim() && p.sobrenome.trim()) &&
+    pax.every((p) => p.nome.trim() && p.sobrenome.trim() && p.nascimento && p.cpf.replace(/\D/g, "").length === 11) &&
     (Boolean(voo?.buscaToken) || Boolean(hotel?.buscaToken));
+
 
   function alterar(i: number, campo: keyof Pax, valor: string) {
     setPax((atual) => atual.map((p, k) => (k === i ? { ...p, [campo]: valor } : p)));
@@ -153,7 +154,7 @@ export function ReservaFrtDialog({
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {rotulo(p, i)}
                   </p>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                     <div className="space-y-1">
                       <Label className="text-xs">Nome</Label>
                       <Input value={p.nome} onChange={(e) => alterar(i, "nome", e.target.value)} />
@@ -163,12 +164,23 @@ export function ReservaFrtDialog({
                       <Input value={p.sobrenome} onChange={(e) => alterar(i, "sobrenome", e.target.value)} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Nascimento</Label>
-                      <Input type="date" value={p.nascimento} onChange={(e) => alterar(i, "nascimento", e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
                       <Label className="text-xs">CPF</Label>
                       <Input value={p.cpf} onChange={(e) => alterar(i, "cpf", e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Gênero</Label>
+                      <select
+                        value={p.sexo}
+                        onChange={(e) => alterar(i, "sexo", e.target.value)}
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="M">Masculino</option>
+                        <option value="F">Feminino</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Nascimento</Label>
+                      <Input type="date" value={p.nascimento} onChange={(e) => alterar(i, "nascimento", e.target.value)} />
                     </div>
                   </div>
                 </div>
