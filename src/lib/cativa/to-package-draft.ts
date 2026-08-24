@@ -870,9 +870,23 @@ export function montarDraftsCativa(pacote: CativaPacoteRow, voos: CativaVooRow[]
   const destino = destinoComercial(pacote);
 
   const origem = tituloCidade(semIata((pacote.origem_cidade ?? pacote.origem_iata ?? "").trim()));
+  // Alguns inclusos vêm com a marca do hotel colada no destino
+  // ("Transfer em Makai Aracaju" → "Transfer em Aracaju").
+  const marcasHotel = ((pacote.hoteis ?? []) as any[])
+    .map((h) => String(h?.nome ?? h?.hotel ?? "").trim().split(/\s+/)[0] ?? "")
+    .filter((m) => m.length >= 3);
+  const limparMarca = (t: string) => {
+    let s = t;
+    for (const m of marcasHotel) {
+      const esc = m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (destino) s = s.replace(new RegExp(`\\b${esc}\\s+(?=${destino.split(" ")[0]}\\b)`, "gi"), "");
+    }
+    return s.replace(/\s{2,}/g, " ").trim();
+  };
   const incluso = Array.isArray(pacote.incluso)
-    ? [...new Set(pacote.incluso.map(nomePublicoServico).filter(Boolean))]
+    ? [...new Set(pacote.incluso.map((i) => limparMarca(nomePublicoServico(i))).filter(Boolean))]
     : [];
+
 
   // Título padronizado: "<destino> - Saindo de <origem>".
   // Só mantém o texto comercial quando ele é um TEMA/EVENTO ("Halloween na Disney",
