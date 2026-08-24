@@ -37,6 +37,8 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     birthday?: number;
     hotel?: number;
     pay?: string;
+    /** Pacote montado no motor: ocupação travada, sem aviso de orçamento. */
+    fixed?: number;
   } => {
 
     const raw = Number(s?.qty);
@@ -53,10 +55,12 @@ export const Route = createFileRoute("/pacotes/$slug/checkout")({
     const hotelRaw = Number(s?.hotel);
     const hotel = Number.isFinite(hotelRaw) && hotelRaw >= 0 ? Math.floor(hotelRaw) : undefined;
     const pay = s?.pay === "prepaid" ? "prepaid" : undefined;
-    return { qty, date, addons, modality, time, nights, birthday, hotel, pay };
+    const fixed = s?.fixed === 1 || s?.fixed === "1" ? 1 : undefined;
+    return { qty, date, addons, modality, time, nights, birthday, hotel, pay, fixed };
   },
 
 });
+
 
 
 type PaymentMethod = "credit_card" | "pix" | "boleto" | "prepaid_boleto";
