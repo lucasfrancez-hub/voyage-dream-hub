@@ -20,6 +20,7 @@ export function SeletorServicos({
 }) {
   const [categoria, setCategoria] = useState<string>("todos");
   const [busca, setBusca] = useState("");
+  const [ordem, setOrdem] = useState<"preco" | "precoDesc">("preco");
 
   const categorias = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -29,12 +30,19 @@ export function SeletorServicos({
 
   const lista = useMemo(() => {
     const t = busca.trim().toLowerCase();
-    return servicos.filter((s) => {
+    const filtrados = servicos.filter((s) => {
       if (categoria !== "todos" && s.categoria !== categoria) return false;
       if (t && !`${s.titulo} ${s.descricao ?? ""}`.toLowerCase().includes(t)) return false;
       return true;
     });
-  }, [servicos, categoria, busca]);
+    // serviços sem valor (sob consulta) sempre no fim
+    return [...filtrados].sort((a, b) => {
+      if (a.valor == null && b.valor == null) return 0;
+      if (a.valor == null) return 1;
+      if (b.valor == null) return -1;
+      return ordem === "preco" ? a.valor - b.valor : b.valor - a.valor;
+    });
+  }, [servicos, categoria, busca, ordem]);
 
   return (
     <section className="screen active">
