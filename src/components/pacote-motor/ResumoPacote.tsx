@@ -167,6 +167,7 @@ export function ResumoPacote({
               ? `Acréscimo de ${brl(diferenca, moeda)}`
               : `Economia de ${brl(Math.abs(diferenca), moeda)}`}
         </small>
+        <small className="sum-parcel">{parcelamento.completo}</small>
       </div>
 
       {acao ?? (
