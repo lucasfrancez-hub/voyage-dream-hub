@@ -33,6 +33,19 @@ export const PROVEDORES_CODIGO: ProvedorCodigo[] = [
     tamanhos: [6],
   },
   {
+    id: "comprefacil",
+    nome: "CompreFácil (FRT Operadora)",
+    // remetente original: nao-responda@frt.tur.br
+    dominios: ["frt.tur.br", "comprefacil.tur.br"],
+    pistas: ["comprefacil", "compre facil", "frt operadora", "nao-responda@frt.tur.br"],
+    assuntos: [
+      "codigo de acesso ao sistema frt operadora",
+      "codigo de acesso ao sistema frt",
+      "codigo de acesso",
+    ],
+    tamanhos: [6],
+  },
+  {
     id: "cativa",
     nome: "Cativa Turismo",
     dominios: ["cativa.tur.br", "cativaturismo.com.br"],
