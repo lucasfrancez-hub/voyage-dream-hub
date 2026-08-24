@@ -84,6 +84,10 @@ export function SeletorHospedagem({
       return true;
     });
     const ordenados = [...filtrados];
+    if (ordem === "recomendado")
+      ordenados.sort(
+        (a, b) => Number(!!b.recomendado) - Number(!!a.recomendado) || a.posicao - b.posicao,
+      );
     if (ordem === "preco") ordenados.sort((a, b) => a.total - b.total);
     if (ordem === "precoDesc") ordenados.sort((a, b) => b.total - a.total);
     if (ordem === "estrelas") ordenados.sort((a, b) => (b.categoria ?? 0) - (a.categoria ?? 0));
@@ -242,7 +246,10 @@ export function SeletorHospedagem({
                   <div className="hotelmain">
                     <div className="hotelhead">
                       <div>
-                        {h.categoria ? <div className="stars">{"★".repeat(h.categoria)}</div> : null}
+                        <div className="hotelselos">
+                          {h.categoria ? <div className="stars">{"★".repeat(h.categoria)}</div> : null}
+                          {h.recomendado ? <span className="selo-rec">Recomendado</span> : null}
+                        </div>
                         <h3>{h.nome}</h3>
                         <p>{h.endereco ?? h.localizacao ?? "Localização conforme a operadora"}</p>
                       </div>

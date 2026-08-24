@@ -254,7 +254,7 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   const rota = `/api/Hotel/buscaasync?Pagina=1&ItensPorPagina=${porPagina}`;
   const base = COMPREFACIL_BASES.hotel;
 
-  const corpo = (guid: string | null) => ({
+  const corpo = (guid: string | null, ordenacao = "") => ({
     AgenciaId: agenciaId,
     Guid: guid,
     Nacionalidade: "BR",
@@ -269,7 +269,7 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     Checkout: p.checkout,
     Cidade: { Id: p.cidadeId },
     Quartos: distribuicaoQuartos(p),
-    FiltroHotel: FILTRO_HOTEL,
+    FiltroHotel: { ...FILTRO_HOTEL, Ordenacao: ordenacao },
   });
 
   const inicio = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(null) });
@@ -286,20 +286,29 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     if (buscasAtivas(meta) === 0 && i > 1) break;
   }
 
-  const itens: any[] = [...(dados?.Items ?? [])];
+  const chaveHotel = (h: any) => `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`;
 
-  // Idem hotelaria: a operadora devolve centenas de hotéis paginados.
-  const faltamH = paginasRestantes(dados?.MetaData, porPagina, itens.length);
-  const vistos = new Set(itens.map((h) => `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`));
+  // 1ª passada (Ordenacao "") = lista de "recomendados" da operadora — poucos itens,
+  // usada só para marcar o selo. A lista completa vem na 2ª passada ordenada por preço.
+  const recomendados = new Set<string>(((dados?.Items ?? []) as any[]).map(chaveHotel));
+
+  // 2ª passada: mesma busca (mesmo Guid) ordenada do menor para o maior preço,
+  // que é a única ordenação em que a operadora devolve o catálogo inteiro.
+  const primeira = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid, "asc") });
+  const dadosAsc: any = primeira.dados;
+  const itens: any[] = [...(dadosAsc?.Items ?? [])];
+  const vistos = new Set(itens.map(chaveHotel));
+
+  const faltamH = paginasRestantes(dadosAsc?.MetaData, porPagina, itens.length);
   for (let pagina = 2; pagina <= faltamH + 1; pagina++) {
     const r = await chamarCompreFacil(
       `/api/Hotel/buscaasync?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
-      { base, method: "POST", body: corpo(guid) },
+      { base, method: "POST", body: corpo(guid, "asc") },
     );
     const lote: any[] = (r.dados as any)?.Items ?? [];
     if (!lote.length) break;
     for (const h of lote) {
-      const chave = `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`;
+      const chave = chaveHotel(h);
       if (vistos.has(chave)) continue;
       vistos.add(chave);
       itens.push(h);
@@ -307,7 +316,14 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     if (itens.length >= MAX_ITENS) break;
   }
 
-  return itens.map((h, i) => mapearHotel(h, i));
+  // fallback: se por algum motivo a ordenação por preço não devolveu nada,
+  // mantém o resultado da 1ª passada.
+  const finais = itens.length ? itens : ((dados?.Items ?? []) as any[]);
+
+  return finais.map((h, i) => ({
+    ...mapearHotel(h, i),
+    recomendado: recomendados.has(chaveHotel(h)),
+  }));
 }
 
 function limpar(v: unknown): string | null {
