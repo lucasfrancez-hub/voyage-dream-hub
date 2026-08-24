@@ -360,15 +360,7 @@ export function SeletorVoo({
                 />
               </div>
             ) : null}
-            <Chips
-              rotulo="Companhia aérea"
-              // mostra o nome da companhia (nacional ou internacional), nunca a sigla IATA
-              opcoes={opcoes.cias
-                .map((c) => ({ v: c, l: nomeCia(c) }))
-                .sort((a, b) => a.l.localeCompare(b.l, "pt-BR"))}
-              valor={cias}
-              onChange={setCias}
-            />
+            <Chips rotulo="Companhia aérea" opcoes={opcoes.cias} valor={cias} onChange={setCias} />
 
             <Chips
               rotulo="Horário de saída (ida)"
