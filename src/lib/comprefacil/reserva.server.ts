@@ -108,6 +108,16 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
 
   const pessoas = e.passageiros.map((p, i) => pessoa(p, i + 1));
 
+  // Mesma distribuição enviada na busca (o portal repassa `quartos` no orçamento).
+  const quartosOrcamento = (
+    e.quartos?.length ? e.quartos : [{ adultos: Math.max(1, e.passageiros.filter((p) => (p.tipo ?? 0) === 0).length) }]
+  ).map((q, i) => {
+    const idades = [...(q.idades ?? [])];
+    while (idades.length < (q.criancas ?? 0)) idades.push(7);
+    for (let b = 0; b < (q.bebes ?? 0); b++) idades.push(0);
+    return { NumeroPesquisa: i + 1, Qtde: 1, Adultos: Math.max(1, q.adultos || 1), Criancas: idades };
+  });
+
   const criar = await chamarCompreFacil("/api/Reserva/", {
     method: "POST",
     body: {
@@ -119,10 +129,12 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
       Hoteis: hotelBruto ? [hotelBruto] : [],
       Servicos: [],
       Seguros: [],
+      ...(hotelBruto ? { quartos: quartosOrcamento } : {}),
       Pessoas: pessoas.map((p) => ({ ...p, Nome: "", Sobrenome: "" })),
       ...(e.observacao ? { Observacao: e.observacao } : {}),
     },
   });
+
   const orcamentoId = Number((criar.dados as any)?.Id ?? 0) || null;
   registrar("Criar orçamento na operadora", Boolean(orcamentoId), orcamentoId ? `#${orcamentoId}` : "Falha ao criar");
   if (!orcamentoId) {
