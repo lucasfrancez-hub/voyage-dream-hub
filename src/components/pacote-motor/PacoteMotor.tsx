@@ -15,6 +15,18 @@ import { listarServicosCompreFacil } from "@/lib/comprefacil/comprefacil.functio
 import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.functions";
 import type { PassHubOferta } from "@/lib/passhub/types";
 
+/** Remove HTML/entidades da descrição vinda da operadora. */
+function textoSimples(v: unknown): string {
+  if (!v) return "";
+  return String(v)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 type Vista = "overview" | "voo" | "hotel";
 
 /** Motor de Pacotes VIA AIR — pacote recomendado + troca de aéreo e hospedagem. */
