@@ -498,184 +498,1013 @@ body:has([data-chat-root]),
     var(--navy);
   color: color-mix(in oklab, white 92%, transparent);
 }
-
 /* ==========================================================================
-   Motor de Pacotes VIA AIR — modelo aprovado (marketplace preservado).
-   Estrutura idêntica ao HTML aprovado; apenas a paleta foi adaptada para a
-   identidade VIA AIR (azul-marinho de fundo, azul e laranja da marca).
+   Motor de Pacotes VIA AIR — novo padrão aprovado (layout oficial do motor).
+   Gerado a partir do HTML aprovado e escopado em .mkt.
    ========================================================================== */
+.mkt {--bg:#031017;--card:#071b27;--card2:#092330;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);--text:#f5f8fb;--muted:#8ea3b3;--orange:#f59b45;--orange2:#ffb361;--green:#49c996;--shadow:0 22px 55px rgba(0,0,0,.34)}
+.mkt * {box-sizing:border-box}
+.mkt {scroll-behavior:smooth}
+.mkt {margin:0;background:radial-gradient(900px 340px at 17% 0,rgba(37,105,153,.22),transparent 66%),var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.mkt button, .mkt input {font:inherit}
+.mkt button {cursor:pointer}
+.mkt .shell {max-width:1450px;margin:auto;padding:0 28px}
+.mkt .topbar {height:64px;border-bottom:1px solid var(--line);background:rgba(3,16,23,.82);backdrop-filter:blur(16px);position:sticky;top:0;z-index:40}
+.mkt .topbar .shell {height:100%;display:flex;align-items:center;justify-content:space-between}
+.mkt .brand {display:flex;align-items:center;gap:11px}
+.mkt .mark {width:37px;height:37px;border-radius:12px;background:linear-gradient(145deg,#0f3d56,#061722);border:1px solid var(--line);position:relative}
+.mkt .mark:after {content:"";position:absolute;width:16px;height:7px;border-radius:8px 2px 8px 2px;background:var(--orange);right:5px;top:8px;transform:rotate(-22deg)}
+.mkt .brand b {font-size:17px;letter-spacing:1px}
+.mkt .brand small {display:block;font-size:9px;color:#7890a2;letter-spacing:1.5px;text-transform:uppercase}
+.mkt .back {font-size:11px;color:#8ea3b3}
+.mkt main {padding:22px 0 50px}
+.mkt .search {padding:22px 24px;border:1px solid var(--line);border-radius:27px;background:linear-gradient(145deg,rgba(10,35,48,.97),rgba(5,24,35,.99));box-shadow:var(--shadow)}
+.mkt .search-grid {display:grid;grid-template-columns:1.08fr 1.08fr .8fr .8fr auto;gap:11px;align-items:end}
+.mkt .label {display:flex;gap:7px;align-items:center;margin:0 0 7px 4px;color:#8296a6;font-size:8px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}
+.mkt .label i {width:6px;height:6px;border-radius:50%;background:var(--orange)}
+.mkt .field {height:49px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);border-radius:14px;display:flex;align-items:center;padding:0 14px;font-size:13px;font-weight:700}
+.mkt .search-btn {height:49px;border:0;border-radius:14px;padding:0 33px;background:var(--orange);color:#11181c;font-weight:900;box-shadow:0 12px 26px rgba(245,155,69,.25)}
+.mkt .passengers {margin-top:17px;padding-top:17px;border-top:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center;gap:18px}
+.mkt .pass-left {display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.mkt .pass-label {font-size:11px;color:#9eb1bf}
+.mkt .counters {display:flex;gap:11px}
+.mkt .counter span {display:block;margin-bottom:5px;color:#74899a;font-size:7px;text-transform:uppercase;font-weight:900;letter-spacing:1px}
+.mkt .counter input {width:62px;height:33px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);color:#fff;border-radius:10px;text-align:center}
+.mkt .mode {border:1px solid var(--line);background:rgba(255,255,255,.02);color:#9db1c0;border-radius:11px;padding:10px 13px;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:1px}
+.mkt .occupancy-wrap {margin-top:17px;padding-top:17px;border-top:1px solid rgba(255,255,255,.06);display:grid;gap:12px}
+.mkt .occupancy-top {display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.mkt .occupancy-left {display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.mkt .room-count {display:flex;flex-direction:column;gap:5px}
+.mkt .room-count span, .mkt .guest-field span {display:block;color:#74899a;font-size:7px;text-transform:uppercase;font-weight:900;letter-spacing:1px}
+.mkt .room-count input, .mkt .guest-field input {height:34px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);color:#fff;border-radius:10px;text-align:center;font-weight:800}
+.mkt .room-count input {width:70px}
+.mkt .guest-field input {width:58px}
+.mkt .occupancy-summary {font-size:10px;color:#9eb1bf;padding-bottom:8px}
+.mkt .room-lines {display:grid;gap:8px}
+.mkt .room-line {display:flex;align-items:flex-end;gap:12px;padding:10px 11px;border:1px solid rgba(255,255,255,.065);background:rgba(255,255,255,.018);border-radius:13px}
+.mkt .room-name {min-width:84px;padding-bottom:9px}
+.mkt .room-name b {display:block;font-size:9px;color:#fff}
+.mkt .room-name small {display:block;margin-top:3px;color:#73899a;font-size:7px}
+.mkt .guest-field {display:flex;flex-direction:column;gap:5px}
+.mkt .room-total {margin-left:auto;padding-bottom:8px;color:#7f96a8;font-size:8px;white-space:nowrap}
+.mkt .hotel .more {display:inline-flex;align-items:center;gap:5px;padding:7px 9px;border:1px solid rgba(255,255,255,.07);border-radius:9px;background:rgba(255,255,255,.025);color:#d4e1eb}
+.mkt .hotel .more:hover {border-color:rgba(245,155,69,.24);color:#ffc47f}
+.mkt .tabs {display:flex;gap:8px;margin:18px 0}
+.mkt .tab {border:1px solid var(--line);background:rgba(255,255,255,.02);color:#8fa4b4;border-radius:11px;padding:10px 13px;font-size:10px;font-weight:900}
+.mkt .tab.active {border-color:rgba(245,155,69,.30);background:rgba(245,155,69,.10);color:#ffc787}
+.mkt .screen {display:none}
+.mkt .screen.active {display:block}
+.mkt .title {display:flex;justify-content:space-between;align-items:end;gap:15px;margin:18px 0 12px}
+.mkt .title h2 {margin:0;font-size:19px}
+.mkt .title p {margin:4px 0 0;color:#8298a8;font-size:10px}
+.mkt .pill {border:1px solid var(--line);background:rgba(255,255,255,.02);border-radius:999px;padding:7px 10px;color:#94a9b8;font-size:9px}
+.mkt .overview {display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+.mkt .overview-main {padding:0;border:0;background:transparent}
+.mkt .overview-grid {display:grid;grid-template-columns:1fr 1.08fr;gap:16px}
+.mkt .sel-card {border:1px solid rgba(255,255,255,.075);border-radius:22px;background:linear-gradient(180deg,rgba(10,33,47,.98),rgba(6,24,34,.99));overflow:hidden;box-shadow:0 18px 45px rgba(0,0,0,.18)}
+.mkt .sel-head {padding:15px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
+.mkt .sel-head b {font-size:12px;letter-spacing:.01em}
+.mkt .mini {border:1px solid rgba(245,155,69,.24);background:rgba(245,155,69,.10);color:#ffc47f;border-radius:10px;padding:7px 10px;font-size:8px;font-weight:900;letter-spacing:.3px}
+.mkt .sel-body {padding:16px}
+.mkt .air {display:flex;align-items:center;gap:10px}
+.mkt .air img, .mkt .airline img {width:38px;height:38px;object-fit:contain;border-radius:10px;background:#fff;padding:4px}
+.mkt .air b {font-size:11px}
+.mkt .air small {display:block;color:#8094a4;font-size:7.5px;margin-top:2px}
+.mkt .trips {display:grid;gap:9px;margin-top:13px}
+.mkt .trip {padding:11px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);border-radius:14px}
+.mkt .triptop {display:flex;justify-content:space-between;color:#91a4b3;font-size:7.2px;text-transform:uppercase;font-weight:900;letter-spacing:.95px;margin-bottom:8px}
+.mkt .route {display:grid;grid-template-columns:68px 1fr 68px;gap:10px;align-items:center}
+.mkt .pt strong {display:block;font-size:20px;letter-spacing:-.02em}
+.mkt .pt b {color:var(--orange);font-size:11px}
+.mkt .pt.r {text-align:right}
+.mkt .mid {text-align:center;color:#7b91a2;font-size:7.5px}
+.mkt .mid div {height:1px;background:rgba(255,255,255,.12);margin:6px 0;position:relative}
+.mkt .mid div:before, .mkt .mid div:after {content:"";position:absolute;top:-3px;width:6px;height:6px;border-radius:50%;background:var(--orange)}
+.mkt .mid div:before {left:0}
+.mkt .mid div:after {right:0}
+.mkt .hotel-mini {display:grid;grid-template-columns:146px 1fr;gap:15px;align-items:start}
+.mkt .hotel-mini img {width:146px;height:128px;object-fit:cover;border-radius:16px;box-shadow:0 16px 32px rgba(0,0,0,.24)}
+.mkt .stars {color:#efad58;font-size:11px;letter-spacing:1px}
+.mkt .hotel-mini h3 {margin:5px 0;font-size:17px}
+.mkt .hotel-mini p {margin:0;color:#8ea2b2;font-size:9px;line-height:1.55}
+.mkt .room {margin-top:12px;padding:10px 11px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.025);font-size:8.5px;color:#9ab0c0;line-height:1.55}
+.mkt .room b {display:block;color:#fff;margin-bottom:3px}
+.mkt .room-actions {display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.mkt .ghost-mini {border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#d9e6f2;border-radius:10px;padding:8px 10px;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.4px}
+.mkt .mini-note {font-size:8px;color:#7e96a8}
+.mkt .sel-shell {display:grid;gap:14px}
+.mkt .sel-status {display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(245,155,69,.12);border:1px solid rgba(245,155,69,.22);color:#ffd19a;font-size:7px;font-weight:1000;text-transform:uppercase;letter-spacing:.45px}
+.mkt .sel-status:before {content:"";width:6px;height:6px;border-radius:50%;background:var(--orange)}
+.mkt .sel-sub {margin-top:10px;display:flex;gap:7px;flex-wrap:wrap}
+.mkt .sel-sub span {padding:6px 8px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.05);color:#c5d5e2;font-size:8px;font-weight:800}
+.mkt .hotel-hero {display:grid;grid-template-columns:168px 1fr;gap:16px;align-items:start}
+.mkt .hotel-hero img {width:168px;height:136px;object-fit:cover;border-radius:18px;box-shadow:0 18px 36px rgba(0,0,0,.26)}
+.mkt .hotel-copy h3 {margin:6px 0;font-size:19px}
+.mkt .hotel-copy p {margin:0;color:#90a4b4;font-size:9px;line-height:1.6}
+.mkt .hotel-badges {display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.mkt .hotel-badges span {padding:7px 9px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.05);color:#d4e0ea;font-size:8px;font-weight:800}
+.mkt .hotel-roombox {margin-top:13px;padding:12px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}
+.mkt .hotel-roombox b {display:block;font-size:10px;color:#fff;margin-bottom:4px}
+.mkt .hotel-roombox small {display:block;font-size:8px;color:#8ca1b2;line-height:1.55}
+.mkt .flight-stack {display:grid;gap:10px;margin-top:12px}
+.mkt .flight-pane {padding:11px 12px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}
+.mkt .flight-pane .triptop {font-size:7.5px;margin-bottom:8px}
+.mkt .flight-pane .route {grid-template-columns:70px 1fr 70px;gap:12px}
+.mkt .flight-pane .pt strong {font-size:22px}
+.mkt .flight-pane .mid {font-size:8px}
+.mkt .flight-pane .mid small {display:block;margin-top:4px;color:#7d93a4}
+.mkt .sel-head {padding:15px 16px 13px}
+.mkt .sel-actions {display:flex;align-items:center;gap:8px}
+.mkt .sel-main-title {display:grid;gap:5px}
+.mkt .sel-main-title b {font-size:12px;letter-spacing:.01em}
+.mkt .sel-main-title span {font-size:8px;color:#90a4b4}
+.mkt .air-top {display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mkt .air-top .air {margin:0}
+.mkt .overview-main {padding:8px;border-radius:24px;background:linear-gradient(180deg,rgba(8,31,43,.55),rgba(6,25,36,.35));box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
+.mkt .overview-grid {gap:16px}
+.mkt .sel-card {border-radius:22px;background:linear-gradient(180deg,rgba(10,33,47,.98),rgba(6,24,34,.99));box-shadow:0 18px 40px rgba(0,0,0,.18);transition:.18s}
+.mkt .sel-card:hover {border-color:rgba(255,255,255,.10);transform:translateY(-1px)}
+.mkt .summary {position:sticky;top:80px;border:1px solid var(--line2);border-radius:22px;padding:16px;background:linear-gradient(180deg,#0a2533,#061925);box-shadow:0 22px 48px rgba(0,0,0,.26)}
+.mkt .summary small.label2 {font-size:7px;color:#748a9a;text-transform:uppercase;font-weight:900;letter-spacing:1px}
+.mkt .summary h3 {font-size:17px;margin:5px 0 3px}
+.mkt .summary>p {margin:0;color:#8398a8;font-size:8px}
+.mkt .sum-trip {margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)}
+.mkt .sum-head {display:flex;justify-content:space-between;margin-bottom:6px;gap:8px}
+.mkt .sum-head b {font-size:8px;color:#ffc47f;text-transform:uppercase;letter-spacing:.8px}
+.mkt .sum-head span {font-size:7px;color:#748a9a;text-align:right}
+.mkt .sum-route {display:grid;grid-template-columns:1fr auto 1fr;gap:7px;align-items:center}
+.mkt .sum-route strong {font-size:13px}
+.mkt .sum-route small {display:block;font-size:7px;color:#738999;margin-top:2px}
+.mkt .sum-route .right {text-align:right}
+.mkt .arrow {color:#647d8e;font-size:10px}
+.mkt .sum-hotel {margin-top:11px;padding-top:11px;border-top:1px solid rgba(255,255,255,.06)}
+.mkt .sum-hotel-photo {width:100%;height:135px;border-radius:15px;object-fit:cover;display:block;margin:0 0 11px;box-shadow:0 18px 34px rgba(0,0,0,.28)}
+.mkt .sum-hotel {padding:11px;margin-top:12px;border:1px solid rgba(255,255,255,.07);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.018))}
+.mkt .sum-hotel span {display:inline-flex;padding:5px 7px;border-radius:999px;background:rgba(245,155,69,.10);border:1px solid rgba(245,155,69,.17);color:#ffc47f!important}
+.mkt .sum-hotel b {font-size:13px!important;margin-top:8px!important;letter-spacing:-.01em}
+.mkt .sum-hotel small {display:block;margin-top:4px;font-size:8px!important;line-height:1.55}
+.mkt .summary .hotel-emphasis {font-size:7px;color:#6f8595;margin-top:5px}
+.mkt .sum-hotel span {font-size:7px;color:#748a9a;text-transform:uppercase;font-weight:900}
+.mkt .sum-hotel b {display:block;font-size:10px;margin-top:4px}
+.mkt .sum-hotel small {font-size:7.5px;color:#8398a8;line-height:1.45}
+.mkt .total {margin-top:13px;padding:12px;border-radius:14px;border:1px solid rgba(245,155,69,.15);background:rgba(245,155,69,.07)}
+.mkt .total span {font-size:7px;color:#8297a7;text-transform:uppercase;font-weight:900}
+.mkt .total strong {display:block;font-size:24px;margin:4px 0}
+.mkt .total small {font-size:7px;color:#ffc47f;font-weight:800}
+.mkt .primary {width:100%;margin-top:10px;border:0;border-radius:12px;background:var(--orange);padding:12px;color:#10171b;font-size:9px;font-weight:1000;text-transform:uppercase;letter-spacing:1px}
+.mkt .market {display:grid;grid-template-columns:250px minmax(0,1fr) 300px;gap:15px;align-items:start}
+.mkt .filters {position:sticky;top:80px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(180deg,#081f2c,#061925);overflow:hidden}
+.mkt .filter-head {padding:15px 16px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px;font-weight:900}
+.mkt .filter-body {padding:14px 16px;display:grid;gap:16px}
+.mkt .fb {padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.05)}
+.mkt .fb:last-child {border:0;padding:0}
+.mkt .flabel {display:block;margin-bottom:8px;color:#708697;font-size:7px;font-weight:1000;text-transform:uppercase;letter-spacing:1.1px}
+.mkt .toggle {display:flex;justify-content:space-between;align-items:center;color:#a8bac7;font-size:9px}
+.mkt .switch {width:34px;height:19px;border-radius:99px;background:#0a1e29;border:1px solid rgba(255,255,255,.07);position:relative}
+.mkt .switch.on {background:rgba(245,155,69,.18);border-color:rgba(245,155,69,.34)}
+.mkt .switch.on:after {left:17px;background:var(--orange)}
+.mkt .switch:after {content:"";position:absolute;width:13px;height:13px;background:#5f7686;border-radius:50%;left:3px;top:2px}
+.mkt .segments {display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px;border:1px solid rgba(255,255,255,.06);border-radius:12px;background:rgba(255,255,255,.02)}
+.mkt .segments button {border:0;background:transparent;color:#8499a9;font-size:8px;font-weight:800;padding:7px 2px;border-radius:9px}
+.mkt .segments .active {background:var(--orange);color:#11181c}
+.mkt .pricecap {display:flex;justify-content:space-between;font-size:8px;font-weight:800;margin-bottom:8px}
+.mkt .range {height:4px;background:#163341;border-radius:99px;position:relative;margin:10px 6px}
+.mkt .range:before {content:"";position:absolute;inset:0;background:var(--orange);border-radius:99px}
+.mkt .range:after {content:"";position:absolute;width:11px;height:11px;border:2px solid var(--orange);background:#061822;border-radius:50%;right:-3px;top:-5px;box-shadow:-180px 0 0 -2px #061822,-180px 0 0 0 var(--orange)}
+.mkt .rlabels {display:flex;justify-content:space-between;color:#687f90;font-size:7px}
+.mkt .chips {display:flex;gap:5px;flex-wrap:wrap}
+.mkt .chip {border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);border-radius:999px;padding:5px 7px;color:#8da2b2;font-size:7px;font-weight:800}
+.mkt .chip.active {border-color:rgba(245,155,69,.3);background:rgba(245,155,69,.09);color:#ffc47f}
+.mkt .finput {width:100%;height:34px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);border-radius:9px;color:#b9c8d2;padding:0 9px;font-size:8px}
+.mkt .results {display:grid;gap:11px}
+.mkt .flight, .mkt .hotel {border:1px solid var(--line);background:linear-gradient(180deg,rgba(8,30,42,.97),rgba(5,24,35,.99));border-radius:17px;overflow:hidden;transition:.17s}
+.mkt .flight:hover, .mkt .hotel:hover {transform:translateY(-1px);border-color:rgba(245,155,69,.28)}
+.mkt .flight.selected, .mkt .hotel.selected {border-color:rgba(245,155,69,.64)}
+.mkt .flightgrid {display:grid;grid-template-columns:minmax(0,1fr) 180px}
+.mkt .flightmain {padding:12px 14px}
+.mkt .flighthead {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.mkt .badge {border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.11);border-radius:999px;padding:5px 8px;font-size:7px;font-weight:900;text-transform:uppercase}
+.mkt .badge i {display:inline-block;width:6px;height:6px;background:var(--orange);border-radius:50%;margin-right:6px}
+.mkt .airline {display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.10);border-radius:9px;padding:4px 7px}
+.mkt .airline img {width:25px;height:25px;border-radius:5px}
+.mkt .airline b {font-size:8px}
+.mkt .airline small {display:block;color:#697f90;font-size:6px}
+.mkt .legs {display:grid;gap:7px}
+.mkt .leg {display:grid;grid-template-columns:58px 1fr 58px;gap:10px;align-items:center;padding-top:8px;border-top:1px solid rgba(255,255,255,.055)}
+.mkt .leg:first-child {border:0;padding-top:0}
+.mkt .side strong {display:block;font-size:20px}
+.mkt .side b {display:block;color:var(--orange);font-size:11px}
+.mkt .side small {display:block;color:#708697;font-size:6px}
+.mkt .side.r {text-align:right}
+.mkt .middle {text-align:center}
+.mkt .middle span {font-size:7px;color:#8297a7;font-weight:900}
+.mkt .line {height:1px;background:rgba(255,255,255,.10);position:relative;margin:6px 0}
+.mkt .line:before {content:"";position:absolute;width:6px;height:6px;left:0;top:-3px;border-radius:50%;background:var(--orange)}
+.mkt .line:after {content:"";position:absolute;width:6px;height:6px;right:0;top:-3px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:#071b27}
+.mkt .middle em {font-style:normal;color:#6f8595;font-size:6px}
+.mkt .flightfoot {margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:space-between}
+.mkt .bag {color:#8da2b1;font-size:7px}
+.mkt .more {border:0;background:transparent;color:#9fb4c3;font-size:7px;font-weight:900;text-transform:uppercase;letter-spacing:.7px}
+.mkt .priceside {padding:13px;border-left:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.10);display:flex;flex-direction:column;justify-content:center}
+.mkt .prow {display:flex;justify-content:space-between;color:#8297a6;font-size:7px;text-transform:uppercase;font-weight:800;margin-bottom:7px}
+.mkt .prow b {font-size:9px;color:#e8f0f5}
+.mkt .divider {height:1px;background:rgba(255,255,255,.06);margin:2px 0 9px}
+.mkt .plabel {font-size:6px;color:#6d8394;text-transform:uppercase;font-weight:900;letter-spacing:.8px}
+.mkt .big {font-size:21px;font-weight:1000;margin:4px 0 2px}
+.mkt .parcel {color:#ffc47f;font-size:6px;font-weight:900;text-transform:uppercase}
+.mkt .select {margin-top:11px;border:0;border-radius:9px;padding:10px;background:var(--orange);color:#10171b;font-size:8px;font-weight:1000;text-transform:uppercase;letter-spacing:1px}
+.mkt .select.on {background:rgba(245,155,69,.12);border:1px solid rgba(245,155,69,.20);color:#ffc47f}
+.mkt .details {display:none;border-top:1px solid rgba(255,255,255,.06);padding:11px 13px;background:rgba(0,0,0,.08)}
+.mkt .open .details {display:block}
+.mkt .detailgrid {display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.mkt .detailbox {padding:9px;border:1px solid rgba(255,255,255,.055);border-radius:11px;background:rgba(255,255,255,.015)}
+.mkt .detailbox h4 {margin:0 0 7px;color:#ffc47f;font-size:8px;text-transform:uppercase}
+.mkt .segment {display:grid;grid-template-columns:50px 10px 1fr;gap:7px;margin:6px 0}
+.mkt .clock {font-size:9px;font-weight:900}
+.mkt .clock small {display:block;color:#6f8595;font-size:6px}
+.mkt .dots {position:relative}
+.mkt .dots:before {content:"";position:absolute;left:4px;top:0;bottom:0;width:1px;background:rgba(255,255,255,.08)}
+.mkt .dots:after {content:"";position:absolute;left:1px;top:4px;width:6px;height:6px;border-radius:50%;background:var(--orange)}
+.mkt .segtext b {font-size:8px}
+.mkt .segtext span {display:block;color:#73899a;font-size:6px;margin-top:2px}
+.mkt .connect {margin:4px 0 4px 60px;padding:6px 7px;border:1px dashed rgba(245,155,69,.22);background:rgba(245,155,69,.06);border-radius:8px;color:#ffc47f;font-size:6px;font-weight:800}
+.mkt .hotelgrid {display:grid;grid-template-columns:160px minmax(0,1fr) 170px}
+.mkt .photo {min-height:165px;background-position:center;background-size:cover}
+.mkt .hotelmain {padding:12px 13px}
+.mkt .hotelhead {display:flex;justify-content:space-between;gap:10px}
+.mkt .hotelhead h3 {font-size:13px;margin:3px 0}
+.mkt .hotelhead p {margin:0;color:#748999;font-size:7px}
+.mkt .rating {padding:5px 7px;border:1px solid rgba(255,255,255,.06);border-radius:9px;background:rgba(255,255,255,.02);text-align:center}
+.mkt .rating b {display:block;font-size:11px}
+.mkt .rating span {font-size:6px;color:#738999}
+.mkt .amen {display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.mkt .amen span {padding:4px 6px;border:1px solid rgba(255,255,255,.06);border-radius:999px;color:#879cab;font-size:6px}
+.mkt .roomrow {display:flex;justify-content:space-between;gap:10px;margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.055)}
+.mkt .roomrow b {font-size:8px}
+.mkt .roomrow span {display:block;color:#708697;font-size:6px;margin-top:2px}
+.mkt .hotelprice {padding:13px;border-left:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.10);display:flex;flex-direction:column;justify-content:center}
+.mkt .hotelprice small {color:#6e8495;font-size:6px;text-transform:uppercase;font-weight:900}
+.mkt .hotelprice b {font-size:16px;margin:4px 0}
+.mkt .hotelprice span {font-size:6px;color:#8095a5}
+.mkt .hotelprice button {margin-top:10px;border:0;border-radius:9px;background:var(--orange);padding:9px;color:#10171b;font-size:8px;font-weight:1000;text-transform:uppercase}
+.mkt .hotel-detail {display:none;border-top:1px solid rgba(255,255,255,.06);padding:10px 12px;background:rgba(0,0,0,.08)}
+.mkt .hotel.open .hotel-detail {display:block}
+.mkt .roomopt {display:grid;grid-template-columns:1.3fr .8fr .7fr auto;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.05);font-size:7px}
+.mkt .roomopt:first-child {border-top:0}
+.mkt .roomopt span {color:#758b9b}
+.mkt .roomopt strong {color:#ffc47f}
+@media(max-width:1150px) {
+  .mkt .market {grid-template-columns:230px 1fr}
+  .mkt .market>.summary {grid-column:1/3;position:relative;top:auto}
+  .mkt .overview {grid-template-columns:1fr}
+  .mkt .summary {position:relative;top:auto}
+  .mkt .search-grid {grid-template-columns:1fr 1fr 1fr}
+  .mkt .search-btn {grid-column:span 3}
+}
+@media(max-width:780px) {
+  .mkt .room-line {flex-wrap:wrap}
+  .mkt .room-name {width:100%;padding-bottom:2px}
+  .mkt .room-total {margin-left:0}
+  .mkt .occupancy-top {align-items:flex-start}
+  .mkt .occupancy-left {align-items:flex-start}
+  .mkt .guest-field input {width:64px}
+  .mkt .shell {padding:0 14px}
+  .mkt .search-grid {grid-template-columns:1fr 1fr}
+  .mkt .search-btn {grid-column:span 2}
+  .mkt .passengers {align-items:flex-start;flex-direction:column}
+  .mkt .overview-grid {grid-template-columns:1fr}
+  .mkt .market {grid-template-columns:1fr}
+  .mkt .filters {position:relative;top:auto}
+  .mkt .market>.summary {grid-column:auto}
+  .mkt .flightgrid, .mkt .hotelgrid {grid-template-columns:1fr}
+  .mkt .priceside, .mkt .hotelprice {border-left:0;border-top:1px solid rgba(255,255,255,.06)}
+  .mkt .photo {height:190px}
+  .mkt .detailgrid {grid-template-columns:1fr}
+}
+.mkt /* ===== V3 PROFESSIONAL POLISH ===== */
+:root {
+  --bg:#031017;
+  --card:#071b27;
+  --card2:#092330;
+  --surface:#0a202d;
+  --surface-hi:#0d2736;
+  --line:rgba(211,229,241,.09);
+  --line2:rgba(211,229,241,.14);
+  --text:#f7fafc;
+  --muted:#91a5b5;
+  --orange:#f59b45;
+  --orange2:#ffb260;
+  --focus:rgba(245,155,69,.26);
+  --shadow:0 22px 60px rgba(0,0,0,.34);
+}
 .mkt {
-  --blue: #0b4ea2;
-  --blue2: #0b67c2;
-  --orange: #f26b1f;
-  --ink: #122033;
-  --muted: #69768a;
-  --line: #e6eaf0;
-  --navy-bg: #071e3d;
-  --card: #fff;
-  --good: #138a5b;
-  --radius: 18px;
+  letter-spacing:-.006em;
   background:
-    radial-gradient(900px 420px at 12% -10%, rgba(11, 103, 194, 0.35), transparent 70%),
-    var(--navy-bg);
-  color: #eaf1fb;
-  border-radius: 22px;
-  padding: 20px;
+    radial-gradient(1100px 470px at 15% -8%,rgba(25,93,139,.20),transparent 65%),
+    radial-gradient(700px 420px at 92% 4%,rgba(245,155,69,.055),transparent 68%),
+    var(--bg);
 }
-@media (max-width: 720px) { .mkt { padding: 14px; } }
-.mkt button, .mkt input, .mkt select { font: inherit; }
-.mkt .hidden { display: none !important; }
-
-/* barra de busca */
-.mkt .searchbar { background: linear-gradient(120deg, #083e84, #0c5eb8); padding: 18px; border-radius: 18px; box-shadow: 0 12px 35px rgba(3, 14, 30, .35); margin: 0 0 18px; }
-.mkt .search-fields { display: grid; grid-template-columns: 1.2fr 1.2fr .85fr .85fr 1fr auto; gap: 10px; align-items: end; }
-.mkt .field { background: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: 12px; padding: 9px 12px; min-height: 58px; color: var(--ink); }
-.mkt .field label { display: block; font-size: 10px; text-transform: uppercase; color: #6b778b; font-weight: 800; letter-spacing: .8px; margin-bottom: 4px; }
-.mkt .field strong { font-size: 14px; }
-.mkt .field small { display: block; color: #7a8495; font-size: 11px; margin-top: 2px; }
-.mkt .field input { width: 100%; border: 0; outline: 0; background: transparent; font-size: 14px; color: var(--ink); }
-.mkt .search-action { border: 0; border-radius: 12px; background: var(--orange); color: #fff; font-weight: 800; height: 58px; padding: 0 20px; box-shadow: 0 8px 22px rgba(242,107,31,.32); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-.mkt .search-action:disabled { opacity: .7; }
-
-/* abas de tela */
-.mkt .screen-tabs { display: flex; gap: 10px; margin: 0 0 18px; overflow: auto; }
-.mkt .screen-tab { border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); color: #d6e2f2; border-radius: 14px; padding: 12px 14px; min-width: 215px; text-align: left; }
-.mkt .screen-tab b { display: block; font-size: 13px; margin-bottom: 3px; }
-.mkt .screen-tab span { font-size: 11px; opacity: .8; }
-.mkt .screen-tab.active { border-color: #b8d0ef; background: #edf5ff; color: var(--blue); }
-.mkt .screen { display: none; }
-.mkt .screen.active { display: block; }
-
-.mkt .summary-card, .mkt .panel, .mkt .filter-card, .mkt .overview-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 5px 20px rgba(3,14,30,.18); color: var(--ink); }
-.mkt .section-head { display: flex; justify-content: space-between; align-items: end; gap: 15px; margin: 0 0 12px; }
-.mkt .section-head h2 { margin: 0; font-size: 21px; color: #fff; }
-.mkt .section-head p { margin: 4px 0 0; color: rgba(255,255,255,.7); font-size: 12px; }
-.mkt .section-head .count { font-size: 12px; color: rgba(255,255,255,.7); font-weight: 700; }
-
-/* resumo lateral */
-.mkt .summary-card { padding: 18px; }
-.mkt .summary-card .mini { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: .8px; }
-.mkt .summary-card h3 { font-size: 20px; margin: 5px 0 2px; }
-.mkt .summary-card .installment { font-size: 12px; color: var(--muted); margin-bottom: 13px; }
-.mkt .summary-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 12px; }
-.mkt .summary-row span { color: var(--muted); }
-.mkt .summary-row b { font-weight: 700; text-align: right; }
-.mkt .summary-total { margin-top: 12px; padding: 13px; border-radius: 13px; background: #f3f7fd; }
-.mkt .summary-total small { display: block; color: #6c7890; }
-.mkt .summary-total strong { font-size: 24px; color: var(--blue); }
-.mkt .cta { width: 100%; border: 0; background: var(--orange); color: #fff; border-radius: 12px; padding: 13px; font-weight: 800; margin-top: 12px; }
-
-/* visão geral */
-.mkt .overview-layout { display: grid; grid-template-columns: minmax(0,1fr) 330px; gap: 22px; align-items: start; }
-.mkt .overview-card { padding: 16px; }
-.mkt .overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.mkt .overview-card > .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--orange); font-weight: 800; }
-.mkt .overview-card > h2 { margin: 6px 0 14px; font-size: 20px; }
-.mkt .resume-card { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: #fff; }
-.mkt .resume-head { background: #f3f8ff; border-bottom: 1px solid var(--line); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.mkt .resume-head b { font-size: 14px; color: var(--blue); }
-.mkt .resume-head button { border: 0; background: transparent; font-size: 11px; color: var(--blue); font-weight: 800; }
-.mkt .resume-body { padding: 14px; }
-.mkt .quick-flight { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; margin-bottom: 12px; }
-.mkt .quick-flight .time strong { font-size: 20px; display: block; }
-.mkt .quick-flight .time small { display: block; color: var(--muted); font-size: 11px; }
-.mkt .midline { text-align: center; min-width: 92px; }
-.mkt .midline .bar { height: 1px; background: #bac4d2; position: relative; }
-.mkt .midline .bar:before, .mkt .midline .bar:after { content: ""; position: absolute; top: -3px; width: 7px; height: 7px; border: 2px solid #95a4b9; background: #fff; border-radius: 50%; }
-.mkt .midline .bar:before { left: 0; }
-.mkt .midline .bar:after { right: 0; }
-.mkt .midline span { font-size: 10px; color: var(--muted); }
-.mkt .resume-tags { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 0 14px; }
-.mkt .resume-tags span { padding: 6px 8px; border-radius: 999px; background: #f3f6fa; color: #536074; font-size: 10px; font-weight: 700; }
-.mkt .outline-btn { width: 100%; border: 1px solid var(--blue); background: #fff; color: var(--blue); border-radius: 10px; padding: 11px 12px; font-weight: 800; }
-.mkt .hotel-snap { display: grid; grid-template-columns: 84px 1fr; gap: 12px; }
-.mkt .hotel-snap img { width: 84px; height: 84px; border-radius: 12px; object-fit: cover; }
-.mkt .hotel-snap h4 { margin: 0 0 4px; font-size: 15px; }
-.mkt .hotel-snap p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
-.mkt .hotel-snap .stars { color: #e99b19; letter-spacing: 2px; font-size: 12px; margin-bottom: 4px; }
-.mkt .overview-note { margin-top: 14px; padding: 11px 12px; border-left: 3px solid var(--orange); background: #fff8f1; border-radius: 8px; font-size: 11px; color: #7b572f; }
-.mkt .empty { padding: 18px; font-size: 13px; color: var(--muted); }
-
-/* marketplace */
-.mkt .market-wrap { display: grid; grid-template-columns: 220px minmax(0,1fr) 310px; gap: 16px; align-items: start; }
-.mkt .filter-card { padding: 14px; position: sticky; top: 95px; }
-.mkt .filter-card h4 { font-size: 12px; margin: 3px 0 10px; }
-.mkt .check { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #536074; margin: 8px 0; }
-.mkt .check input { accent-color: var(--blue); }
-.mkt .filter-card select, .mkt .filter-card input[type="text"] { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 7px 9px; font-size: 11px; color: var(--ink); background: #fff; }
-.mkt .market-list { display: grid; gap: 10px; }
-.mkt .market-flight { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 11px 13px; display: grid; grid-template-columns: 95px 1fr 1fr 135px; gap: 10px; align-items: center; color: var(--ink); }
-.mkt .market-flight.selected { outline: 2px solid var(--blue); }
-.mkt .mf-air { font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-.mkt .mf-route strong { font-size: 15px; }
-.mkt .mf-route small { display: block; color: var(--muted); font-size: 9px; }
-.mkt .mf-price { text-align: right; }
-.mkt .mf-price b { font-size: 12px; }
-.mkt .mf-price .val { display: block; color: var(--muted); font-size: 10px; }
-.mkt .mf-price button { margin-top: 5px; border: 0; border-radius: 8px; background: var(--blue); color: #fff; font-weight: 800; font-size: 10px; padding: 8px 10px; width: 100%; }
-.mkt .mf-price button.on { background: #dcf4e9; color: var(--good); }
-.mkt .airlogo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 900; font-size: 12px; color: #fff; background: linear-gradient(135deg, var(--blue), #06386f); }
-.mkt .detail-toggle { display: block; margin-top: 6px; font-size: 10px; color: var(--blue); font-weight: 800; background: transparent; border: 0; padding: 0; width: 100%; text-align: right; }
-.mkt .connection-box { margin: 8px 0 0 106px; background: #f7f9fc; border: 1px solid var(--line); border-radius: 12px; padding: 12px; color: var(--ink); }
-.mkt .conn-title { font-size: 12px; font-weight: 800; color: #33445b; margin-bottom: 10px; }
-.mkt .conn-step { display: grid; grid-template-columns: 72px 14px 1fr; gap: 10px; align-items: start; margin-bottom: 9px; }
-.mkt .conn-time { font-size: 12px; font-weight: 800; color: #22354d; }
-.mkt .conn-time small { display: block; color: var(--muted); font-size: 10px; font-weight: 600; }
-.mkt .conn-dot { position: relative; height: 44px; }
-.mkt .conn-dot:before { content: ""; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; background: #d4dbe5; }
-.mkt .conn-dot:after { content: ""; position: absolute; left: 0; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--blue); }
-.mkt .conn-box { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; }
-.mkt .conn-box b { display: block; font-size: 12px; }
-.mkt .conn-box span { display: block; color: var(--muted); font-size: 10px; line-height: 1.4; margin-top: 3px; }
-.mkt .layover { margin: 0 0 9px 82px; background: #eef5ff; border: 1px dashed #bfd6f3; border-radius: 10px; padding: 8px 10px; font-size: 10px; color: #4d6787; font-weight: 700; }
-
-.mkt .market-hotel { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; grid-template-columns: 160px 1fr 145px; color: var(--ink); }
-.mkt .market-hotel.selected { outline: 2px solid var(--blue); }
-.mkt .market-hotel img.cover { width: 100%; height: 100%; object-fit: cover; min-height: 150px; }
-.mkt .market-hotel .noimg { display: grid; place-items: center; background: #eef2f7; color: var(--muted); min-height: 150px; font-size: 11px; }
-.mkt .mh-info { padding: 12px; }
-.mkt .mh-info h4 { margin: 0 0 3px; font-size: 14px; }
-.mkt .mh-info p { font-size: 10px; color: var(--muted); margin: 3px 0; }
-.mkt .mh-info .stars { color: #e99b19; letter-spacing: 2px; font-size: 12px; }
-.mkt .mh-info .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-.mkt .mh-info .tags span { padding: 5px 7px; border-radius: 999px; background: #f3f6fa; color: #536074; font-size: 10px; font-weight: 700; }
-.mkt .mh-room { margin-top: 9px; border-top: 1px solid var(--line); padding-top: 8px; display: flex; justify-content: space-between; gap: 12px; font-size: 10px; align-items: center; }
-.mkt .mh-room button { border: 0; background: transparent; color: var(--blue); font-weight: 800; font-size: 10px; }
-.mkt .mh-price { border-left: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; }
-.mkt .mh-price small { color: var(--muted); font-size: 9px; }
-.mkt .mh-price b { color: var(--blue); font-size: 15px; margin: 3px 0; }
-.mkt .mh-price button { border: 0; background: var(--orange); color: #fff; border-radius: 9px; padding: 9px 10px; font-weight: 800; font-size: 10px; width: 100%; }
-.mkt .mh-price button.on { background: #dcf4e9; color: var(--good); }
-.mkt .mh-extra { border-top: 1px solid var(--line); padding: 12px; grid-column: 1 / -1; background: #f9fbfe; }
-.mkt .mh-extra .fotos { display: flex; gap: 8px; overflow: auto; margin-bottom: 10px; }
-.mkt .mh-extra .fotos img { width: 112px; height: 80px; border-radius: 10px; object-fit: cover; flex: none; }
-.mkt .quarto-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; }
-.mkt .quarto-row b { font-size: 11px; }
-.mkt .quarto-row p { margin: 2px 0 0; font-size: 10px; color: var(--muted); }
-.mkt .quarto-row button { border: 0; border-radius: 8px; background: var(--blue); color: #fff; font-weight: 800; font-size: 10px; padding: 7px 10px; margin-left: 8px; }
-.mkt .quarto-row button.on { background: #dcf4e9; color: var(--good); }
-.mkt .servicos { margin-top: 14px; }
-.mkt .servico-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; margin-bottom: 6px; }
-.mkt .servico-row.on { border-color: var(--blue); background: #edf5ff; }
-.mkt .servico-row b { font-size: 12px; }
-.mkt .servico-row span.desc { display: block; font-size: 10px; color: var(--muted); }
-.mkt .servico-row button { border: 1px solid var(--blue); background: #fff; color: var(--blue); border-radius: 8px; font-weight: 800; font-size: 10px; padding: 7px 10px; }
-
-@media (max-width: 1100px) {
-  .mkt .search-fields { grid-template-columns: 1fr 1fr 1fr; }
-  .mkt .search-action { grid-column: span 3; }
-  .mkt .overview-layout, .mkt .market-wrap { grid-template-columns: 1fr; }
-  .mkt .filter-card { position: relative; top: auto; }
-  .mkt .overview-grid { grid-template-columns: 1fr; }
+.mkt .shell {max-width:1490px;padding:0 32px}
+.mkt .topbar {height:68px;background:rgba(3,16,23,.88);border-bottom-color:rgba(255,255,255,.055);box-shadow:0 8px 28px rgba(0,0,0,.14)}
+.mkt .brand {gap:12px}
+.mkt .mark {width:40px;height:40px;border-radius:13px;background:linear-gradient(145deg,#11425d,#071a25);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 8px 22px rgba(0,0,0,.24)}
+.mkt .brand b {font-size:18px;font-weight:900;letter-spacing:1.2px}
+.mkt .brand small {font-size:9.5px;color:#8299aa}
+.mkt .back {display:flex;align-items:center;gap:7px;color:#9bb0bf;font-size:11px}
+.mkt .back span {color:#5f788a}
+.mkt main {padding-top:26px}
+.mkt .search {position:relative;overflow:hidden;padding:24px 26px;border-radius:28px;border-color:rgba(255,255,255,.075);background:linear-gradient(145deg,rgba(10,35,48,.98),rgba(5,24,35,.995));box-shadow:0 28px 70px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.035)}
+.mkt .search:before {content:"";position:absolute;inset:0 35% auto 0;height:1px;background:linear-gradient(90deg,rgba(245,155,69,.55),transparent)}
+.mkt .search-grid {grid-template-columns:1.1fr 1.18fr .83fr .83fr auto;gap:12px}
+.mkt .label {margin-bottom:8px;margin-left:3px;font-size:9px;letter-spacing:1.35px;color:#8da1b1}
+.mkt .label i {width:5px;height:5px;box-shadow:0 0 0 4px rgba(245,155,69,.06)}
+.mkt .field {height:54px;padding:0 16px;border-radius:14px;border-color:rgba(255,255,255,.075);background:rgba(255,255,255,.028);font-size:14px;font-weight:650;box-shadow:inset 0 1px 0 rgba(255,255,255,.025);transition:.2s}
+.mkt .field:hover {border-color:rgba(245,155,69,.20);background:rgba(255,255,255,.04)}
+.mkt .search-btn {height:54px;padding:0 28px;border-radius:14px;font-size:13px;letter-spacing:.01em;box-shadow:0 12px 30px rgba(245,155,69,.22);transition:transform .18s,box-shadow .18s,filter .18s}
+.mkt .search-btn:hover {transform:translateY(-1px);filter:brightness(1.035);box-shadow:0 16px 36px rgba(245,155,69,.29)}
+.mkt .passengers {margin-top:20px;padding-top:18px}
+.mkt .pass-left {gap:24px}
+.mkt .pass-label {font-size:12px;color:#a3b5c2;font-weight:600}
+.mkt .counters {gap:12px}
+.mkt .counter span {font-size:8.5px;color:#7f94a5}
+.mkt .counter input {width:66px;height:36px;border-radius:10px;font-size:12px;border-color:rgba(255,255,255,.075);background:rgba(255,255,255,.028)}
+.mkt .mode {display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;font-size:9px;color:#c0d0db;border-color:rgba(255,255,255,.09);background:rgba(255,255,255,.025)}
+.mkt .mode span {width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 4px rgba(245,155,69,.09)}
+.mkt .tabs {width:max-content;max-width:100%;padding:4px;margin:20px 0 22px;border:1px solid rgba(255,255,255,.065);border-radius:14px;background:rgba(255,255,255,.018);gap:4px}
+.mkt .tab {border:0;background:transparent;border-radius:10px;padding:10px 15px;font-size:10.5px;color:#8298a8;transition:.18s}
+.mkt .tab:hover {color:#d6e1e9;background:rgba(255,255,255,.025)}
+.mkt .tab.active {border:0;background:rgba(245,155,69,.12);color:#ffc783;box-shadow:inset 0 0 0 1px rgba(245,155,69,.16)}
+.mkt .title {margin:20px 0 14px;align-items:center}
+.mkt .title h2 {font-size:21px;font-weight:800;letter-spacing:-.02em}
+.mkt .title p {font-size:11px;color:#8197a7;margin-top:5px}
+.mkt .pill {padding:7px 11px;font-size:9.5px;color:#a8bbc8;background:rgba(255,255,255,.025)}
+.mkt .overview {grid-template-columns:minmax(0,1fr) 332px;gap:18px}
+.mkt .overview-main {padding:8px;border-radius:24px;background:linear-gradient(180deg,rgba(8,31,43,.55),rgba(6,25,36,.35));box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
+.mkt .overview-grid {gap:16px}
+.mkt .sel-card {border-radius:22px;background:linear-gradient(180deg,rgba(10,33,47,.98),rgba(6,24,34,.99));box-shadow:0 18px 40px rgba(0,0,0,.18);transition:.18s}
+.mkt .sel-card:hover {border-color:rgba(255,255,255,.10);transform:translateY(-1px)}
+.mkt .sel-head {padding:13px 14px}
+.mkt .sel-head b {font-size:12px}
+.mkt .mini {padding:7px 10px;font-size:8.5px;border-radius:9px;transition:.18s}
+.mkt .mini:hover {background:rgba(245,155,69,.14);border-color:rgba(245,155,69,.35)}
+.mkt .sel-body {padding:14px}
+.mkt .air {gap:10px}
+.mkt .air img {width:40px;height:40px;border-radius:9px;padding:4px}
+.mkt .air b {font-size:11px}
+.mkt .air small {font-size:8px;color:#7c92a2}
+.mkt .trips {gap:8px;margin-top:13px}
+.mkt .trip {padding:10px;border-radius:12px;background:rgba(255,255,255,.018)}
+.mkt .triptop {font-size:8px;margin-bottom:8px}
+.mkt .route {grid-template-columns:68px 1fr 68px}
+.mkt .pt strong {font-size:19px}
+.mkt .pt b {font-size:11px}
+.mkt .mid {font-size:8px}
+.mkt .mid small {font-size:7px}
+.mkt .hotel-mini {grid-template-columns:100px 1fr;gap:13px}
+.mkt .hotel-mini img {width:100px;height:100px;border-radius:13px}
+.mkt .stars {font-size:11px}
+.mkt .hotel-mini h3 {font-size:14px;margin:4px 0}
+.mkt .hotel-mini p {font-size:9px;color:#899cab}
+.mkt .room {font-size:9px;line-height:1.5;padding:9px 10px}
+.mkt .services {margin-top:13px;padding:13px 14px}
+.mkt .services b {font-size:11px}
+.mkt .services p {font-size:9px}
+.mkt .summary {top:84px;padding:17px;border-radius:20px;background:linear-gradient(180deg,#0a2634,#061a25);box-shadow:0 22px 52px rgba(0,0,0,.27),inset 0 1px 0 rgba(255,255,255,.035)}
+.mkt .summary small.label2 {font-size:8px}
+.mkt .summary h3 {font-size:18px;margin-top:5px}
+.mkt .summary>p {font-size:9px}
+.mkt .sum-trip {margin-top:13px;padding-top:12px}
+.mkt .sum-head b {font-size:9px}
+.mkt .sum-head span {font-size:8px;max-width:135px;text-align:right;color:#8ba0b0}
+.mkt .sum-route strong {font-size:15px}
+.mkt .sum-route small {font-size:8px}
+.mkt .sum-hotel {margin-top:12px;padding-top:12px}
+.mkt .sum-hotel span {font-size:8px}
+.mkt .sum-hotel b {font-size:10px}
+.mkt .sum-hotel small {font-size:8px}
+.mkt .total {margin-top:14px;padding:13px;border-color:rgba(245,155,69,.18);background:linear-gradient(145deg,rgba(245,155,69,.085),rgba(245,155,69,.035))}
+.mkt .total span {font-size:8px}
+.mkt .total strong {font-size:26px;letter-spacing:-.035em}
+.mkt .total small {font-size:8px}
+.mkt .primary {padding:12px;font-size:9.5px;border-radius:11px;transition:.18s}
+.mkt .primary:hover {transform:translateY(-1px);filter:brightness(1.04)}
+.mkt .market {grid-template-columns:258px minmax(0,1fr) 312px;gap:17px}
+.mkt .filters {top:84px;border-radius:21px;background:linear-gradient(180deg,#09212e,#061925);box-shadow:0 18px 44px rgba(0,0,0,.18)}
+.mkt .filter-head {padding:17px 17px;font-size:13px}
+.mkt .filter-body {padding:16px 17px;gap:18px}
+.mkt .fb {padding-bottom:16px}
+.mkt .flabel {font-size:8.5px;margin-bottom:9px;color:#7f94a4}
+.mkt .toggle {font-size:10.5px}
+.mkt .switch {width:36px;height:20px}
+.mkt .segments {border-radius:12px}
+.mkt .segments button {font-size:8.5px;padding:8px 3px}
+.mkt .pricecap {font-size:9px}
+.mkt .rlabels {font-size:8px}
+.mkt .chips {gap:6px}
+.mkt .chip {padding:6px 8px;font-size:8.5px;transition:.16s;cursor:pointer}
+.mkt .chip:hover {border-color:rgba(255,255,255,.14);color:#c6d5df}
+.mkt .chip.active {background:rgba(245,155,69,.12);border-color:rgba(245,155,69,.34)}
+.mkt .finput {height:38px;border-radius:10px;padding:0 11px;font-size:9.5px}
+.mkt .results {gap:13px}
+.mkt .flight, .mkt .hotel {border-radius:19px;background:linear-gradient(180deg,rgba(8,31,43,.985),rgba(5,23,34,.995));box-shadow:0 16px 36px rgba(0,0,0,.13);transition:transform .18s,border-color .18s,box-shadow .18s}
+.mkt .flight:hover, .mkt .hotel:hover {transform:translateY(-2px);border-color:rgba(245,155,69,.24);box-shadow:0 24px 48px rgba(0,0,0,.21)}
+.mkt .flight.selected, .mkt .hotel.selected {border-color:rgba(245,155,69,.72);box-shadow:0 0 0 1px rgba(245,155,69,.12),0 18px 42px rgba(0,0,0,.19)}
+.mkt .flightgrid {grid-template-columns:minmax(0,1fr) 205px}
+.mkt .flightmain {padding:15px 16px}
+.mkt .flighthead {margin-bottom:12px}
+.mkt .badge {padding:6px 9px;font-size:8px;background:rgba(255,255,255,.025)}
+.mkt .airline {gap:8px;padding:5px 8px;border-radius:10px}
+.mkt .airline img {width:31px;height:31px;border-radius:6px;padding:3px;background:#fff}
+.mkt .airline b {font-size:9.5px}
+.mkt .airline small {font-size:7px}
+.mkt .legs {gap:9px}
+.mkt .leg {grid-template-columns:72px 1fr 72px;gap:12px;padding-top:11px}
+.mkt .side strong {font-size:25px;letter-spacing:-.03em}
+.mkt .side b {font-size:12px}
+.mkt .side small {font-size:7.5px;margin-top:2px}
+.mkt .middle span {font-size:8px}
+.mkt .middle em {font-size:7px}
+.mkt .line {margin:7px 0}
+.mkt .flightfoot {margin-top:12px;padding-top:11px}
+.mkt .bag {font-size:8.5px}
+.mkt .more {font-size:8px;color:#b0c0cb;padding:5px 0}
+.mkt .more:hover {color:#fff}
+.mkt .priceside {padding:16px;background:rgba(0,0,0,.12)}
+.mkt .prow {font-size:8px;margin-bottom:8px}
+.mkt .prow b {font-size:10px}
+.mkt .plabel {font-size:7px}
+.mkt .big {font-size:27px;letter-spacing:-.045em;margin:5px 0 3px}
+.mkt .parcel {font-size:7px}
+.mkt .select {margin-top:13px;padding:11px;font-size:8.5px;border-radius:10px;transition:.18s}
+.mkt .select:hover {filter:brightness(1.04);transform:translateY(-1px)}
+.mkt .details {padding:14px 16px}
+.mkt .detailgrid {gap:12px}
+.mkt .detailbox {padding:11px;border-radius:12px}
+.mkt .detailbox h4 {font-size:9px}
+.mkt .segment {grid-template-columns:56px 10px 1fr;gap:9px;margin:8px 0}
+.mkt .clock {font-size:10px}
+.mkt .clock small {font-size:7px}
+.mkt .segtext b {font-size:9px}
+.mkt .segtext span {font-size:7px}
+.mkt .connect {margin-left:66px;padding:7px 8px;font-size:7px}
+.mkt .hotelgrid {grid-template-columns:185px minmax(0,1fr) 190px}
+.mkt .photo {min-height:190px;position:relative}
+.mkt .photo:after {content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 72%,rgba(5,24,35,.28))}
+.mkt .hotelmain {padding:15px 16px}
+.mkt .hotelhead h3 {font-size:15px}
+.mkt .hotelhead p {font-size:8.5px}
+.mkt .rating {padding:6px 8px;border-radius:10px}
+.mkt .rating b {font-size:12px}
+.mkt .rating span {font-size:7px}
+.mkt .amen {gap:6px;margin-top:10px}
+.mkt .amen span {padding:5px 7px;font-size:8px;border-radius:999px}
+.mkt .roomrow {margin-top:11px;padding-top:10px}
+.mkt .roomrow b {font-size:10px}
+.mkt .roomrow span {font-size:8px}
+.mkt .hotelprice {padding:16px}
+.mkt .hotelprice small {font-size:8px}
+.mkt .hotelprice b {font-size:18px}
+.mkt .hotelprice span {font-size:7.5px;line-height:1.45}
+.mkt .hotelprice button {padding:11px;font-size:8.5px;border-radius:10px;transition:.18s}
+.mkt .hotelprice button:hover {transform:translateY(-1px);filter:brightness(1.04)}
+.mkt .hotel-detail {padding:14px 16px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.015))}
+.mkt .detail-head {display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.mkt .detail-head b {font-size:11px;color:#fff}
+.mkt .detail-head span {font-size:8px;color:#8ca1b2}
+.mkt .room-grid {display:grid;gap:10px}
+.mkt .room-card {display:grid;grid-template-columns:minmax(0,1.4fr) .9fr .8fr auto;gap:12px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.06);border-radius:14px;background:rgba(255,255,255,.025);transition:.18s}
+.mkt .room-card.active {border-color:rgba(244,161,70,.42);background:rgba(244,161,70,.08);box-shadow:0 10px 24px rgba(0,0,0,.16)}
+.mkt .room-main b {display:block;font-size:10px;color:#fff}
+.mkt .room-main span {display:block;font-size:8px;color:#8aa1b3;line-height:1.5;margin-top:3px}
+.mkt .room-meta {font-size:8px;color:#9bb0bf}
+.mkt .room-meta strong {display:block;font-size:8px;color:#fff;margin-bottom:4px}
+.mkt .room-price {text-align:right}
+.mkt .room-price small {display:block;font-size:7px;color:#7f96a8;text-transform:uppercase;letter-spacing:.4px}
+.mkt .room-price b {display:block;font-size:10px;color:#ffc784;margin-top:3px}
+.mkt .room-card button {border:0;border-radius:10px;background:var(--orange);padding:10px 12px;color:#11181d;font-size:8px;font-weight:1000;text-transform:uppercase;letter-spacing:.4px;min-width:120px}
+.mkt .room-card.active button {background:rgba(255,255,255,.08);color:#dce8f3;border:1px solid rgba(255,255,255,.08)}
+@media(max-width:1150px) {
+  .mkt .market {grid-template-columns:240px 1fr}
+  .mkt .market>.summary {grid-column:1/3}
+  .mkt .overview {grid-template-columns:1fr}
+  .mkt .search-grid {grid-template-columns:1fr 1fr 1fr}
+  .mkt .search-btn {grid-column:span 3}
 }
-@media (max-width: 720px) {
-  .mkt .search-fields { grid-template-columns: 1fr 1fr; }
-  .mkt .search-action { grid-column: span 2; }
-  .mkt .market-flight { grid-template-columns: 65px 1fr 115px; }
-  .mkt .market-flight .mf-route.volta { display: none; }
-  .mkt .market-hotel { grid-template-columns: 110px 1fr; }
-  .mkt .mh-price { grid-column: 1/3; border-left: 0; border-top: 1px solid var(--line); align-items: stretch; }
-  .mkt .connection-box { margin-left: 0; }
-  .mkt .conn-step { grid-template-columns: 1fr; }
-  .mkt .layover { margin-left: 0; }
+@media(max-width:780px) {
+  .mkt .room-line {flex-wrap:wrap}
+  .mkt .room-name {width:100%;padding-bottom:2px}
+  .mkt .room-total {margin-left:0}
+  .mkt .occupancy-top {align-items:flex-start}
+  .mkt .occupancy-left {align-items:flex-start}
+  .mkt .guest-field input {width:64px}
+  .mkt .shell {padding:0 14px}
+  .mkt .topbar {height:62px}
+  .mkt .back span {display:none}
+  .mkt .search {padding:18px;border-radius:22px}
+  .mkt .search-grid {grid-template-columns:1fr 1fr}
+  .mkt .search-btn {grid-column:span 2}
+  .mkt .tabs {width:100%;overflow:auto}
+  .mkt .tab {white-space:nowrap}
+  .mkt .market {grid-template-columns:1fr}
+  .mkt .flightgrid, .mkt .hotelgrid {grid-template-columns:1fr}
+  .mkt .flightmain, .mkt .hotelmain {padding:14px}
+  .mkt .priceside, .mkt .hotelprice {padding:14px}
+  .mkt .photo {height:210px}
+  .mkt .detailgrid {grid-template-columns:1fr}
+  .mkt .connect {margin-left:0}
 }
+.mkt /* ===== V9 — refinamento da VISÃO GERAL ===== */
+#overview .title {
+  margin-top:20px;
+  margin-bottom:14px;
+}
+.mkt #overview .title h2 {
+  font-size:22px;
+  letter-spacing:-.35px;
+}
+.mkt #overview .title p {
+  font-size:10.5px;
+  color:#91a7b8;
+}
+.mkt #overview .overview {
+  grid-template-columns:minmax(0,1fr) 360px;
+  gap:20px;
+}
+.mkt #overview .overview-main {
+  padding:10px;
+  border:1px solid rgba(255,255,255,.055);
+  border-radius:26px;
+  background:
+    radial-gradient(500px 180px at 85% 0%,rgba(245,155,69,.06),transparent 66%),
+    linear-gradient(180deg,rgba(8,31,43,.58),rgba(6,25,36,.36));
+}
+.mkt #overview .overview-grid {
+  grid-template-columns:.88fr 1.12fr;
+  gap:18px;
+}
+.mkt #overview .sel-card {
+  border-radius:23px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.075);
+  background:linear-gradient(180deg,rgba(10,34,47,.99),rgba(6,23,34,.99));
+}
+.mkt #overview .sel-card#selectedHotelCard {
+  border-color:rgba(245,155,69,.17);
+  box-shadow:0 22px 55px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.025);
+}
+.mkt #overview .sel-card#selectedFlightCard {
+  box-shadow:0 18px 40px rgba(0,0,0,.15);
+}
+.mkt #overview .sel-head {
+  padding:16px 17px 14px;
+}
+.mkt #overview .sel-main-title b {
+  font-size:12.5px;
+}
+.mkt #overview .sel-main-title span {
+  font-size:8.3px;
+  color:#879dae;
+}
+.mkt #overview .sel-status {
+  padding:6px 9px;
+  background:rgba(73,201,150,.09);
+  border-color:rgba(73,201,150,.18);
+  color:#8ce3bf;
+}
+.mkt #overview .sel-status:before {
+  background:#49c996;
+}
+.mkt #overview .sel-body {
+  padding:17px;
+}
+.mkt /* Flight stays more technical/compact */
+#overview #selectedFlightCard .air img {
+  width:42px;
+  height:42px;
+}
+.mkt #overview #selectedFlightCard .air b {
+  font-size:11.5px;
+}
+.mkt #overview #selectedFlightCard .flight-stack {
+  gap:11px;
+  margin-top:14px;
+}
+.mkt #overview #selectedFlightCard .flight-pane {
+  padding:12px 13px;
+  border-radius:14px;
+}
+.mkt #overview #selectedFlightCard .pt strong {
+  font-size:22px;
+}
+.mkt /* Hotel becomes the emotional/protagonist block */
+#overview .hotel-hero-v9 {
+  position:relative;
+  height:208px;
+  margin:-17px -17px 0;
+  overflow:hidden;
+}
+.mkt #overview .hotel-hero-v9 img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.mkt #overview .hotel-hero-v9:after {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(3,16,23,.03) 22%,rgba(3,16,23,.25) 58%,rgba(3,16,23,.92) 100%);
+}
+.mkt #overview .hotel-photo-copy {
+  position:absolute;
+  z-index:2;
+  left:18px;
+  right:18px;
+  bottom:15px;
+}
+.mkt #overview .hotel-photo-copy .stars {
+  font-size:12px;
+}
+.mkt #overview .hotel-photo-copy h3 {
+  font-size:23px;
+  margin:5px 0 4px;
+  letter-spacing:-.45px;
+  text-shadow:0 5px 18px rgba(0,0,0,.55);
+}
+.mkt #overview .hotel-photo-copy p {
+  font-size:9.5px;
+  color:#d2dde5;
+  margin:0;
+}
+.mkt #overview .hotel-selected-content {
+  padding-top:14px;
+}
+.mkt #overview .hotel-value-row {
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+.mkt #overview .hotel-value-row span {
+  padding:7px 9px;
+  border-radius:999px;
+  font-size:8px;
+  font-weight:800;
+  color:#dce8f0;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.055);
+}
+.mkt #overview .hotel-room-premium {
+  border:1px solid rgba(245,155,69,.12);
+  background:linear-gradient(135deg,rgba(245,155,69,.075),rgba(255,255,255,.02));
+  border-radius:15px;
+  padding:12px 13px;
+}
+.mkt #overview .hotel-room-premium .eyeline {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:5px;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.9px;
+  text-transform:uppercase;
+  color:#dca36c;
+}
+.mkt #overview .hotel-room-premium b {
+  display:block;
+  font-size:11.5px;
+  margin-bottom:4px;
+}
+.mkt #overview .hotel-room-premium small {
+  display:block;
+  font-size:8px;
+  line-height:1.55;
+  color:#8fa5b6;
+}
+.mkt /* Summary feels like the final "checkout" card */
+#overview .summary {
+  padding:18px;
+  border-radius:24px;
+  border-color:rgba(255,255,255,.11);
+  background:
+    radial-gradient(340px 150px at 50% 0%,rgba(245,155,69,.08),transparent 72%),
+    linear-gradient(180deg,#0a2634,#061925);
+  box-shadow:0 28px 60px rgba(0,0,0,.32);
+}
+.mkt #overview .summary small.label2 {
+  font-size:7.5px;
+  color:#8198aa;
+}
+.mkt #overview .summary h3 {
+  font-size:20px;
+  margin:5px 0 3px;
+  letter-spacing:-.35px;
+}
+.mkt #overview .summary>p {
+  font-size:8.5px;
+}
+.mkt #overview .sum-trip {
+  margin-top:13px;
+  padding-top:12px;
+}
+.mkt #overview .sum-route strong {
+  font-size:15px;
+}
+.mkt #overview .sum-hotel {
+  margin-top:13px;
+  padding:0;
+  border-top:0;
+  border-radius:17px;
+  overflow:hidden;
+  background:rgba(255,255,255,.025);
+  border:1px solid rgba(255,255,255,.06);
+}
+.mkt #overview .sum-hotel-photo-wrap {
+  position:relative;
+  height:142px;
+}
+.mkt #overview .sum-hotel-photo {
+  height:142px;
+  margin:0;
+  border-radius:0;
+  box-shadow:none;
+}
+.mkt #overview .sum-hotel-photo-wrap:after {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,transparent 35%,rgba(4,18,26,.84));
+}
+.mkt #overview .sum-hotel-content {
+  padding:12px 13px 13px;
+}
+.mkt #overview .sum-hotel .hotel-kicker {
+  color:#d9a56f;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+}
+.mkt #overview .sum-hotel b.hotel-name {
+  display:block;
+  font-size:14px;
+  margin:4px 0 3px;
+  color:#fff;
+  letter-spacing:-.2px;
+}
+.mkt #overview .sum-hotel .hotel-rating-line {
+  font-size:8px;
+  color:#d9e5ec;
+  margin-bottom:8px;
+}
+.mkt #overview .sum-hotel .hotel-room-line {
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:end;
+  padding-top:9px;
+  border-top:1px solid rgba(255,255,255,.055);
+}
+.mkt #overview .sum-hotel .hotel-room-line strong {
+  display:block;
+  font-size:9px;
+  color:#fff;
+}
+.mkt #overview .sum-hotel .hotel-room-line small {
+  display:block;
+  font-size:7.5px;
+  color:#8ea4b4;
+  margin-top:3px;
+  line-height:1.45;
+}
+.mkt #overview .sum-hotel .hotel-room-count {
+  color:#ffc47f;
+  font-size:8px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.mkt #overview .total {
+  margin-top:14px;
+  padding:14px;
+  border-radius:16px;
+  background:linear-gradient(135deg,rgba(245,155,69,.10),rgba(245,155,69,.045));
+}
+.mkt #overview .total strong {
+  font-size:28px;
+  letter-spacing:-.7px;
+}
+.mkt #overview .primary {
+  margin-top:11px;
+  padding:14px 12px;
+  border-radius:13px;
+  font-size:9.5px;
+  box-shadow:0 14px 30px rgba(245,155,69,.20);
+}
+@media(max-width:1150px) {
+  .mkt #overview .overview {grid-template-columns:1fr}
+  .mkt #overview .overview-grid {grid-template-columns:1fr 1.08fr}
+}
+@media(max-width:780px) {
+  .mkt #overview .overview-grid {grid-template-columns:1fr}
+  .mkt #overview .hotel-hero-v9 {height:190px}
+}
+.mkt /* V10 - conexões dentro do pacote recomendado */
+#overview .overview-flight-toggle-row {
+  display:flex;justify-content:flex-end;margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.055)
+}
+.mkt #overview .overview-flight-more {
+  border:0;background:transparent;color:#a9bdcb;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.75px;padding:4px 0
+}
+.mkt #overview .overview-flight-more:hover {color:#fff}
+.mkt #overview .overview-flight-details {
+  display:none;margin-top:11px;padding-top:12px;border-top:1px solid rgba(255,255,255,.055)
+}
+.mkt #overview #selectedFlightCard.details-open .overview-flight-details {display:block}
+.mkt #overview .overview-conn-grid {display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mkt #overview .overview-conn-box {padding:11px;border:1px solid rgba(255,255,255,.06);border-radius:13px;background:rgba(255,255,255,.018)}
+.mkt #overview .overview-conn-box h4 {margin:0 0 9px;color:#ffc47f;font-size:8px;text-transform:uppercase;letter-spacing:.7px}
+.mkt #overview .overview-segment {display:grid;grid-template-columns:52px 10px 1fr;gap:8px;align-items:start;margin:7px 0}
+.mkt #overview .overview-segment .clock {font-size:10px;font-weight:900}
+.mkt #overview .overview-segment .clock small {display:block;color:#728899;font-size:7px;margin-top:2px}
+.mkt #overview .overview-segment .dotline {position:relative;min-height:34px}
+.mkt #overview .overview-segment .dotline:before {content:"";position:absolute;left:4px;top:0;bottom:0;width:1px;background:rgba(255,255,255,.08)}
+.mkt #overview .overview-segment .dotline:after {content:"";position:absolute;left:1px;top:4px;width:7px;height:7px;border-radius:50%;background:var(--orange)}
+.mkt #overview .overview-segment .segcopy b {display:block;font-size:8.5px;color:#fff}
+.mkt #overview .overview-segment .segcopy span {display:block;font-size:7px;color:#7e94a5;margin-top:2px;line-height:1.4}
+.mkt #overview .overview-layover {margin:5px 0 5px 62px;padding:7px 8px;border:1px dashed rgba(245,155,69,.24);border-radius:9px;background:rgba(245,155,69,.06);color:#ffc47f;font-size:7px;font-weight:800}
+@media(max-width:780px) {
+  .mkt #overview .overview-conn-grid {grid-template-columns:1fr}
+  .mkt #overview .overview-layover {margin-left:0}
+}
+.mkt /* ===== V11 — botão "Sobre o hotel" na foto + detalhes ===== */
+#overview .hotel-hero-v9 {
+  overflow:visible;
+  margin-bottom:18px;
+}
+.mkt #overview .hotel-hero-v9 img {
+  border-radius:0;
+}
+.mkt #overview .hotel-about-button {
+  position:absolute;
+  z-index:5;
+  right:16px;
+  bottom:-16px;
+  min-width:118px;
+  height:34px;
+  padding:0 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(8,29,41,.94);
+  color:#f6f9fb;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.35px;
+  box-shadow:0 12px 26px rgba(0,0,0,.34);
+  backdrop-filter:blur(12px);
+  transition:.18s;
+}
+.mkt #overview .hotel-about-button:hover {
+  transform:translateY(-1px);
+  border-color:rgba(245,155,69,.42);
+  color:#ffc787;
+}
+.mkt #overview .hotel-selected-content {
+  padding-top:4px;
+}
+.mkt #overview .overview-hotel-details {
+  display:none;
+  margin-top:13px;
+  padding-top:13px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.mkt #overview #selectedHotelCard.hotel-info-open .overview-hotel-details {
+  display:block;
+}
+.mkt #overview .hotel-about-grid {
+  display:grid;
+  grid-template-columns:1.15fr .85fr;
+  gap:13px;
+}
+.mkt #overview .hotel-about-copy, .mkt #overview .hotel-about-side {
+  border:1px solid rgba(255,255,255,.055);
+  background:rgba(255,255,255,.022);
+  border-radius:14px;
+  padding:12px;
+}
+.mkt #overview .hotel-about-copy h4, .mkt #overview .hotel-about-side h4 {
+  margin:0 0 7px;
+  font-size:9px;
+  color:#fff;
+}
+.mkt #overview .hotel-about-copy p {
+  margin:0;
+  color:#8fa5b5;
+  font-size:8px;
+  line-height:1.6;
+}
+.mkt #overview .hotel-info-list {
+  display:grid;
+  gap:7px;
+}
+.mkt #overview .hotel-info-line {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding-bottom:7px;
+  border-bottom:1px solid rgba(255,255,255,.045);
+  font-size:7.5px;
+}
+.mkt #overview .hotel-info-line:last-child {
+  border-bottom:0;
+  padding-bottom:0;
+}
+.mkt #overview .hotel-info-line span {
+  color:#7e95a7;
+}
+.mkt #overview .hotel-info-line b {
+  color:#dce8ef;
+  font-size:7.5px;
+  text-align:right;
+}
+.mkt #overview .hotel-gallery-title {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin:13px 0 8px;
+}
+.mkt #overview .hotel-gallery-title b {
+  font-size:9px;
+}
+.mkt #overview .hotel-gallery-title span {
+  color:#8097a8;
+  font-size:7px;
+}
+.mkt #overview .hotel-gallery {
+  display:grid;
+  grid-template-columns:1.35fr .8fr .8fr;
+  gap:7px;
+  height:108px;
+}
+.mkt #overview .hotel-gallery figure {
+  margin:0;
+  overflow:hidden;
+  border-radius:11px;
+  border:1px solid rgba(255,255,255,.06);
+  background:#071b27;
+}
+.mkt #overview .hotel-gallery img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.mkt #overview .hotel-gallery figure:nth-child(2) img {object-position:30% 50%}
+.mkt #overview .hotel-gallery figure:nth-child(3) img {object-position:70% 50%}
+@media(max-width:780px) {
+  .mkt #overview .hotel-about-grid {grid-template-columns:1fr}
+  .mkt #overview .hotel-gallery {grid-template-columns:1fr 1fr;height:auto}
+  .mkt #overview .hotel-gallery figure {height:105px}
+  .mkt #overview .hotel-gallery figure:first-child {grid-column:1/3;height:145px}
+}
+.mkt /* ===== V12 — destaque de passageiros / quartos / noites no resumo ===== */
+#overview .summary-meta {
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:9px;
+}
+.mkt #overview .summary-meta span {
+  display:inline-flex;
+  align-items:center;
+  min-height:30px;
+  padding:0 10px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.035);
+  color:#dce8ef;
+  font-size:9px;
+  font-weight:800;
+  line-height:1;
+}
+.mkt #overview .summary-meta span strong {
+  color:#fff;
+  font-size:11px;
+  margin-right:4px;
+  letter-spacing:-.15px;
+}
+
+/* --- Ajustes da implementação real (mesmo padrão visual aprovado) --- */
+.mkt .field input, .mkt .field select { width: 100%; border: 0; background: transparent; color: var(--text); font-size: 13px; font-weight: 700; outline: none; }
+.mkt .field input::placeholder { color: #5d7484; font-weight: 600; }
+.mkt .field input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.55); cursor: pointer; }
+.mkt .field { gap: 8px; }
+.mkt .field > div, .mkt .field > .relative { width: 100%; }
+.mkt .search-btn:disabled { opacity: .6; cursor: progress; }
+.mkt .state-box { border: 1px solid var(--line); border-radius: 18px; padding: 18px; background: rgba(255,255,255,.02); color: var(--muted); font-size: 11px; display: flex; align-items: center; gap: 9px; }
+.mkt .state-box.err { border-color: rgba(255,120,90,.3); color: #ffb2a0; }
+.mkt .sel-body .state-box { border-radius: 14px; }
+.mkt .hotel-gallery figure { margin: 0; }
+.mkt .hotel-gallery img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mkt .results .state-box { grid-column: 1 / -1; }

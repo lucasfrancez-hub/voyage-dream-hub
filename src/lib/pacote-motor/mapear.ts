@@ -16,9 +16,29 @@ export type QuartoPacote = {
   regime: string | null;
   reembolsavel: boolean | null;
   beneficios: string[];
+  /** política de cancelamento exatamente como a operadora devolve */
+  politica: string | null;
+  /** número da pesquisa/quarto da distribuição (Quarto 1, Quarto 2, …) */
+  pesquisa: number | null;
+  /** valor total desta tarifa (todos os quartos da distribuição) */
+  valor: number;
   /** diferença em relação ao quarto do pacote recomendado (R$ por pacote) */
   diferenca: number;
 };
+
+/** Distribuição de hóspedes por quarto pedida pelo cliente. */
+export type OcupacaoQuarto = { adultos: number; criancas: number; bebes: number; idades: number[] };
+
+export const ocupacaoPadrao = (): OcupacaoQuarto => ({ adultos: 2, criancas: 0, bebes: 0, idades: [] });
+
+export const somaOcupacao = (quartos: OcupacaoQuarto[]) => ({
+  adultos: quartos.reduce((n, q) => n + q.adultos, 0),
+  criancas: quartos.reduce((n, q) => n + q.criancas, 0),
+  bebes: quartos.reduce((n, q) => n + q.bebes, 0),
+  hospedes: quartos.reduce((n, q) => n + q.adultos + q.criancas + q.bebes, 0),
+});
+
+export const plural = (n: number, singular: string, pluralStr: string) => `${n} ${n === 1 ? singular : pluralStr}`;
 
 export type HotelPacote = {
   id: string;
@@ -34,6 +54,16 @@ export type HotelPacote = {
   beneficios: string[];
   regime: string | null;
   reembolsavel: boolean | null;
+  /** endereço completo devolvido pela operadora */
+  endereco: string | null;
+  /** descrição oficial do hotel (operadora ou enriquecimento) */
+  descricao: string | null;
+  /** comodidades/informações do hotel */
+  comodidades: string[];
+  /** políticas de cancelamento devolvidas pela operadora */
+  politicas: string[];
+  /** quantidade de avaliações, quando disponível */
+  numAvaliacoes: number | null;
   /** valor total do pacote com esta hospedagem (pax já multiplicados) */
   total: number;
   moeda: string;
@@ -91,6 +121,11 @@ export function hoteisDosPacotes(pacotes: PacoteBuscaCF[], pagantes: number): Ho
     beneficios: p.hoteis.slice(1),
     regime: null,
     reembolsavel: null,
+    endereco: null,
+    descricao: null,
+    comodidades: [],
+    politicas: [],
+    numAvaliacoes: null,
     total: totalPacote(p, pagantes),
     moeda: p.moeda ?? "BRL",
     quartos: [],
@@ -114,6 +149,9 @@ export function detalharHospedagem(raw: any, pagantes: number) {
       regime: a?.Regime ?? a?.Pensao ?? null,
       reembolsavel: typeof a?.Reembolsavel === "boolean" ? a.Reembolsavel : null,
       beneficios: [],
+      politica: null,
+      pesquisa: null,
+      valor,
       diferenca: valor ? Number((valor - base).toFixed(2)) : 0,
     };
   });
