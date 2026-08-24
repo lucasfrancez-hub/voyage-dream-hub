@@ -145,6 +145,40 @@ export function PacoteMotor() {
     return h.total + (q?.diferenca ?? 0) + (voo?.precoTotal ?? 0);
   };
 
+  /** Gera o link de pagamento (mesmo checkout dos pacotes prontos). */
+  const checkout = useMutation({
+    mutationFn: async () => {
+      if (!hotel && !voo) throw new Error("Monte o pacote antes de reservar.");
+      return criarCheckout({
+        data: {
+          destino: destino || hotel?.localizacao || "Pacote VIA AIR",
+          origem: origem || null,
+          ida,
+          volta: volta || null,
+          noites: noites ?? null,
+          adultos: pax.adultos,
+          criancas: pax.criancas,
+          bebes: pax.bebes,
+          quartos: quartos.length,
+          total,
+          hotelNome: hotel?.nome ?? null,
+          hotelEstrelas: hotel?.categoria ?? null,
+          regime: quarto?.regime ?? hotel?.regime ?? null,
+          quartoNome: quarto?.nome ?? null,
+          foto: hotel?.fotos?.[0] ?? null,
+          incluidos: hotel?.beneficios?.slice(0, 10) ?? [],
+          vooIda: voo?.ida ?? null,
+          vooVolta: voo?.voltas?.[0] ?? null,
+        },
+      });
+    },
+    onSuccess: (r: { url: string }) => {
+      if (typeof window === "undefined") return;
+      if (embed) window.open(r.url, "_top");
+      else window.location.href = r.url;
+    },
+  });
+
   const resumo = (
     <ResumoPacote
       destino={destino}
@@ -158,8 +192,19 @@ export function PacoteMotor() {
       total={total}
       diferenca={Number((total - baseTotal).toFixed(2))}
       moeda={hotel?.moeda ?? "BRL"}
+      acao={
+        <button
+          type="button"
+          className="primary"
+          disabled={checkout.isPending || (!hotel && !voo)}
+          onClick={() => checkout.mutate()}
+        >
+          {checkout.isPending ? "Gerando link de pagamento…" : "Reservar pacote"}
+        </button>
+      }
     />
   );
+
 
   return (
     <div className="mkt">
