@@ -71,6 +71,59 @@ function Detalhe({ voo, rotulo }: { voo: PassHubVoo; rotulo: string }) {
 }
 
 type Paradas = "direto" | "ate1" | "todos";
+type Ordem = "recomendado" | "preco" | "duracao" | "partida";
+
+/** Faixas de horário no padrão da operadora. */
+const FAIXAS: [string, string][] = [
+  ["madrugada", "00h–06h"],
+  ["manha", "06h–12h"],
+  ["tarde", "12h–18h"],
+  ["noite", "18h–24h"],
+];
+
+function faixaHorario(iso: string): string {
+  const h = Number(String(iso ?? "").slice(11, 13));
+  if (h < 6) return "madrugada";
+  if (h < 12) return "manha";
+  if (h < 18) return "tarde";
+  return "noite";
+}
+
+const duracaoTotal = (o: PassHubOferta) =>
+  [o.ida, ...(o.voltas ?? [])].reduce((a, v) => a + (v.duracaoMinutos || 0), 0);
+
+const horasMin = (min: number) => `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`;
+
+/** Chips de múltipla escolha reutilizados por todos os blocos de filtro. */
+export function Chips({
+  opcoes,
+  valor,
+  onChange,
+  rotulo,
+}: {
+  opcoes: { v: string; l: string }[];
+  valor: string[];
+  onChange: (v: string[]) => void;
+  rotulo: string;
+}) {
+  if (!opcoes.length) return null;
+  return (
+    <div className="fb">
+      <span className="flabel">{rotulo}</span>
+      <div className="chips">
+        {opcoes.map((o) => (
+          <span
+            key={o.v}
+            className={`chip${valor.includes(o.v) ? " active" : ""}`}
+            onClick={() => onChange(valor.includes(o.v) ? valor.filter((x) => x !== o.v) : [...valor, o.v])}
+          >
+            {o.l}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /** Alterar voo — padrão aprovado: filtros | resultados | resumo. */
 export function SeletorVoo({
@@ -95,26 +148,107 @@ export function SeletorVoo({
   const [somenteBagagem, setSomenteBagagem] = useState(false);
   const [paradas, setParadas] = useState<Paradas>("todos");
   const [cias, setCias] = useState<string[]>([]);
+  const [familias, setFamilias] = useState<string[]>([]);
+  const [fornecedores, setFornecedores] = useState<string[]>([]);
+  const [conexoes, setConexoes] = useState<string[]>([]);
+  const [faixasIda, setFaixasIda] = useState<string[]>([]);
+  const [faixasVolta, setFaixasVolta] = useState<string[]>([]);
+  const [precoMax, setPrecoMax] = useState<number | null>(null);
+  const [duracaoMax, setDuracaoMax] = useState<number | null>(null);
+  const [ordem, setOrdem] = useState<Ordem>("recomendado");
   const [aberta, setAberta] = useState<string | null>(null);
 
-  const companhias = useMemo(
-    () => Array.from(new Set(ofertas.map((o) => o.ida.companhiaIata).filter(Boolean))),
-    [ofertas],
-  );
+  const opcoes = useMemo(() => {
+    const cia = new Set<string>();
+    const fam = new Set<string>();
+    const forn = new Set<string>();
+    const conx = new Set<string>();
+    for (const o of ofertas) {
+      for (const v of [o.ida, ...(o.voltas ?? [])]) {
+        if (v.companhiaIata) cia.add(v.companhiaIata);
+        if (v.familiaTarifaria) fam.add(v.familiaTarifaria);
+        if (v.provedor) forn.add(v.provedor);
+        for (const c of (v.conexoes ?? []) as any[]) {
+          if (c?.destino && c.destino !== v.destino) conx.add(c.destino);
+        }
+      }
+    }
+    return {
+      cias: [...cia].sort(),
+      familias: [...fam].sort(),
+      fornecedores: [...forn].sort(),
+      conexoes: [...conx].sort(),
+    };
+  }, [ofertas]);
 
-  const lista = useMemo(
-    () =>
-      ofertas.filter((o) => {
-        if (somenteBagagem && !o.ida.bagagemDespachada) return false;
-        if (paradas === "direto" && o.ida.paradas > 0) return false;
-        if (paradas === "ate1" && o.ida.paradas > 1) return false;
-        if (cias.length && !cias.includes(o.ida.companhiaIata)) return false;
-        return true;
-      }),
-    [ofertas, somenteBagagem, paradas, cias],
-  );
+  const limites = useMemo(() => {
+    const p = ofertas.map((o) => o.precoTotal).filter((v) => v > 0);
+    const d = ofertas.map((o) => duracaoTotal(o)).filter((v) => v > 0);
+    return {
+      precoMin: p.length ? Math.floor(Math.min(...p)) : 0,
+      precoMax: p.length ? Math.ceil(Math.max(...p)) : 0,
+      duracaoMin: d.length ? Math.min(...d) : 0,
+      duracaoMax: d.length ? Math.max(...d) : 0,
+    };
+  }, [ofertas]);
 
-  const precos = ofertas.map((o) => o.precoTotal).filter((v) => v > 0);
+  const lista = useMemo(() => {
+    const filtradas = ofertas.filter((o) => {
+      const volta = o.voltas?.[0] ?? null;
+      if (somenteBagagem && !o.ida.bagagemDespachada) return false;
+      if (paradas === "direto" && (o.ida.paradas > 0 || (volta?.paradas ?? 0) > 0)) return false;
+      if (paradas === "ate1" && (o.ida.paradas > 1 || (volta?.paradas ?? 0) > 1)) return false;
+      if (cias.length && !cias.includes(o.ida.companhiaIata)) return false;
+      if (familias.length && !familias.includes(o.ida.familiaTarifaria || "")) return false;
+      if (fornecedores.length && !fornecedores.includes(o.ida.provedor || "")) return false;
+      if (conexoes.length) {
+        const paradasFeitas = [o.ida, ...(o.voltas ?? [])].flatMap((v) =>
+          ((v.conexoes ?? []) as any[]).map((c) => c?.destino).filter((d) => d && d !== v.destino),
+        );
+        if (!paradasFeitas.some((d) => conexoes.includes(d))) return false;
+      }
+      if (faixasIda.length && !faixasIda.includes(faixaHorario(o.ida.partida))) return false;
+      if (faixasVolta.length && !(volta && faixasVolta.includes(faixaHorario(volta.partida)))) return false;
+      if (precoMax != null && o.precoTotal > precoMax) return false;
+      if (duracaoMax != null && duracaoTotal(o) > duracaoMax) return false;
+      return true;
+    });
+    const ordenadas = [...filtradas];
+    if (ordem === "preco") ordenadas.sort((a, b) => a.precoTotal - b.precoTotal);
+    if (ordem === "duracao") ordenadas.sort((a, b) => duracaoTotal(a) - duracaoTotal(b));
+    if (ordem === "partida")
+      ordenadas.sort((a, b) => String(a.ida.partida).localeCompare(String(b.ida.partida)));
+    return ordenadas;
+  }, [
+    ofertas,
+    somenteBagagem,
+    paradas,
+    cias,
+    familias,
+    fornecedores,
+    conexoes,
+    faixasIda,
+    faixasVolta,
+    precoMax,
+    duracaoMax,
+    ordem,
+  ]);
+
+  const temVolta = ofertas.some((o) => (o.voltas?.length ?? 0) > 0);
+  const limpar = () => {
+    setSomenteBagagem(false);
+    setParadas("todos");
+    setCias([]);
+    setFamilias([]);
+    setFornecedores([]);
+    setConexoes([]);
+    setFaixasIda([]);
+    setFaixasVolta([]);
+    setPrecoMax(null);
+    setDuracaoMax(null);
+    setOrdem("recomendado");
+  };
+
 
   return (
     <section className="screen active">
@@ -128,8 +262,22 @@ export function SeletorVoo({
 
       <div className="market">
         <aside className="filters">
-          <div className="filter-head">Filtros do aéreo</div>
+          <div className="filter-head">
+            Filtros do aéreo
+            <button type="button" className="fclear" onClick={limpar}>
+              Limpar
+            </button>
+          </div>
           <div className="filter-body">
+            <div className="fb">
+              <span className="flabel">Ordenar por</span>
+              <select className="fselect" value={ordem} onChange={(e) => setOrdem(e.target.value as Ordem)}>
+                <option value="recomendado">Recomendado</option>
+                <option value="preco">Menor preço</option>
+                <option value="duracao">Menor duração</option>
+                <option value="partida">Partida mais cedo</option>
+              </select>
+            </div>
             <div className="fb">
               <div className="toggle">
                 <span>Bagagem para despachar</span>
@@ -157,36 +305,80 @@ export function SeletorVoo({
                 ))}
               </div>
             </div>
-            {precos.length ? (
+            {limites.precoMax > 0 ? (
               <div className="fb">
-                <span className="flabel">Faixa de preço</span>
+                <span className="flabel">Preço até</span>
                 <div className="pricecap">
-                  <span>{brl(Math.min(...precos))}</span>
-                  <span>{brl(Math.max(...precos))}</span>
+                  <span>{brl(limites.precoMin)}</span>
+                  <span>{brl(precoMax ?? limites.precoMax)}</span>
                 </div>
-                <div className="range" />
-                <div className="rlabels">
-                  <span>Mín.</span>
-                  <span>Máx.</span>
-                </div>
+                <input
+                  className="frange"
+                  type="range"
+                  min={limites.precoMin}
+                  max={limites.precoMax}
+                  step={10}
+                  value={precoMax ?? limites.precoMax}
+                  onChange={(e) => setPrecoMax(Number(e.target.value))}
+                />
               </div>
             ) : null}
-            {companhias.length ? (
+            {limites.duracaoMax > 0 ? (
               <div className="fb">
-                <span className="flabel">Companhia aérea</span>
-                <div className="chips">
-                  {companhias.map((c) => (
-                    <span
-                      key={c}
-                      className={`chip${cias.includes(c) ? " active" : ""}`}
-                      onClick={() => setCias((a) => (a.includes(c) ? a.filter((x) => x !== c) : [...a, c]))}
-                    >
-                      {c}
-                    </span>
-                  ))}
+                <span className="flabel">Duração total até</span>
+                <div className="pricecap">
+                  <span>{horasMin(limites.duracaoMin)}</span>
+                  <span>{horasMin(duracaoMax ?? limites.duracaoMax)}</span>
                 </div>
+                <input
+                  className="frange"
+                  type="range"
+                  min={limites.duracaoMin}
+                  max={limites.duracaoMax}
+                  step={15}
+                  value={duracaoMax ?? limites.duracaoMax}
+                  onChange={(e) => setDuracaoMax(Number(e.target.value))}
+                />
               </div>
             ) : null}
+            <Chips
+              rotulo="Companhia aérea"
+              opcoes={opcoes.cias.map((c) => ({ v: c, l: c }))}
+              valor={cias}
+              onChange={setCias}
+            />
+            <Chips
+              rotulo="Horário de saída (ida)"
+              opcoes={FAIXAS.map(([v, l]) => ({ v, l }))}
+              valor={faixasIda}
+              onChange={setFaixasIda}
+            />
+            {temVolta ? (
+              <Chips
+                rotulo="Horário de saída (volta)"
+                opcoes={FAIXAS.map(([v, l]) => ({ v, l }))}
+                valor={faixasVolta}
+                onChange={setFaixasVolta}
+              />
+            ) : null}
+            <Chips
+              rotulo="Família tarifária"
+              opcoes={opcoes.familias.map((f) => ({ v: f, l: f }))}
+              valor={familias}
+              onChange={setFamilias}
+            />
+            <Chips
+              rotulo="Aeroporto de conexão"
+              opcoes={opcoes.conexoes.map((c) => ({ v: c, l: c }))}
+              valor={conexoes}
+              onChange={setConexoes}
+            />
+            <Chips
+              rotulo="Fornecedor"
+              opcoes={opcoes.fornecedores.map((f) => ({ v: f, l: f }))}
+              valor={fornecedores}
+              onChange={setFornecedores}
+            />
           </div>
         </aside>
 

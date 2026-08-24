@@ -676,6 +676,15 @@ body:has([data-chat-root]),
 .mkt .chip {border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);border-radius:999px;padding:5px 7px;color:#8da2b2;font-size:7px;font-weight:800}
 .mkt .chip.active {border-color:rgba(245,155,69,.3);background:rgba(245,155,69,.09);color:#ffc47f}
 .mkt .finput {width:100%;height:34px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);border-radius:9px;color:#b9c8d2;padding:0 9px;font-size:8px}
+.mkt .filter-head {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mkt .fclear {border:1px solid rgba(255,255,255,.08);background:transparent;color:#8da2b2;border-radius:999px;padding:4px 9px;font-size:8px;font-weight:800}
+.mkt .fclear:hover {border-color:rgba(245,155,69,.35);color:#ffc47f}
+.mkt .fselect {width:100%;height:34px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02);border-radius:9px;color:#b9c8d2;padding:0 8px;font-size:8px;font-weight:700}
+.mkt .fselect option {background:#08202c;color:#dbe6ee}
+.mkt .frange {width:100%;appearance:none;height:4px;border-radius:99px;background:#163341;margin:8px 0 2px}
+.mkt .frange::-webkit-slider-thumb {appearance:none;width:12px;height:12px;border-radius:50%;background:#061822;border:2px solid var(--orange)}
+.mkt .frange::-moz-range-thumb {width:12px;height:12px;border-radius:50%;background:#061822;border:2px solid var(--orange)}
+.mkt .filter-body {max-height:calc(100vh - 160px);overflow:auto}
 .mkt .results {display:grid;gap:11px}
 .mkt .flight, .mkt .hotel {border:1px solid var(--line);background:linear-gradient(180deg,rgba(8,30,42,.97),rgba(5,24,35,.99));border-radius:17px;overflow:hidden;transition:.17s}
 .mkt .flight:hover, .mkt .hotel:hover {transform:translateY(-1px);border-color:rgba(245,155,69,.28)}
