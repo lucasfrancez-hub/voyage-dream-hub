@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { FiltrosMkt } from "./FiltrosMkt";
 import { brl } from "@/lib/pacote-motor/mapear";
 import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import { GRUPOS_SERVICO, grupoServico } from "@/lib/pacote-motor/categorias";
@@ -64,22 +65,11 @@ export function SeletorServicos({
       </div>
 
       <div className="market">
-        <aside className="filters">
-          <div className="filter-head">
-            Filtros de serviços
-            <button
-              type="button"
-              className="fclear"
-              onClick={() => {
+        <FiltrosMkt titulo="Filtros de serviços" onLimpar={() => {
                 setCategoria("todos");
                 setBusca("");
-                setOrdem("preco");
-              }}
-            >
-              Limpar
-            </button>
-          </div>
-          <div className="filter-body">
+                setOrdem("preco");}>
+
             <div className="fb">
               <span className="flabel">Ordenar por</span>
               <select
@@ -120,8 +110,7 @@ export function SeletorServicos({
                 ))}
               </div>
             </div>
-          </div>
-        </aside>
+          </FiltrosMkt>
 
         <div className="results">
           {carregando && <div className="state-box">Consultando serviços disponíveis para o destino…</div>}
