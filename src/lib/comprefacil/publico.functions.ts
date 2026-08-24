@@ -71,9 +71,8 @@ export const autocompleteLocalidadeCFPublic = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<LocalidadeCF[]> => {
     const termo = data.termo.trim();
     const campo = data.campo === "saida" ? "cidade_saida" : "cidade";
-    const { cidadesOficiaisCF, semAcento } = await import("./localidades.server");
+    const { montarSugestoesCF } = await import("./localidades.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const alvo = semAcento(termo);
 
     const { data: linhas } = await supabaseAdmin
       .from("comprefacil_pacotes")
@@ -81,44 +80,6 @@ export const autocompleteLocalidadeCFPublic = createServerFn({ method: "POST" })
       .eq("ativo", true)
       .limit(2000);
 
-    const mapa = new Map<string, LocalidadeCF>();
-    for (const l of ((linhas as any[]) ?? [])) {
-      const nome: string | null = campo === "cidade" ? l.cidade : l.cidade_saida;
-      if (!nome || !semAcento(nome).includes(alvo)) continue;
-      const chave = semAcento(nome);
-      const atual = mapa.get(chave);
-      if (atual) {
-        atual.total += 1;
-        if (atual.cidadeId == null && campo === "cidade") atual.cidadeId = l.cidade_id ?? null;
-      } else {
-        mapa.set(chave, { nome, cidadeId: campo === "cidade" ? (l.cidade_id ?? null) : null, iata: null, total: 1 });
-      }
-    }
-
-    try {
-      const oficiais = await cidadesOficiaisCF();
-      const porIata = alvo.length === 3;
-      for (const c of oficiais) {
-        const casaIata = porIata && (c.iata ?? "").toLowerCase() === alvo;
-        if (!casaIata && !semAcento(c.nome).includes(alvo)) continue;
-        const chave = semAcento(c.nome);
-        const atual = mapa.get(chave);
-        if (atual) {
-          if (atual.cidadeId == null) atual.cidadeId = c.id;
-          if (!atual.iata) atual.iata = c.iata;
-        } else {
-          mapa.set(chave, { nome: c.nome, cidadeId: c.id, iata: c.iata, total: 0 });
-        }
-      }
-    } catch (e) {
-      console.error("[comprefacil] cidades oficiais indisponíveis:", e instanceof Error ? e.message : e);
-    }
-
-    return [...mapa.values()]
-      .sort((a, b) => {
-        const pa = semAcento(a.nome).startsWith(alvo) ? 0 : 1;
-        const pb = semAcento(b.nome).startsWith(alvo) ? 0 : 1;
-        return pa - pb || b.total - a.total || a.nome.localeCompare(b.nome, "pt-BR");
-      })
-      .slice(0, 12);
+    return (await montarSugestoesCF((linhas as any[]) ?? [], campo, termo)) as LocalidadeCF[];
   });
+
