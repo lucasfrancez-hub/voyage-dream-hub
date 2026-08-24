@@ -15,6 +15,8 @@ import {
   sincronizarCompreFacil,
 } from "@/lib/comprefacil/comprefacil.functions";
 import { MotorBuscaCF } from "@/components/comprefacil/MotorBuscaCF";
+import { CancelarReservaFrt } from "@/components/pacote-motor/CancelarReservaFrt";
+
 
 export const Route = createFileRoute("/admin/comprefacil")({
   head: () => ({
