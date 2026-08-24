@@ -316,8 +316,21 @@ export function SeletorHospedagem({
                             <div className="room-head">
                               <b>{q.nome}</b>
                               {regime ? (
-                                <span className={`room-tag${semCafe ? " alert" : ""}`}>
-                                  {semCafe ? "Só alojamento · sem café da manhã" : regime}
+                                <span className={`room-tag${semCafe ? " alert" : ""}`} title={semCafe ? "Sem café da manhã incluso" : regime}>
+                                  {semCafe ? (
+                                    <>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                                        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                                        <line x1="6" y1="1" x2="6" y2="4" />
+                                        <line x1="10" y1="1" x2="10" y2="4" />
+                                        <line x1="14" y1="1" x2="14" y2="4" />
+                                      </svg>
+                                      Só alojamento · sem café da manhã
+                                    </>
+                                  ) : (
+                                    regime
+                                  )}
                                 </span>
                               ) : null}
                             </div>
@@ -337,7 +350,7 @@ export function SeletorHospedagem({
                           </div>
                           <div className="room-side">
                             <div className="room-price">
-                              {Math.abs(q.diferenca) < 0.005 ? null : <small>Diferença</small>}
+                              {Math.abs(q.diferenca) < 0.005 ? null : <small>Diferença no pacote</small>}
                               <b>
                                 {Math.abs(q.diferenca) < 0.005 ? "Incluído" : `+ ${brl(q.diferenca, h.moeda)}`}
                               </b>
