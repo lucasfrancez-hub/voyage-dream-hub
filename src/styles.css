@@ -1872,3 +1872,14 @@ body:has([data-chat-root]),
   border:1px solid rgba(255,255,255,.07);
   background:rgba(0,0,0,.22);
 }
+
+/* Resumo do pacote — estrelas do hotel em laranja */
+.mkt .hotel-rating-line .hotel-stars {color:var(--orange);letter-spacing:.06em;margin-right:5px}
+
+/* Cabeçalho dos cards selecionados — botão em uma linha só e chip alinhado */
+.mkt .sel-head {display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mkt .sel-main-title {min-width:0}
+.mkt .sel-main-title span {display:block}
+.mkt .sel-actions {flex:0 0 auto;align-items:center;gap:8px}
+.mkt .sel-actions .mini {white-space:nowrap;line-height:1;padding:9px 15px}
+.mkt .sel-status {white-space:nowrap;line-height:1;padding:7px 11px;align-self:center}
