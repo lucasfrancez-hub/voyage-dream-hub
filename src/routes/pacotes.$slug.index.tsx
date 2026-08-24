@@ -285,6 +285,9 @@ function PackageDetails() {
     },
   });
 
+  const { data: installmentRules } = useQuery(installmentRulesQuery);
+  const maxParcelasCard = maxInstallmentsForPackage(installmentRules, { supplierName: (pkg as any)?.supplier_name });
+
   const [hotelDialogOpen, setHotelDialogOpen] = useState(false);
   const [dialogPhotoIndex, setDialogPhotoIndex] = useState(0);
   const [preOpen, setPreOpen] = useState(false);
