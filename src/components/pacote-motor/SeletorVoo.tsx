@@ -429,7 +429,9 @@ export function SeletorVoo({
                   <div className="priceside">
                     <div className="prow">
                       <span>Diferença</span>
-                      <b>{Math.abs(dif) < 0.005 ? "Incluído" : dif > 0 ? `+ ${brl(dif)}` : `- ${brl(Math.abs(dif))}`}</b>
+                      <b className={Math.abs(dif) < 0.005 ? "" : dif > 0 ? "diff-pos" : "diff-neg"}>
+                        {Math.abs(dif) < 0.005 ? "Incluído" : dif > 0 ? `+ ${brl(dif)}` : `- ${brl(Math.abs(dif))}`}
+                      </b>
                     </div>
                     <div className="divider" />
                     <span className="plabel">Valor final do pacote</span>

@@ -283,7 +283,7 @@ export function SeletorHospedagem({
                   <div className="hotelprice">
                     <div className="prow">
                       <span>Diferença</span>
-                      <b>
+                      <b className={Math.abs(dif) < 0.005 ? "" : dif > 0 ? "diff-pos" : "diff-neg"}>
                         {Math.abs(dif) < 0.005 ? "Incluído" : dif > 0 ? `+ ${brl(dif, h.moeda)}` : `- ${brl(Math.abs(dif), h.moeda)}`}
                       </b>
                     </div>
