@@ -25,7 +25,7 @@ import {
   historicoPacoteCativa,
   liberarPacoteCativa,
   excluirPacoteCativa,
-
+  conferirSalvamentosCativa,
 } from "@/lib/cativa/cativa.functions";
 
 export const Route = createFileRoute("/admin/pacotes-cativa")({
