@@ -33,11 +33,35 @@ export const Route = createFileRoute("/api/public/debug-seguro")({
           Internacional: false,
           EscreveLog: false,
         };
-        const r = await chamarCompreFacil(rota, { base, method: "POST", body });
+        // 1) inicia uma busca de serviços para obter um Guid de contexto
+        const svc = await chamarCompreFacil("/api/Servico/busca?Pagina=1&ItensPorPagina=10", {
+          base,
+          method: "POST",
+          body: {
+            AgenciaId: Number(ses.agenciaId ?? 0),
+            Guid: null,
+            PacoteId: 0,
+            Adt: 2,
+            IdadesChd: [],
+            De: de,
+            Ate: ate,
+            Cidade: { Id: cidadeId },
+            TipoServico: 0,
+            ServicoExclusivo: false,
+            BuscaEsim: false,
+            EscreveLog: false,
+            FiltroServico: { Ativo: null, Categoria: -1, TipoServico: "", Ordenacao: "", Tipo: "", Fornecedores: [] },
+          },
+        });
+        const guidCtx = (svc.dados as any)?.MetaData?.Guid ?? null;
+
+        const r = await chamarCompreFacil(rota, { base, method: "POST", body: { ...body, Guid: guidCtx } });
         const d: any = r.dados;
         return Response.json({
           cidadeId,
           amostraCidade: alvo ?? null,
+          guidCtx,
+          svcOk: svc.ok,
           ok: r.ok,
           status: (r as any).status,
           msg: d?.mensagem,
