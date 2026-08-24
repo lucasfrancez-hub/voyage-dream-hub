@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MotorBuscaCF } from "@/components/comprefacil/MotorBuscaCF";
+import { ConexaoCompreFacil } from "@/components/comprefacil/ConexaoCompreFacil";
 
 export const Route = createFileRoute("/admin/motor-pacote")({
   head: () => ({
