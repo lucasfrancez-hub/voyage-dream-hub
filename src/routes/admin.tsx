@@ -755,6 +755,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
             { to: "/admin/instalar-extensao", label: "Instalar extensão", icon: Puzzle },
             { to: "/admin/app-celular", label: "App no celular", icon: Smartphone },
             { to: "/admin/pacotes-cativa", label: "Catálogo de pacotes", icon: Package },
+            { to: "/admin/comprefacil", label: "Catálogo CompreFácil", icon: Package },
             { to: "/admin/regras-parcelamento", label: "Regras de parcelamento", icon: CreditCard },
             { to: "/admin/codigos-auth", label: "Códigos 2FA por e-mail", icon: ShieldCheck },
 
