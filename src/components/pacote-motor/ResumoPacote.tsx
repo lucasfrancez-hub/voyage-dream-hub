@@ -1,54 +1,151 @@
-import { brl } from "@/lib/pacote-motor/mapear";
+import { brl, hora, plural, type HotelPacote, type OcupacaoQuarto, type QuartoPacote } from "@/lib/pacote-motor/mapear";
+import { somaOcupacao } from "@/lib/pacote-motor/mapear";
+import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 
-export type LinhaResumo = { rotulo: string; valor: string };
+const dataCurta = (iso: string) => (iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "—");
 
-/** Resumo do pacote — título é sempre o nome do hotel; endereço vira linha secundária. */
+function Trecho({ voo, rotulo, companhia }: { voo: PassHubVoo; rotulo: string; companhia: string }) {
+  return (
+    <div className="sum-trip">
+      <div className="sum-head">
+        <b>
+          {rotulo} · {dataCurta(voo.partida)}
+        </b>
+        <span>{companhia}</span>
+      </div>
+      <div className="sum-route">
+        <div>
+          <strong>{hora(voo.partida)}</strong>
+          <small>{voo.origem} · saída</small>
+        </div>
+        <div className="arrow">→</div>
+        <div className="right">
+          <strong>{hora(voo.chegada)}</strong>
+          <small>{voo.destino} · chegada</small>
+        </div>
+      </div>
+      {voo.escala ? (
+        <div style={{ marginTop: 4, color: "#6f8595", fontSize: 9 }}>Conexão em {voo.escala}</div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Resumo do pacote — padrão aprovado (pax, ida, volta, hospedagem e total). */
 export function ResumoPacote({
-  titulo = "Resumo do pacote",
   destino,
-  endereco,
-  periodo,
-  pax,
+  quartos,
   noites,
-  linhas,
+  checkin,
+  checkout,
+  oferta,
+  hotel,
+  quarto,
   total,
+  diferenca,
   moeda = "BRL",
-  rodape,
   acao,
 }: {
-  titulo?: string;
   destino: string;
-  endereco?: string | null;
-  periodo: string;
-  pax: string;
-  noites: string | null;
-  linhas: LinhaResumo[];
+  quartos: OcupacaoQuarto[];
+  noites: number | null;
+  checkin: string;
+  checkout: string;
+  oferta: PassHubOferta | null;
+  hotel: HotelPacote | null;
+  quarto: QuartoPacote | null;
   total: number;
+  diferenca: number;
   moeda?: string;
-  rodape?: string;
   acao?: React.ReactNode;
 }) {
+  const pax = somaOcupacao(quartos);
+  const volta = oferta?.voltas?.[0] ?? null;
+  const companhia = oferta?.ida.companhia || oferta?.ida.companhiaIata || "";
+
   return (
-    <aside className="summary-card">
-      <p className="mini">{titulo}</p>
-      <h3>{destino}</h3>
-      {endereco ? <p className="addr">{endereco}</p> : null}
-      <p className="installment">{[noites, pax, periodo].filter(Boolean).join(" · ")}</p>
+    <aside className="summary package-summary">
+      <small className="label2">Resumo do pacote</small>
+      <h3>{hotel?.nome || destino || "Pacote VIA AIR"}</h3>
 
-      {linhas.map((l) => (
-        <div key={l.rotulo} className="summary-row">
-          <span>{l.rotulo}</span>
-          <b>{l.valor}</b>
-        </div>
-      ))}
-
-      <div className="summary-total">
-        <small>Valor total do pacote</small>
-        <strong>{brl(total, moeda)}</strong>
-        {rodape ? <small>{rodape}</small> : null}
+      <div className="summary-meta">
+        <span>
+          <strong>{pax.adultos}</strong> {pax.adultos === 1 ? "adulto" : "adultos"}
+        </span>
+        {pax.criancas ? (
+          <span>
+            <strong>{pax.criancas}</strong> {pax.criancas === 1 ? "criança" : "crianças"}
+          </span>
+        ) : null}
+        {pax.bebes ? (
+          <span>
+            <strong>{pax.bebes}</strong> {pax.bebes === 1 ? "bebê" : "bebês"}
+          </span>
+        ) : null}
+        <span>
+          <strong>{quartos.length}</strong> {quartos.length === 1 ? "quarto" : "quartos"}
+        </span>
+        {noites ? (
+          <span>
+            <strong>{noites}</strong> {noites === 1 ? "noite" : "noites"}
+          </span>
+        ) : null}
       </div>
 
-      {acao}
+      {oferta ? <Trecho voo={oferta.ida} rotulo="IDA" companhia={companhia} /> : null}
+      {volta ? <Trecho voo={volta} rotulo="VOLTA" companhia={companhia} /> : null}
+
+      {hotel ? (
+        <div className="sum-hotel">
+          {hotel.fotos[0] ? (
+            <div className="sum-hotel-photo-wrap">
+              <img className="sum-hotel-photo" src={hotel.fotos[0]} alt={`Foto do hotel ${hotel.nome}`} loading="lazy" />
+            </div>
+          ) : null}
+          <div className="sum-hotel-content">
+            <div className="hotel-kicker">
+              Hospedagem incluída · {dataCurta(checkin)} → {dataCurta(checkout)}
+            </div>
+            <b className="hotel-name">{hotel.nome}</b>
+            <div className="hotel-rating-line">
+              {[
+                hotel.categoria ? "★".repeat(hotel.categoria) : null,
+                hotel.avaliacao ? `${hotel.avaliacao}/5` : null,
+                hotel.localizacao,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </div>
+            <div className="hotel-room-line">
+              <div>
+                <strong>{quarto?.nome ?? "Acomodação conforme o pacote"}</strong>
+                <small>
+                  {[quarto?.regime ?? hotel.regime, quarto?.politica].filter(Boolean).join(" · ") || "—"}
+                </small>
+              </div>
+              <div className="hotel-room-count">{plural(quartos.length, "quarto", "quartos")}</div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="total">
+        <span>Valor total do pacote</span>
+        <strong>{brl(total, moeda)}</strong>
+        <small>
+          {Math.abs(diferenca) < 0.005
+            ? "Opções atuais sem acréscimo"
+            : diferenca > 0
+              ? `Acréscimo de ${brl(diferenca, moeda)}`
+              : `Economia de ${brl(Math.abs(diferenca), moeda)}`}
+        </small>
+      </div>
+
+      {acao ?? (
+        <button type="button" className="primary">
+          Comprar pacote
+        </button>
+      )}
     </aside>
   );
 }
