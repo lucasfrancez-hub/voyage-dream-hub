@@ -2042,6 +2042,43 @@ function PackageEditorModal({
     toast.success("Roteiro gerado em linha do tempo");
   }
 
+  // Destino anterior (antes da edição manual do campo) para reescrever o título.
+  const destAnteriorRef = useRef<string>("");
+
+  /**
+   * Ao trocar o destino manualmente: reescreve o título ("<destino> - Saindo de
+   * <origem>") e regenera o roteiro automático com o novo destino.
+   */
+  function aplicarNovoDestino(novo: string, antigo: string) {
+    setEditing((prev: any) => {
+      if (!prev) return prev;
+      const origem = String(prev.origin ?? "").trim();
+      const tituloAtual = String(prev.title ?? "").trim();
+      const [nucleoAtual] = tituloAtual.split(/\s+-\s+saindo\s+de\s+/i);
+      let nucleo = (nucleoAtual ?? "").trim();
+      if (!nucleo) nucleo = novo;
+      else if (antigo && new RegExp(antigo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(nucleo))
+        nucleo = nucleo.replace(new RegExp(antigo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig"), novo).trim();
+      else nucleo = novo;
+      const titulo = origem ? `${nucleo} - Saindo de ${origem}` : nucleo;
+
+      const passeios = [
+        ...(Array.isArray(prev.services?.passeios) ? (prev.services.passeios as string[]) : []),
+        ...(Array.isArray(prev.services?.tickets?.parks) ? (prev.services.tickets.parks as string[]) : []),
+      ];
+      const roteiro = gerarRoteiro({
+        destino: novo,
+        noites: Number(prev.nights) || 0,
+        temTransfer: !!prev.services?.transfer?.enabled,
+        passeios,
+      });
+      return { ...prev, title: titulo, itinerary: roteiro };
+    });
+    destAnteriorRef.current = novo;
+    toast.success("Título e roteiro atualizados para o novo destino");
+  }
+
+
   const genSummary = useServerFn(generatePackageSummary);
   const searchImages = useServerFn(searchCoverImages);
 
