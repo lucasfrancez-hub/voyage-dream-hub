@@ -1889,6 +1889,139 @@ function PackageEditorModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [staysList.length, hotelSelIdx, editing.id]);
 
+  // ── Padrões de quarto/cama ────────────────────────────────────────────────
+  // Hotel sem tipo de quarto vira "Standard"; sem tipo de cama vira
+  // "1 cama de casal" (regra combinada). Vale para todas as opções e stays.
+  useEffect(() => {
+    if ((editing.kind ?? "package") === "cruise") return;
+    setEditing((prev: any) => {
+      if (!prev) return prev;
+      let mudou = false;
+      const pad = (o: any) => {
+        if (!o || !String(o.hotel_name ?? "").trim()) return o;
+        const p: any = {};
+        if (!String(o.room_type ?? "").trim()) p.room_type = "Standard";
+        if (!String(o.bed_type ?? "").trim()) p.bed_type = "1 cama de casal";
+        if (!Object.keys(p).length) return o;
+        mudou = true;
+        return { ...o, ...p };
+      };
+      const padStays = (arr: any) => {
+        const st = normalizeStays(arr);
+        return st.length ? st.map(pad) : arr;
+      };
+      let next: any = pad(prev);
+      const stays = padStays(next.hotel_stays);
+      if (stays !== next.hotel_stays) next = { ...next, hotel_stays: stays };
+      if (Array.isArray(next.hotel_options) && next.hotel_options.length) {
+        const opts = next.hotel_options.map((o: any) => {
+          const oo = pad(o);
+          const s = padStays(oo.stays);
+          return s !== oo.stays ? { ...oo, stays: s } : oo;
+        });
+        next = { ...next, hotel_options: opts };
+      }
+      return mudou ? next : prev;
+    });
+  }, [editing, setEditing]);
+
+  // ── TripAdvisor automático em todas as hospedagens ────────────────────────
+  // Vincula sozinho cada opção/stay que ainda não tem ficha, sem precisar
+  // clicar hotel por hotel. Roda uma por vez para não estourar a API.
+  const taSearchFn = useServerFn(searchTripAdvisorHotels);
+  const taDetailsFn = useServerFn(getTripAdvisorHotelDetails);
+  const taBusy = useRef(false);
+  const taTried = useRef<Set<string>>(new Set());
+  const [taTick, setTaTick] = useState(0);
+
+  useEffect(() => {
+    if ((editing.kind ?? "package") === "cruise") return;
+    if (taBusy.current) return;
+
+    const alvos: Array<{ opt: number; stay: number; nome: string }> = [];
+    const push = (opt: number, stay: number, o: any) => {
+      const nome = String(o?.hotel_name ?? "").trim();
+      if (nome.length >= 3 && !o?.tripadvisor_location_id) alvos.push({ opt, stay, nome });
+    };
+    const opts: any[] = Array.isArray((editing as any).hotel_options)
+      ? ((editing as any).hotel_options as any[])
+      : [];
+    if (opts.length) {
+      opts.forEach((o, i) => {
+        const st = normalizeStays(o?.stays);
+        if (st.length > 1) st.forEach((s, j) => push(i, j, s));
+        else push(i, -1, o);
+      });
+    } else {
+      const st = normalizeStays((editing as any).hotel_stays);
+      if (st.length > 1) st.forEach((s, j) => push(-1, j, s));
+      else push(-1, -1, editing);
+    }
+
+    const idPacote = String((editing as any).id ?? "novo");
+    const alvo = alvos.find((a) => !taTried.current.has(`${idPacote}|${a.opt}|${a.stay}|${a.nome}`));
+    if (!alvo) return;
+    taTried.current.add(`${idPacote}|${alvo.opt}|${alvo.stay}|${alvo.nome}`);
+    taBusy.current = true;
+
+    void (async () => {
+      try {
+        const r: any[] = (await taSearchFn({ data: { query: alvo.nome } })) as any[];
+        const hit = r?.[0];
+        if (hit) {
+          const full: any = await taDetailsFn({
+            data: { locationId: hit.location_id, photoLimit: 5 },
+          });
+          const estrelas =
+            full?.rating != null
+              ? Math.min(5, Math.max(1, Math.round(full.rating)))
+              : full?.hotel_class != null
+                ? Math.min(5, Math.max(1, Math.round(full.hotel_class)))
+                : 3;
+          const patch: any = {
+            hotel_stars: estrelas,
+            tripadvisor_location_id: String(hit.location_id),
+            tripadvisor_url: full?.tripadvisor_url ?? hit.tripadvisor_url ?? null,
+            tripadvisor_address: full?.address ?? hit.address ?? null,
+            tripadvisor_photos: full?.photos?.length ? full.photos : null,
+            ...(alvo.stay >= 0 && full?.photos?.length ? { photo: full.photos[0] } : {}),
+            ...(alvo.stay >= 0 && full?.address ? { address: full.address } : {}),
+          };
+          setEditing((prev: any) => {
+            if (!prev) return prev;
+            if (alvo.opt < 0) {
+              if (alvo.stay < 0) return { ...prev, ...patch };
+              const st = normalizeStays(prev.hotel_stays).map((s: any, j: number) =>
+                j === alvo.stay ? { ...s, ...patch } : s,
+              );
+              return { ...prev, hotel_stays: st, ...(alvo.stay === 0 ? patch : {}) };
+            }
+            const lista: any[] = Array.isArray(prev.hotel_options) ? prev.hotel_options : [];
+            const next = lista.map((o: any, i: number) => {
+              if (i !== alvo.opt) return o;
+              if (alvo.stay < 0) return { ...o, ...patch };
+              const st = normalizeStays(o?.stays).map((s: any, j: number) =>
+                j === alvo.stay ? { ...s, ...patch } : s,
+              );
+              return { ...o, stays: st, ...(alvo.stay === 0 ? patch : {}) };
+            });
+            return {
+              ...prev,
+              hotel_options: next,
+              ...(alvo.opt === 0 && alvo.stay <= 0 ? patch : {}),
+            };
+          });
+        }
+      } catch {
+        /* limite da API ou hotel não encontrado: segue para o próximo */
+      } finally {
+        taBusy.current = false;
+        setTaTick((t) => t + 1);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, taTick]);
+
 
   function handleGenerateItinerary() {
     const passeios = [
