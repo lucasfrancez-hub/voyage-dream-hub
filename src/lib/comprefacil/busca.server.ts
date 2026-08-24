@@ -61,28 +61,45 @@ function normaliza(v: string): string {
     .trim();
 }
 
-/** Puxa o termo direto na API do CompreFácil e grava o que vier (best-effort). */
-export async function refrescarBuscaAoVivo(termo: string): Promise<number> {
-  const busca = normaliza(termo);
-  if (busca.length < 3) return 0;
-  const tentativas = [
-    `/api/pacote?Pagina=1&ItensPorPagina=50&Filtro=${encodeURIComponent(busca)}`,
-    `/api/pacote?Pagina=1&ItensPorPagina=50&Nome=${encodeURIComponent(busca)}`,
-  ];
-  for (const path of tentativas) {
-    try {
-      const r = await chamarCompreFacil(path);
-      const itens = (r.dados as any)?.Items;
-      if (!r.ok || !Array.isArray(itens) || itens.length === 0) continue;
-      const linhas = itens.map((p: any) => mapearPacote(p));
-      await gravarPacotesCF(linhas);
-      return linhas.length;
-    } catch (e) {
-      console.error("[comprefacil] busca ao vivo falhou:", e instanceof Error ? e.message : e);
-      return 0;
+/**
+ * Consulta o buscador oficial de pacotes da CompreFácil
+ * (mesmo motor de v2.comprefacil.tur.br → /api/Pacote/list, com termo e período)
+ * e grava o que vier. Devolve os Ids externos encontrados.
+ */
+export async function refrescarBuscaAoVivo(
+  termo: string,
+  dataDe?: string | null,
+  dataAte?: string | null,
+): Promise<{ ok: boolean; ids: number[] }> {
+  const busca = normaliza(termo ?? "");
+  const corpo = {
+    Busca: busca,
+    Datain: dataDe ?? "",
+    Dataout: dataAte ?? "",
+  };
+  const ids: number[] = [];
+  try {
+    for (let pagina = 1; pagina <= 6; pagina++) {
+      const r = await chamarCompreFacil(`/api/Pacote/list?Pagina=${pagina}&ItensPorPagina=50`, {
+        method: "POST",
+        body: corpo,
+      });
+      if (!r.ok) return { ok: false, ids };
+      const dados = r.dados as any;
+      const itens: any[] = dados?.Items ?? [];
+      if (itens.length) {
+        const linhas = itens.map((p: any) => mapearPacote(p));
+        await gravarPacotesCF(linhas);
+        for (const l of linhas) if (l.externo_id) ids.push(Number(l.externo_id));
+      }
+      const totalPaginas = Number(dados?.MetaData?.TotalPaginas ?? 0);
+      if (!totalPaginas || pagina >= totalPaginas) break;
     }
+    return { ok: true, ids };
+  } catch (e) {
+    console.error("[comprefacil] busca ao vivo falhou:", e instanceof Error ? e.message : e);
+    return { ok: false, ids };
   }
-  return 0;
 }
 
 /** Atualiza um pacote específico direto na operadora. */
@@ -109,9 +126,11 @@ export async function buscarPacotesCF(filtros: FiltrosBuscaCF): Promise<{
   const pagina = Math.max(1, filtros.pagina ?? 1);
   const porPagina = Math.min(60, Math.max(6, filtros.porPagina ?? PADRAO_POR_PAGINA));
 
-  let encontradosAoVivo = 0;
-  const tentouAoVivo = Boolean(filtros.aoVivo && filtros.termo && filtros.termo.trim().length >= 3);
-  if (tentouAoVivo) encontradosAoVivo = await refrescarBuscaAoVivo(filtros.termo!.trim());
+  // Consulta sempre o buscador oficial da operadora (termo + período pedido)
+  const termoVivo = (filtros.termo?.trim() || filtros.cidade?.trim() || "").trim();
+  const vivo = await refrescarBuscaAoVivo(termoVivo, filtros.dataDe ?? "", filtros.dataAte ?? "");
+  const encontradosAoVivo = vivo.ids.length;
+  const tentouAoVivo = true;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   let q = supabaseAdmin
@@ -121,6 +140,9 @@ export async function buscarPacotesCF(filtros: FiltrosBuscaCF): Promise<{
       { count: "exact" },
     )
     .eq("ativo", true);
+
+  // Quando a operadora respondeu, o resultado é exatamente o que ela ofereceu no período
+  if (vivo.ok) q = q.in("externo_id", vivo.ids.length ? vivo.ids : [-1]);
 
   const termo = filtros.termo?.trim();
   if (termo) {
@@ -137,8 +159,11 @@ export async function buscarPacotesCF(filtros: FiltrosBuscaCF): Promise<{
   if (filtros.somenteCircuito) q = q.eq("circuito", true);
   if (filtros.incluirSobPedido === false) q = q.eq("sob_pedido", false);
   // pacote precisa estar válido dentro do período pedido
-  if (filtros.dataDe) q = q.or(`validade_ate.is.null,validade_ate.gte.${filtros.dataDe}`);
-  if (filtros.dataAte) q = q.or(`validade_de.is.null,validade_de.lte.${filtros.dataAte}`);
+  // (quando a operadora respondeu ao vivo, ela já filtrou o período)
+  if (!vivo.ok) {
+    if (filtros.dataDe) q = q.or(`validade_ate.is.null,validade_ate.gte.${filtros.dataDe}`);
+    if (filtros.dataAte) q = q.or(`validade_de.is.null,validade_de.lte.${filtros.dataAte}`);
+  }
 
   switch (filtros.ordenar) {
     case "preco":

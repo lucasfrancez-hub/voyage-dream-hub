@@ -1,0 +1,3 @@
+import { chamarCompreFacil } from "../../src/lib/comprefacil/auth.server";
+const paths=["/api/pacote/busca?Pagina=1&ItensPorPagina=3","/api/pacotebusca?Pagina=1&ItensPorPagina=3","/api/pacote/buscador?Pagina=1&ItensPorPagina=3","/api/pacote/pesquisa?Pagina=1&ItensPorPagina=3","/api/pacote/disponibilidade","/api/pacote/filtros","/api/pacote/cidade","/api/pacote/cidadesaida?Pagina=1&ItensPorPagina=5","/api/pacotesaida","/api/pacote/saida"];
+for(const p of paths){ try{const r=await chamarCompreFacil(p); console.log("==",p,r.ok,JSON.stringify(r.dados).slice(0,200));}catch(e){console.log("==",p,"ERR");} }
