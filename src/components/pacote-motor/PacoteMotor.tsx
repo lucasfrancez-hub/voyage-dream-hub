@@ -5,7 +5,6 @@ import { CalendarDays, Hotel, Loader2, Plane, Search, Users } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 import { CidadeAutocompleteCF } from "@/components/comprefacil/CidadeAutocompleteCF";
 import { ResumoPacote } from "@/components/pacote-motor/ResumoPacote";
 import { SeletorVoo } from "@/components/pacote-motor/SeletorVoo";
