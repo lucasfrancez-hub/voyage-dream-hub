@@ -58,18 +58,20 @@ export function MotorBuscaCF() {
       <form onSubmit={pesquisar} className="rounded-2xl border border-border bg-card p-4 space-y-3">
         <div className="grid gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
-            <label className="text-xs text-muted-foreground">Destino ou nome do pacote</label>
-            <Input
-              value={form.termo ?? ""}
-              onChange={(e) => setForm({ ...form, termo: e.target.value })}
-              placeholder="Ex.: Cancún, Gramado, Disney…"
+            <label className="text-xs text-muted-foreground">Destino</label>
+            <CidadeAutocompleteCF
+              campo="destino"
+              valor={form.cidade ?? ""}
+              onChange={(nome, cidadeId) => setForm({ ...form, cidade: nome, cidadeId, termo: cidadeId ? "" : nome })}
+              placeholder="Ex.: Cancún, Gramado, Orlando…"
             />
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Saindo de</label>
-            <Input
-              value={form.saida ?? ""}
-              onChange={(e) => setForm({ ...form, saida: e.target.value })}
+            <CidadeAutocompleteCF
+              campo="saida"
+              valor={form.saida ?? ""}
+              onChange={(nome) => setForm({ ...form, saida: nome })}
               placeholder="Cidade de saída"
             />
           </div>
