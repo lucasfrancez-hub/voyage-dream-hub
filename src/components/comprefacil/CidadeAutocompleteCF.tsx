@@ -83,7 +83,9 @@ export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder }: Pr
                 <MapPin className="h-3.5 w-3.5 text-primary" />
                 {c.nome}
               </span>
-              <span className="text-xs text-muted-foreground">{c.total} pacotes</span>
+              <span className="text-xs text-muted-foreground">
+                {c.total > 0 ? `${c.total} pacotes` : "consultar"}
+              </span>
             </button>
           ))}
         </div>
