@@ -1692,3 +1692,52 @@ body:has([data-chat-root]),
 .mkt .hotel .more {font-size:9.5px;padding:0 11px;max-width:100%;overflow:hidden;text-overflow:ellipsis;letter-spacing:.3px}
 
 .svc-aside-btn {font-size:9px;letter-spacing:.05em;padding:12px 10px;line-height:1.2}
+
+/* ===== Resumo do pacote — direção "Vívido compacto" ===== */
+.mkt .summary {background:linear-gradient(180deg,#0b2534,#07202c);border-color:rgba(255,255,255,.12);box-shadow:0 26px 60px rgba(0,0,0,.4)}
+.mkt .summary small.label2 {font-size:10px;color:#F26B1F;letter-spacing:.2em}
+.mkt .summary h3 {font-size:19px;font-weight:800;color:#fff;margin:6px 0 4px}
+.mkt .summary>p {font-size:10.5px;color:#9db0be}
+.mkt .sum-head b {font-size:10.5px;color:#a7bac8;letter-spacing:.08em}
+.mkt .sum-head span {font-size:9.5px;color:#7e93a3}
+.mkt .sum-route strong {font-size:19px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.mkt .sum-route small {font-size:9.5px;color:#F26B1F;font-weight:800;margin-top:3px}
+.mkt .sum-hotel b {font-size:13.5px!important;color:#fff}
+.mkt .sum-hotel small {font-size:10px!important;color:#9db0be}
+.mkt .sum-hotel span {font-size:9px}
+.mkt .total {position:relative;overflow:hidden;margin-top:14px;padding:18px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03)}
+.mkt .total:before {content:"";position:absolute;top:-64px;right:-64px;width:150px;height:150px;border-radius:50%;background:rgba(242,107,31,.16);filter:blur(46px)}
+.mkt .total span, .mkt .total strong, .mkt .total small, .mkt .total p {position:relative;z-index:1}
+.mkt .total span {font-size:9.5px;color:#94a8b7;letter-spacing:.14em}
+.mkt .total strong {font-size:29px;font-weight:800;color:#fff;margin:6px 0 10px;letter-spacing:-.02em}
+.mkt .total small {font-size:10.5px;color:#F26B1F;font-weight:800;line-height:1.5}
+.mkt .primary {margin-top:12px;padding:16px;border-radius:14px;font-size:11px;letter-spacing:.16em;color:#fff;background:#F26B1F;box-shadow:0 4px 20px -5px rgba(242,107,31,.55);transition:.18s}
+.mkt .primary:hover {background:#ff7a2e;transform:translateY(-2px)}
+.mkt .primary:active {transform:none}
+
+/* ===== Modal "Sobre o hotel" — direção "Slate refinado" ===== */
+.mkt-modal {z-index:1200;padding:clamp(12px,3vh,32px)}
+.mkt-modal-card {width:min(1024px,94vw);max-height:min(90vh,900px);height:auto;overflow:hidden;display:flex;flex-direction:column;border-radius:20px;background:#0B1E26;border-color:rgba(255,255,255,.1)}
+.mkt-modal-head {flex:0 0 auto;align-items:center;background:#0B1E26;padding:20px 24px}
+.mkt-modal-head h3 {font-size:22px;font-weight:800;letter-spacing:-.01em}
+.mkt-modal-head p {font-size:12px;color:#9fb2c0;margin-top:4px}
+.mkt-modal-head .stars {color:#F26B1F;font-size:12px;letter-spacing:1px}
+.mkt-modal-body {flex:1 1 auto;overflow-y:auto;scroll-behavior:smooth;padding:24px}
+.mkt-modal-body::-webkit-scrollbar {width:6px}
+.mkt-modal-body::-webkit-scrollbar-track {background:rgba(255,255,255,.05)}
+.mkt-modal-body::-webkit-scrollbar-thumb {background:rgba(255,255,255,.16);border-radius:10px}
+.mkt-modal-body::-webkit-scrollbar-thumb:hover {background:rgba(255,255,255,.28)}
+.mkt-modal-body h4 {font-size:12px;letter-spacing:.16em;color:#F26B1F;margin-bottom:10px}
+.mkt-modal-body p {font-size:13.5px;line-height:1.7;color:#cbd8e3}
+.mkt-modal-list {list-style:none;padding:0;margin:8px 0 0;display:grid;gap:10px}
+.mkt-modal-list li {position:relative;padding-left:16px;font-size:13px;color:#cbd8e3;line-height:1.6}
+.mkt-modal-list li:before {content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:#F26B1F}
+.mkt-modal-body .hotel-gallery {display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:150px;gap:12px}
+.mkt-modal-body .hotel-gallery figure {margin:0;border-radius:14px;overflow:hidden;background:#132b36}
+.mkt-modal-body .hotel-gallery figure:first-child {grid-column:span 2;grid-row:span 2}
+.mkt-modal-body .hotel-gallery img {width:100%;height:100%;object-fit:cover;transition:transform .4s}
+.mkt-modal-body .hotel-gallery figure:hover img {transform:scale(1.05)}
+@media (max-width:720px){
+  .mkt-modal-body .hotel-gallery {grid-template-columns:repeat(2,1fr);grid-auto-rows:120px}
+  .mkt-modal-head h3 {font-size:18px}
+}
