@@ -817,7 +817,7 @@ body:has([data-chat-root]),
   .mkt .detailgrid {grid-template-columns:1fr}
 }
 /* ===== V3 PROFESSIONAL POLISH ===== */
-:root {
+.mkt {
   --bg:#031017;
   --card:#071b27;
   --card2:#092330;
