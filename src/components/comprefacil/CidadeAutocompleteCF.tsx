@@ -18,7 +18,7 @@ type Props = {
 };
 
 /** Campo de cidade com autopreencher do catálogo CompreFácil (traz o Id certo). */
-export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder, publico = false }: Props) {
+export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder, publico = false, className }: Props) {
   const sugerir = useServerFn(publico ? autocompleteLocalidadeCFPublic : autocompleteLocalidadeCF);
   const [aberto, setAberto] = useState(false);
   const [termo, setTermo] = useState(valor);
@@ -61,6 +61,7 @@ export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder, publ
         onFocus={() => setAberto(true)}
         placeholder={placeholder}
         autoComplete="off"
+        className={className}
       />
       {aberto && debounced.trim().length >= 2 && (
         <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-xl">
