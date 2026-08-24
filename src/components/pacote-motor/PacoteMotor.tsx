@@ -368,7 +368,7 @@ export function PacoteMotor({
                   valor={destino}
                   campo="destino"
                   placeholder="Cidade do pacote"
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-sm font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
+                  className="h-12 rounded-xl border-border/40 bg-input px-4 text-sm font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50 sm:text-base"
                   onChange={(nome, id, iata) => {
                     setDestino(nome);
                     setCidadeId(id);
