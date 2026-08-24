@@ -8,7 +8,7 @@
 const BASE = "https://api.comprefacil.tur.br";
 const CLIENT_ID = "portaloperadora:2026";
 const FINGERPRINT = "viaair-servidor-01";
-const TEMPO_LIMITE_REQUISICAO_MS = 20_000;
+const TEMPO_LIMITE_REQUISICAO_MS = 60_000;
 
 type Sessao = { token: string; expiraEm: number; agenciaId: string | null; usuarioId: string | null };
 
