@@ -7,7 +7,7 @@
  */
 import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.server";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
-import type { HotelPacote, QuartoPacote } from "@/lib/pacote-motor/mapear";
+import type { HotelPacote, OcupacaoQuarto, QuartoPacote } from "@/lib/pacote-motor/mapear";
 
 const FILTRO_AEREO = {
   HorarioIdaMinimo: 0,
@@ -194,8 +194,31 @@ export type BuscaHotelCF = {
   adultos: number;
   criancas?: number;
   idades?: number[];
+  /** distribuição real por quarto (Quarto 1 → 2 adultos, Quarto 2 → 2 adultos + 1 criança…) */
+  quartos?: OcupacaoQuarto[];
   porPagina?: number;
 };
+
+/**
+ * A operadora aceita uma linha por quarto pesquisado: `NumeroPesquisa` é o
+ * índice do quarto e `Criancas` é a lista de idades (bebês entram como idade 0).
+ */
+function distribuicaoQuartos(p: BuscaHotelCF) {
+  const lista = p.quartos?.length
+    ? p.quartos
+    : [{ adultos: Math.max(1, p.adultos || 1), criancas: p.criancas ?? 0, bebes: 0, idades: p.idades ?? [] }];
+  return lista.map((q, i) => {
+    const idades = [...(q.idades ?? [])];
+    while (idades.length < (q.criancas ?? 0)) idades.push(7);
+    for (let b = 0; b < (q.bebes ?? 0); b++) idades.push(0);
+    return {
+      NumeroPesquisa: i + 1,
+      Qtde: 1,
+      Adultos: Math.max(1, q.adultos || 1),
+      Criancas: idades,
+    };
+  });
+}
 
 export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacote[]> {
   const ses = await sessaoCompreFacil();
@@ -218,14 +241,7 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     Checkin: p.checkin,
     Checkout: p.checkout,
     Cidade: { Id: p.cidadeId },
-    Quartos: [
-      {
-        NumeroPesquisa: 1,
-        Qtde: 1,
-        Adultos: Math.max(1, p.adultos || 1),
-        Criancas: p.idades ?? [],
-      },
-    ],
+    Quartos: distribuicaoQuartos(p),
     FiltroHotel: FILTRO_HOTEL,
   });
 
@@ -247,31 +263,76 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   return itens.map((h, i) => mapearHotel(h, i));
 }
 
+function limpar(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return t || null;
+}
+
 function mapearHotel(h: any, i: number): HotelPacote {
   const quartosBrutos: any[] = h?.Quartos ?? [];
   const valores = quartosBrutos.map((q) => Number(q?.ValorVenda ?? 0)).filter((v) => v > 0);
   const menor = valores.length ? Math.min(...valores) : Number(h?.ValorTotalVenda ?? 0);
 
-  const quartos: QuartoPacote[] = quartosBrutos.map((q, idx) => ({
-    id: `${q?.CodigoQuarto ?? idx}-${q?.CodigoPensao ?? idx}-${idx}`,
-    nome: q?.Descricao ?? `Acomodação ${idx + 1}`,
-    ocupacao: q?.Adultos ? `${q.Adultos} adulto(s)${q?.Criancas ? ` · ${q.Criancas} criança(s)` : ""}` : null,
-    regime: q?.DescricaoPensao ?? null,
-    reembolsavel: typeof q?.Reembolsavel === "boolean" ? q.Reembolsavel : null,
-    beneficios: q?.PoliticaListagem ? [String(q.PoliticaListagem)] : [],
-    diferenca: Number((Number(q?.ValorVenda ?? 0) - menor).toFixed(2)),
-  }));
+  const quartos: QuartoPacote[] = quartosBrutos.map((q, idx) => {
+    const valor = Number(q?.ValorVenda ?? 0);
+    const politica = limpar(q?.PoliticaListagem ?? q?.Politica);
+    const beneficios = [limpar(q?.DescricaoPensao), limpar(q?.Observacao), limpar(q?.Facilidades)].filter(
+      Boolean,
+    ) as string[];
+    return {
+      id: `${q?.CodigoQuarto ?? idx}-${q?.CodigoPensao ?? idx}-${idx}`,
+      nome: limpar(q?.Descricao) ?? `Acomodação ${idx + 1}`,
+      ocupacao: q?.Adultos
+        ? `${q.Adultos} adulto(s)${Number(q?.Criancas ?? 0) ? ` · ${q.Criancas} criança(s)` : ""}`
+        : null,
+      regime: limpar(q?.DescricaoPensao),
+      reembolsavel:
+        typeof q?.Reembolsavel === "boolean"
+          ? q.Reembolsavel
+          : politica
+            ? !/n[ãa]o\s+reembols/i.test(politica)
+            : null,
+      beneficios,
+      politica,
+      pesquisa: Number(q?.NumeroPesquisa ?? q?.Pesquisa ?? 0) || null,
+      valor: Number(valor.toFixed(2)),
+      diferenca: Number((valor - menor).toFixed(2)),
+    };
+  });
+
+  const politicas = Array.from(new Set(quartos.map((q) => q.politica).filter(Boolean) as string[]));
+  const comodidades = Array.from(
+    new Set(
+      ([] as string[])
+        .concat(
+          (h?.Facilidades ?? h?.Comodidades ?? [])
+            .map?.((f: any) => limpar(typeof f === "string" ? f : f?.Descricao ?? f?.Nome))
+            .filter(Boolean) ?? [],
+        )
+        .concat(quartos[0]?.regime ? [quartos[0].regime] : []),
+    ),
+  );
 
   return {
     posicao: i,
     id: `cfh-${i}-${h?.CodigoFornecedor ?? ""}-${h?.Fornecedor ?? ""}`,
     pacoteExternoId: Number(h?.CodigoFornecedor ?? 0) || 0,
-    nome: h?.Nome ?? "Hotel",
+    nome: limpar(h?.Nome) ?? "Hotel",
     categoria: typeof h?.Estrelas === "number" ? h.Estrelas : null,
-    avaliacao: null,
-    localizacao: h?.Endereco ?? null,
+    avaliacao: typeof h?.Avaliacao === "number" ? h.Avaliacao : null,
+    numAvaliacoes: typeof h?.QuantidadeAvaliacoes === "number" ? h.QuantidadeAvaliacoes : null,
+    localizacao: limpar(h?.Bairro ?? h?.CidadeNome ?? h?.Endereco),
+    endereco: limpar(h?.Endereco),
+    descricao: limpar(h?.Descricao ?? h?.DescricaoHotel ?? h?.Observacao),
+    comodidades,
+    politicas,
     fotos: h?.HotelImagem ? [String(h.HotelImagem)] : [],
-    beneficios: quartos[0]?.regime ? [quartos[0].regime] : [],
+    beneficios: comodidades.slice(0, 6),
     regime: quartos[0]?.regime ?? null,
     reembolsavel: quartos[0]?.reembolsavel ?? null,
     total: Number(menor.toFixed(2)),
