@@ -437,9 +437,8 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
                     />
                   </div>
                 </div>
-                {resumo}
-              </div>
-            )}
+              {resumo}
+            </div>
           </section>
         )}
 
