@@ -1741,3 +1741,88 @@ body:has([data-chat-root]),
   .mkt-modal-body .hotel-gallery {grid-template-columns:repeat(2,1fr);grid-auto-rows:120px}
   .mkt-modal-head h3 {font-size:18px}
 }
+
+/* =====================================================================
+   Motor de pacotes — estética "Petrol contrast" (Pacote recomendado)
+   e "Petrol dark" (modal Sobre o hotel). Só visual: estrutura mantida.
+   ===================================================================== */
+.mkt .sel-card {
+  border-radius:24px;
+  border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(180deg,rgba(9,32,45,.99),rgba(6,22,31,.99));
+  box-shadow:0 26px 60px rgba(0,0,0,.42);
+}
+.mkt .sel-card:hover {border-color:rgba(255,255,255,.20)}
+.mkt .sel-head {
+  position:relative;
+  padding:18px 20px;
+  background:
+    radial-gradient(420px 120px at 100% 0,rgba(242,107,31,.14),transparent 70%),
+    linear-gradient(135deg,#102a3a,#071b27);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.mkt .sel-main-title b {font-size:13px;font-weight:800;color:#fff}
+.mkt .sel-main-title span {font-size:9px;color:#8ea3b3}
+.mkt .sel-status {
+  background:rgba(0,0,0,.42);
+  border:1px solid rgba(255,255,255,.20);
+  color:#49c996;
+  backdrop-filter:blur(8px);
+  font-size:8px;letter-spacing:.55px;
+}
+.mkt .sel-status:before {background:#49c996;box-shadow:0 0 8px #49c996}
+.mkt .sel-actions .mini {
+  border:0;
+  background:var(--orange);
+  color:#fff;
+  border-radius:999px;
+  padding:8px 14px;
+  font-size:9px;
+  font-weight:900;
+  box-shadow:0 8px 20px rgba(242,107,31,.28);
+}
+.mkt .sel-actions .mini:hover {background:var(--orange2);border:0}
+.mkt .flight-pane {
+  border-radius:18px;
+  padding:14px 16px;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.07);
+}
+.mkt .flight-pane .triptop {color:var(--orange2);font-size:8.5px;letter-spacing:1.1px}
+.mkt .flight-pane .triptop span:last-child {color:#8ea3b3}
+.mkt .flight-pane .pt strong {font-size:26px;font-weight:800;color:#fff}
+.mkt .flight-pane .pt b {color:#8ea3b3;font-size:11.5px;letter-spacing:.14em;font-weight:700}
+.mkt .flight-pane .mid div {background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent)}
+.mkt .sel-card .ghost,
+.mkt .sel-body > .ghost {
+  border-radius:16px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.07);
+}
+
+/* Modal "Sobre o hotel" — Petrol dark */
+.mkt-modal-card {border-radius:22px;border:1px solid rgba(255,255,255,.12);box-shadow:0 40px 90px rgba(0,0,0,.6)}
+.mkt-modal-head {
+  position:sticky;top:0;z-index:10;
+  background:rgba(7,27,39,.92);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.10);
+}
+.mkt-modal-head .stars {color:#F26B1F;text-shadow:0 0 12px rgba(242,107,31,.4)}
+.mkt-modal-body h4 {color:#f59b45;letter-spacing:.2em;font-weight:800}
+.mkt-modal-body .chip {
+  display:inline-flex;align-items:center;gap:8px;
+  border-radius:12px;
+  padding:8px 12px;
+  font-size:12px;font-weight:600;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.10);
+  color:rgba(255,255,255,.9);
+}
+.mkt-modal-body .chip:before {
+  content:"";width:6px;height:6px;border-radius:50%;
+  background:#f59b45;box-shadow:0 0 8px rgba(245,155,69,.6);
+}
+.mkt-modal-body .chip:hover {border-color:rgba(242,107,31,.5);background:rgba(255,255,255,.07);color:#fff}
+.mkt-modal-close {background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12)}
+.mkt-modal-close:hover {background:rgba(255,255,255,.14);color:#fff}
