@@ -24,6 +24,7 @@ export function PacoteMotor() {
   const listarServicos = useServerFn(listarServicosCompreFacil);
   const buscarVoos = useServerFn(buscarAereoCF);
 
+  const [origem, setOrigem] = useState("");
   const [destino, setDestino] = useState("");
   const [cidadeId, setCidadeId] = useState<number | null>(null);
   const [origemIata, setOrigemIata] = useState("");
