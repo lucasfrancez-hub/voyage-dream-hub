@@ -226,6 +226,9 @@ export async function buscarSegurosCF(p: {
       valor: calculado > 0 ? Number(calculado.toFixed(2)) : null,
       moeda: "BRL" as const,
       imagem: null,
+      logo: logoSeguradora(s),
+      coberturas: coberturasDoPlano(s),
+
     });
   });
 
