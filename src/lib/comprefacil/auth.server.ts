@@ -140,7 +140,7 @@ async function validarDoisFatores(otpToken: string): Promise<{ access_token?: st
   const espera = await obterCodigoAutenticacao({
     provider: "comprefacil",
     loginHint: process.env["COMPREFACIL_USUARIO"] ?? null,
-    timeoutMs: 120_000,
+    timeoutMs: 60_000,
   });
 
   if (!espera.success || !espera.code) {
