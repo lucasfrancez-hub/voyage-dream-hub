@@ -11,7 +11,7 @@ async function ensureGestor(ctx: { supabase: any; userId: string; claims: any })
   }
 }
 
-export type AdminRole = "admin" | "user" | "partner";
+export type AdminRole = "admin" | "gestor" | "user" | "partner";
 
 export type AdminUser = {
   id: string;
@@ -39,7 +39,7 @@ export const listAdminUsers = createServerFn({ method: "GET" })
       .select("user_id, role");
     if (rolesErr) throw new Error(rolesErr.message);
     // Prioridade: admin > partner > user
-    const rank: Record<AdminRole, number> = { admin: 3, partner: 2, user: 1 };
+    const rank: Record<AdminRole, number> = { admin: 4, gestor: 3, partner: 2, user: 1 };
     const roleMap = new Map<string, AdminRole>();
     (roles ?? []).forEach((r: any) => {
       const cur = roleMap.get(r.user_id);
@@ -70,7 +70,7 @@ export const createAdminUser = createServerFn({ method: "POST" })
     z
       .object({
         email: z.string().email(),
-        role: z.enum(["admin", "user", "partner"]),
+        role: z.enum(["admin", "gestor", "user", "partner"]),
         fullName: z.string().trim().max(120).optional(),
         agencyName: z.string().trim().max(120).optional(),
       })
@@ -167,7 +167,7 @@ export const setAdminUserRole = createServerFn({ method: "POST" })
     z
       .object({
         userId: z.string().uuid(),
-        role: z.enum(["admin", "user", "partner"]),
+        role: z.enum(["admin", "gestor", "user", "partner"]),
       })
       .parse(input),
   )
