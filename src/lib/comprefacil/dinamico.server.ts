@@ -421,11 +421,18 @@ function mapearHotel(h: any, i: number): HotelPacote {
   const todos: any[] = h?.Quartos ?? [];
   const reais = todos.filter((q) => nomeQuarto(q?.Descricao) || Number(q?.ValorVenda ?? 0) > 0);
   const quartosBrutos: any[] = reais.length ? reais : todos;
-  const valores = quartosBrutos.map((q) => Number(q?.ValorVenda ?? 0)).filter((v) => v > 0);
-  const menor = valores.length ? Math.min(...valores) : Number(h?.ValorTotalVenda ?? 0);
+  // Alguns fornecedores só preenchem ValorListagem/ValorTotalListagem; sem esse
+  // fallback o hotel ficava com total 0 e todos apareciam com o mesmo preço.
+  const precoQuarto = (q: any) =>
+    Number(q?.ValorVenda ?? 0) || Number(q?.ValorTotalListagem ?? 0) || Number(q?.ValorListagem ?? 0) || 0;
+  const valores = quartosBrutos.map(precoQuarto).filter((v) => v > 0);
+  const menor = valores.length
+    ? Math.min(...valores)
+    : Number(h?.ValorTotalVenda ?? 0) || Number(h?.ValorTotalListagem ?? 0) || 0;
 
   const quartos: QuartoPacote[] = quartosBrutos.map((q, idx) => {
-    const valor = Number(q?.ValorVenda ?? 0);
+    const valor = precoQuarto(q);
+
     const politica = limpar(q?.PoliticaListagem ?? q?.Politica);
     const regime = regimeQuarto(q);
     const beneficios = [regime, limpar(q?.Observacao), limpar(q?.Facilidades)].filter(Boolean) as string[];
