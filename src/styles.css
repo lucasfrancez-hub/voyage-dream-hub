@@ -585,6 +585,8 @@ body:has([data-chat-root]),
 .mkt .hotel-mini {display:grid;grid-template-columns:146px 1fr;gap:15px;align-items:start}
 .mkt .hotel-mini img {width:146px;height:128px;object-fit:cover;border-radius:16px;box-shadow:0 16px 32px rgba(0,0,0,.24)}
 .mkt .stars {color:#efad58;font-size:11px;letter-spacing:1px}
+.mkt .hotelselos {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mkt .selo-rec {display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#fff;background:linear-gradient(135deg,#F26B1F,#ff8f4d);box-shadow:0 2px 8px rgba(242,107,31,.35)}
 .mkt .hotel-mini h3 {margin:5px 0;font-size:17px}
 .mkt .hotel-mini p {margin:0;color:#8ea2b2;font-size:9px;line-height:1.55}
 .mkt .room {margin-top:12px;padding:10px 11px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.025);font-size:8.5px;color:#9ab0c0;line-height:1.55}
