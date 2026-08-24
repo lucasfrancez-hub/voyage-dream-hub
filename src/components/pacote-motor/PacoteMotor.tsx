@@ -1,36 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Search } from "lucide-react";
+import { ArrowLeft, Loader2, Search } from "lucide-react";
 import { CidadeAutocompleteCF } from "@/components/comprefacil/CidadeAutocompleteCF";
+import { LogoCia } from "@/components/pacote-motor/LogoCia";
 import { ResumoPacote } from "@/components/pacote-motor/ResumoPacote";
 import { SeletorVoo } from "@/components/pacote-motor/SeletorVoo";
 import { SeletorHospedagem } from "@/components/pacote-motor/SeletorHospedagem";
-import { brl, hora, resumoVoo, type HotelPacote, type ServicoPacote } from "@/lib/pacote-motor/mapear";
-import { listarServicosCompreFacil } from "@/lib/comprefacil/comprefacil.functions";
+import { brl, hora, resumoVoo, type HotelPacote } from "@/lib/pacote-motor/mapear";
 import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.functions";
 import type { PassHubOferta } from "@/lib/passhub/types";
-
-/** Remove HTML/entidades da descrição vinda da operadora. */
-function textoSimples(v: unknown): string {
-  if (!v) return "";
-  return String(v)
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 const dataBr = (d: string) => (d ? d.split("-").reverse().join("/") : "—");
 
 type Vista = "overview" | "voo" | "hotel";
 
-/** Motor de Pacotes VIA AIR — modelo aprovado: visão geral, alterar voo, alterar hospedagem. */
+/** Motor de Pacotes VIA AIR — visão geral, alterar voo e alterar hospedagem. */
 export function PacoteMotor() {
   const buscarHoteis = useServerFn(buscarHospedagemCF);
-  const listarServicos = useServerFn(listarServicosCompreFacil);
   const buscarVoos = useServerFn(buscarAereoCF);
 
   const [origem, setOrigem] = useState("");
@@ -47,19 +34,18 @@ export function PacoteMotor() {
   const [hotel, setHotel] = useState<HotelPacote | null>(null);
   const [quartoId, setQuartoId] = useState<string | null>(null);
   const [voo, setVoo] = useState<PassHubOferta | null>(null);
-  const [servicosSel, setServicosSel] = useState<string[]>([]);
 
   const pagantes = adultos + criancas;
 
   const pacotes = useMutation({
-    mutationFn: (v: void) =>
+    mutationFn: (_v: void) =>
       buscarHoteis({
         data: { cidadeId: cidadeId!, checkin: ida, checkout: volta || ida, adultos, criancas },
       }),
   });
 
   const voos = useMutation({
-    mutationFn: (v: void) =>
+    mutationFn: (_v: void) =>
       buscarVoos({
         data: { origem: origemIata, destino: destinoIata, ida, volta: volta || null, adultos, criancas },
       }),
@@ -77,30 +63,8 @@ export function PacoteMotor() {
     if (ofertas.length && !voo) setVoo(ofertas[0]);
   }, [ofertas, voo]);
 
-  const detalhe = useQuery({
-    queryKey: ["cf", "servicos-motor", destino, cidadeId],
-    queryFn: () =>
-      listarServicos({ data: { busca: destino, cidadeId: cidadeId ?? null, somenteAtivos: true } }),
-    enabled: (!!destino.trim() || !!cidadeId) && (pacotes.isSuccess || voos.isSuccess),
-    staleTime: 5 * 60_000,
-  });
-
-  const servicos: ServicoPacote[] = useMemo(
-    () =>
-      (((detalhe.data as any)?.itens ?? []) as any[]).map((s) => ({
-        id: String(s.id),
-        titulo: s.titulo ?? "Serviço",
-        tipo: s.tipo ?? null,
-        descricao: textoSimples(s.descricao) || s.fornecedor || null,
-        valor: null,
-      })),
-    [detalhe.data],
-  );
-
   const quarto = hotel?.quartos.find((q) => q.id === quartoId) ?? null;
-  const servicosEscolhidos = servicos.filter((s) => servicosSel.includes(s.id));
-  const servicosTotal = servicosEscolhidos.reduce((a, s) => a + (s.valor ?? 0), 0);
-  const total = (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0) + servicosTotal;
+  const total = (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0);
 
   const baseVoo = ofertas[0]?.precoTotal ?? voo?.precoTotal ?? 0;
   const baseHotel = hoteis[0]?.total ?? hotel?.total ?? 0;
@@ -116,7 +80,6 @@ export function PacoteMotor() {
     setHotel(null);
     setVoo(null);
     setQuartoId(null);
-    setServicosSel([]);
     setVista("overview");
     if (cidadeId && ida) pacotes.mutate();
     if (origemIata && destinoIata && ida) voos.mutate();
@@ -126,7 +89,8 @@ export function PacoteMotor() {
 
   const resumo = (
     <ResumoPacote
-      destino={hotel?.localizacao || destino || "Pacote VIA AIR"}
+      destino={hotel?.nome || destino || "Pacote VIA AIR"}
+      endereco={hotel?.localizacao ?? null}
       periodo={[ida, volta].filter(Boolean).map((d) => d.split("-").reverse().slice(0, 2).join("/")).join(" a ")}
       pax={`${adultos} adulto(s)${criancas ? ` · ${criancas} criança(s)` : ""}`}
       noites={noites}
@@ -134,18 +98,6 @@ export function PacoteMotor() {
         { rotulo: "Voo", valor: voo ? `${rIda!.companhia} · ${rIda!.horarios}` : "Não selecionado" },
         { rotulo: "Hotel", valor: hotel?.nome ?? "Não selecionado" },
         { rotulo: "Quarto", valor: quarto?.nome ?? "Conforme pacote" },
-        {
-          rotulo: "Serviços",
-          valor: servicosEscolhidos.length
-            ? servicosTotal
-              ? `${servicosEscolhidos.length} adicionado(s) · ${brl(servicosTotal)}`
-              : `${servicosEscolhidos.length} adicionado(s) · sob consulta`
-            : "Nenhum adicionado",
-        },
-        ...servicosEscolhidos.map((s) => ({
-          rotulo: `· ${s.titulo}`,
-          valor: s.valor ? brl(s.valor) : "Sob consulta",
-        })),
       ]}
       total={total}
       moeda={hotel?.moeda ?? "BRL"}
@@ -227,33 +179,12 @@ export function PacoteMotor() {
         </div>
       </div>
 
-      {/* Abas de tela (não é a linha de etapas) */}
-      <div className="screen-tabs">
-        <button
-          type="button"
-          className={`screen-tab${vista === "overview" ? " active" : ""}`}
-          onClick={() => setVista("overview")}
-        >
-          <b>Visão geral</b>
-          <span>Primeira tela já com hospedagem</span>
+      {vista !== "overview" && (
+        <button type="button" className="back-link" onClick={() => setVista("overview")}>
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Voltar ao pacote recomendado
         </button>
-        <button
-          type="button"
-          className={`screen-tab${vista === "voo" ? " active" : ""}`}
-          onClick={() => setVista("voo")}
-        >
-          <b>Alterar voo</b>
-          <span>Conexões e detalhes do aéreo</span>
-        </button>
-        <button
-          type="button"
-          className={`screen-tab${vista === "hotel" ? " active" : ""}`}
-          onClick={() => setVista("hotel")}
-        >
-          <b>Alterar hospedagem</b>
-          <span>Troca de hotel/quarto</span>
-        </button>
-      </div>
+      )}
 
       {vista === "voo" && (
         <SeletorVoo
@@ -302,20 +233,20 @@ export function PacoteMotor() {
                     <div className="resume-head">
                       <b>Voo selecionado</b>
                       <button type="button" onClick={() => setVista("voo")}>
-                        Alterar voo
+                        Ver detalhes da conexão
                       </button>
                     </div>
                     <div className="resume-body">
-                      {voos.isPending && <p style={{ fontSize: 12, color: "var(--muted)" }}>Consultando o motor aéreo…</p>}
+                      {voos.isPending && <p className="hint">Consultando o motor aéreo…</p>}
                       {!voos.isPending && !voo && (
-                        <p style={{ fontSize: 12, color: "var(--muted)" }}>
-                          {erroVoos ?? "Nenhum voo selecionado para este trecho."}
-                        </p>
+                        <p className="hint">{erroVoos ?? "Nenhum voo selecionado para este trecho."}</p>
                       )}
                       {voo && rIda && (
                         <>
                           <div className="quick-flight">
+                            <LogoCia iata={voo.ida.companhiaIata} nome={rIda.companhia} />
                             <div className="time">
+                              <span className="leg">Ida</span>
                               <strong>{hora(voo.ida.partida)}</strong>
                               <small>{voo.ida.origem}</small>
                             </div>
@@ -325,7 +256,8 @@ export function PacoteMotor() {
                                 {rIda.escalas} · {rIda.duracao}
                               </span>
                             </div>
-                            <div className="time" style={{ textAlign: "right" }}>
+                            <div className="time right">
+                              <span className="leg">&nbsp;</span>
                               <strong>{hora(voo.ida.chegada)}</strong>
                               <small>{voo.ida.destino}</small>
                             </div>
@@ -333,7 +265,9 @@ export function PacoteMotor() {
 
                           {voo.voltas.map((v) => (
                             <div className="quick-flight" key={v.numeroVoo + v.partida}>
+                              <LogoCia iata={v.companhiaIata ?? voo.ida.companhiaIata} nome={rIda.companhia} />
                               <div className="time">
+                                <span className="leg">Volta</span>
                                 <strong>{hora(v.partida)}</strong>
                                 <small>{v.origem}</small>
                               </div>
@@ -343,7 +277,8 @@ export function PacoteMotor() {
                                   {v.paradas === 0 ? "Direto" : `${v.paradas} conexão`} · {v.duracao}
                                 </span>
                               </div>
-                              <div className="time" style={{ textAlign: "right" }}>
+                              <div className="time right">
+                                <span className="leg">&nbsp;</span>
                                 <strong>{hora(v.chegada)}</strong>
                                 <small>{v.destino}</small>
                               </div>
@@ -356,11 +291,11 @@ export function PacoteMotor() {
                             {(voo.ida.conexoes ?? []).map((c, i) => (
                               <span key={`${c.aeroporto}-${i}`}>Conexão em {c.aeroporto}</span>
                             ))}
-                            <span>{brl(voo.precoTotal)}</span>
+                            <span className="price">{brl(voo.precoTotal)}</span>
                           </div>
 
                           <button type="button" className="outline-btn" onClick={() => setVista("voo")}>
-                            Ver detalhes da conexão
+                            Alterar voo
                           </button>
                         </>
                       )}
@@ -371,18 +306,11 @@ export function PacoteMotor() {
                   <div className="resume-card">
                     <div className="resume-head">
                       <b>Hospedagem selecionada</b>
-                      <button type="button" onClick={() => setVista("hotel")}>
-                        Alterar hospedagem
-                      </button>
                     </div>
                     <div className="resume-body">
-                      {pacotes.isPending && (
-                        <p style={{ fontSize: 12, color: "var(--muted)" }}>Buscando pacotes na operadora…</p>
-                      )}
+                      {pacotes.isPending && <p className="hint">Buscando pacotes na operadora…</p>}
                       {!pacotes.isPending && !hotel && (
-                        <p style={{ fontSize: 12, color: "var(--muted)" }}>
-                          Nenhum pacote encontrado para este destino e período.
-                        </p>
+                        <p className="hint">Nenhum pacote encontrado para este destino e período.</p>
                       )}
                       {hotel && (
                         <>
@@ -414,7 +342,7 @@ export function PacoteMotor() {
                             {hotel.beneficios.slice(0, 3).map((b) => (
                               <span key={b}>{b.length > 30 ? `${b.slice(0, 30)}…` : b}</span>
                             ))}
-                            <span>{brl(hotel.total, hotel.moeda)}</span>
+                            <span className="price">{brl(hotel.total, hotel.moeda)}</span>
                           </div>
 
                           <button type="button" className="outline-btn" onClick={() => setVista("hotel")}>
@@ -423,50 +351,6 @@ export function PacoteMotor() {
                         </>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                {/* Serviços — só entram no pacote quando adicionados */}
-                <div className="servicos">
-                  <div className="resume-head" style={{ borderRadius: 12, border: "1px solid var(--line)" }}>
-                    <b>Serviços</b>
-                    <span style={{ fontSize: 10, color: "var(--muted)" }}>
-                      Não entram no pacote até serem adicionados
-                    </span>
-                  </div>
-                  <div style={{ marginTop: 10 }}>
-                    {detalhe.isPending ? (
-                      <p style={{ fontSize: 12, color: "var(--muted)" }}>Buscando serviços do destino…</p>
-                    ) : servicos.length === 0 ? (
-                      <p style={{ fontSize: 12, color: "var(--muted)" }}>Sem serviços adicionais para este destino.</p>
-                    ) : (
-                      servicos.map((s) => {
-                        const marcado = servicosSel.includes(s.id);
-                        return (
-                          <div key={s.id} className={`servico-row${marcado ? " on" : ""}`}>
-                            <span>
-                              <b>{s.titulo}</b>
-                              {s.descricao ? (
-                                <span className="desc">
-                                  {s.descricao.length > 120 ? `${s.descricao.slice(0, 120)}…` : s.descricao}
-                                </span>
-                              ) : null}
-                            </span>
-                            <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
-                              {s.valor ? brl(s.valor) : "Sob consulta"}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setServicosSel((v) => (marcado ? v.filter((x) => x !== s.id) : [...v, s.id]))
-                                }
-                              >
-                                {marcado ? "Remover" : "Adicionar"}
-                              </button>
-                            </span>
-                          </div>
-                        );
-                      })
-                    )}
                   </div>
                 </div>
 
