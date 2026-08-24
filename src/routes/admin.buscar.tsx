@@ -506,12 +506,21 @@ export function SearchEngine({
       {mode === "combo" && (
         <>
           <header className="relative overflow-hidden border-b border-border/60">
-            <div className="relative mx-auto max-w-7xl px-4 py-8">{hero}</div>
+            <div
+              className="absolute inset-0 opacity-60"
+              style={{
+                background:
+                  "radial-gradient(1200px 400px at 20% -10%, var(--brand-blue), transparent 70%)",
+              }}
+              aria-hidden
+            />
+            {/* Mesmo ritmo do motor aéreo: título e card colados (mb-6). */}
+            <div className="relative mx-auto max-w-7xl px-4 pb-8 pt-8">
+              <div className="mb-6">{hero}</div>
+              <PacoteMotor embed={embedMode} publico={embedMode || publicMode} preset={pacotePreset} />
+            </div>
           </header>
-          {/* Motor de Pacotes VIA AIR (operadora própria — FRT/CompreFácil). */}
-          <div className="mx-auto max-w-7xl px-4 py-6">
-            <PacoteMotor embed={embedMode} publico={embedMode || publicMode} preset={pacotePreset} />
-          </div>
+
         </>
       )}
 
