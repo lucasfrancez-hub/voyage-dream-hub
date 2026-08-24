@@ -382,7 +382,7 @@ export function PacoteMotor({
               />
             </div>
 
-            <div className="flex items-end">
+            <div className="flex min-w-0 items-end">
               <Button size="lg" className="h-11 w-full lg:w-auto" onClick={pesquisar} disabled={carregando}>
                 {carregando ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
