@@ -165,11 +165,10 @@ export function NavMegaMenu({
     [groups, podeRota],
   );
   if (permitidos.length === 0) return null;
-  groups = permitidos;
 
-  const half = Math.ceil(groups.length / 2);
-  const left = columns === 2 ? groups.slice(0, half) : groups;
-  const right = columns === 2 ? groups.slice(half) : [];
+  const half = Math.ceil(permitidos.length / 2);
+  const left = columns === 2 ? permitidos.slice(0, half) : permitidos;
+  const right = columns === 2 ? permitidos.slice(half) : [];
 
   return (
     <DropdownMenu>
