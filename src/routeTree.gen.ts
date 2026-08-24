@@ -167,6 +167,7 @@ import { Route as ApiPublicHooksCativaSyncRouteImport } from './routes/api/publi
 import { Route as ApiPublicHooksCativaVoosRouteImport } from './routes/api/public/hooks/cativa-voos'
 import { Route as ApiPublicHooksCheckFlightChangesRouteImport } from './routes/api/public/hooks/check-flight-changes'
 import { Route as ApiPublicHooksCloseInactiveProtocolsRouteImport } from './routes/api/public/hooks/close-inactive-protocols'
+import { Route as ApiPublicHooksComprefacilKeepaliveRouteImport } from './routes/api/public/hooks/comprefacil-keepalive'
 import { Route as ApiPublicHooksDispatchAiDebouncedRouteImport } from './routes/api/public/hooks/dispatch-ai-debounced'
 import { Route as ApiPublicHooksFinancialScheduleDispatchRouteImport } from './routes/api/public/hooks/financial-schedule-dispatch'
 import { Route as ApiPublicHooksFlightCardsContinueRouteImport } from './routes/api/public/hooks/flight-cards-continue'
@@ -1003,6 +1004,12 @@ const ApiPublicHooksCloseInactiveProtocolsRoute =
     path: '/api/public/hooks/close-inactive-protocols',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksComprefacilKeepaliveRoute =
+  ApiPublicHooksComprefacilKeepaliveRouteImport.update({
+    id: '/api/public/hooks/comprefacil-keepalive',
+    path: '/api/public/hooks/comprefacil-keepalive',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksDispatchAiDebouncedRoute =
   ApiPublicHooksDispatchAiDebouncedRouteImport.update({
     id: '/api/public/hooks/dispatch-ai-debounced',
@@ -1285,6 +1292,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/cativa-voos': typeof ApiPublicHooksCativaVoosRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
+  '/api/public/hooks/comprefacil-keepalive': typeof ApiPublicHooksComprefacilKeepaliveRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/financial-schedule-dispatch': typeof ApiPublicHooksFinancialScheduleDispatchRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
@@ -1463,6 +1471,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/cativa-voos': typeof ApiPublicHooksCativaVoosRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
+  '/api/public/hooks/comprefacil-keepalive': typeof ApiPublicHooksComprefacilKeepaliveRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/financial-schedule-dispatch': typeof ApiPublicHooksFinancialScheduleDispatchRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
@@ -1645,6 +1654,7 @@ export interface FileRoutesById {
   '/api/public/hooks/cativa-voos': typeof ApiPublicHooksCativaVoosRoute
   '/api/public/hooks/check-flight-changes': typeof ApiPublicHooksCheckFlightChangesRoute
   '/api/public/hooks/close-inactive-protocols': typeof ApiPublicHooksCloseInactiveProtocolsRoute
+  '/api/public/hooks/comprefacil-keepalive': typeof ApiPublicHooksComprefacilKeepaliveRoute
   '/api/public/hooks/dispatch-ai-debounced': typeof ApiPublicHooksDispatchAiDebouncedRoute
   '/api/public/hooks/financial-schedule-dispatch': typeof ApiPublicHooksFinancialScheduleDispatchRoute
   '/api/public/hooks/flight-cards-continue': typeof ApiPublicHooksFlightCardsContinueRoute
@@ -1828,6 +1838,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cativa-voos'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
+    | '/api/public/hooks/comprefacil-keepalive'
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/financial-schedule-dispatch'
     | '/api/public/hooks/flight-cards-continue'
@@ -2006,6 +2017,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cativa-voos'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
+    | '/api/public/hooks/comprefacil-keepalive'
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/financial-schedule-dispatch'
     | '/api/public/hooks/flight-cards-continue'
@@ -2187,6 +2199,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cativa-voos'
     | '/api/public/hooks/check-flight-changes'
     | '/api/public/hooks/close-inactive-protocols'
+    | '/api/public/hooks/comprefacil-keepalive'
     | '/api/public/hooks/dispatch-ai-debounced'
     | '/api/public/hooks/financial-schedule-dispatch'
     | '/api/public/hooks/flight-cards-continue'
@@ -2281,6 +2294,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCativaVoosRoute: typeof ApiPublicHooksCativaVoosRoute
   ApiPublicHooksCheckFlightChangesRoute: typeof ApiPublicHooksCheckFlightChangesRoute
   ApiPublicHooksCloseInactiveProtocolsRoute: typeof ApiPublicHooksCloseInactiveProtocolsRoute
+  ApiPublicHooksComprefacilKeepaliveRoute: typeof ApiPublicHooksComprefacilKeepaliveRoute
   ApiPublicHooksDispatchAiDebouncedRoute: typeof ApiPublicHooksDispatchAiDebouncedRoute
   ApiPublicHooksFinancialScheduleDispatchRoute: typeof ApiPublicHooksFinancialScheduleDispatchRoute
   ApiPublicHooksFlightCardsContinueRoute: typeof ApiPublicHooksFlightCardsContinueRoute
@@ -3412,6 +3426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCloseInactiveProtocolsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/comprefacil-keepalive': {
+      id: '/api/public/hooks/comprefacil-keepalive'
+      path: '/api/public/hooks/comprefacil-keepalive'
+      fullPath: '/api/public/hooks/comprefacil-keepalive'
+      preLoaderRoute: typeof ApiPublicHooksComprefacilKeepaliveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/dispatch-ai-debounced': {
       id: '/api/public/hooks/dispatch-ai-debounced'
       path: '/api/public/hooks/dispatch-ai-debounced'
@@ -3863,6 +3884,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksCheckFlightChangesRoute: ApiPublicHooksCheckFlightChangesRoute,
   ApiPublicHooksCloseInactiveProtocolsRoute:
     ApiPublicHooksCloseInactiveProtocolsRoute,
+  ApiPublicHooksComprefacilKeepaliveRoute:
+    ApiPublicHooksComprefacilKeepaliveRoute,
   ApiPublicHooksDispatchAiDebouncedRoute:
     ApiPublicHooksDispatchAiDebouncedRoute,
   ApiPublicHooksFinancialScheduleDispatchRoute:

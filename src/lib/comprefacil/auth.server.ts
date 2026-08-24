@@ -256,6 +256,33 @@ export async function sessaoCompreFacil(): Promise<Sessao> {
   return emAndamento;
 }
 
+/**
+ * Renovação proativa: o token da CompreFácil dura ~12h. Este helper é chamado
+ * por cron e refaz o login quando falta menos que `margemMinutos` para expirar
+ * (ou quando não há sessão), evitando que uma busca do cliente pegue token
+ * vencido e tenha que esperar relogin/2FA.
+ */
+export async function renovarSessaoCompreFacil(
+  margemMinutos = 60,
+): Promise<{ renovou: boolean; expiraEm: string | null; motivo: string }> {
+  if (bloqueadoAte > Date.now()) {
+    return { renovou: false, expiraEm: null, motivo: "bloqueado" };
+  }
+  const atual = sessao && sessao.expiraEm > Date.now() ? sessao : await lerSessaoSalva();
+  const limite = Date.now() + margemMinutos * 60 * 1000;
+  if (atual && atual.expiraEm > limite) {
+    sessao = atual;
+    return { renovou: false, expiraEm: new Date(atual.expiraEm).toISOString(), motivo: "ainda_valida" };
+  }
+  await limparSessaoCompreFacil();
+  const nova = await sessaoCompreFacil();
+  return {
+    renovou: true,
+    expiraEm: new Date(nova.expiraEm).toISOString(),
+    motivo: atual ? "perto_de_expirar" : "sem_sessao",
+  };
+}
+
 /** Chamada autenticada na API do CompreFácil. `path` começa com "/". */
 export async function chamarCompreFacil(
   path: string,
