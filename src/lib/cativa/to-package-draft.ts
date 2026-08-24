@@ -295,8 +295,18 @@ export function destinoComercial(pacote: {
     destinoConhecidoNoTexto(cidadeHotel) ||
     "";
   // O destino é onde o cliente se hospeda — não o aeroporto nem o nome de um passeio.
-  const bruto = semIata(cidadeHotel || conhecido || doNome || (pacote.destino ?? "").trim());
-  const final = tituloCidade(semMarcaHotel(bruto, hoteis));
+  const candidatos = [cidadeHotel || conhecido || doNome, pacote.destino ?? "", doNome, conhecido];
+  let final = "";
+  for (const c of candidatos) {
+    const bruto = semIata(String(c ?? "").trim());
+    if (!bruto) continue;
+    const val = tituloCidade(semMarcaHotel(bruto, hoteis));
+    if (!val) continue;
+    // "Pratage Beach Resort" → nunca virar destino "Pratage".
+    if (ehPedacoDeHotel(val, hoteis)) continue;
+    final = val;
+    break;
+  }
   // Se sobrou só um pedaço de um destino composto conhecido ("Porto",
   // "do Iguaçu"), devolve o nome completo.
   if (conhecido && final && !ehCanonico(final)) {
@@ -306,6 +316,17 @@ export function destinoComercial(pacote: {
   }
   return final;
 }
+
+/** true quando o texto é o começo do nome de um dos hotéis (marca, não cidade). */
+function ehPedacoDeHotel(v: string, hoteis: Array<Record<string, unknown>>): boolean {
+  const f = semAcento(v);
+  if (!f || ehCanonico(f)) return false;
+  return hoteis.some((h) => {
+    const nome = semAcento(h?.["nome"] ?? h?.["hotel"] ?? h?.["name"]);
+    return !!nome && (nome === f || nome.startsWith(`${f} `));
+  });
+}
+
 
 
 
