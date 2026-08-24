@@ -127,6 +127,7 @@ import { Route as ApiPublicAnalyticsCollectRouteImport } from './routes/api/publ
 import { Route as ApiPublicAsaasTransferWebhookRouteImport } from './routes/api/public/asaas-transfer-webhook'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas-webhook'
 import { Route as ApiPublicClicksignWebhookRouteImport } from './routes/api/public/clicksign-webhook'
+import { Route as ApiPublicDebugSeguroRouteImport } from './routes/api/public/debug-seguro'
 import { Route as ApiPublicFlightCardRouteImport } from './routes/api/public/flight-card'
 import { Route as ApiPublicFrt2faInboxRouteImport } from './routes/api/public/frt-2fa-inbox'
 import { Route as ApiPublicHotelCardRouteImport } from './routes/api/public/hotel-card'
@@ -784,6 +785,11 @@ const ApiPublicClicksignWebhookRoute =
     path: '/api/public/clicksign-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicDebugSeguroRoute = ApiPublicDebugSeguroRouteImport.update({
+  id: '/api/public/debug-seguro',
+  path: '/api/public/debug-seguro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicFlightCardRoute = ApiPublicFlightCardRouteImport.update({
   id: '/api/public/flight-card',
   path: '/api/public/flight-card',
@@ -1247,6 +1253,7 @@ export interface FileRoutesByFullPath {
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/debug-seguro': typeof ApiPublicDebugSeguroRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
@@ -1426,6 +1433,7 @@ export interface FileRoutesByTo {
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/debug-seguro': typeof ApiPublicDebugSeguroRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
@@ -1609,6 +1617,7 @@ export interface FileRoutesById {
   '/api/public/asaas-transfer-webhook': typeof ApiPublicAsaasTransferWebhookRoute
   '/api/public/asaas-webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/clicksign-webhook': typeof ApiPublicClicksignWebhookRoute
+  '/api/public/debug-seguro': typeof ApiPublicDebugSeguroRoute
   '/api/public/flight-card': typeof ApiPublicFlightCardRoute
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
@@ -1793,6 +1802,7 @@ export interface FileRouteTypes {
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
     | '/api/public/clicksign-webhook'
+    | '/api/public/debug-seguro'
     | '/api/public/flight-card'
     | '/api/public/frt-2fa-inbox'
     | '/api/public/hotel-card'
@@ -1972,6 +1982,7 @@ export interface FileRouteTypes {
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
     | '/api/public/clicksign-webhook'
+    | '/api/public/debug-seguro'
     | '/api/public/flight-card'
     | '/api/public/frt-2fa-inbox'
     | '/api/public/hotel-card'
@@ -2154,6 +2165,7 @@ export interface FileRouteTypes {
     | '/api/public/asaas-transfer-webhook'
     | '/api/public/asaas-webhook'
     | '/api/public/clicksign-webhook'
+    | '/api/public/debug-seguro'
     | '/api/public/flight-card'
     | '/api/public/frt-2fa-inbox'
     | '/api/public/hotel-card'
@@ -2261,6 +2273,7 @@ export interface RootRouteChildren {
   ApiPublicAsaasTransferWebhookRoute: typeof ApiPublicAsaasTransferWebhookRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicClicksignWebhookRoute: typeof ApiPublicClicksignWebhookRoute
+  ApiPublicDebugSeguroRoute: typeof ApiPublicDebugSeguroRoute
   ApiPublicFlightCardRoute: typeof ApiPublicFlightCardRoute
   ApiPublicFrt2faInboxRoute: typeof ApiPublicFrt2faInboxRoute
   ApiPublicHotelCardRoute: typeof ApiPublicHotelCardRoute
@@ -3146,6 +3159,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicClicksignWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/debug-seguro': {
+      id: '/api/public/debug-seguro'
+      path: '/api/public/debug-seguro'
+      fullPath: '/api/public/debug-seguro'
+      preLoaderRoute: typeof ApiPublicDebugSeguroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/flight-card': {
       id: '/api/public/flight-card'
       path: '/api/public/flight-card'
@@ -3850,6 +3870,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAsaasTransferWebhookRoute: ApiPublicAsaasTransferWebhookRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicClicksignWebhookRoute: ApiPublicClicksignWebhookRoute,
+  ApiPublicDebugSeguroRoute: ApiPublicDebugSeguroRoute,
   ApiPublicFlightCardRoute: ApiPublicFlightCardRoute,
   ApiPublicFrt2faInboxRoute: ApiPublicFrt2faInboxRoute,
   ApiPublicHotelCardRoute: ApiPublicHotelCardRoute,
