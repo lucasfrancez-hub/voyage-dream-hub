@@ -387,6 +387,7 @@ export function PacoteMotor({
                 returnDate={volta}
                 allowOneWay={false}
                 labels={{ start: "Ida", end: "Volta" }}
+                className="bg-input"
                 onChange={(d, v) => {
                   setIda(d);
                   setVolta(v);
