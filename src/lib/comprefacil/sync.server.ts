@@ -39,7 +39,7 @@ function numero(v: unknown): number | null {
 type PacoteApi = Record<string, any>;
 type ServicoApi = Record<string, any>;
 
-function mapearPacote(p: PacoteApi) {
+export function mapearPacote(p: PacoteApi) {
   return {
     externo_id: p.Id as number,
     nome: texto(p.Nome) ?? `Pacote ${p.Id}`,
@@ -102,6 +102,14 @@ function mapearServico(s: ServicoApi, tipos: Map<number, string>) {
     raw: s,
     visto_em: new Date().toISOString(),
   };
+}
+
+export async function gravarPacotesCF(linhas: Array<Record<string, unknown>>) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await supabaseAdmin
+    .from("comprefacil_pacotes")
+    .upsert(linhas as any, { onConflict: "externo_id" });
+  if (error) throw new Error(error.message);
 }
 
 async function gravar(
