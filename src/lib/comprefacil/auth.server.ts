@@ -187,11 +187,16 @@ async function validarDoisFatores(otpToken: string): Promise<{ access_token?: st
 async function lerSessaoSalva(): Promise<Sessao | null> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await supabaseAdmin
-      .from("comprefacil_sessions")
-      .select("token, expira_em, agencia_id, usuario_id")
-      .eq("id", "default")
-      .maybeSingle();
+    // se o banco estiver lento, não travamos o motor: seguimos para o login
+    const { data } = (await Promise.race([
+      supabaseAdmin
+        .from("comprefacil_sessions")
+        .select("token, expira_em, agencia_id, usuario_id")
+        .eq("id", "default")
+        .maybeSingle(),
+      new Promise((resolve) => setTimeout(() => resolve({ data: null }), 8_000)),
+    ])) as { data: Record<string, unknown> | null };
+
     if (!data?.token) return null;
     const expiraEm = new Date(data.expira_em as string).getTime();
     if (!Number.isFinite(expiraEm) || expiraEm <= Date.now()) return null;
