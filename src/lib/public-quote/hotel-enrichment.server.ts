@@ -34,6 +34,7 @@ export type HotelEnrichment = {
 };
 
 import { traduzirEndereco } from "@/lib/utils/endereco-pt";
+import { tripAdvisorFetch } from "@/lib/tripadvisor-api";
 
 const CACHE_DAYS = 30;
 // A Content API pública (api.content.tripadvisor.com) responde 403 para a
@@ -92,32 +93,6 @@ export type HotelCandidate = {
   web_url: string | null;
 };
 
-/**
- * A chave do TripAdvisor não tem cota mensal, mas tem limite de requisições
- * por segundo. Quando um 429 acontece (rajada nossa, ex.: vínculo automático
- * de vários hotéis), fazemos uma pausa curta — nunca minutos.
- */
-let bloqueadoAte = 0;
-export function tripAdvisorLimitado(): boolean {
-  return Date.now() < bloqueadoAte;
-}
-
-/** Serializa as chamadas com um intervalo mínimo, evitando estourar o QPS. */
-let filaTripAdvisor: Promise<unknown> = Promise.resolve();
-let ultimaChamada = 0;
-const INTERVALO_MS = 220;
-function naFila<T>(fn: () => Promise<T>): Promise<T> {
-  const proximo = filaTripAdvisor.then(async () => {
-    const espera = ultimaChamada + INTERVALO_MS - Date.now();
-    if (espera > 0) await new Promise((r) => setTimeout(r, espera));
-    ultimaChamada = Date.now();
-    return fn();
-  });
-  filaTripAdvisor = proximo.catch(() => undefined);
-  return proximo;
-}
-
-
 /** Extrai o location_id de uma URL do TripAdvisor (…-d736663-…). */
 export function locationIdDaUrl(texto: string): number | null {
   const m = String(texto ?? "").match(/tripadvisor\.[^\s]*?[-/]d(\d{3,12})/i);
@@ -126,8 +101,8 @@ export function locationIdDaUrl(texto: string): number | null {
 }
 
 /** Dados básicos de uma propriedade pelo ID (usado quando colam a URL). */
-async function locationPorId(id: number, signal: AbortSignal, apiKey: string): Promise<HotelCandidate | null> {
-  const det = await jsonOf(`${BASE}/locations/${id}`, signal, apiKey);
+async function locationPorId(id: number, signal: AbortSignal): Promise<HotelCandidate | null> {
+  const det = await jsonOf(`${BASE}/locations/${id}`, signal);
   const d = ((det?.data as Record<string, unknown> | undefined) ?? det ?? {}) as Record<string, unknown>;
   const nome = pickName(d.names);
   if (!nome) return null;
@@ -146,21 +121,20 @@ async function locationPorId(id: number, signal: AbortSignal, apiKey: string): P
 export async function searchHotelLocations(query: string): Promise<HotelCandidate[]> {
   const apiKey = process.env["TRIPADVISOR_API_KEY"];
   const termo = String(query ?? "").trim();
-  if (!apiKey || termo.length < 3 || tripAdvisorLimitado()) return [];
+  if (!apiKey || termo.length < 3) return [];
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12_000);
   try {
     // Colou o link da ficha? Resolve direto pelo ID, sem gastar busca.
     const idUrl = locationIdDaUrl(termo);
     if (idUrl) {
-      const unico = await locationPorId(idUrl, ctrl.signal, apiKey);
+      const unico = await locationPorId(idUrl, ctrl.signal);
       return unico ? [unico] : [];
     }
 
     const search = await jsonOf(
       `${BASE}/catalog/locations/search?query=${encodeURIComponent(termo)}&search_type=NAME&category=HOTEL`,
       ctrl.signal,
-      apiKey,
     );
     const brutos = ((search?.data ?? []) as Array<{ location?: Record<string, unknown> }>)
       .map((item) => (item.location ?? item) as Record<string, unknown>)
@@ -264,29 +238,9 @@ function pickAddress(addresses: Array<Record<string, unknown>> | undefined): str
 async function jsonOf(
   url: string,
   signal: AbortSignal,
-  apiKey: string,
 ): Promise<Record<string, unknown> | null> {
-  const chamar = () =>
-    fetch(url, { signal, headers: { accept: "application/json", "X-API-KEY": apiKey } });
-
   try {
-    let r = await naFila(chamar);
-
-    // 429 aqui é rajada nossa (limite por segundo), não cota da conta:
-    // espera o Retry-After (ou 2s) e tenta de novo uma vez.
-    if (r.status === 429) {
-      const retryAfter = Number(r.headers.get("retry-after"));
-      const esperaMs = Math.min(
-        Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 2000,
-        8000,
-      );
-      await new Promise((res) => setTimeout(res, esperaMs));
-      r = await naFila(chamar);
-      if (r.status === 429) {
-        // Só agora fazemos uma pausa curta e global (segundos, não minutos).
-        bloqueadoAte = Date.now() + 20_000;
-      }
-    }
+    const r = await tripAdvisorFetch(url, { signal });
 
     if (!r.ok) {
       console.warn("[hotel-enrichment] TripAdvisor", r.status, url.split("?")[0]);
@@ -353,7 +307,7 @@ export async function enrichHotel(params: {
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12_000);
-  const api = (path: string) => jsonOf(`${BASE}${path}`, ctrl.signal, apiKey);
+  const api = (path: string) => jsonOf(`${BASE}${path}`, ctrl.signal);
 
   const vazio: HotelEnrichment = {
     name: nome, location_id: fixado ?? null, rating: null, num_reviews: null, ranking: null, address: null,
@@ -389,7 +343,7 @@ export async function enrichHotel(params: {
 
     let search: Record<string, unknown> | null = null;
     let candidatos: Array<{ id: number; name: string }> = [];
-    if (!fixado && !tripAdvisorLimitado()) {
+    if (!fixado) {
       for (const q of consultas) {
         search = await api(
           `/catalog/locations/search?query=${encodeURIComponent(q)}&search_type=NAME&category=HOTEL`,
