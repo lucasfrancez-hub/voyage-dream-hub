@@ -111,23 +111,26 @@ export function MotorPacotePersonalizado() {
       </div>
 
       {aberto && (
-        <div className="mt-4 rounded-[22px] border border-border bg-card/70 p-5 md:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="mpp-card mt-4 overflow-hidden rounded-[24px] border border-white/10">
+          <div className="mpp-head flex flex-wrap items-start justify-between gap-3 px-5 py-5 md:px-6">
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.14em] text-brand-orange">
                 Pacote personalizado
               </span>
-              <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-foreground">
+              <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-white">
                 Monte sua viagem do seu jeito
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-white/60">
                 Informe origem, destino, datas e ocupação para pesquisar aéreo + hospedagem.
               </p>
             </div>
-            <span className="rounded-full border border-brand-orange/30 bg-brand-orange/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-brand-orange">
+            <span className="rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-brand-orange backdrop-blur">
               Pacote de viagens
             </span>
           </div>
+
+          <div className="px-5 pb-6 md:px-6">
+
 
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <label className="block">
