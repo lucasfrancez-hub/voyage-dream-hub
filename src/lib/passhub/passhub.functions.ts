@@ -134,10 +134,17 @@ export const passhubReservar = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { passhubReservarOferta } = await import("./book.server");
     try {
       const reserva = await passhubReservarOferta(data);
+      try {
+        const idp = Number((reserva as any)?.idPassagem ?? (reserva as any)?.id ?? 0);
+        if (idp > 0) {
+          const { marcaDonoReserva } = await import("@/lib/permissions/escopo.server");
+          await marcaDonoReserva(idp, String((reserva as any)?.localizador ?? "") || null, context.userId);
+        }
+      } catch { /* dono é opcional */ }
       return { ok: true as const, reserva };
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao reservar";
@@ -149,10 +156,15 @@ export const passhubReservar = createServerFn({ method: "POST" })
 /** Lista todas as reservas da agência na PassHub (painel + motor interno). */
 export const passhubReservas = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
     const { passhubListarReservas } = await import("./reservas.server");
     try {
-      return { ok: true as const, reservas: await passhubListarReservas() };
+      const reservas = await passhubListarReservas();
+      const { podeVerTudo, idsPassagemDoUsuario } = await import("@/lib/permissions/escopo.server");
+      const verTudo = await podeVerTudo(context.userId, (context.claims as any)?.email);
+      if (verTudo) return { ok: true as const, reservas };
+      const meus = await idsPassagemDoUsuario(context.userId);
+      return { ok: true as const, reservas: reservas.filter((r) => meus.has(r.idPassagem)) };
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao listar reservas";
       console.error("[passhub] reservas falhou:", msg);
