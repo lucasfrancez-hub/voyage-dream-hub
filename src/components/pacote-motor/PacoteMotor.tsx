@@ -23,6 +23,7 @@ import { buscarAereoCF, buscarHospedagemCF } from "@/lib/comprefacil/dinamico.fu
 import { buscarAereoCFPublic, buscarHospedagemCFPublic } from "@/lib/comprefacil/publico.functions";
 import { criarPacoteMotorCheckout } from "@/lib/pacote-motor/checkout.functions";
 import type { PassHubOferta } from "@/lib/passhub/types";
+import type { PacotePreset } from "@/lib/pacote-motor/preset";
 
 type Vista = "overview" | "voo" | "hotel";
 
@@ -143,6 +144,14 @@ export function PacoteMotor({
       return lista;
     });
   }
+
+  /** Preset vindo da URL (/voar?m=combo&...): já dispara a busca ao abrir. */
+  useEffect(() => {
+    if (!preset) return;
+    if (preset.cidadeId && preset.ida) pacotes.mutate();
+    if (preset.origemIata && preset.destinoIata && preset.ida) voos.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function pesquisar() {
     setHotel(null);
