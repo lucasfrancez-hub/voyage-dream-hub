@@ -149,8 +149,9 @@ export async function buscarSegurosCF(p: {
       informacoes: [
         `${pax} ${pax === 1 ? "passageiro" : "passageiros"}`,
         `${noites} ${noites === 1 ? "dia" : "dias"} de cobertura`,
-        p.internacional ? "Cobertura internacional" : "Cobertura nacional",
+        texto(s?.DestinoNome) ?? REGIOES_SEGURO[regiao] ?? "Cobertura nacional",
       ],
+
       recomendado: false,
       valor: calculado > 0 ? Number(calculado.toFixed(2)) : null,
       moeda: "BRL" as const,
