@@ -114,14 +114,14 @@ export function ResumoPacote({
             </div>
             <b className="hotel-name">{hotel.nome}</b>
             <div className="hotel-rating-line">
-              {[
-                hotel.categoria ? "★".repeat(hotel.categoria) : null,
-                hotel.avaliacao ? `${hotel.avaliacao}/5` : null,
-                hotel.localizacao,
-              ]
+              {hotel.categoria ? (
+                <span className="hotel-stars">{"★".repeat(hotel.categoria)}</span>
+              ) : null}
+              {[hotel.avaliacao ? `${hotel.avaliacao}/5` : null, hotel.localizacao]
                 .filter(Boolean)
                 .join(" · ")}
             </div>
+
             <div className="hotel-room-line">
               <div>
                 <strong>{quarto?.nome ?? "Acomodação conforme o pacote"}</strong>
