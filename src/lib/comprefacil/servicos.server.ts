@@ -146,14 +146,22 @@ export async function buscarServicosDestinoCF(p: {
 
   let dados: any = inicio.dados;
   let vazioSeguido = 0;
-  for (let i = 0; i < 14; i++) {
-    await espera(2500);
+  let anterior = -1;
+  let estavel = 0;
+  for (let i = 0; i < 16; i++) {
+    await espera(2000);
     const r = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) });
     // guarda sempre a melhor resposta já vista (a operadora às vezes devolve vazio depois de preencher)
     if (((r.dados as any)?.Items ?? []).length >= ((dados?.Items ?? []) as any[]).length) dados = r.dados;
     const meta = (r.dados as any)?.MetaData;
     const itens = Number(((r.dados as any)?.Items ?? []).length);
-    if (itens > 0 && buscasAtivas(meta) === 0) break;
+    // só encerra quando os fornecedores terminaram E a contagem parou de crescer
+    // (antes bastava um ciclo com BuscasAtivas vazio, o que cortava a lista pela metade)
+    if (itens > 0 && buscasAtivas(meta) === 0) {
+      estavel = itens === anterior ? estavel + 1 : 0;
+      if (estavel >= 1) break;
+    }
+    anterior = itens;
     // fornecedores encerraram sem resultado: dá alguns ciclos de carência antes de desistir
     if (buscasAtivas(meta) === 0 && itens === 0) {
       vazioSeguido++;
@@ -165,12 +173,21 @@ export async function buscarServicosDestinoCF(p: {
 
 
   const itens: any[] = [...((dados?.Items ?? []) as any[])];
-  const totalPaginas = Math.min(6, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
-  for (let pagina = 2; pagina <= totalPaginas; pagina++) {
-    const r = await chamarCompreFacil(rota(pagina), { base, method: "POST", body: corpo(guid) });
-    const lote: any[] = (r.dados as any)?.Items ?? [];
-    if (!lote.length) break;
-    itens.push(...lote);
+  const totalPaginas = Math.min(12, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
+  const paginas = Array.from({ length: Math.max(0, totalPaginas - 1) }, (_, k) => k + 2);
+  for (let ini = 0; ini < paginas.length; ini += 4) {
+    const respostas = await Promise.all(
+      paginas.slice(ini, ini + 4).map((pagina) =>
+        chamarCompreFacil(rota(pagina), { base, method: "POST", body: corpo(guid) }).catch(() => null),
+      ),
+    );
+    let vazio = true;
+    for (const r of respostas) {
+      const lote: any[] = (r?.dados as any)?.Items ?? [];
+      if (lote.length) vazio = false;
+      itens.push(...lote);
+    }
+    if (vazio) break;
   }
 
   const vistos = new Set<string>();

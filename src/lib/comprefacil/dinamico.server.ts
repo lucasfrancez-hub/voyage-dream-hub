@@ -308,20 +308,44 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
 
   const chaveHotel = (h: any) => `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`;
 
+  /** Junta os quartos de todas as passadas do mesmo hotel (sem duplicar). */
+  const chaveQuarto = (q: any) =>
+    `${q?.CodigoQuarto ?? ""}-${q?.CodigoPensao ?? ""}-${q?.Descricao ?? ""}-${q?.ValorVenda ?? ""}`;
+  const acumular = (destino: any[], mapa: Map<string, any>, lote: any[]) => {
+    for (const h of lote) {
+      const chave = chaveHotel(h);
+      const existente = mapa.get(chave);
+      if (!existente) {
+        mapa.set(chave, h);
+        destino.push(h);
+        continue;
+      }
+      const atuais: any[] = existente.Quartos ?? [];
+      const vistosQ = new Set(atuais.map(chaveQuarto));
+      for (const q of (h?.Quartos ?? []) as any[]) {
+        const k = chaveQuarto(q);
+        if (vistosQ.has(k)) continue;
+        vistosQ.add(k);
+        atuais.push(q);
+      }
+      existente.Quartos = atuais;
+    }
+  };
+
   // 1ª passada (Ordenacao "") = lista de "recomendados" da operadora — poucos itens,
   // usada só para marcar o selo. A lista completa vem na 2ª passada ordenada por preço.
   // Teto: a operadora só destaca os primeiros da vitrine; sem isso quase todo
   // hotel acabava marcado como "Recomendado".
-  const recomendados = new Set<string>(
-    ((dados?.Items ?? []) as any[]).slice(0, 10).map(chaveHotel),
-  );
+  const primeiraPassada = (dados?.Items ?? []) as any[];
+  const recomendados = new Set<string>(primeiraPassada.slice(0, 10).map(chaveHotel));
 
   // 2ª passada: mesma busca (mesmo Guid) ordenada do menor para o maior preço,
   // que é a única ordenação em que a operadora devolve o catálogo inteiro.
   const primeira = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid, "asc") });
   const dadosAsc: any = primeira.dados;
-  const itens: any[] = [...(dadosAsc?.Items ?? [])];
-  const vistos = new Set(itens.map(chaveHotel));
+  const itens: any[] = [];
+  const mapa = new Map<string, any>();
+  acumular(itens, mapa, (dadosAsc?.Items ?? []) as any[]);
 
   // Páginas restantes em paralelo (lotes de 4) — antes era uma requisição por vez.
   const faltamH = paginasRestantes(dadosAsc?.MetaData, porPagina, itens.length);
@@ -340,22 +364,16 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     for (const r of respostas) {
       const its: any[] = (r?.dados as any)?.Items ?? [];
       if (its.length) vazio = false;
-      for (const h of its) {
-        const chave = chaveHotel(h);
-        if (vistos.has(chave)) continue;
-        vistos.add(chave);
-        itens.push(h);
-      }
+      acumular(itens, mapa, its);
     }
     if (vazio || itens.length >= MAX_ITENS) break;
   }
 
+  // a 1ª passada costuma trazer quartos que a ordenação por preço resume;
+  // mesclamos para o cliente ver todas as acomodações disponíveis.
+  acumular(itens, mapa, primeiraPassada);
 
-  // fallback: se por algum motivo a ordenação por preço não devolveu nada,
-  // mantém o resultado da 1ª passada.
-  const finais = itens.length ? itens : ((dados?.Items ?? []) as any[]);
-
-  return finais.map((h, i) => ({
+  return itens.map((h, i) => ({
     ...mapearHotel(h, i),
     recomendado: recomendados.has(chaveHotel(h)),
   }));

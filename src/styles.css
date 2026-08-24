@@ -2365,3 +2365,60 @@ body:has([data-chat-root]),
   .mkt .svcside {flex-direction:row;}
   .mkt .svcside .svcval {margin-bottom:0;}
 }
+
+/* ===== v3.1 — cards menos espremidos, botões de detalhe de volta ===== */
+.mkt .flightgrid,
+.mkt .hotelgrid,
+.mkt .svc {height:auto;min-height:166px;}
+.mkt .engine-media,
+.mkt .photo,
+.mkt .svcfoto {width:186px;height:auto;min-height:166px;align-self:stretch;}
+.mkt .flight-media {width:138px;height:auto;min-height:166px;align-self:stretch;}
+.mkt .flight-media .airline-badge {gap:7px;padding:10px;}
+.mkt .flight-media .airline-badge img,
+.mkt .flight-media .airline-badge .airlogo {width:34px;height:34px;}
+.mkt .flight-media .airline-badge span {font-size:9px;max-width:112px;}
+.mkt .engine-content,
+.mkt .flightmain,
+.mkt .hotelmain,
+.mkt .svcmain {padding:16px 18px;gap:4px;}
+.mkt .engine-action,
+.mkt .priceside,
+.mkt .hotelprice,
+.mkt .svcside {width:200px;padding:16px 18px;}
+
+/* botões de ação secundária padronizados (hotel, voo e serviço) */
+.mkt .more.solid-btn,
+.mkt .more.ghost-btn {
+  display:inline-flex;align-items:center;justify-content:center;
+  height:30px;padding:0 14px;border-radius:999px;
+  font-size:8.5px;font-weight:1000;text-transform:uppercase;letter-spacing:.6px;
+  white-space:nowrap;cursor:pointer;transition:.18s;
+}
+.mkt .more.solid-btn {background:rgba(242,107,31,.14);border:1px solid rgba(242,107,31,.38);color:#ffc47f;}
+.mkt .more.solid-btn:hover, .mkt .more.solid-btn.on {background:rgba(242,107,31,.24);color:#fff;}
+.mkt .more.ghost-btn {background:transparent;border:1px solid rgba(255,255,255,.14);color:#c9dae5;}
+.mkt .more.ghost-btn:hover {border-color:rgba(242,107,31,.45);color:#ffc47f;}
+.mkt .hotelmain .roomrow {margin-top:10px;padding-top:9px;}
+.mkt .roomacts {display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+
+/* voo: rodapé com o botão de detalhes */
+.mkt .flightmain .flightfoot-acts {display:flex;justify-content:flex-end;margin-top:8px;}
+
+/* serviço: topo com logo do fornecedor e ação de detalhes */
+.mkt .svcmain .svctopo {display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.mkt .svcmain .svclogo {height:22px;max-width:96px;object-fit:contain;border-radius:5px;background:#fff;padding:2px 4px;}
+.mkt .svcmain .svcforn {font-size:8px;font-weight:800;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;}
+.mkt .svcmain .svcacts {display:flex;margin-top:9px;}
+
+@media(max-width:780px){
+  .mkt .engine-media,
+  .mkt .photo,
+  .mkt .svcfoto,
+  .mkt .flight-media {width:100%;min-height:0;height:190px;}
+  .mkt .engine-action,
+  .mkt .priceside,
+  .mkt .hotelprice,
+  .mkt .svcside {width:100%;}
+  .mkt .roomacts {flex-wrap:wrap;}
+}
