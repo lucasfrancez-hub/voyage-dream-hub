@@ -80,6 +80,13 @@ export function ReservaFrtDialog({
             hotel?.buscaToken && hotel.buscaIndice !== undefined
               ? { token: hotel.buscaToken, indice: hotel.buscaIndice, quartoIndice }
               : null,
+          quartos: quartos.map((q) => ({
+            adultos: q.adultos,
+            criancas: q.criancas ?? 0,
+            bebes: q.bebes ?? 0,
+            idades: q.idades ?? [],
+          })),
+
           passageiros: pax.map((p) => ({
             nome: p.nome,
             sobrenome: p.sobrenome,
