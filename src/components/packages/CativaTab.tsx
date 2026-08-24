@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Search, PackageSearch, Plane, RefreshCw, Archive, ArchiveRestore, Route as RouteIcon, AlertTriangle } from "lucide-react";
+import { Loader2, Search, PackageSearch, Plane, RefreshCw, Archive, ArchiveRestore, Route as RouteIcon, AlertTriangle, ShieldCheck } from "lucide-react";
+import { confirm } from "@/lib/confirm";
 import {
   resumoCativa,
   listarPacotesCativa,
@@ -11,6 +12,7 @@ import {
   arquivarPacotesCativa,
   reprocessarLoteCativa,
   recalcularTudoCativa,
+  conferirSalvamentosCativa,
 } from "@/lib/cativa/cativa.functions";
 import { montarDraftsCativa, destinoComercial, type CativaDraft } from "@/lib/cativa/to-package-draft";
 
@@ -52,6 +54,8 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
   const reprocessarLote = useServerFn(reprocessarLoteCativa);
   const recalcularTudo = useServerFn(recalcularTudoCativa);
   const resumo = useServerFn(resumoCativa);
+  const conferir = useServerFn(conferirSalvamentosCativa);
+
 
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("");
@@ -64,6 +68,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
   const [modo, setModo] = useState<"pacotes" | "circuitos">("pacotes");
   const [incompletos, setIncompletos] = useState(false);
   const [corrigindo, setCorrigindo] = useState(false);
+  const [conferindo, setConferindo] = useState(false);
 
   const resumoQ = useQuery({
     queryKey: ["cativa-resumo-tab"],
@@ -243,6 +248,41 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
         >
           {corrigindo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
           Recalcular valores
+        </button>
+        <button
+          type="button"
+          disabled={conferindo}
+          onClick={async () => {
+            setConferindo(true);
+            try {
+              const r: any = await conferir({ data: {} });
+              if (!r?.naoSalvos) {
+                toast.success(`Tudo certo: ${r?.salvos ?? 0} pacote(s) salvos de fato.`);
+                return;
+              }
+              const nomes = (r.exemplos ?? [])
+                .map((e: any) => e.nome || e.destino || e.id)
+                .slice(0, 5)
+                .join(", ");
+              const ok = await confirm({
+                title: `${r.naoSalvos} pacote(s) não salvaram de fato`,
+                description: `Marcados como salvos, mas não estão no site${nomes ? `: ${nomes}${r.naoSalvos > 5 ? "…" : ""}` : ""}. Devolver para a lista para salvar de novo?`,
+                confirmText: "Devolver para a lista",
+              });
+              if (!ok) return;
+              const c: any = await conferir({ data: { corrigir: true } });
+              await Promise.all([q.refetch(), resumoQ.refetch()]);
+              toast.success(`${c?.corrigidos ?? 0} pacote(s) devolvidos para importar novamente`);
+            } catch (e: any) {
+              toast.error(e?.message || "Falha ao conferir salvamentos");
+            } finally {
+              setConferindo(false);
+            }
+          }}
+          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground transition hover:text-foreground disabled:opacity-60"
+        >
+          {conferindo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+          Conferir salvos
         </button>
         <button
           type="button"
