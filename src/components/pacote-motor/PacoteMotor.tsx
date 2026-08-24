@@ -121,8 +121,11 @@ export function PacoteMotor({
 
   useEffect(() => {
     if (hoteis.length && !hotel) {
-      setHotel(hoteis[0]);
-      setQuartoId(hoteis[0].quartos[0]?.id ?? null);
+      // O pacote recomendado deve partir do primeiro hotel recomendado,
+      // não do mais barato, quando a operadora sinaliza recomendação.
+      const recomendado = hoteis.find((h) => h.recomendado) ?? hoteis[0];
+      setHotel(recomendado);
+      setQuartoId(recomendado?.quartos[0]?.id ?? null);
     }
   }, [hoteis, hotel]);
   useEffect(() => {
@@ -134,10 +137,16 @@ export function PacoteMotor({
   const total =
     (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + (voo?.precoTotal ?? 0) + totalServicos;
 
+  // Base do pacote recomendado: usado no resumo para mostrar a diferença
+  // entre a montagem atual e a sugestão inicial da operadora.
+  const baseVooRecomendado = ofertas[0]?.precoTotal ?? 0;
+  const baseHotelRecomendado = hoteis[0]?.total ?? 0;
+  const baseTotalRecomendado = baseVooRecomendado + baseHotelRecomendado;
 
-  const baseVoo = ofertas[0]?.precoTotal ?? voo?.precoTotal ?? 0;
-  const baseHotel = hoteis[0]?.total ?? hotel?.total ?? 0;
-  const baseTotal = baseVoo + baseHotel;
+  // Base para os seletores: diferença em relação ao item atualmente selecionado,
+  // para que o cliente veja o impacto financeiro ao trocar de voo ou hotel.
+  const baseVoo = voo?.precoTotal ?? baseVooRecomendado;
+  const baseHotel = (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) || baseHotelRecomendado;
 
   const buscou = pacotes.isSuccess || voos.isSuccess;
   const carregando = pacotes.isPending || voos.isPending;
