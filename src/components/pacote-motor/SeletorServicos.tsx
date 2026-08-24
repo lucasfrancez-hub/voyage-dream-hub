@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { brl } from "@/lib/pacote-motor/mapear";
 import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import { GRUPOS_SERVICO, grupoServico } from "@/lib/pacote-motor/categorias";
+import { ServicoModal } from "@/components/pacote-motor/ServicoModal";
+
 
 /** Adicionar serviços — mesmo padrão: filtros | resultados | resumo. */
 export function SeletorServicos({
