@@ -25,7 +25,7 @@ import { statusAparelhoChat, renovarSessaoAparelhoChat } from "@/lib/chat/device
 import { ChatPinUnlock, ChatPinSetup } from "@/components/chat/ChatPinUnlock";
 import { tokenAppLembrado } from "@/lib/chat/app-token";
 import { AcessoProvider, useAcesso } from "@/lib/permissions/acesso";
-import { moduloDaRota } from "@/lib/permissions/modules";
+import { moduloDaRota, MODULOS } from "@/lib/permissions/modules";
 
 /** App instalado no celular (PWA em modo standalone). */
 function ehAppInstalado() {
@@ -415,7 +415,7 @@ function AdminLayout() {
     p.startsWith("/admin/pagamentos") ||
     p.startsWith("/admin/conta-bancaria") ||
     p.startsWith("/admin/comprovantes");
-  if (!isAdmin && adminOnly(pathname)) {
+  if (!isAdmin && role !== "equipe" && adminOnly(pathname)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
         <div>
@@ -568,7 +568,13 @@ function GateModulo({
   liberado: boolean;
   children: React.ReactNode;
 }) {
-  const { podeRota, carregando } = useAcesso();
+  const { podeRota, carregando, modulos } = useAcesso();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (liberado || carregando || pathname !== "/admin") return;
+    const primeiro = MODULOS.find((m) => modulos.includes(m.key));
+    if (primeiro?.paths[0]) navigate({ to: primeiro.paths[0] });
+  }, [liberado, carregando, pathname, modulos, navigate]);
   if (liberado) return <>{children}</>;
   if (carregando) {
     return (
