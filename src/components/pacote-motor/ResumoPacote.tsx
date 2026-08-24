@@ -1,3 +1,4 @@
+import { nomeCia } from "@/lib/pacote-motor/cia";
 import { brl, hora, plural, type HotelPacote, type OcupacaoQuarto, type QuartoPacote } from "@/lib/pacote-motor/mapear";
 import { somaOcupacao } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
@@ -67,7 +68,7 @@ export function ResumoPacote({
   const pax = somaOcupacao(quartos);
   const parcelamento = useParcelamentoPacote();
   const volta = oferta?.voltas?.[0] ?? null;
-  const companhia = oferta?.ida.companhia || oferta?.ida.companhiaIata || "";
+  const companhia = oferta ? nomeCia(oferta.ida.companhiaIata, oferta.ida.companhia) : "";
 
   return (
     <aside className="summary package-summary">
