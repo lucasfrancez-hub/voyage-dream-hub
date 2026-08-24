@@ -179,22 +179,43 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
   let localizadorHotel: string | null = null;
   const hotelOrc = orc?.Hoteis?.[0] ?? null;
   if (hotelOrc) {
-    const corpo = { ...hotelOrc, CientePolitica: true };
-    const res = await chamarCompreFacil("/api/Hotel/reservar", {
+    // O portal da operadora sempre consulta a política antes de reservar:
+    // PATCH /api/hotel/politica/{reservaId}/{hotelId} devolve o objeto `Politica`
+    // que é justamente o corpo aceito por POST /api/Hotel/reservar.
+    const pol = await chamarCompreFacil(`/api/hotel/politica/${orcamentoId}/${hotelOrc.Id}`, {
       base: COMPREFACIL_BASES.hotel,
-      method: "POST",
-      body: corpo,
+      method: "PATCH",
+      body: {},
     });
-    const d: any = res.dados ?? {};
-    localizadorHotel = d?.Localizador ?? d?.LocalizadorHotel ?? d?.Hotel?.Localizador ?? null;
+    const dp: any = pol.dados ?? {};
+    const politica = dp?.Politica ?? dp?.politica ?? null;
     registrar(
-      "Reservar hospedagem",
-      Boolean(localizadorHotel),
-      localizadorHotel
-        ? `Localizador ${localizadorHotel}`
-        : "A operadora não concluiu a reserva do hotel — finalize pelo portal da FRT com o orçamento criado.",
+      "Consultar política da hospedagem",
+      Boolean(politica),
+      politica ? (politica?.Mensagem ?? "Política recebida") : "Operadora não devolveu a política",
     );
+
+    if (politica) {
+      const res = await chamarCompreFacil("/api/Hotel/reservar", {
+        base: COMPREFACIL_BASES.hotel,
+        method: "POST",
+        body: { ...politica, CientePolitica: true },
+      });
+      const d: any = res.dados ?? {};
+      localizadorHotel =
+        d?.Hotel?.Localizador ?? d?.Localizador ?? d?.LocalizadorHotel ?? d?.Hotel?.LocalizadorHotel ?? null;
+      registrar(
+        "Reservar hospedagem",
+        Boolean(localizadorHotel),
+        localizadorHotel
+          ? `Localizador ${localizadorHotel}`
+          : (d?.Hotel?.Mensagem ??
+            d?.message ??
+            "A operadora não concluiu a reserva do hotel — finalize pelo portal da FRT com o orçamento criado."),
+      );
+    }
   }
+
 
   const ok = passos.every((p) => p.ok);
   await registrarReservaFRT({
