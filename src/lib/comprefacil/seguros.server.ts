@@ -85,15 +85,23 @@ export async function buscarSegurosCF(p: {
   const guid = (dados?.MetaData?.Guid as string | undefined) ?? null;
 
   if (guid) {
-    for (let i = 0; i < 6; i++) {
+    let vazioSeguido = 0;
+    for (let i = 0; i < 12; i++) {
       await espera(2500);
       const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
-      dados = r.dados;
-      const meta = dados?.MetaData;
-      const total = Number(meta?.TotalItens ?? 0);
-      if (ativas(meta) === 0 && total > 0) break;
-      if (ativas(meta) === 0 && i >= 1) break;
+      const novos = ((r.dados as any)?.Items ?? (r.dados as any)?.Itens ?? []) as any[];
+      const atuais = (dados?.Items ?? dados?.Itens ?? []) as any[];
+      if (novos.length >= atuais.length) dados = r.dados;
+      const meta = (r.dados as any)?.MetaData;
+      if (novos.length > 0 && ativas(meta) === 0) break;
+      if (ativas(meta) === 0 && novos.length === 0) {
+        vazioSeguido++;
+        if (vazioSeguido >= 3) break;
+      } else {
+        vazioSeguido = 0;
+      }
     }
+
   }
 
   const itens: any[] = (dados?.Items ?? dados?.Itens ?? dados?.Seguros ?? []) as any[];
