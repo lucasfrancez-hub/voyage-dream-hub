@@ -159,8 +159,11 @@ export async function buscarPacotesCF(filtros: FiltrosBuscaCF): Promise<{
   if (filtros.somenteCircuito) q = q.eq("circuito", true);
   if (filtros.incluirSobPedido === false) q = q.eq("sob_pedido", false);
   // pacote precisa estar válido dentro do período pedido
-  if (filtros.dataDe) q = q.or(`validade_ate.is.null,validade_ate.gte.${filtros.dataDe}`);
-  if (filtros.dataAte) q = q.or(`validade_de.is.null,validade_de.lte.${filtros.dataAte}`);
+  // (quando a operadora respondeu ao vivo, ela já filtrou o período)
+  if (!vivo.ok) {
+    if (filtros.dataDe) q = q.or(`validade_ate.is.null,validade_ate.gte.${filtros.dataDe}`);
+    if (filtros.dataAte) q = q.or(`validade_de.is.null,validade_de.lte.${filtros.dataAte}`);
+  }
 
   switch (filtros.ordenar) {
     case "preco":
