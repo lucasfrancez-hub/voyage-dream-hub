@@ -23,7 +23,12 @@ const semAcento = (v: string) =>
 export function grupoServico(s: { categoria?: string | null; titulo?: string | null }): GrupoServico {
   const t = semAcento(`${s.categoria ?? ""} ${s.titulo ?? ""}`);
 
-  if (/\bseguro\b|\bseguros\b|assist[e|ê]ncia|assist card|protecao viagem|travel ace|coris|intermac|affinity|gta\b|cobertura medica/.test(t))\n    return "Seguro viagem";
+  if (
+    /\bseguro\b|\bseguros\b|assistencia|assist card|protecao viagem|travel ace|coris|intermac|affinity|\bgta\b|cobertura medica/.test(
+      t,
+    )
+  )
+    return "Seguro viagem";
   if (/ingresso|ticket|entrada para|park hopper/.test(t)) return "Ingressos";
 
   if (/transfer|traslado|transla/.test(t)) {
