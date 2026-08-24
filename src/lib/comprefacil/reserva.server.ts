@@ -8,7 +8,9 @@
  *   4. GET  /api/aereo/{aereoId}/TemDuplicidade  → checa duplicidade
  *   5. POST /api/Aereo/tarifar/{aereoId}         → revalida a tarifa
  *   6. POST /api/aereo/reservar/{aereoId}        → gera o PNR (LocalizadorAereo)
- *   7. POST /api/Hotel/reservar                  → reserva a hospedagem
+ *   7. PATCH /api/hotel/politica/{oid}/{hid}    → política do hotel (corpo da reserva)
+ *   8. POST /api/Hotel/reservar                  → reserva a hospedagem
+
  */
 import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.server";
 import { itemBrutoCF } from "./busca-cache.server";
@@ -36,10 +38,13 @@ export type PaxReserva = {
 export type EntradaReservaFRT = {
   aereo?: { token: string; indice: number } | null;
   hotel?: { token: string; indice: number; quartoIndice?: number | null } | null;
+  /** distribuição usada na busca — o orçamento precisa dela para casar os quartos */
+  quartos?: { adultos: number; criancas?: number; bebes?: number; idades?: number[] }[] | null;
   passageiros: PaxReserva[];
   consultorId?: number | null;
   observacao?: string | null;
 };
+
 
 export type PassoReserva = { passo: string; ok: boolean; detalhe?: string | null };
 
@@ -105,6 +110,16 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
 
   const pessoas = e.passageiros.map((p, i) => pessoa(p, i + 1));
 
+  // Mesma distribuição enviada na busca (o portal repassa `quartos` no orçamento).
+  const quartosOrcamento = (
+    e.quartos?.length ? e.quartos : [{ adultos: Math.max(1, e.passageiros.filter((p) => (p.tipo ?? 0) === 0).length) }]
+  ).map((q, i) => {
+    const idades = [...(q.idades ?? [])];
+    while (idades.length < (q.criancas ?? 0)) idades.push(7);
+    for (let b = 0; b < (q.bebes ?? 0); b++) idades.push(0);
+    return { NumeroPesquisa: i + 1, Qtde: 1, Adultos: Math.max(1, q.adultos || 1), Criancas: idades };
+  });
+
   const criar = await chamarCompreFacil("/api/Reserva/", {
     method: "POST",
     body: {
@@ -116,10 +131,12 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
       Hoteis: hotelBruto ? [hotelBruto] : [],
       Servicos: [],
       Seguros: [],
+      ...(hotelBruto ? { quartos: quartosOrcamento } : {}),
       Pessoas: pessoas.map((p) => ({ ...p, Nome: "", Sobrenome: "" })),
       ...(e.observacao ? { Observacao: e.observacao } : {}),
     },
   });
+
   const orcamentoId = Number((criar.dados as any)?.Id ?? 0) || null;
   registrar("Criar orçamento na operadora", Boolean(orcamentoId), orcamentoId ? `#${orcamentoId}` : "Falha ao criar");
   if (!orcamentoId) {
@@ -179,22 +196,43 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
   let localizadorHotel: string | null = null;
   const hotelOrc = orc?.Hoteis?.[0] ?? null;
   if (hotelOrc) {
-    const corpo = { ...hotelOrc, CientePolitica: true };
-    const res = await chamarCompreFacil("/api/Hotel/reservar", {
+    // O portal da operadora sempre consulta a política antes de reservar:
+    // PATCH /api/hotel/politica/{reservaId}/{hotelId} devolve o objeto `Politica`
+    // que é justamente o corpo aceito por POST /api/Hotel/reservar.
+    const pol = await chamarCompreFacil(`/api/hotel/politica/${orcamentoId}/${hotelOrc.Id}`, {
       base: COMPREFACIL_BASES.hotel,
-      method: "POST",
-      body: corpo,
+      method: "PATCH",
+      body: {},
     });
-    const d: any = res.dados ?? {};
-    localizadorHotel = d?.Localizador ?? d?.LocalizadorHotel ?? d?.Hotel?.Localizador ?? null;
+    const dp: any = pol.dados ?? {};
+    const politica = dp?.Politica ?? dp?.politica ?? null;
     registrar(
-      "Reservar hospedagem",
-      Boolean(localizadorHotel),
-      localizadorHotel
-        ? `Localizador ${localizadorHotel}`
-        : "A operadora não concluiu a reserva do hotel — finalize pelo portal da FRT com o orçamento criado.",
+      "Consultar política da hospedagem",
+      Boolean(politica),
+      politica ? (politica?.Mensagem ?? "Política recebida") : "Operadora não devolveu a política",
     );
+
+    if (politica) {
+      const res = await chamarCompreFacil("/api/Hotel/reservar", {
+        base: COMPREFACIL_BASES.hotel,
+        method: "POST",
+        body: { ...politica, CientePolitica: true },
+      });
+      const d: any = res.dados ?? {};
+      localizadorHotel =
+        d?.Hotel?.Localizador ?? d?.Localizador ?? d?.LocalizadorHotel ?? d?.Hotel?.LocalizadorHotel ?? null;
+      registrar(
+        "Reservar hospedagem",
+        Boolean(localizadorHotel),
+        localizadorHotel
+          ? `Localizador ${localizadorHotel}`
+          : (d?.Hotel?.Mensagem ??
+            d?.message ??
+            "A operadora não concluiu a reserva do hotel — finalize pelo portal da FRT com o orçamento criado."),
+      );
+    }
   }
+
 
   const ok = passos.every((p) => p.ok);
   await registrarReservaFRT({
