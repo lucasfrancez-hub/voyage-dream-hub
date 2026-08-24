@@ -128,8 +128,18 @@ export function SeletorServicos({
 
           {lista.map((s) => {
             const sel = selecionados.includes(s.id);
+            const capa = s.imagens?.[0] ?? s.imagem ?? null;
             return (
               <article key={s.id} className={`svc${sel ? " selected" : ""}`}>
+                {capa ? (
+                  <button
+                    type="button"
+                    className="svcfoto"
+                    style={{ backgroundImage: `url('${capa}')` }}
+                    aria-label={`Ver detalhes de ${s.titulo}`}
+                    onClick={() => setDetalhe(s)}
+                  />
+                ) : null}
                 <div className="svcmain">
                   <div className="svchead">
                     <span className="svccat">{grupoServico(s)}</span>
@@ -151,6 +161,9 @@ export function SeletorServicos({
                       {s.politica.length > 150 ? `${s.politica.slice(0, 150)}…` : s.politica}
                     </small>
                   ) : null}
+                  <button type="button" className="svcmais" onClick={() => setDetalhe(s)}>
+                    Ver mais detalhes
+                  </button>
                 </div>
                 <div className="svcside">
                   <div className="svcval">{s.valor != null ? `+ ${brl(s.valor, s.moeda)}` : "Sob consulta"}</div>
@@ -166,6 +179,7 @@ export function SeletorServicos({
               </article>
             );
           })}
+
         </div>
 
         {resumo}
