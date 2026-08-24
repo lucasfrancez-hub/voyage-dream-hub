@@ -8,6 +8,7 @@
 const BASE = "https://api.comprefacil.tur.br";
 const CLIENT_ID = "portaloperadora:2026";
 const FINGERPRINT = "viaair-servidor-01";
+const TEMPO_LIMITE_REQUISICAO_MS = 20_000;
 
 type Sessao = { token: string; expiraEm: number; agenciaId: string | null; usuarioId: string | null };
 
@@ -291,16 +292,25 @@ export async function chamarCompreFacil(
 ): Promise<{ status: number; ok: boolean; dados: unknown }> {
   const { token } = await sessaoCompreFacil();
   const url = `${init.base ?? BASE}${path}`;
-  const resp = await fetch(url, {
-    method: init.method ?? "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      fingerprint: FINGERPRINT,
-      ...(init.headers ?? {}),
-    },
-    ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: init.method ?? "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        fingerprint: FINGERPRINT,
+        ...(init.headers ?? {}),
+      },
+      ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+      signal: AbortSignal.timeout(TEMPO_LIMITE_REQUISICAO_MS),
+    });
+  } catch (erro) {
+    if (erro instanceof Error && (erro.name === "TimeoutError" || erro.name === "AbortError")) {
+      throw new Error("A operadora demorou para responder. Tente a busca novamente.");
+    }
+    throw erro;
+  }
 
   const texto = await resp.text();
   let dados: unknown = texto;

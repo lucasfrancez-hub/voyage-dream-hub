@@ -159,6 +159,18 @@ export function PacoteMotor({
   // para o cliente não ficar olhando uma tela em branco.
   const buscou = pacotes.isSuccess || voos.isSuccess || carregando;
 
+  // A operadora pode manter uma conexão aberta mesmo depois de parar de
+  // processar. A tela não deve permanecer eternamente no esqueleto nesse caso.
+  useEffect(() => {
+    if (!carregando) return;
+    const limite = window.setTimeout(() => {
+      if (pacotes.isPending) pacotes.reset();
+      if (voos.isPending) voos.reset();
+      toast.error("A busca demorou mais que o esperado. Tente novamente.");
+    }, 75_000);
+    return () => window.clearTimeout(limite);
+  }, [carregando, pacotes.isPending, voos.isPending]);
+
   const noites = useMemo(() => {
     if (!ida || !volta) return null;
     const d = Math.round((new Date(volta).getTime() - new Date(ida).getTime()) / 86400000);
