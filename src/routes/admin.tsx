@@ -533,7 +533,10 @@ function AdminLayout() {
 
       </header>
 
-      <GateModulo pathname={pathname} liberado={isAdmin}>
+      {/* Parceiros já passaram pelo gate `partnerAllowed` acima e não recebem
+          módulos — o gate por módulo vale só para contas de equipe. */}
+      <GateModulo pathname={pathname} liberado={isAdmin || isPartner}>
+
         <Outlet />
       </GateModulo>
       <DocumentoViewer />
