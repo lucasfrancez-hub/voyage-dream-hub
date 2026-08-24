@@ -102,6 +102,7 @@ export function PacoteMotor({
           data: ida,
           adultos: pax.adultos,
           idades: quartos.flatMap((q) => q.idades),
+          destino: destino || null,
         },
       }),
   });
