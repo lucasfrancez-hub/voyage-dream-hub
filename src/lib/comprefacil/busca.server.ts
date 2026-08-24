@@ -141,6 +141,9 @@ export async function buscarPacotesCF(filtros: FiltrosBuscaCF): Promise<{
     )
     .eq("ativo", true);
 
+  // Quando a operadora respondeu, o resultado é exatamente o que ela ofereceu no período
+  if (vivo.ok) q = q.in("externo_id", vivo.ids.length ? vivo.ids : [-1]);
+
   const termo = filtros.termo?.trim();
   if (termo) {
     const b = `%${termo}%`;
