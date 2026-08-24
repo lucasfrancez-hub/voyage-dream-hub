@@ -13,6 +13,8 @@ export const reservarPacoteFRT = createServerFn({ method: "POST" })
     (input: {
       aereo?: { token: string; indice: number } | null;
       hotel?: { token: string; indice: number; quartoIndice?: number | null } | null;
+      quartos?: { adultos: number; criancas?: number; bebes?: number; idades?: number[] }[] | null;
+
       consultorId?: number | null;
       observacao?: string | null;
       passageiros: {
