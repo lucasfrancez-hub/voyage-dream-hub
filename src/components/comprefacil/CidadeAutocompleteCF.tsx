@@ -75,7 +75,7 @@ export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder, publ
           )}
           {itens.map((c) => (
             <button
-              key={`${c.nome}-${c.cidadeId ?? "s"}`}
+              key={`${c.nome}-${c.iata ?? "s"}-${c.cidadeId ?? "s"}`}
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
@@ -88,12 +88,18 @@ export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder, publ
               <span className="flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5 text-primary" />
                 {c.nome}
+                {c.iata && (
+                  <span className="rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-primary">
+                    {c.iata}
+                  </span>
+                )}
               </span>
               <span className="text-xs text-muted-foreground">
                 {c.total > 0 ? `${c.total} pacotes` : "consultar"}
               </span>
             </button>
           ))}
+
         </div>
       )}
     </div>
