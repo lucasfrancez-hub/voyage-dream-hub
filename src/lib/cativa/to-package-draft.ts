@@ -127,10 +127,12 @@ const DESTINO_CANONICO: Record<string, string> = {
   "bonito": "Bonito", "brasilia": "Brasília", "belem": "Belém", "manaus": "Manaus",
   "curitiba": "Curitiba", "belo horizonte": "Belo Horizonte", "cabo frio": "Cabo Frio",
   "buzios": "Búzios", "angra dos reis": "Angra dos Reis", "paraty": "Paraty",
-  "ubatuba": "Ubatuba", "guaruja": "Guarujá", "torres": "Torres", "gramado": "Gramado",
+  "ubatuba": "Ubatuba", "guaruja": "Guarujá", "torres": "Torres",
   "santos": "Santos", "olinda": "Olinda", "maragogi": "Maragogi", "japaratinga": "Japaratinga",
   "trancoso": "Trancoso", "itacare": "Itacaré", "praia do forte": "Praia do Forte",
-  "lisboa": "Lisboa", "porto": "Porto", "santiago do chile": "Santiago",
+  "porto": "Porto",
+};
+
 
 
 const MINUSCULAS_TITULO = new Set(["de", "da", "do", "das", "dos", "e", "em", "na", "no", "a", "o"]);
