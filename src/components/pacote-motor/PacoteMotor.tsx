@@ -172,7 +172,10 @@ export function PacoteMotor({
   /** Preset vindo da URL (/voar?m=combo&...): já dispara a busca ao abrir. */
   useEffect(() => {
     if (!preset) return;
-    if (preset.cidadeId && preset.ida) pacotes.mutate();
+    if (preset.cidadeId && preset.ida) {
+      pacotes.mutate();
+      servicos.mutate();
+    }
     if (preset.origemIata && preset.destinoIata && preset.ida) voos.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -181,16 +184,28 @@ export function PacoteMotor({
     setHotel(null);
     setVoo(null);
     setQuartoId(null);
+    setServicosSel([]);
     setVista("overview");
-    if (cidadeId && ida) pacotes.mutate();
+    if (cidadeId && ida) {
+      pacotes.mutate();
+      servicos.mutate();
+    }
     if (origemIata && destinoIata && ida) voos.mutate();
   }
 
-  const totalComVoo = (o: PassHubOferta) => (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + o.precoTotal;
+  const totalComVoo = (o: PassHubOferta) =>
+    (hotel?.total ?? 0) + (quarto?.diferenca ?? 0) + o.precoTotal + totalServicos;
   const totalComHotel = (h: HotelPacote, qId: string | null) => {
     const q = h.quartos.find((x) => x.id === qId) ?? h.quartos[0] ?? null;
-    return h.total + (q?.diferenca ?? 0) + (voo?.precoTotal ?? 0);
+    return h.total + (q?.diferenca ?? 0) + (voo?.precoTotal ?? 0) + totalServicos;
   };
+
+  function alternarServico(s: ServicoDisponivel) {
+    setServicosSel((atual) =>
+      atual.some((x) => x.id === s.id) ? atual.filter((x) => x.id !== s.id) : [...atual, s],
+    );
+  }
+
 
   /** Gera o link de pagamento (mesmo checkout dos pacotes prontos). */
   const checkout = useMutation({
