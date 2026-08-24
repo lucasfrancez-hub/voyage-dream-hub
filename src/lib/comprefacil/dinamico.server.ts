@@ -39,6 +39,17 @@ const FILTRO_HOTEL = {
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Teto de segurança: nunca puxar mais que isso, mesmo que a operadora ofereça. */
+const MAX_ITENS = 600;
+const MAX_PAGINAS = 20;
+
+/** Quantas páginas ainda faltam depois da primeira, segundo o MetaData da operadora. */
+function paginasRestantes(meta: any, porPagina: number, jaLidos: number): number {
+  const total = Math.min(MAX_ITENS, Number(meta?.TotalItens ?? 0) || 0);
+  if (total <= jaLidos) return 0;
+  return Math.min(MAX_PAGINAS - 1, Math.ceil((total - jaLidos) / porPagina));
+}
+
 function buscasAtivas(meta: any): number {
   const bruto = meta?.BuscasAtivas;
   if (!bruto || bruto === "null") return 0;
@@ -86,7 +97,7 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
     FiltroAereo: FILTRO_AEREO,
   });
 
-  const porPagina = p.porPagina ?? 50;
+  const porPagina = p.porPagina ?? 100;
   const rota = `/api/Aereo/busca?Pagina=1&ItensPorPagina=${porPagina}`;
   const base = COMPREFACIL_BASES.aereo;
 
@@ -104,7 +115,23 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
     if (buscasAtivas(meta) === 0 && i > 1) break;
   }
 
-  const itens: any[] = dados?.Aereos?.Items ?? [];
+  const itens: any[] = [...(dados?.Aereos?.Items ?? [])];
+
+  // A busca já terminou (mesmo Guid): varre as páginas seguintes para trazer
+  // TODAS as ofertas que a operadora tem, não só a primeira página.
+  const metaFinal = dados?.Aereos?.MetaData;
+  const faltam = paginasRestantes(metaFinal, porPagina, itens.length);
+  for (let pagina = 2; pagina <= faltam + 1; pagina++) {
+    const r = await chamarCompreFacil(
+      `/api/Aereo/busca?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
+      { base, method: "POST", body: corpo(guid) },
+    );
+    const lote: any[] = (r.dados as any)?.Aereos?.Items ?? [];
+    if (!lote.length) break;
+    itens.push(...lote);
+    if (itens.length >= MAX_ITENS) break;
+  }
+
   return itens.map((it, idx) => mapearOfertaAereo(it, idx)).filter(Boolean) as PassHubOferta[];
 }
 
@@ -223,7 +250,7 @@ function distribuicaoQuartos(p: BuscaHotelCF) {
 export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacote[]> {
   const ses = await sessaoCompreFacil();
   const agenciaId = Number(ses.agenciaId ?? 0);
-  const porPagina = p.porPagina ?? 30;
+  const porPagina = p.porPagina ?? 100;
   const rota = `/api/Hotel/buscaasync?Pagina=1&ItensPorPagina=${porPagina}`;
   const base = COMPREFACIL_BASES.hotel;
 
@@ -259,7 +286,27 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     if (buscasAtivas(meta) === 0 && i > 1) break;
   }
 
-  const itens: any[] = dados?.Items ?? [];
+  const itens: any[] = [...(dados?.Items ?? [])];
+
+  // Idem hotelaria: a operadora devolve centenas de hotéis paginados.
+  const faltamH = paginasRestantes(dados?.MetaData, porPagina, itens.length);
+  const vistos = new Set(itens.map((h) => `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`));
+  for (let pagina = 2; pagina <= faltamH + 1; pagina++) {
+    const r = await chamarCompreFacil(
+      `/api/Hotel/buscaasync?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
+      { base, method: "POST", body: corpo(guid) },
+    );
+    const lote: any[] = (r.dados as any)?.Items ?? [];
+    if (!lote.length) break;
+    for (const h of lote) {
+      const chave = `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`;
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      itens.push(h);
+    }
+    if (itens.length >= MAX_ITENS) break;
+  }
+
   return itens.map((h, i) => mapearHotel(h, i));
 }
 
