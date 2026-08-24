@@ -128,7 +128,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
         console.error(e);
         setErro(
           String((e as Error)?.message || "").includes("TRIPADVISOR_RATE_LIMIT")
-            ? "Limite de consultas do TripAdvisor atingido. Aguarde alguns minutos, cole o link do hotel ou use o modo Manual."
+            ? "Muitas consultas ao TripAdvisor ao mesmo tempo. Tente de novo em alguns segundos, cole o link do hotel ou use o modo Manual."
             : "Não foi possível consultar o TripAdvisor agora.",
         );
         setItems([]);
@@ -190,7 +190,7 @@ export function HotelAutocomplete({ value, onChangeText, onSelect, placeholder, 
       console.error(e);
       setErro(
         String((e as Error)?.message || "").includes("TRIPADVISOR_RATE_LIMIT")
-          ? "Limite de consultas do TripAdvisor atingido. Aguarde alguns minutos, cole o link do hotel ou use o modo Manual."
+          ? "Muitas consultas ao TripAdvisor ao mesmo tempo. Tente de novo em alguns segundos, cole o link do hotel ou use o modo Manual."
           : "Não foi possível consultar o TripAdvisor agora.",
       );
     } finally {
