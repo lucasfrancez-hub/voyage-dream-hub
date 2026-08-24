@@ -24,6 +24,7 @@ import {
   setAdminUserPassword,
   type AdminRole,
 } from "@/lib/admin-users.functions";
+import { ModulosUsuarioDialog } from "@/components/admin/ModulosUsuarioDialog";
 
 export const Route = createFileRoute("/admin/usuarios")({
   component: UsersPage,
@@ -110,6 +111,7 @@ function UsersPage() {
   const [agencyName, setAgencyName] = useState("");
   const [role, setNewRole] = useState<AdminRole>("user");
   const [passwordUser, setPasswordUser] = useState<{ id: string; email: string } | null>(null);
+  const [modulosUser, setModulosUser] = useState<{ id: string; email: string; fullName: string | null } | null>(null);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -169,6 +171,7 @@ function UsersPage() {
             <span className="block text-xs text-muted-foreground mb-1.5">Permissão</span>
             <select value={role} onChange={(e) => setNewRole(e.target.value as AdminRole)} className={cls}>
               <option value="user">Operador</option>
+              <option value="gestor">Gestor (vê tudo da equipe)</option>
               <option value="admin">Admin</option>
               <option value="partner">Terceiro (agência parceira)</option>
             </select>
@@ -223,6 +226,7 @@ function UsersPage() {
               onResend={() => resendMut.mutate(u.email)}
               onConfirmEmail={() => confirmMut.mutate(u.id)}
               onSetPassword={() => setPasswordUser({ id: u.id, email: u.email })}
+              onModulos={() => setModulosUser({ id: u.id, email: u.email, fullName: u.fullName })}
               onDelete={() => confirmThen({ title: "Remover usuário", description: `Remover ${u.email}?`, confirmText: "Remover", destructive: true }, () => delMut.mutate(u.id))}
             />
           ))}
@@ -231,6 +235,7 @@ function UsersPage() {
           )}
         </div>
       </section>
+      <ModulosUsuarioDialog usuario={modulosUser} onFechar={() => setModulosUser(null)} />
       <SetPasswordDialog
         user={passwordUser}
         saving={pwdMut.isPending}
@@ -299,6 +304,7 @@ function UserRow({
   onResend,
   onConfirmEmail,
   onSetPassword,
+  onModulos,
   onDelete,
 }: {
   user: {
@@ -319,6 +325,7 @@ function UserRow({
   onResend: () => void;
   onConfirmEmail: () => void;
   onSetPassword: () => void;
+  onModulos: () => void;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(user.fullName ?? "");
@@ -366,6 +373,7 @@ function UserRow({
         className="rounded-full border border-border bg-background px-3 py-1.5 text-xs"
       >
         <option value="user">Operador</option>
+        <option value="gestor">Gestor</option>
         <option value="admin">Admin</option>
         <option value="partner">Terceiro</option>
       </select>
@@ -393,6 +401,14 @@ function UserRow({
             Confirmar e-mail
           </button>
         )}
+        <button
+          type="button"
+          onClick={onModulos}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-brand-orange hover:text-brand-orange transition"
+          title="Definir quais menus este usuário pode acessar"
+        >
+          <ShieldCheck className="h-3.5 w-3.5" /> Módulos
+        </button>
         <button
           type="button"
           onClick={onSetPassword}
