@@ -119,7 +119,19 @@ const DESTINO_CANONICO: Record<string, string> = {
   "gramado": "Gramado", "foz do iguacu": "Foz do Iguaçu", "sao paulo": "São Paulo",
   "rio de janeiro": "Rio de Janeiro", "nova york": "Nova York", "new york": "Nova York",
   "miami": "Miami", "aruba": "Aruba", "curacao": "Curaçao", "montevideu": "Montevidéu",
-};
+  "aracaju": "Aracaju", "joao pessoa": "João Pessoa", "sao luis": "São Luís",
+  "jericoacoara": "Jericoacoara", "arraial d ajuda": "Arraial d'Ajuda",
+  "morro de sao paulo": "Morro de São Paulo", "ilheus": "Ilhéus", "vitoria": "Vitória",
+  "balneario camboriu": "Balneário Camboriú", "florianopolis": "Florianópolis",
+  "campos do jordao": "Campos do Jordão", "caldas novas": "Caldas Novas",
+  "bonito": "Bonito", "brasilia": "Brasília", "belem": "Belém", "manaus": "Manaus",
+  "curitiba": "Curitiba", "belo horizonte": "Belo Horizonte", "cabo frio": "Cabo Frio",
+  "buzios": "Búzios", "angra dos reis": "Angra dos Reis", "paraty": "Paraty",
+  "ubatuba": "Ubatuba", "guaruja": "Guarujá", "torres": "Torres", "gramado": "Gramado",
+  "santos": "Santos", "olinda": "Olinda", "maragogi": "Maragogi", "japaratinga": "Japaratinga",
+  "trancoso": "Trancoso", "itacare": "Itacaré", "praia do forte": "Praia do Forte",
+  "lisboa": "Lisboa", "porto": "Porto", "santiago do chile": "Santiago",
+
 
 const MINUSCULAS_TITULO = new Set(["de", "da", "do", "das", "dos", "e", "em", "na", "no", "a", "o"]);
 
