@@ -331,7 +331,7 @@ export function PacoteMotor({
       <div className="shell">
         {/* Mesma linguagem visual das abas Aéreo/Hotel: card do design system,
             labels com ícone, calendário e seletor de hóspedes padrão. */}
-        <section className="w-full overflow-hidden rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
+        <section className="w-full overflow-hidden rounded-[32px] border border-border/50 bg-card/60 p-6 font-sans text-base text-foreground shadow-2xl backdrop-blur-xl md:p-8">
           <div className="grid w-full min-w-0 items-end gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto]">
             <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
