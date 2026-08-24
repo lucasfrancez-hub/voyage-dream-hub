@@ -126,9 +126,11 @@ export async function buscarPacotesCF(filtros: FiltrosBuscaCF): Promise<{
   const pagina = Math.max(1, filtros.pagina ?? 1);
   const porPagina = Math.min(60, Math.max(6, filtros.porPagina ?? PADRAO_POR_PAGINA));
 
-  let encontradosAoVivo = 0;
-  const tentouAoVivo = Boolean(filtros.aoVivo && filtros.termo && filtros.termo.trim().length >= 3);
-  if (tentouAoVivo) encontradosAoVivo = await refrescarBuscaAoVivo(filtros.termo!.trim());
+  // Consulta sempre o buscador oficial da operadora (termo + período pedido)
+  const termoVivo = (filtros.termo?.trim() || filtros.cidade?.trim() || "").trim();
+  const vivo = await refrescarBuscaAoVivo(termoVivo, filtros.dataDe ?? "", filtros.dataAte ?? "");
+  const encontradosAoVivo = vivo.ids.length;
+  const tentouAoVivo = true;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   let q = supabaseAdmin
