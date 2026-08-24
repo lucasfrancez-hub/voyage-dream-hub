@@ -273,8 +273,15 @@ export function SeletorHospedagem({
                         </span>
                       </div>
                       <div className="roomacts">
-                        <button type="button" className="more" onClick={() => setAberto(expandido ? null : h.id)}>
-                          {expandido ? "Fechar quartos ⌃" : "Alterar quarto ⌄"}
+                        <button type="button" className="more ghost-btn" onClick={() => setSobre(h)}>
+                          Sobre o hotel
+                        </button>
+                        <button
+                          type="button"
+                          className={`more solid-btn${expandido ? " on" : ""}`}
+                          onClick={() => setAberto(expandido ? null : h.id)}
+                        >
+                          {expandido ? "Fechar quartos" : `Alterar quarto${h.quartos.length > 1 ? ` (${h.quartos.length})` : ""}`}
                         </button>
                       </div>
                     </div>
