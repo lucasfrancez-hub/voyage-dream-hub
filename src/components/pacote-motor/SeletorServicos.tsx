@@ -186,6 +186,16 @@ export function SeletorServicos({
 
         {resumo}
       </div>
+
+      {detalhe ? (
+        <ServicoModal
+          servico={detalhe}
+          selecionado={selecionados.includes(detalhe.id)}
+          onAlternar={onAlternar}
+          onFechar={() => setDetalhe(null)}
+        />
+      ) : null}
     </section>
+
   );
 }
