@@ -176,13 +176,18 @@ export function SeletorVoo({
   const [aberta, setAberta] = useState<string | null>(null);
 
   const opcoes = useMemo(() => {
-    const cia = new Set<string>();
+    const cia = new Map<string, string>();
     const fam = new Set<string>();
     const forn = new Set<string>();
     const conx = new Set<string>();
     for (const o of ofertas) {
       for (const v of [o.ida, ...(o.voltas ?? [])]) {
-        if (v.companhiaIata) cia.add(v.companhiaIata);
+        if (v.companhiaIata) {
+          // rótulo sempre pelo nome da companhia (nacional ou internacional)
+          const nome = nomeCia(v.companhiaIata, (v as any).companhia ?? null);
+          const atual = cia.get(v.companhiaIata);
+          if (!atual || atual.length <= 3) cia.set(v.companhiaIata, nome);
+        }
         if (v.familiaTarifaria) fam.add(v.familiaTarifaria);
         if (v.provedor) forn.add(v.provedor);
         for (const c of (v.conexoes ?? []) as any[]) {
@@ -191,7 +196,9 @@ export function SeletorVoo({
       }
     }
     return {
-      cias: [...cia].sort(),
+      cias: [...cia.entries()]
+        .map(([v, l]) => ({ v, l }))
+        .sort((a, b) => a.l.localeCompare(b.l, "pt-BR")),
       familias: [...fam].sort(),
       fornecedores: [...forn].sort(),
       conexoes: [...conx].sort(),
