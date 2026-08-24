@@ -27,6 +27,7 @@ import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
 
 import { PublicEngineProvider } from "@/lib/public-engine";
 import { PacoteMotor } from "@/components/pacote-motor/PacoteMotor";
+import type { PacotePreset } from "@/lib/pacote-motor/preset";
 
 
 
@@ -298,6 +299,7 @@ export function SearchEngine({
   presetFetch,
   multiPreset,
   multiPicks,
+  pacotePreset,
 }: {
   publicMode?: boolean;
   /** Conteúdo abaixo do motor aéreo enquanto não há resultados. */
@@ -315,6 +317,8 @@ export function SearchEngine({
   multiPreset?: MultiSegmentInput[];
   /** Voo já escolhido por trecho (?ps=...) — abre o carrinho pronto. */
   multiPicks?: MultiPick[];
+  /** Busca de pacote já preenchida (veio do motor recolhível da página /pacotes). */
+  pacotePreset?: PacotePreset;
 } = {}) {
   const [mode, setMode] = useState<Mode>(initialMode);
 
@@ -506,7 +510,7 @@ export function SearchEngine({
           </header>
           {/* Motor de Pacotes VIA AIR (operadora própria — FRT/CompreFácil). */}
           <div className="mx-auto max-w-7xl px-4 py-6">
-            <PacoteMotor embed={embedMode} publico={embedMode || publicMode} />
+            <PacoteMotor embed={embedMode} publico={embedMode || publicMode} preset={pacotePreset} />
           </div>
         </>
       )}
