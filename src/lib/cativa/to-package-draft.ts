@@ -212,20 +212,28 @@ function destinoConhecidoNoTexto(v: unknown): string {
 const semAcento = (v: unknown) =>
   String(v ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
+const PREPOSICOES = new Set(["de", "do", "da", "dos", "das", "e"]);
+
+/** "porto de galinhas" → true (nome de destino conhecido inteiro). */
+const ehCanonico = (v: string) => !!DESTINO_CANONICO[semAcento(v)];
+
 /**
  * Remove a marca do hotel colada no destino ("Makai Aracaju" → "Aracaju").
- * Só corta quando a 1ª palavra do destino é também a 1ª palavra do nome do
- * hotel — assim "Enotel Porto de Galinhas" não vira "de Galinhas".
+ * Nunca corta destinos compostos conhecidos ("Porto de Galinhas",
+ * "Foz do Iguaçu") nem deixa sobra começando por preposição.
  */
 function semMarcaHotel(destino: string, hoteis: Array<Record<string, unknown>>): string {
   const palavras = destino.trim().split(/\s+/).filter(Boolean);
   if (palavras.length < 2) return destino;
+  if (ehCanonico(destino)) return destino;
   const primeira = semAcento(palavras[0]);
+  const resto = palavras.slice(1).join(" ");
+  if (PREPOSICOES.has(semAcento(palavras[1]))) return destino;
   for (const h of hoteis) {
     const nomeHotel = String(h?.["nome"] ?? h?.["hotel"] ?? h?.["name"] ?? "").trim();
     const tk = nomeHotel.split(/\s+/).filter(Boolean);
     if (tk.length && semAcento(tk[0]) === primeira) {
-      return palavras.slice(1).join(" ");
+      return resto;
     }
   }
   return destino;
@@ -248,13 +256,21 @@ export function destinoComercial(pacote: {
   const conhecido =
     hoteis.map((h) => destinoConhecidoNoTexto(h?.["nome"] ?? h?.["hotel"])).find(Boolean) ||
     destinoConhecidoNoTexto(pacote.nome) ||
+    destinoConhecidoNoTexto(cidadeHotel) ||
     "";
   // O destino é onde o cliente se hospeda — não o aeroporto nem o nome de um passeio.
   const bruto = semIata(cidadeHotel || conhecido || doNome || (pacote.destino ?? "").trim());
-  return tituloCidade(semMarcaHotel(bruto, hoteis));
-
-
+  const final = tituloCidade(semMarcaHotel(bruto, hoteis));
+  // Se sobrou só um pedaço de um destino composto conhecido ("Porto",
+  // "do Iguaçu"), devolve o nome completo.
+  if (conhecido && final && !ehCanonico(final)) {
+    const c = semAcento(conhecido);
+    const f = semAcento(final);
+    if (c !== f && (` ${c} `).includes(` ${f} `)) return conhecido;
+  }
+  return final;
 }
+
 
 
 
