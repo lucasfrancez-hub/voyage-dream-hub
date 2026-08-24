@@ -265,7 +265,7 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
 
   return (
     <div className="mkt">
-      <div className="shell" style={{ padding: 0 }}>
+      <div className="shell">
         <section className="search">
           <div className="search-grid">
             <div>
@@ -387,6 +387,8 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
           </div>
         </section>
 
+        {/* Abas e resultados só entram em cena depois da pesquisa. */}
+        {buscou && (
         <div className="tabs">
           <button type="button" className={`tab${vista === "overview" ? " active" : ""}`} onClick={() => setVista("overview")}>
             Visão geral
@@ -399,7 +401,9 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
           </button>
         </div>
 
-        {vista === "overview" && (
+        )}
+
+        {buscou && vista === "overview" && (
           <section className="screen active">
             <div className="title">
               <div>
@@ -412,10 +416,7 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
               </span>
             </div>
 
-            {!buscou && !carregando ? (
-              <div className="state-box">Informe origem, destino e datas para montar o pacote recomendado.</div>
-            ) : (
-              <div className="overview">
+            <div className="overview">
                 <div className="overview-main">
                   <div className="overview-grid">
                     <CardVooSelecionado
@@ -442,7 +443,7 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
           </section>
         )}
 
-        {vista === "voo" && (
+        {buscou && vista === "voo" && (
           <SeletorVoo
             ofertas={ofertas}
             carregando={voos.isPending}
@@ -458,7 +459,7 @@ export function PacoteMotor({ embed = false, publico = embed }: { embed?: boolea
           />
         )}
 
-        {vista === "hotel" && (
+        {buscou && vista === "hotel" && (
           <SeletorHospedagem
             hoteis={hoteis}
             carregando={pacotes.isPending}
