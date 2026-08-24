@@ -354,17 +354,24 @@ export function PacoteMotor() {
 
                 {/* Serviços */}
                 <section className="rounded-2xl border border-border/60 bg-card p-4">
-                  <h3 className="mb-2 text-sm font-semibold">Serviços</h3>
-                  {servicos.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Sem serviços adicionais para este pacote.</p>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold">Serviços</h3>
+                    <span className="text-[10px] text-muted-foreground">
+                      Não entram no pacote até serem adicionados
+                    </span>
+                  </div>
+                  {detalhe.isPending ? (
+                    <p className="text-xs text-muted-foreground">Buscando serviços do destino…</p>
+                  ) : servicos.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sem serviços adicionais para este destino.</p>
                   ) : (
                     <div className="grid gap-2">
                       {servicos.map((s) => {
                         const marcado = servicosSel.includes(s.id);
                         return (
-                          <label
+                          <div
                             key={s.id}
-                            className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border px-3 py-2 ${marcado ? "border-brand-blue" : "border-border/60"}`}
+                            className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 ${marcado ? "border-brand-blue bg-brand-blue/5" : "border-border/60"}`}
                           >
                             <span>
                               <b className="text-xs">{s.titulo}</b>
@@ -374,23 +381,27 @@ export function PacoteMotor() {
                                 </span>
                               ) : null}
                             </span>
-                            <span className="flex items-center gap-2 text-[11px] font-semibold">
-                              {s.valor ? brl(s.valor) : "Incluído"}
-                              <input
-                                type="checkbox"
-                                checked={marcado}
-                                onChange={() =>
+                            <span className="flex shrink-0 items-center gap-2 text-[11px] font-semibold">
+                              {s.valor ? brl(s.valor) : "Sob consulta"}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={marcado ? "secondary" : "outline"}
+                                className="h-7 text-[11px]"
+                                onClick={() =>
                                   setServicosSel((v) => (marcado ? v.filter((x) => x !== s.id) : [...v, s.id]))
                                 }
-                                className="accent-[var(--brand-blue)]"
-                              />
+                              >
+                                {marcado ? "Remover" : "Adicionar"}
+                              </Button>
                             </span>
-                          </label>
+                          </div>
                         );
                       })}
                     </div>
                   )}
                 </section>
+
               </>
             )}
           </div>
