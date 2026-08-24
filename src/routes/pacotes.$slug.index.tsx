@@ -49,7 +49,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatDateRange } from "@/lib/format";
-import { customQuoteWhatsappUrl } from "@/lib/checkout-config";
 import { ContactFooter } from "@/components/ContactFooter";
 import { TopBar } from "@/components/TopBar";
 import { FlightCard, type FlightInfo } from "@/components/FlightCard";
