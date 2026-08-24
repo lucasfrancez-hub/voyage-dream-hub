@@ -68,6 +68,7 @@ export function CativaTab({ onImport }: { onImport: (drafts: CativaDraft[]) => v
   const [modo, setModo] = useState<"pacotes" | "circuitos">("pacotes");
   const [incompletos, setIncompletos] = useState(false);
   const [corrigindo, setCorrigindo] = useState(false);
+  const [conferindo, setConferindo] = useState(false);
 
   const resumoQ = useQuery({
     queryKey: ["cativa-resumo-tab"],
