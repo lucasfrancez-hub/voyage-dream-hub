@@ -2,10 +2,11 @@ import { brl } from "@/lib/pacote-motor/mapear";
 
 export type LinhaResumo = { rotulo: string; valor: string };
 
-/** Resumo do pacote — bloco `.summary-card` do modelo aprovado. */
+/** Resumo do pacote — título é sempre o nome do hotel; endereço vira linha secundária. */
 export function ResumoPacote({
   titulo = "Resumo do pacote",
   destino,
+  endereco,
   periodo,
   pax,
   noites,
@@ -17,6 +18,7 @@ export function ResumoPacote({
 }: {
   titulo?: string;
   destino: string;
+  endereco?: string | null;
   periodo: string;
   pax: string;
   noites: string | null;
@@ -30,6 +32,7 @@ export function ResumoPacote({
     <aside className="summary-card">
       <p className="mini">{titulo}</p>
       <h3>{destino}</h3>
+      {endereco ? <p className="addr">{endereco}</p> : null}
       <p className="installment">{[noites, pax, periodo].filter(Boolean).join(" · ")}</p>
 
       {linhas.map((l) => (
