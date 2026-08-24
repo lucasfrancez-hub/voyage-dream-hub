@@ -30,7 +30,7 @@ import { buscarAereoCFPublic, buscarHospedagemCFPublic } from "@/lib/comprefacil
 import { criarPacoteMotorCheckout } from "@/lib/pacote-motor/checkout.functions";
 import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import type { PassHubOferta } from "@/lib/passhub/types";
-import type { PacotePreset } from "@/lib/pacote-motor/preset";
+import { encodeQuartos, type PacotePreset } from "@/lib/pacote-motor/preset";
 import { ResumoDock } from "./ResumoDock";
 
 type Vista = "overview" | "voo" | "hotel" | "servico";
