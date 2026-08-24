@@ -2422,3 +2422,17 @@ body:has([data-chat-root]),
   .mkt .svcside {width:100%;}
   .mkt .roomacts {flex-wrap:wrap;}
 }
+
+/* Cards de hospedagem com altura fixa (padroniza todos os blocos) */
+.mkt .hotel .hotelgrid {height:190px;align-items:stretch;}
+.mkt .hotel .hotelmain {display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.mkt .hotel .hotelhead h3 {display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+.mkt .hotel .hotelhead p {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.mkt .hotel .amen {max-height:24px;overflow:hidden;}
+.mkt .hotel .roomrow {margin-top:auto;min-height:0;}
+.mkt .hotel .roomrow b {display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+.mkt .hotel .roomrow span {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+@media (max-width:900px) {
+  .mkt .hotel .hotelgrid {height:auto;}
+  .mkt .hotel .amen {max-height:none;}
+}
