@@ -105,7 +105,13 @@ function CompreFacilPage() {
           <TabsTrigger value="motor">Motor de busca</TabsTrigger>
           <TabsTrigger value="pacotes">Pacotes</TabsTrigger>
           <TabsTrigger value="servicos">Serviços</TabsTrigger>
+          <TabsTrigger value="cancelamentos">Cancelamentos</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="cancelamentos" className="space-y-4">
+          <PainelCancelamentos />
+        </TabsContent>
+
 
         <TabsContent value="motor" className="space-y-4">
           <MotorBuscaCF />
