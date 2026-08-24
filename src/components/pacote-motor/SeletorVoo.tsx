@@ -95,7 +95,7 @@ const duracaoTotal = (o: PassHubOferta) =>
 const horasMin = (min: number) => `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`;
 
 /** Chips de múltipla escolha reutilizados por todos os blocos de filtro. */
-function Chips({
+export function Chips({
   opcoes,
   valor,
   onChange,
@@ -249,7 +249,6 @@ export function SeletorVoo({
     setOrdem("recomendado");
   };
 
-  const precos = ofertas.map((o) => o.precoTotal).filter((v) => v > 0);
 
   return (
     <section className="screen active">
