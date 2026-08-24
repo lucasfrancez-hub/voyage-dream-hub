@@ -13,6 +13,7 @@ type Estado = {
   conectado: boolean;
   expiraEm: string | null;
   agenciaId: string | null;
+  bloqueadoAte?: string | null;
 };
 
 /**
@@ -44,7 +45,12 @@ export function ConexaoCompreFacil() {
     setConectando(true);
     try {
       const r = (await conectar()) as Estado & { ok: boolean; mensagem: string | null };
-      setEstado({ conectado: r.conectado, expiraEm: r.expiraEm, agenciaId: r.agenciaId });
+      setEstado({
+        conectado: r.conectado,
+        expiraEm: r.expiraEm,
+        agenciaId: r.agenciaId,
+        bloqueadoAte: (r as Estado).bloqueadoAte ?? null,
+      });
       if (r.ok) {
         if (manual) toast.success("Conectado na CompreFácil.");
       } else {
@@ -68,11 +74,10 @@ export function ConexaoCompreFacil() {
         void reconectar(false);
       }
     })();
+    // Só revalida o status. Nunca refaz login sozinho em loop: cada tentativa
+    // consome um código de verificação da operadora (limite diário).
     const t = setInterval(() => {
-      void (async () => {
-        const r = await verificar();
-        if (r && !r.conectado && !conectando) void reconectar(false);
-      })();
+      void verificar();
     }, 60_000);
     return () => {
       vivo = false;
