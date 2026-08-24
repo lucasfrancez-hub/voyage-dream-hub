@@ -707,7 +707,7 @@ function Checkout() {
           Preencha seus dados e escolha a forma de pagamento. Nosso time confirma sua reserva em seguida.
         </p>
 
-        {!isPerUnit && (
+        {!isPerUnit && !paxTravado && (
           <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
 
             Este pacote foi montado para{" "}
