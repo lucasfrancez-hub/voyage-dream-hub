@@ -94,7 +94,11 @@ export function CardHotelSelecionado({
                     "Localização conforme a operadora"}
                 </p>
               </div>
+              <button type="button" className="hotel-about-toggle" onClick={() => setAberto((v) => !v)}>
+                {aberto ? "Ver menos ⌃" : "Sobre o hotel ⌄"}
+              </button>
             </div>
+
 
             <div className="hotel-selected-content">
               <div className="hotel-value-row">
