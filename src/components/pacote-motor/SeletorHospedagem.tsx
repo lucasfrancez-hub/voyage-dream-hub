@@ -84,6 +84,10 @@ export function SeletorHospedagem({
       return true;
     });
     const ordenados = [...filtrados];
+    if (ordem === "recomendado")
+      ordenados.sort(
+        (a, b) => Number(!!b.recomendado) - Number(!!a.recomendado) || a.posicao - b.posicao,
+      );
     if (ordem === "preco") ordenados.sort((a, b) => a.total - b.total);
     if (ordem === "precoDesc") ordenados.sort((a, b) => b.total - a.total);
     if (ordem === "estrelas") ordenados.sort((a, b) => (b.categoria ?? 0) - (a.categoria ?? 0));
