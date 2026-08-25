@@ -1343,8 +1343,13 @@ function ResumoPerna({
 export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onReservar, onOrcamento }: Props) {
   const [idaSel, setIdaSel] = useState<string | null>(null);
   const [voltaSel, setVoltaSel] = useState<string | null>(null);
+  const [tarifando, setTarifando] = useState(false);
+  const [tarifaErro, setTarifaErro] = useState<string | null>(null);
+  const [tarifadoEm, setTarifadoEm] = useState<string | null>(null);
+  const tarifarOfertaFn = useServerFn(passhubTarifarOferta);
   const refVolta = useRef<HTMLDivElement | null>(null);
   const refResumo = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     limparFilaTarifacao();
