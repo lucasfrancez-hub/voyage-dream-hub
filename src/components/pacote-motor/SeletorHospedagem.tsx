@@ -225,7 +225,7 @@ export function SeletorHospedagem({
             <div className="state-box">Nenhuma hospedagem disponível para este destino, período e ocupação.</div>
           )}
 
-          {lista.map((h) => {
+          {listaPaginada.map((h) => {
             const sel = h.id === hotelSelecionadoId;
             const expandido = aberto === h.id;
             const quartoAtivo = sel ? (h.quartos.find((q) => q.id === quartoSelecionadoId) ?? h.quartos[0]) : h.quartos[0];

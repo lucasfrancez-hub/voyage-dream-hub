@@ -134,7 +134,7 @@ export function SeletorServicos({
             <div className="state-box">Nenhum serviço adicional disponível para este destino e data.</div>
           )}
 
-          {lista.map((s) => {
+          {listaPaginada.map((s) => {
             const sel = selecionados.includes(s.id);
             const ehSeguro = /seguro/i.test(grupoServico(s)) || /seguro/i.test(s.titulo);
             const capa = s.imagens?.[0] ?? s.imagem ?? (ehSeguro ? (seguroImg as unknown as string) : null);
