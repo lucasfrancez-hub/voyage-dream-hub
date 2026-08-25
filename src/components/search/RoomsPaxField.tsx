@@ -181,6 +181,31 @@ export function RoomsPaxField({
                       max={6}
                       onChange={(v) => atualizar(i, "criancas", v)}
                     />
+                    {q.criancas > 0 && (
+                      <div className="mt-1 rounded-md bg-muted/40 p-2">
+                        <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Idade das crianças (na viagem)
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {Array.from({ length: q.criancas }, (_, c) => (
+                            <label key={c} className="text-[11px] text-muted-foreground">
+                              Criança {c + 1}
+                              <select
+                                className="mt-0.5 h-8 w-full rounded-md border border-border/60 bg-background px-2 text-sm text-foreground"
+                                value={q.idades?.[c] ?? IDADE_CRIANCA_PADRAO}
+                                onChange={(e) => atualizarIdade(i, c, Number(e.target.value))}
+                              >
+                                {Array.from({ length: 10 }, (_, k) => k + 2).map((idade) => (
+                                  <option key={idade} value={idade}>
+                                    {idade} anos
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <Contador
                       label="Bebês (colo)"
                       valor={q.bebes}
