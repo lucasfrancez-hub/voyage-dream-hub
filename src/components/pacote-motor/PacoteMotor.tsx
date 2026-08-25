@@ -272,6 +272,10 @@ export function PacoteMotor({
     );
   }
 
+  function removerServico(id: string) {
+    setServicosSel((atual) => atual.filter((x) => x.id !== id));
+  }
+
 
   /** Gera o link de pagamento (mesmo checkout dos pacotes prontos). */
   const checkout = useMutation({
