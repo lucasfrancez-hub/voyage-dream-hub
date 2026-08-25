@@ -175,6 +175,14 @@ export function SeletorVoo({
   const [duracaoMax, setDuracaoMax] = useState<number | null>(null);
   const [ordem, setOrdem] = useState<Ordem>("preco");
   const [aberta, setAberta] = useState<string | null>(null);
+  const [pagina, setPagina] = useState(1);
+
+  useEffect(() => setPagina(1), [lista]);
+
+  const listaPaginada = useMemo(
+    () => lista.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA),
+    [lista, pagina],
+  );
 
   const opcoes = useMemo(() => {
     const cia = new Map<string, string>();
