@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LogoCia } from "@/components/pacote-motor/LogoCia";
+import { IconeBagagem } from "@/components/pacote-motor/IconeBagagem";
 import { hora, resumoVoo } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 
@@ -134,6 +135,11 @@ export function CardVooSelecionado({
               <Trecho voo={oferta.ida} rotulo="Ida" />
               {volta ? <Trecho voo={volta} rotulo="Volta" /> : null}
             </div>
+
+            <div className="sel-baggage-row">
+              <IconeBagagem voo={oferta.ida} tamanho={16} />
+            </div>
+
 
 
             <div className="overview-flight-toggle-row">

@@ -2424,6 +2424,8 @@ body:has([data-chat-root]),
 .mkt .flightmain .flightfoot-acts {display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
 .mkt .flightmain .flightfoot-acts .flight-baggage {margin-right:auto;}
 
+.sel-baggage-row {display:flex;justify-content:flex-end;padding:6px 2px 0;}
+
 /* Ícones de bagagem */
 .flight-baggage {
   display:inline-flex;align-items:center;gap:7px;
