@@ -154,7 +154,6 @@ export async function buscarServicosDestinoCF(p: {
     },
   });
 
-  const __t0 = Date.now();
   const inicio = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(null) });
   const guid = (inicio.dados as any)?.MetaData?.Guid as string | undefined;
   if (!guid) return [];
