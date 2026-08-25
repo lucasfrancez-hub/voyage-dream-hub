@@ -140,7 +140,10 @@ export async function buscarServicosDestinoCF(p: {
     },
   });
 
+  const __t0 = Date.now();
+  const __log = (m: string) => console.log(`[cf-serv] ${m} ${(Date.now() - __t0) / 1000}s`);
   const inicio = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(null) });
+  __log("start");
   const guid = (inicio.dados as any)?.MetaData?.Guid as string | undefined;
   if (!guid) return [];
 
@@ -182,6 +185,7 @@ export async function buscarServicosDestinoCF(p: {
 
 
 
+  __log("polling");
   const itens: any[] = [...((dados?.Items ?? []) as any[])];
   const totalPaginas = Math.min(12, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
   const paginas = Array.from({ length: Math.max(0, totalPaginas - 1) }, (_, k) => k + 2);
@@ -200,6 +204,7 @@ export async function buscarServicosDestinoCF(p: {
     if (vazio) break;
   }
 
+  __log("paginas");
   const vistos = new Set<string>();
   const lista = itens
     .map(mapear)
