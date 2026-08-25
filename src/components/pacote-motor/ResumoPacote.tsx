@@ -1,8 +1,10 @@
 import { nomeCia } from "@/lib/pacote-motor/cia";
+import { confirmThen } from "@/lib/confirm";
 import { brl, hora, plural, type HotelPacote, type OcupacaoQuarto, type QuartoPacote } from "@/lib/pacote-motor/mapear";
 import { somaOcupacao } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 import { useParcelamentoPacote } from "@/lib/pacote-motor/parcelamento";
+import { X } from "lucide-react";
 
 const dataCurta = (iso: string) => (iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "—");
 
@@ -48,6 +50,7 @@ export function ResumoPacote({
   moeda = "BRL",
   servicos = [],
   onServicos,
+  onRemoverServico,
   acao,
 }: {
   destino: string;
@@ -63,6 +66,7 @@ export function ResumoPacote({
   moeda?: string;
   servicos?: { id: string; titulo: string; valor: number | null }[];
   onServicos?: () => void;
+  onRemoverServico?: (id: string) => void;
   acao?: React.ReactNode;
 }) {
   const pax = somaOcupacao(quartos);
@@ -157,6 +161,28 @@ export function ResumoPacote({
                     <small>+ ADICIONAL</small>
                     <b>+ {brl(s.valor ?? 0, moeda)}</b>
                   </div>
+                  {onRemoverServico ? (
+                    <button
+                      type="button"
+                      className="sum-svc-remove"
+                      aria-label={`Remover ${main || s.titulo}`}
+                      title="Remover adicional"
+                      onClick={() =>
+                        confirmThen(
+                          {
+                            title: "Remover serviço adicional?",
+                            description: `Deseja remover "${main || s.titulo}" do pacote?`,
+                            confirmText: "Remover",
+                            cancelText: "Manter",
+                            destructive: true,
+                          },
+                          () => onRemoverServico(s.id),
+                        )
+                      }
+                    >
+                      <X size={14} />
+                    </button>
+                  ) : null}
                   {i < servicos.length - 1 ? <div className="sum-svc-sep" /> : null}
                 </div>
               );

@@ -272,6 +272,10 @@ export function PacoteMotor({
     );
   }
 
+  function removerServico(id: string) {
+    setServicosSel((atual) => atual.filter((x) => x.id !== id));
+  }
+
 
   /** Gera o link de pagamento (mesmo checkout dos pacotes prontos). */
   const checkout = useMutation({
@@ -363,6 +367,7 @@ export function PacoteMotor({
       moeda={hotel?.moeda ?? "BRL"}
       servicos={servicosSel.map((s) => ({ id: s.id, titulo: s.titulo, valor: s.valor }))}
       onServicos={() => setVista("servico")}
+      onRemoverServico={removerServico}
       acao={
         <div style={{ display: "grid", gap: 8 }}>
           <button

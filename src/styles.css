@@ -1669,6 +1669,9 @@ body:has([data-chat-root]),
 .mkt .sum-svc-btn:hover::before {transform:translateX(100%)}
 .mkt .sum-svc-btn:active {transform:scale(0.98)}
 .mkt .sum-svc-btn span {position:relative;z-index:1}
+.mkt .sum-svc-remove {flex-shrink:0;display:flex;align-items:center;justify-content:center;width:28px;height:28px;margin-left:4px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#b8c9d6;cursor:pointer;transition:all .2s ease}
+.mkt .sum-svc-remove:hover {background:rgba(242,107,31,.12);border-color:color-mix(in oklab, var(--brand-orange) 50%, transparent);color:var(--brand-orange);transform:scale(1.05)}
+.mkt .sum-svc-remove:active {transform:scale(0.95)}
 .mkt .sum-parcel {display:block;margin-top:6px;font-size:10px;line-height:1.4;font-weight:700;color:#1f7a3d}
 @media (max-width:760px){.mkt .svc {grid-template-columns:1fr}.mkt .svcside {text-align:left;flex-direction:row;align-items:center;justify-content:space-between}}
 
