@@ -211,3 +211,53 @@ async function registrarCancelamento(r: {
     /* rastro local é best-effort */
   }
 }
+
+/**
+ * Remove (exclui) um item do orçamento na operadora — diferente de cancelar:
+ * o serviço deixa de existir no orçamento.
+ *   DELETE {aereo}/api/aereo/{id} · {hotel}/api/hotel/{id}
+ *   DELETE {servico}/api/servico/{id} · {api}/api/seguro/{id}
+ */
+export async function removerItemFRT(entrada: {
+  orcamentoId: number;
+  item: { tipo: ItemReservaFRT["tipo"]; id: number };
+}): Promise<{ ok: boolean; orcamentoId: number; itens: ItemReservaFRT[]; passos: PassoCancelamento[] }> {
+  const { orcamentoId, item } = entrada;
+  const base =
+    item.tipo === "aereo"
+      ? COMPREFACIL_BASES.aereo
+      : item.tipo === "hotel"
+        ? COMPREFACIL_BASES.hotel
+        : item.tipo === "servico"
+          ? COMPREFACIL_BASES.servico
+          : COMPREFACIL_BASES.principal;
+  const rota =
+    item.tipo === "aereo"
+      ? `/api/aereo/${item.id}`
+      : item.tipo === "hotel"
+        ? `/api/hotel/${item.id}`
+        : item.tipo === "servico"
+          ? `/api/servico/${item.id}`
+          : `/api/seguro/${item.id}`;
+
+  const resp = await chamarCompreFacil(rota, { base, method: "DELETE" });
+  const d = resp.dados as any;
+  const msg = texto(d?.Mensagem ?? d?.mensagem ?? d?.message ?? d?.Message);
+
+  const itens = itensDoOrcamento(await lerOrcamento(orcamentoId));
+  const sumiu = !itens.some((i) => i.tipo === item.tipo && i.id === item.id);
+  const ok = resp.ok && sumiu;
+
+  return {
+    ok,
+    orcamentoId,
+    itens,
+    passos: [
+      {
+        passo: `Remover ${item.tipo} ${item.id}`,
+        ok,
+        detalhe: ok ? "Removido do orçamento" : (msg ?? "A operadora não removeu o item"),
+      },
+    ],
+  };
+}
