@@ -32,6 +32,9 @@ function Trecho({ voo, rotulo, companhia }: { voo: PassHubVoo; rotulo: string; c
       {voo.escala ? (
         <div style={{ marginTop: 4, color: "#6f8595", fontSize: 9 }}>Conexão em {voo.escala}</div>
       ) : null}
+      <div className="sum-baggage">
+        <IconeBagagem voo={voo} tamanho={13} />
+      </div>
     </div>
   );
 }
