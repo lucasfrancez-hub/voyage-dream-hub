@@ -99,7 +99,10 @@ export function ReservasFrtPainel() {
                 {r.passageiros.length > 0 && (
                   <div className="mt-1 text-[11px] text-muted-foreground">{r.passageiros.join(" · ")}</div>
                 )}
+
+                <ItensReserva orcamentoId={r.orcamentoId} />
               </div>
+
 
               {cancelavel && (
                 <button
