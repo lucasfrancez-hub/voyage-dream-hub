@@ -77,6 +77,7 @@ function PassHubPage() {
   const [dataVolta, setDataVolta] = useState("");
   const [adultos, setAdultos] = useState(1);
   const [criancas, setCriancas] = useState(0);
+  const [idadesCriancas, setIdadesCriancas] = useState<number[]>([]);
   const [bebes, setBebes] = useState(0);
   const [classe, setClasse] = useState(1);
   const [rav, setRav] = useState(10);
@@ -99,6 +100,12 @@ function PassHubPage() {
     if (ravManual) return;
     setRav(escopoRota === "nacional" ? 10 : 7);
   }, [escopoRota, ravManual]);
+
+  useEffect(() => {
+    setIdadesCriancas((prev) =>
+      Array.from({ length: criancas }, (_, i) => prev[i] ?? 2)
+    );
+  }, [criancas]);
 
   const [ordem, setOrdem] = useState<FiltrosMotor["ordem"]>("preco");
   const [mostrar, setMostrar] = useState(10);
@@ -130,6 +137,7 @@ function PassHubPage() {
           dataVolta: tipo === "ida-volta" && dataVolta ? dataVolta : null,
           adultos,
           criancas,
+          idadesCriancas: criancas ? idadesCriancas.slice(0, criancas) : undefined,
           bebes,
           classe,
           ravPercentual: rav,
@@ -376,6 +384,40 @@ function PassHubPage() {
                 </select>
               </div>
             </div>
+
+            {criancas > 0 && (
+              <div className="mt-3">
+                <span className="cons-lab mb-1.5 block">
+                  Idade das crianças (na data da viagem)
+                </span>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {Array.from({ length: criancas }, (_, i) => (
+                    <div key={i}>
+                      <span className="cons-lab mb-1 block text-[11px] opacity-70">
+                        Criança {i + 1}
+                      </span>
+                      <select
+                        className="cons-field"
+                        value={idadesCriancas[i] ?? 2}
+                        onChange={(e) =>
+                          setIdadesCriancas((prev) => {
+                            const next = [...prev];
+                            next[i] = Number(e.target.value);
+                            return next;
+                          })
+                        }
+                      >
+                        {Array.from({ length: 10 }, (_, k) => k + 2).map((idade) => (
+                          <option key={idade} value={idade}>
+                            {idade} anos
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="cons-dot my-4" />
 
