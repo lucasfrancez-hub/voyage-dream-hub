@@ -386,41 +386,35 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
 
   // 2ª passada: mesma busca (mesmo Guid) ordenada do menor para o maior preço,
   // que é a única ordenação em que a operadora devolve o catálogo inteiro.
-  const primeira = await limitarEspera(
-    chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid, "asc") }),
-    12_000,
+  // Todas as páginas saem juntas (antes a página 1 era esperada sozinha antes
+  // das demais, somando alguns segundos a cada busca).
+  const totalCatalogo = Number(dados?.MetaData?.TotalItens ?? 0);
+  const totalPaginas = Math.min(
+    Math.max(1, Math.ceil((totalCatalogo || porPagina) / porPagina)),
+    6,
+  );
+  const respostasAsc = await Promise.all(
+    Array.from({ length: totalPaginas }, (_, k) => k + 1).map((pagina) =>
+      limitarEspera(
+        chamarCompreFacil(
+          `/api/Hotel/buscaasync?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
+          { base, method: "POST", body: corpo(guid, "asc") },
+        ),
+        10_000,
+      ).catch(() => null),
+    ),
   );
   __log("asc");
-  const dadosAsc: any = primeira?.dados ?? dados;
   const itens: any[] = [];
   const mapa = new Map<string, any>();
-  acumular(itens, mapa, (dadosAsc?.Items ?? []) as any[]);
-
-  // Páginas restantes em paralelo (lotes de 4) — antes era uma requisição por vez.
-  const faltamH = paginasRestantes(dadosAsc?.MetaData, porPagina, itens.length);
-  const paginas = Array.from({ length: faltamH }, (_, k) => k + 2);
-  // Uma única rodada paralela: antes, até cinco lotes eram aguardados em
-  // sequência e uma página lenta mantinha toda a hospedagem em carregamento.
-  if (paginas.length) {
-    const respostas = await Promise.all(
-      paginas.map((pagina) =>
-        limitarEspera(
-          chamarCompreFacil(
-            `/api/Hotel/buscaasync?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
-            { base, method: "POST", body: corpo(guid, "asc") },
-          ),
-          12_000,
-        ).catch(() => null),
-      ),
-    );
-    let vazio = true;
-    for (const r of respostas) {
-      const its: any[] = (r?.dados as any)?.Items ?? [];
-      if (its.length) vazio = false;
-      acumular(itens, mapa, its);
-    }
-    if (vazio) acumular(itens, mapa, primeiraPassada);
+  let vazio = true;
+  for (const r of respostasAsc) {
+    const its: any[] = (r?.dados as any)?.Items ?? [];
+    if (its.length) vazio = false;
+    acumular(itens, mapa, its);
   }
+  if (vazio) acumular(itens, mapa, (dados?.Items ?? []) as any[]);
+
 
   // a 1ª passada costuma trazer quartos que a ordenação por preço resume;
   // mesclamos para o cliente ver todas as acomodações disponíveis.
