@@ -94,8 +94,10 @@ export function DateRangeField({
     const raf = window.requestAnimationFrame(measure);
     const timers = [80, 200, 400, 700].map((ms) => window.setTimeout(measure, ms));
 
+    // Nada de reposicionar no scroll: o painel está em coordenadas de documento
+    // e o reposicionamento a cada scroll fazia o calendário "sambar" no celular.
     window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
+
     return () => {
       window.cancelAnimationFrame(raf);
       timers.forEach((t) => window.clearTimeout(t));
