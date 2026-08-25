@@ -480,6 +480,13 @@ export function SeletorVoo({
               </article>
             );
           })}
+
+          <Paginacao
+            pagina={pagina}
+            total={lista.length}
+            onChange={setPagina}
+            rotulo="voos"
+          />
         </div>
 
         {resumo}
