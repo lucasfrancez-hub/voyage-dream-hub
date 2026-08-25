@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiltrosMkt } from "./FiltrosMkt";
 import { brl, plural, type HotelPacote } from "@/lib/pacote-motor/mapear";
 import { Chips } from "@/components/pacote-motor/SeletorVoo";
+import { Paginacao, ITENS_POR_PAGINA } from "@/components/pacote-motor/Paginacao";
 import { SobreHotelModal } from "@/components/pacote-motor/SobreHotelModal";
 import { Lightbox } from "@/components/pacote-motor/Lightbox";
 
@@ -94,6 +95,13 @@ export function SeletorHospedagem({
     if (ordem === "avaliacao") ordenados.sort((a, b) => (b.avaliacao ?? 0) - (a.avaliacao ?? 0));
     return ordenados;
   }, [hoteis, busca, estrelas, regimes, comodidades, notaMinima, soReembolsavel, precoMax, ordem]);
+
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => setPagina(1), [lista]);
+  const listaPaginada = useMemo(
+    () => lista.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA),
+    [lista, pagina],
+  );
 
   const limparFiltros = () => {
     setBusca("");
@@ -216,7 +224,7 @@ export function SeletorHospedagem({
             <div className="state-box">Nenhuma hospedagem disponível para este destino, período e ocupação.</div>
           )}
 
-          {lista.map((h) => {
+          {listaPaginada.map((h) => {
             const sel = h.id === hotelSelecionadoId;
             const expandido = aberto === h.id;
             const quartoAtivo = sel ? (h.quartos.find((q) => q.id === quartoSelecionadoId) ?? h.quartos[0]) : h.quartos[0];
@@ -383,6 +391,13 @@ export function SeletorHospedagem({
               </article>
             );
           })}
+
+          <Paginacao
+            pagina={pagina}
+            total={lista.length}
+            onChange={setPagina}
+            rotulo="hotéis"
+          />
         </div>
 
         {resumo}

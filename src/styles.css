@@ -2777,6 +2777,67 @@ body:has([data-chat-root]),
 }
 
 /* ============================================================
+   Paginação dos resultados do motor (voo, hotel, serviço)
+   ============================================================ */
+.mkt-paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid rgba(211, 229, 241, .08);
+  border-radius: 14px;
+}
+.mkt-paginacao-info {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8ea3b3;
+}
+.mkt-paginacao-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mkt-paginacao-btns button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(242, 107, 31, .12);
+  border: 1px solid rgba(242, 107, 31, .35);
+  color: #ffc47f;
+  cursor: pointer;
+  transition: .18s;
+}
+.mkt-paginacao-btns button:hover:not(:disabled) {
+  background: rgba(242, 107, 31, .22);
+  border-color: rgba(242, 107, 31, .55);
+  color: #fff;
+}
+.mkt-paginacao-btns button:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+.mkt-paginacao-page {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  min-width: 96px;
+  text-align: center;
+}
+@media (max-width: 640px) {
+  .mkt-paginacao {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}
+
+/* ============================================================
    Refino visual VIA AIR — pacote recomendado + resumo
    Somente cor, gradiente, borda, brilho e transição.
    Estrutura, tamanhos e disposição permanecem inalterados.

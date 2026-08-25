@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParcelamentoPacote } from "@/lib/pacote-motor/parcelamento";
 import { LogoCia } from "@/components/pacote-motor/LogoCia";
 import { FiltrosMkt } from "./FiltrosMkt";
 import { brl, hora, resumoVoo } from "@/lib/pacote-motor/mapear";
 import { nomeCia, trocasDeAeroporto } from "@/lib/pacote-motor/cia";
+import { Paginacao, ITENS_POR_PAGINA } from "@/components/pacote-motor/Paginacao";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 
 const dataCurta = (iso: string) => (iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "—");
@@ -259,6 +260,13 @@ export function SeletorVoo({
     ordem,
   ]);
 
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => setPagina(1), [lista]);
+  const listaPaginada = useMemo(
+    () => lista.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA),
+    [lista, pagina],
+  );
+
   const temVolta = ofertas.some((o) => (o.voltas?.length ?? 0) > 0);
   const limpar = () => {
     setSomenteBagagem(false);
@@ -403,7 +411,7 @@ export function SeletorVoo({
             <div className="state-box">Nenhum voo encontrado para este trecho e período.</div>
           )}
 
-          {lista.map((o) => {
+          {listaPaginada.map((o) => {
             const r = resumoVoo(o.ida);
             const volta = o.voltas?.[0] ?? null;
             const sel = o.id === selecionadaId;
@@ -471,6 +479,13 @@ export function SeletorVoo({
               </article>
             );
           })}
+
+          <Paginacao
+            pagina={pagina}
+            total={lista.length}
+            onChange={setPagina}
+            rotulo="voos"
+          />
         </div>
 
         {resumo}

@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiltrosMkt } from "./FiltrosMkt";
 import { brl } from "@/lib/pacote-motor/mapear";
 import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import { GRUPOS_SERVICO, grupoServico } from "@/lib/pacote-motor/categorias";
 import { ServicoModal } from "@/components/pacote-motor/ServicoModal";
+import { Paginacao, ITENS_POR_PAGINA } from "@/components/pacote-motor/Paginacao";
 import seguroImg from "@/assets/seguro-viagem.jpg";
 
 
@@ -28,7 +29,6 @@ export function SeletorServicos({
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"preco" | "precoDesc">("preco");
   const [detalhe, setDetalhe] = useState<ServicoDisponivel | null>(null);
-
 
   const categorias = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -55,6 +55,13 @@ export function SeletorServicos({
       return ordem === "preco" ? a.valor - b.valor : b.valor - a.valor;
     });
   }, [servicos, categoria, busca, ordem]);
+
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => setPagina(1), [lista]);
+  const listaPaginada = useMemo(
+    () => lista.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA),
+    [lista, pagina],
+  );
 
   return (
     <section className="screen active">
@@ -126,7 +133,7 @@ export function SeletorServicos({
             <div className="state-box">Nenhum serviço adicional disponível para este destino e data.</div>
           )}
 
-          {lista.map((s) => {
+          {listaPaginada.map((s) => {
             const sel = selecionados.includes(s.id);
             const ehSeguro = /seguro/i.test(grupoServico(s)) || /seguro/i.test(s.titulo);
             const capa = s.imagens?.[0] ?? s.imagem ?? (ehSeguro ? (seguroImg as unknown as string) : null);
@@ -182,6 +189,12 @@ export function SeletorServicos({
             );
           })}
 
+          <Paginacao
+            pagina={pagina}
+            total={lista.length}
+            onChange={setPagina}
+            rotulo="serviços"
+          />
         </div>
 
         {resumo}
