@@ -2423,15 +2423,50 @@ body:has([data-chat-root]),
   .mkt .roomacts {flex-wrap:wrap;}
 }
 
-/* Cards de hospedagem com altura fixa (padroniza todos os blocos) */
-.mkt .hotel .hotelgrid {height:190px;align-items:stretch;}
+/* Cards de hospedagem com altura mínima (evita corte do rodapé) */
+.mkt .hotel .hotelgrid {min-height:190px;align-items:stretch;}
 .mkt .hotel .hotelmain {display:flex;flex-direction:column;min-height:0;overflow:hidden;}
 .mkt .hotel .hotelhead h3 {display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
 .mkt .hotel .hotelhead p {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .mkt .hotel .amen {max-height:24px;overflow:hidden;}
-.mkt .hotel .roomrow {margin-top:auto;min-height:0;}
-.mkt .hotel .roomrow b {display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
-.mkt .hotel .roomrow span {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+/* Título do hotel com estrelas ao lado do nome */
+.mkt .hotel .hotel-title-wrap {display:flex;flex-direction:column;gap:2px;min-width:0;}
+.mkt .hotel .hotel-title-line {display:flex;align-items:center;gap:8px;min-width:0;}
+.mkt .hotel .hotel-title-line .stars {color:var(--orange);font-size:11px;letter-spacing:.02em;flex-shrink:0;}
+.mkt .hotel .hotel-title-line h3 {margin:0;}
+
+/* Linha do quarto e rodapé de ações */
+.mkt .hotel .hotel-room-line {margin-top:auto;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);}
+.mkt .hotel .hotel-room-line b {display:block;font-size:9px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mkt .hotel .hotel-room-line span {display:block;font-size:7.5px;color:#708697;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.mkt .hotel .hotel-card-foot {
+  display:flex;align-items:center;gap:10px;
+  margin-top:10px;padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.mkt .hotel .hotel-foot-link {
+  background:transparent;border:0;padding:0;
+  color:#9fb4c3;font-size:8.5px;font-weight:1000;text-transform:uppercase;letter-spacing:.6px;
+  cursor:pointer;white-space:nowrap;transition:.18s;
+  position:relative;
+}
+.mkt .hotel .hotel-foot-link::after {
+  content:"";position:absolute;left:0;bottom:-2px;width:0;height:2px;background:var(--orange);transition:.18s;
+}
+.mkt .hotel .hotel-foot-link:hover {color:#ffc47f;}
+.mkt .hotel .hotel-foot-link:hover::after {width:100%;}
+
+.mkt .hotel .hotel-foot-btn {
+  display:inline-flex;align-items:center;justify-content:center;
+  height:30px;padding:0 14px;border-radius:999px;
+  background:rgba(242,107,31,.10);border:1px solid rgba(242,107,31,.35);
+  color:#ffc47f;font-size:8.5px;font-weight:1000;text-transform:uppercase;letter-spacing:.6px;
+  white-space:nowrap;cursor:pointer;transition:.18s;
+}
+.mkt .hotel .hotel-foot-btn:hover, .mkt .hotel .hotel-foot-btn.on {background:rgba(242,107,31,.20);border-color:rgba(242,107,31,.55);color:#fff;}
+
 @media (max-width:900px) {
   .mkt .hotel .hotelgrid {height:auto;}
   .mkt .hotel .amen {max-height:none;}
