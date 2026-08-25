@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LogoCia } from "@/components/pacote-motor/LogoCia";
+import { IconeBagagem } from "@/components/pacote-motor/IconeBagagem";
 import { hora, resumoVoo } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 
