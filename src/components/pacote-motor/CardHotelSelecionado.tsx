@@ -120,8 +120,8 @@ export function CardHotelSelecionado({
                 </span>
               </div>
 
-              <div className="hotel-room-premium">
-                <div className="eyeline">
+              <div className="hotel-room-premium-v2">
+                <div className="hotel-room-premium-v2-head">
                   <span>Quarto selecionado</span>
                   <span>{plural(qtdQuartos, "quarto", "quartos")}</span>
                 </div>
