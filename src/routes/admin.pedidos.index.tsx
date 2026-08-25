@@ -18,6 +18,8 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { confirmThen } from "@/lib/confirm";
+import { ReservasFrtPainel } from "@/components/pacote-motor/ReservasFrtPainel";
+
 
 
 export const Route = createFileRoute("/admin/pedidos/")({
@@ -238,6 +240,8 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
       />
 
 
+
+      {scope === "mine" && <ReservasFrtPainel />}
 
       {/* Search bar (FRT style) */}
       <div className="mt-4 rounded-2xl border border-border bg-card p-3 sm:p-4">
