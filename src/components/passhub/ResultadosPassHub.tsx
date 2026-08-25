@@ -10,7 +10,9 @@ import {
   lerTarifacao,
   limparFilaTarifacao,
   useVersaoTarifacao,
+  forcarTarifacao,
 } from "@/lib/passhub/tarifacao-cache";
+
 
 export type FiltrosMotor = {
   ordem: "preco" | "duracao" | "partida" | "chegada";
