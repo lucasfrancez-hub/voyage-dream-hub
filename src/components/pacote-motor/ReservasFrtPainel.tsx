@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, Loader2, Package, XCircle } from "lucide-react";
+import { Copy, Loader2, Package, Trash2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { listarReservasFRT } from "@/lib/comprefacil/reservas-lista.functions";
-import { cancelarReservaFRTFn } from "@/lib/comprefacil/cancelamento.functions";
+import { cancelarReservaFRTFn, consultarReservaFRTFn } from "@/lib/comprefacil/cancelamento.functions";
 import { confirmThen } from "@/lib/confirm";
 
 const dataHora = (iso: string | null) => {
@@ -128,6 +128,79 @@ export function ReservasFrtPainel() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+const ICONE: Record<string, string> = { aereo: "Aéreo", hotel: "Hospedagem", servico: "Serviço", seguro: "Seguro" };
+
+/** Itens do orçamento na operadora, cada um com seu botão de excluir (cancelar). */
+function ItensReserva({ orcamentoId }: { orcamentoId: number }) {
+  const qc = useQueryClient();
+  const consultar = useServerFn(consultarReservaFRTFn);
+  const cancelarFn = useServerFn(cancelarReservaFRTFn);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["frt-itens", orcamentoId],
+    queryFn: () => consultar({ data: { orcamentoId } }),
+    staleTime: 30_000,
+  });
+
+  const cancelarItem = useMutation({
+    mutationFn: (item: { tipo: "aereo" | "hotel" | "servico" | "seguro"; id: number }) =>
+      cancelarFn({ data: { orcamentoId, itens: [item] } }),
+    onSuccess: (r) => {
+      const falha = r.passos?.find((p) => !p.ok);
+      if (falha) toast.error(falha.detalhe ?? "A operadora recusou o cancelamento");
+      else toast.success("Item cancelado na operadora");
+      qc.invalidateQueries({ queryKey: ["frt-itens", orcamentoId] });
+      qc.invalidateQueries({ queryKey: ["frt-reservas"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao cancelar item"),
+  });
+
+  const itens = data?.itens ?? [];
+  if (isLoading) return <div className="mt-2 text-[11px] text-muted-foreground">Carregando serviços…</div>;
+  if (!itens.length) return null;
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      {itens.map((it) => (
+        <div
+          key={`${it.tipo}:${it.id}`}
+          className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-2.5 py-1.5 text-[11px]"
+        >
+          <span className="rounded bg-muted px-1.5 py-0.5 font-semibold uppercase tracking-wide text-[9px]">
+            {ICONE[it.tipo] ?? it.tipo}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-foreground">
+            {it.descricao}
+            {it.localizador ? <span className="text-muted-foreground"> · {it.localizador}</span> : null}
+          </span>
+          {it.cancelado ? (
+            <span className="text-rose-400">Cancelado</span>
+          ) : (
+            <button
+              type="button"
+              disabled={cancelarItem.isPending}
+              title="Excluir/cancelar este serviço na operadora"
+              onClick={() =>
+                confirmThen(`Cancelar na operadora "${it.descricao}"?`, () =>
+                  cancelarItem.mutate({ tipo: it.tipo, id: it.id }),
+                )
+              }
+              className="inline-flex items-center gap-1 rounded-md border border-destructive/40 px-2 py-1 font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+            >
+              {cancelarItem.isPending && cancelarItem.variables?.id === it.id ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Trash2 className="h-3 w-3" />
+              )}
+              Excluir
+            </button>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
