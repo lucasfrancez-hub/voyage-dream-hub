@@ -17,8 +17,6 @@ export type PassHubBuscaInput = {
   dataVolta?: string | null;
   adultos: number;
   criancas?: number;
-  /** Idade de cada criança (2-11) na data da viagem. */
-  idadesCriancas?: number[];
   bebes?: number;
   /** 1 = econômica (padrão do painel). */
   classe?: number;
@@ -35,7 +33,6 @@ export async function passhubBuscarVoos(input: PassHubBuscaInput): Promise<Json>
   const base = {
     adults: input.adultos,
     children: input.criancas ?? 0,
-    ...(input.idadesCriancas?.length ? { children_ages: input.idadesCriancas } : {}),
     babies: input.bebes ?? 0,
     class_service: input.classe ?? 1,
     rav_percentage: input.ravPercentual ?? 0,
