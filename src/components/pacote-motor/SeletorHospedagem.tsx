@@ -273,7 +273,6 @@ export function SeletorHospedagem({
                         {[
                           plural(qtdQuartos, "quarto", "quartos"),
                           quartoAtivo?.regime ?? h.regime,
-                          quartoAtivo?.politica,
                         ]
                           .filter(Boolean)
                           .join(" · ") || "—"}
@@ -370,7 +369,7 @@ export function SeletorHospedagem({
                                     ? "Não reembolsável"
                                     : "Política conforme tarifa"}
                               </span>
-                              <span className="rf-pol">{q.politica ?? "Conforme o pacote"}</span>
+                              
                             </div>
                           </div>
                           <div className="room-side">

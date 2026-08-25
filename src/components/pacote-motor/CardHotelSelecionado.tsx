@@ -128,8 +128,6 @@ export function CardHotelSelecionado({
                 <b>{quarto?.nome ?? "Acomodação conforme o pacote"}</b>
                 <small>
                   {[quarto?.ocupacao, quarto?.regime ?? hotel.regime].filter(Boolean).join(" · ") || "—"}
-                  <br />
-                  {quarto?.politica ?? hotel.politicas[0] ?? "Política de cancelamento conforme o pacote"}
                 </small>
               </div>
 
