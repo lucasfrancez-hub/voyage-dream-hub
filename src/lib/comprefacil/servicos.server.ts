@@ -167,7 +167,7 @@ export async function buscarServicosDestinoCF(p: {
   let estavel = 0;
   // polling adaptativo: começa rápido e só desacelera se a operadora demorar
   const intervalos = [700, 900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000];
-  const limite = Date.now() + 40_000; // teto de segurança: devolve o melhor lote já recebido
+  const limite = Date.now() + 30_000; // teto de segurança: devolve o melhor lote já recebido
   for (let i = 0; i < intervalos.length; i++) {
     await espera(intervalos[i]!);
     const r = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) }).catch(
@@ -206,14 +206,14 @@ export async function buscarServicosDestinoCF(p: {
   // Todas as páginas restantes em uma única rodada paralela, com teto de tempo.
   // Antes eram lotes de 4 aguardados em sequência: cada rodada custava ~20 s e
   // a busca de serviços passava de um minuto.
-  const totalPaginas = Math.min(5, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
+  const totalPaginas = Math.min(2, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
   const paginas = Array.from({ length: Math.max(0, totalPaginas - 1) }, (_, k) => k + 2);
   if (paginas.length) {
     const respostas = await Promise.all(
       paginas.map((pagina) =>
         limitarEspera(
           chamarCompreFacil(rota(pagina), { base, method: "POST", body: corpo(guid) }),
-          15_000,
+          10_000,
         ).catch(() => null),
       ),
     );
