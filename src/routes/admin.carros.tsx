@@ -1,4 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  ENGINE_CARD,
+  ENGINE_LABEL,
+  ENGINE_BUTTON,
+  ENGINE_FIELD_WRAP,
+} from "@/components/search/engine-style";
 import { FiltersAside } from "@/components/search/FiltersAside";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -40,12 +46,6 @@ import {
 import { useIsPublicEngine } from "@/lib/public-engine";
 
 import type {
-import {
-  ENGINE_CARD,
-  ENGINE_LABEL,
-  ENGINE_BUTTON,
-  ENGINE_FIELD_WRAP,
-} from "@/components/search/engine-style";
   OnerCar,
   OnerCarLocation,
   OnerCarSearchResult,

@@ -1,4 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  ENGINE_CARD,
+  ENGINE_LABEL,
+  ENGINE_FIELD_BOX,
+  ENGINE_BUTTON,
+  ENGINE_FIELD_WRAP,
+} from "@/components/search/engine-style";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -38,13 +45,6 @@ import {
   onerExclusiveSearch,
 } from "@/lib/onertravel-extras.functions";
 import type {
-import {
-  ENGINE_CARD,
-  ENGINE_LABEL,
-  ENGINE_FIELD_BOX,
-  ENGINE_BUTTON,
-  ENGINE_FIELD_WRAP,
-} from "@/components/search/engine-style";
   ExclusiveCriteria,
   ExclusiveProduct,
   ExclusiveSearchResult,
