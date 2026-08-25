@@ -239,6 +239,8 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
 
 
 
+      {scope === "mine" && <ReservasFrtPainel />}
+
       {/* Search bar (FRT style) */}
       <div className="mt-4 rounded-2xl border border-border bg-card p-3 sm:p-4">
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
