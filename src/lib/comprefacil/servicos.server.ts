@@ -155,9 +155,7 @@ export async function buscarServicosDestinoCF(p: {
   });
 
   const __t0 = Date.now();
-  const __log = (m: string) => console.log(`[cf-serv] ${m} ${(Date.now() - __t0) / 1000}s`);
   const inicio = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(null) });
-  __log("start");
   const guid = (inicio.dados as any)?.MetaData?.Guid as string | undefined;
   if (!guid) return [];
 
@@ -179,12 +177,11 @@ export async function buscarServicosDestinoCF(p: {
       const r = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) }).catch(
         () => null,
       );
-      if (!r) { console.log("[cf-serv] poll falhou", (Date.now()-__t0)/1000); continue; }
+      if (!r) continue;
       const lote = ((r.dados as any)?.Items ?? []) as any[];
       // guarda sempre a melhor resposta já vista (a operadora às vezes devolve vazio depois de preencher)
       if (lote.length >= ((dados?.Items ?? []) as any[]).length) dados = r.dados;
       const ativas = buscasAtivas((r.dados as any)?.MetaData);
-      console.log("[cf-serv] poll", (Date.now()-__t0)/1000, "itens", lote.length, "ativas", ativas);
       const itens = lote.length;
       if (itens > 0 && ativas === 0) { pronto = true; return; }
       if (ativas === 0 && itens === 0) {
@@ -201,7 +198,6 @@ export async function buscarServicosDestinoCF(p: {
 
   while (!pronto && Date.now() < limite) await espera(250);
 
-  __log("polling");
   const itens: any[] = [...((dados?.Items ?? []) as any[])];
   // Todas as páginas restantes em uma única rodada paralela, com teto de tempo.
   // Antes eram lotes de 4 aguardados em sequência: cada rodada custava ~20 s e
@@ -213,14 +209,13 @@ export async function buscarServicosDestinoCF(p: {
       paginas.map((pagina) =>
         limitarEspera(
           chamarCompreFacil(rota(pagina), { base, method: "POST", body: corpo(guid) }),
-          10_000,
+          15_000,
         ).catch(() => null),
       ),
     );
     for (const r of respostas) itens.push(...(((r?.dados as any)?.Items ?? []) as any[]));
   }
 
-  __log("paginas");
   const vistos = new Set<string>();
   const lista = itens
     .map(mapear)

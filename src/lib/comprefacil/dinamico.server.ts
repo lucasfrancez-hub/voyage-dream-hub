@@ -289,10 +289,7 @@ function distribuicaoQuartos(p: BuscaHotelCF) {
 }
 
 export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacote[]> {
-  const __t0 = Date.now();
-  const __log = (m: string) => console.log(`[cf-hotel] ${m} ${(Date.now() - __t0) / 1000}s`);
   const ses = await sessaoCompreFacil();
-  __log("sessao");
   const agenciaId = Number(ses.agenciaId ?? 0);
   const porPagina = p.porPagina ?? 100;
   const rota = `/api/Hotel/buscaasync?Pagina=1&ItensPorPagina=${porPagina}`;
@@ -317,7 +314,6 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   });
 
   const inicio = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(null) });
-  __log("start");
   const guid = (inicio.dados as any)?.MetaData?.Guid as string | undefined;
   if (!guid) return [];
 
@@ -357,7 +353,6 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     if (i >= 2 && total >= 40 && temQuartoReal(dados)) break;
   }
   dados = melhorDados;
-  __log("polling");
 
 
   const chaveHotel = (h: any) => `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`;
@@ -413,7 +408,6 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
       ).catch(() => null),
     ),
   );
-  __log("asc");
   const itens: any[] = [];
   const mapa = new Map<string, any>();
   let vazio = true;
@@ -429,9 +423,7 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   // mesclamos para o cliente ver todas as acomodações disponíveis.
   acumular(itens, mapa, primeiraPassada);
 
-  __log("paginas");
   const buscaTokenH = await guardarBuscaCF("hotel", itens);
-  __log("cache");
   return itens.map((h, i) => ({
     ...mapearHotel(h, i),
     ...(buscaTokenH ? { buscaToken: buscaTokenH, buscaIndice: i } : {}),
