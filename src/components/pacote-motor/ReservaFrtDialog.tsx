@@ -175,7 +175,7 @@ export function ReservaFrtDialog({
         p.nome.trim() &&
         p.sobrenome.trim() &&
         p.nascimento &&
-        (p.tipo !== 0 || p.cpf.replace(/\D/g, "").length === 11),
+        p.cpf.replace(/\D/g, "").length === 11,
     ) &&
     alertasIdade.length === 0 &&
     (Boolean(voo?.buscaToken) || Boolean(hotel?.buscaToken));
