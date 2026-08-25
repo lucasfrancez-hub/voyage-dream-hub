@@ -131,7 +131,6 @@ export function CardVooSelecionado({
               </div>
               <div className="sel-sub">
                 <span>{oferta.ida.familiaTarifaria || oferta.ida.classe || "Tarifa da companhia"}</span>
-                <IconeBagagem voo={oferta.ida} tamanho={14} mostrarTexto={false} />
               </div>
             </div>
 
