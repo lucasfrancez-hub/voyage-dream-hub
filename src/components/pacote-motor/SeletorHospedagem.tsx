@@ -43,14 +43,6 @@ export function SeletorHospedagem({
   const [aberto, setAberto] = useState<string | null>(null);
   const [sobre, setSobre] = useState<HotelPacote | null>(null);
   const [galeria, setGaleria] = useState<{ hotel: HotelPacote; i: number } | null>(null);
-  const [pagina, setPagina] = useState(1);
-
-  useEffect(() => setPagina(1), [lista]);
-
-  const listaPaginada = useMemo(
-    () => lista.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA),
-    [lista, pagina],
-  );
 
   const opcoes = useMemo(() => {
     const reg = new Set<string>();
