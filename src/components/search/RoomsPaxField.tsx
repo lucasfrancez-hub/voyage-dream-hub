@@ -3,9 +3,18 @@ import { Users, ChevronDown, Minus, Plus, BedDouble, Trash2 } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-export type QuartoPax = { adultos: number; criancas: number; bebes: number };
+export type QuartoPax = {
+  adultos: number;
+  criancas: number;
+  bebes: number;
+  /** Idade (2–11) de cada criança do quarto, na data da viagem. */
+  idades?: number[];
+};
 
-export const QUARTO_PADRAO: QuartoPax = { adultos: 2, criancas: 0, bebes: 0 };
+export const QUARTO_PADRAO: QuartoPax = { adultos: 2, criancas: 0, bebes: 0, idades: [] };
+
+/** Idade padrão usada quando o usuário ainda não escolheu. */
+export const IDADE_CRIANCA_PADRAO = 7;
 
 export function totalPax(quartos: QuartoPax[]) {
   return quartos.reduce(
@@ -83,8 +92,31 @@ export function RoomsPaxField({
   const t = totalPax(quartos);
   const pessoas = t.adultos + t.criancas + t.bebes;
 
-  function atualizar(indice: number, campo: keyof QuartoPax, valor: number) {
-    onChange(quartos.map((q, i) => (i === indice ? { ...q, [campo]: valor } : q)));
+  function atualizar(indice: number, campo: "adultos" | "criancas" | "bebes", valor: number) {
+    onChange(
+      quartos.map((q, i) => {
+        if (i !== indice) return q;
+        const proximo: QuartoPax = { ...q, [campo]: valor };
+        if (campo === "criancas") {
+          const idades = (q.idades ?? []).slice(0, valor);
+          while (idades.length < valor) idades.push(IDADE_CRIANCA_PADRAO);
+          proximo.idades = idades;
+        }
+        return proximo;
+      }),
+    );
+  }
+
+  function atualizarIdade(indice: number, criancaIdx: number, idade: number) {
+    onChange(
+      quartos.map((q, i) => {
+        if (i !== indice) return q;
+        const idades = [...(q.idades ?? [])];
+        while (idades.length < q.criancas) idades.push(IDADE_CRIANCA_PADRAO);
+        idades[criancaIdx] = idade;
+        return { ...q, idades };
+      }),
+    );
   }
 
   return (
@@ -149,6 +181,31 @@ export function RoomsPaxField({
                       max={6}
                       onChange={(v) => atualizar(i, "criancas", v)}
                     />
+                    {q.criancas > 0 && (
+                      <div className="mt-1 rounded-md bg-muted/40 p-2">
+                        <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Idade das crianças (na viagem)
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {Array.from({ length: q.criancas }, (_, c) => (
+                            <label key={c} className="text-[11px] text-muted-foreground">
+                              Criança {c + 1}
+                              <select
+                                className="mt-0.5 h-8 w-full rounded-md border border-border/60 bg-background px-2 text-sm text-foreground"
+                                value={q.idades?.[c] ?? IDADE_CRIANCA_PADRAO}
+                                onChange={(e) => atualizarIdade(i, c, Number(e.target.value))}
+                              >
+                                {Array.from({ length: 10 }, (_, k) => k + 2).map((idade) => (
+                                  <option key={idade} value={idade}>
+                                    {idade} anos
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <Contador
                       label="Bebês (colo)"
                       valor={q.bebes}
