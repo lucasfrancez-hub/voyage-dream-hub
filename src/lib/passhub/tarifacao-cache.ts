@@ -129,3 +129,48 @@ export function useTarifacaoPassHub(
 
   return cache.get(chave) ?? null;
 }
+
+/**
+ * Força uma nova tarifação (botão "Tarifar"): descarta o valor em cache e
+ * consulta a PassHub outra vez, devolvendo o resultado já atualizado.
+ */
+export async function forcarTarifacao(
+  tarifarFn: (arg: {
+    data: {
+      rateTokens: string[];
+      provedor: string;
+      precoEsperado: number;
+      ravPercentual: number | null;
+    };
+  }) => Promise<any>,
+  tokens: (string | undefined | null)[],
+  provedor: string,
+  precoEsperado: number,
+  pct: number,
+): Promise<TarifacaoCache | null> {
+  const limpos = [...new Set(tokens.filter((t): t is string => Boolean(t)))];
+  if (!limpos.length) return null;
+  const chave = chaveTarifacao(limpos, pct);
+  cache.delete(chave);
+  avisar();
+  const r = await tarifarFn({
+    data: {
+      rateTokens: limpos,
+      provedor: provedor || "CVC",
+      precoEsperado,
+      ravPercentual: pct || null,
+    },
+  });
+  if (!r?.ok) throw new Error(r?.erro || "Falha ao tarifar");
+  const preco = r.tarifacao.preco || 0;
+  const comissao = r.tarifacao.ravValor || 0;
+  const valor: TarifacaoCache = {
+    preco,
+    comissao,
+    total: Math.round((preco + comissao) * 100) / 100,
+  };
+  cache.set(chave, valor);
+  avisar();
+  return valor;
+}
+
