@@ -444,6 +444,7 @@ export function SeletorVoo({
                       {volta ? <Perna voo={volta} rotulo="Saída" /> : null}
                     </div>
                     <div className="flightfoot-acts">
+                      <IconeBagagem voo={o.ida} tamanho={15} />
                       <button
                         type="button"
                         className={`more solid-btn${expandida ? " on" : ""}`}
