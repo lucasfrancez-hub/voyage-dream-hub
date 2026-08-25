@@ -329,6 +329,7 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
               "A operadora não concluiu a reserva do hotel — finalize pelo portal da FRT com o orçamento criado."),
         );
       }
+      }
     }
 
   }
