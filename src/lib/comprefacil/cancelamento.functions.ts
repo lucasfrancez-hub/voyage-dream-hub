@@ -40,3 +40,24 @@ export const cancelarReservaFRTFn = createServerFn({ method: "POST" })
       };
     }
   });
+
+/** Remove (exclui) um item do orçamento na operadora — não é cancelamento. */
+export const removerItemFRTFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: { orcamentoId: number; item: { tipo: "aereo" | "hotel" | "servico" | "seguro"; id: number } }) => input,
+  )
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context);
+    const { removerItemFRT } = await import("./cancelamento.server");
+    try {
+      return await removerItemFRT(data);
+    } catch (e) {
+      return {
+        ok: false,
+        orcamentoId: data.orcamentoId,
+        itens: [],
+        passos: [{ passo: "Remover item", ok: false, detalhe: e instanceof Error ? e.message : "Falha inesperada" }],
+      };
+    }
+  });
