@@ -101,6 +101,19 @@ function mapear(s: any, i: number): ServicoDisponivel {
   };
 }
 
+/** Espera com teto de tempo: devolve null se a operadora demorar demais. */
+async function limitarEspera<T>(promessa: Promise<T>, ms: number): Promise<T | null> {
+  let id: ReturnType<typeof setTimeout> | undefined;
+  const teto = new Promise<null>((r) => {
+    id = setTimeout(() => r(null), ms);
+  });
+  try {
+    return await Promise.race([promessa, teto]);
+  } finally {
+    if (id) clearTimeout(id);
+  }
+}
+
 export async function buscarServicosDestinoCF(p: {
   cidadeId: number;
   data: string;
@@ -113,7 +126,8 @@ export async function buscarServicosDestinoCF(p: {
 }): Promise<ServicoDisponivel[]> {
   const ses = await sessaoCompreFacil();
   const base = COMPREFACIL_BASES.servico;
-  const porPagina = Math.min(100, Math.max(10, p.limite ?? 60));
+  // 100 por página: menos requisições para varrer o mesmo catálogo.
+  const porPagina = Math.min(100, Math.max(10, p.limite ?? 100));
   const rota = (pagina: number) =>
     `/api/Servico/busca?Pagina=${pagina}&ItensPorPagina=${porPagina}`;
 
@@ -180,6 +194,8 @@ export async function buscarServicosDestinoCF(p: {
       if (estavel >= 2 && itens >= 20) break;
     }
     anterior = itens;
+    // já há um catálogo utilizável: não vale segurar a tela esperando o resto
+    if (itens >= 20 && Date.now() - __t0 > 15_000) break;
     if (Date.now() > limite) break;
   }
 
@@ -187,21 +203,21 @@ export async function buscarServicosDestinoCF(p: {
 
   __log("polling");
   const itens: any[] = [...((dados?.Items ?? []) as any[])];
-  const totalPaginas = Math.min(12, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
+  // Todas as páginas restantes em uma única rodada paralela, com teto de tempo.
+  // Antes eram lotes de 4 aguardados em sequência: cada rodada custava ~20 s e
+  // a busca de serviços passava de um minuto.
+  const totalPaginas = Math.min(5, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
   const paginas = Array.from({ length: Math.max(0, totalPaginas - 1) }, (_, k) => k + 2);
-  for (let ini = 0; ini < paginas.length; ini += 4) {
+  if (paginas.length) {
     const respostas = await Promise.all(
-      paginas.slice(ini, ini + 4).map((pagina) =>
-        chamarCompreFacil(rota(pagina), { base, method: "POST", body: corpo(guid) }).catch(() => null),
+      paginas.map((pagina) =>
+        limitarEspera(
+          chamarCompreFacil(rota(pagina), { base, method: "POST", body: corpo(guid) }),
+          15_000,
+        ).catch(() => null),
       ),
     );
-    let vazio = true;
-    for (const r of respostas) {
-      const lote: any[] = (r?.dados as any)?.Items ?? [];
-      if (lote.length) vazio = false;
-      itens.push(...lote);
-    }
-    if (vazio) break;
+    for (const r of respostas) itens.push(...(((r?.dados as any)?.Items ?? []) as any[]));
   }
 
   __log("paginas");
