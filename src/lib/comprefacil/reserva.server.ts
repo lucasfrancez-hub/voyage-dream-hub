@@ -301,7 +301,7 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
           d?.mensagem ??
             "Tarifa em gastos: a FRT exige o pagamento antes de confirmar a hospedagem. Pague o orçamento e finalize a reserva do hotel.",
         );
-      }
+      } else {
       const hotelRes: any = d?.Hotel ?? d ?? {};
       const status = Number(hotelRes?.Status ?? 0);
       localizadorHotel =
