@@ -100,11 +100,6 @@ function PassHubPage() {
     setRav(escopoRota === "nacional" ? 10 : 7);
   }, [escopoRota, ravManual]);
 
-  useEffect(() => {
-    setIdadesCriancas((prev) =>
-      Array.from({ length: criancas }, (_, i) => prev[i] ?? 2)
-    );
-  }, [criancas]);
 
   const [ordem, setOrdem] = useState<FiltrosMotor["ordem"]>("preco");
   const [mostrar, setMostrar] = useState(10);
