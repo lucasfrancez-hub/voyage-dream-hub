@@ -10,6 +10,7 @@ const buscaSchema = z.object({
   dataVolta: dataIso.optional().nullable(),
   adultos: z.number().int().min(1).max(9).default(1),
   criancas: z.number().int().min(0).max(8).optional(),
+  idadesCriancas: z.array(z.number().int().min(0).max(11)).max(8).optional(),
   bebes: z.number().int().min(0).max(8).optional(),
   classe: z.number().int().min(1).max(4).optional(),
   ravPercentual: z.number().min(0).max(100).optional(),
