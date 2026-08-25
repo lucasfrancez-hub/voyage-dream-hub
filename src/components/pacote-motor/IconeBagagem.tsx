@@ -1,5 +1,11 @@
 import { Backpack, Briefcase, Luggage, X } from "lucide-react";
 import type { PassHubVoo } from "@/lib/passhub/types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 /**
  * Ícones de bagagem do voo.
@@ -35,26 +41,50 @@ export function IconeBagagem({
   const cruz = Math.max(8, Math.round(tamanho * 0.55));
 
   return (
-    <div className="flight-baggage" title={texto}>
-      <span
-        className={`bag-icon${temMochila ? " on" : " off"}`}
-        title="Item pessoal (mochila)"
-      >
-        <Backpack size={tamanho} />
-        {!temMochila && <X size={cruz} className="bag-x" />}
-      </span>
-      <span className={`bag-icon${temMao ? " on" : " off"}`} title="Bagagem de mão (10kg)">
-        <Briefcase size={tamanho} />
-        {!temMao && <X size={cruz} className="bag-x" />}
-      </span>
-      <span
-        className={`bag-icon${temDespachada ? " on" : " off"}`}
-        title={temDespachada ? `${qtdDespachada}x ${peso}kg despachada` : `Sem bagagem de ${peso}kg`}
-      >
-        <Luggage size={tamanho} />
-        {!temDespachada && <X size={cruz} className="bag-x" />}
-      </span>
-      {mostrarTexto && <small className="bag-label">{texto}</small>}
-    </div>
+    <TooltipProvider delayDuration={150}>
+      <div className="flight-baggage">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`bag-icon${temMochila ? " on" : " off"}`}>
+              <Backpack size={tamanho} />
+              {!temMochila && <X size={cruz} className="bag-x" />}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>Item pessoal (mochila)</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`bag-icon${temMao ? " on" : " off"}`}>
+              <Briefcase size={tamanho} />
+              {!temMao && <X size={cruz} className="bag-x" />}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>Bagagem de mão (10kg)</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`bag-icon${temDespachada ? " on" : " off"}`}>
+              <Luggage size={tamanho} />
+              {!temDespachada && <X size={cruz} className="bag-x" />}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>
+              {temDespachada
+                ? `${qtdDespachada}x ${peso}kg despachada`
+                : `Sem bagagem de ${peso}kg`}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+
+        {mostrarTexto && <small className="bag-label">{texto}</small>}
+      </div>
+    </TooltipProvider>
   );
 }
