@@ -32,6 +32,11 @@ export type PassHubVoo = {
   bagagemDespachada: boolean;
   bagagemDespachadaQtd: number;
   bagagemMao: boolean;
+  /** Peso da bagagem despachada em kg (FRT: `BagagemPeso`), quando informado. */
+  bagagemPeso?: number;
+  /** Item pessoal / mochila (FRT: `Mochila`). */
+  mochila?: boolean;
+
   servicos: PassHubServico[];
   precoTotal: number;
   precoTarifa: number;

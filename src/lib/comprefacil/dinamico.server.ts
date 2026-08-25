@@ -194,7 +194,20 @@ function mapearVoo(seg: any, tarifa: { total: number; tarifa: number; taxas: num
   const primeiro = voos[0] ?? {};
   const ultimo = voos[voos.length - 1] ?? primeiro;
   const totalMin = voos.reduce((a, v) => a + minutos(v?.Duracao), 0);
-  const bagagem = Number(seg?.BagagemQuantidade ?? 0);
+  // A FRT devolve a bagagem no seguimento (`BagagemQuantidade`/`BagagemPeso`/
+  // `Mochila`/`BagagemDeBordo`) e repete em cada voo — se o seguimento vier
+  // zerado, usamos o maior valor entre os voos do trecho.
+  const bagagem = Math.max(
+    Number(seg?.BagagemQuantidade ?? 0) || 0,
+    ...voos.map((v) => Number(v?.BagagemQuantidade ?? 0) || 0),
+  );
+  const peso = Math.max(
+    Number(seg?.BagagemPeso ?? 0) || 0,
+    ...voos.map((v) => Number(v?.BagagemPeso ?? 0) || 0),
+  );
+  const temMao = seg?.BagagemDeBordo === true || voos.some((v) => v?.BagagemDeBordo === true);
+  const temMochila = seg?.Mochila === true || voos.some((v) => v?.Mochila === true);
+
   return {
     companhia: seg?.Fornecedor || primeiro?.CiaMarketing || "",
     companhiaIata: primeiro?.CiaMarketing || primeiro?.CiaOperacao || "",
@@ -227,7 +240,10 @@ function mapearVoo(seg: any, tarifa: { total: number; tarifa: number; taxas: num
     })) as any,
     bagagemDespachada: bagagem > 0,
     bagagemDespachadaQtd: bagagem,
-    bagagemMao: seg?.BagagemDeBordo !== false,
+    bagagemMao: temMao,
+    bagagemPeso: peso > 0 ? peso : undefined,
+    mochila: temMochila,
+
     servicos: [],
     precoTotal: tarifa.total,
     precoTarifa: tarifa.tarifa,
