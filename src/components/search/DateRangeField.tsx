@@ -102,7 +102,7 @@ export function DateRangeField({
       window.cancelAnimationFrame(raf);
       timers.forEach((t) => window.clearTimeout(t));
       window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
+      
     };
   }, [open, embedded]);
 
