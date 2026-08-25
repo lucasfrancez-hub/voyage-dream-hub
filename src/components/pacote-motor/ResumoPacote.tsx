@@ -1,5 +1,6 @@
 import { nomeCia } from "@/lib/pacote-motor/cia";
 import { confirmThen } from "@/lib/confirm";
+import { IconeBagagem } from "@/components/pacote-motor/IconeBagagem";
 import { brl, hora, plural, type HotelPacote, type OcupacaoQuarto, type QuartoPacote } from "@/lib/pacote-motor/mapear";
 import { somaOcupacao } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
@@ -31,6 +32,9 @@ function Trecho({ voo, rotulo, companhia }: { voo: PassHubVoo; rotulo: string; c
       {voo.escala ? (
         <div style={{ marginTop: 4, color: "#6f8595", fontSize: 9 }}>Conexão em {voo.escala}</div>
       ) : null}
+      <div className="sum-baggage">
+        <IconeBagagem voo={voo} tamanho={13} />
+      </div>
     </div>
   );
 }

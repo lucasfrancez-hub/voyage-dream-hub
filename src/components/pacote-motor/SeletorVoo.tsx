@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParcelamentoPacote } from "@/lib/pacote-motor/parcelamento";
 import { LogoCia } from "@/components/pacote-motor/LogoCia";
+import { IconeBagagem } from "@/components/pacote-motor/IconeBagagem";
 import { FiltrosMkt } from "./FiltrosMkt";
 import { brl, hora, resumoVoo } from "@/lib/pacote-motor/mapear";
 import { nomeCia, trocasDeAeroporto } from "@/lib/pacote-motor/cia";
@@ -443,6 +444,7 @@ export function SeletorVoo({
                       {volta ? <Perna voo={volta} rotulo="Saída" /> : null}
                     </div>
                     <div className="flightfoot-acts">
+                      <IconeBagagem voo={o.ida} tamanho={15} />
                       <button
                         type="button"
                         className={`more solid-btn${expandida ? " on" : ""}`}

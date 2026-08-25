@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LogoCia } from "@/components/pacote-motor/LogoCia";
+import { IconeBagagem } from "@/components/pacote-motor/IconeBagagem";
 import { hora, resumoVoo } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 
@@ -130,13 +131,18 @@ export function CardVooSelecionado({
               </div>
               <div className="sel-sub">
                 <span>{oferta.ida.familiaTarifaria || oferta.ida.classe || "Tarifa da companhia"}</span>
-                <span>{r.bagagem}</span>
+                <IconeBagagem voo={oferta.ida} tamanho={14} mostrarTexto={false} />
               </div>
             </div>
 
             <div className="flight-stack">
               <Trecho voo={oferta.ida} rotulo="Ida" />
               {volta ? <Trecho voo={volta} rotulo="Volta" /> : null}
+            </div>
+
+            <div className="overview-baggage-row">
+              <IconeBagagem voo={oferta.ida} tamanho={15} />
+              {volta ? <IconeBagagem voo={volta} tamanho={15} /> : null}
             </div>
 
             <div className="overview-flight-toggle-row">

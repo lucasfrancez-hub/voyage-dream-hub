@@ -2421,7 +2421,47 @@ body:has([data-chat-root]),
 .mkt .roomacts {display:flex;align-items:center;gap:8px;flex:0 0 auto;}
 
 /* voo: rodapé com o botão de detalhes */
-.mkt .flightmain .flightfoot-acts {display:flex;justify-content:flex-end;margin-top:8px;}
+.mkt .flightmain .flightfoot-acts {display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+.mkt .flightmain .flightfoot-acts .flight-baggage {margin-right:auto;}
+
+/* Ícones de bagagem */
+.flight-baggage {
+  display:inline-flex;align-items:center;gap:7px;
+  color:#8ea3b3;font-size:10px;font-weight:700;
+}
+.bag-icon {
+  position:relative;display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:7px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  color:#5f7585;transition:.18s;
+}
+.bag-icon.on {
+  background:rgba(242,107,31,.12);border-color:rgba(242,107,31,.45);color:#ffc47f;
+}
+.bag-icon.off {
+  opacity:.65;
+}
+.bag-x {
+  position:absolute;right:-3px;bottom:-3px;
+  color:#ff6b6b;background:#1a0f0f;border-radius:50%;
+  padding:1px;border:1px solid rgba(255,107,107,.35);
+}
+.bag-label {
+  color:#8ea3b3;font-size:9px;font-weight:800;white-space:nowrap;
+}
+
+/* Bagagens no card de voo selecionado (visão geral / pacote recomendado) */
+.mkt #overview #selectedFlightCard .overview-baggage-row {
+  display:flex;align-items:center;gap:14px;
+  margin-top:12px;padding-top:12px;
+  border-top:1px solid rgba(255,255,255,.055);
+}
+
+/* Bagagens no resumo do pacote */
+.mkt .sum-trip .sum-baggage {
+  margin-top:8px;padding-top:7px;
+  border-top:1px dashed rgba(255,255,255,.06);
+}
 
 /* serviço: topo com logo do fornecedor e ação de detalhes */
 .mkt .svcmain .svctopo {display:flex;align-items:center;justify-content:space-between;gap:10px;}
