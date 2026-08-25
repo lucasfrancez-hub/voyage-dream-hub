@@ -179,11 +179,12 @@ export async function buscarServicosDestinoCF(p: {
       const r = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) }).catch(
         () => null,
       );
-      if (!r) continue;
+      if (!r) { console.log("[cf-serv] poll falhou", (Date.now()-__t0)/1000); continue; }
       const lote = ((r.dados as any)?.Items ?? []) as any[];
       // guarda sempre a melhor resposta já vista (a operadora às vezes devolve vazio depois de preencher)
       if (lote.length >= ((dados?.Items ?? []) as any[]).length) dados = r.dados;
       const ativas = buscasAtivas((r.dados as any)?.MetaData);
+      console.log("[cf-serv] poll", (Date.now()-__t0)/1000, "itens", lote.length, "ativas", ativas);
       const itens = lote.length;
       if (itens > 0 && ativas === 0) { pronto = true; return; }
       if (ativas === 0 && itens === 0) {
