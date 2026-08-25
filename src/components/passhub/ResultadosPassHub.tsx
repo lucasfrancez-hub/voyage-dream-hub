@@ -1550,6 +1550,15 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
               <div>
                 <div className="cons-lab">Total da viagem (ida e volta)</div>
                 <div className="text-[24px] font-black tracking-tight">{brl(totalFinal)}</div>
+                <div className="mt-1 text-[11px] font-semibold opacity-70">
+                  {tarifando
+                    ? "Tarifando na PassHub…"
+                    : tarifaErro
+                      ? tarifaErro
+                      : tarifadoEm
+                        ? `Tarifado às ${tarifadoEm} · comissão ${brl(tarifacaoFinal?.comissao ?? 0)}`
+                        : "Clique em Tarifar para confirmar o valor atual"}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {onOrcamento && (
@@ -1572,7 +1581,16 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
                 )}
                 <button
                   type="button"
+                  className="cons-btn h-11 px-5 text-[13px] font-bold disabled:opacity-60"
+                  disabled={tarifando}
+                  onClick={tarifarSelecao}
+                >
+                  {tarifando ? "Tarifando…" : tarifadoEm ? "Tarifar novamente" : "Tarifar"}
+                </button>
+                <button
+                  type="button"
                   className="cons-btn cons-btn-primary h-11 px-6 text-[14px] font-black"
+
                   onClick={() => {
                     // Envia só o par escolhido (ida + a volta selecionada),
                     // nunca a lista inteira de voltas combináveis da oferta.
