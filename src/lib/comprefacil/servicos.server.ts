@@ -126,8 +126,10 @@ export async function buscarServicosDestinoCF(p: {
 }): Promise<ServicoDisponivel[]> {
   const ses = await sessaoCompreFacil();
   const base = COMPREFACIL_BASES.servico;
-  // 100 por página: menos requisições para varrer o mesmo catálogo.
-  const porPagina = Math.min(100, Math.max(10, p.limite ?? 100));
+  // 300 por página: o catálogo de um destino cabe inteiro na primeira página,
+  // então a resposta que encerra a busca já vem completa (a operadora devolve
+  // vazio acima de 300).
+  const porPagina = Math.min(300, Math.max(10, p.limite ?? 300));
   const rota = (pagina: number) =>
     `/api/Servico/busca?Pagina=${pagina}&ItensPorPagina=${porPagina}`;
 
