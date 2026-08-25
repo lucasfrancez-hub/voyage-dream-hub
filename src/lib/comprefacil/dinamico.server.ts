@@ -116,57 +116,65 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
   const guid = (inicio.dados as any)?.Aereos?.MetaData?.Guid as string | undefined;
   if (!guid) return [];
 
+  // Consultas sobrepostas (mesmo padrão dos serviços): enquanto as companhias
+  // respondem, o polling volta na hora; a chamada que fecha a busca fica aberta
+  // e pode travar. Disparamos em cadência e usamos a primeira que vier completa.
   let dados: any = inicio.dados;
-  // Polling adaptativo (mesmo padrão da hotelaria): começa curto e cresce,
-  // devolvendo a lista assim que já há resultado útil em vez de ciclos fixos de 3s.
-  const intervalos = [700, 900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000];
+  let pronto = false;
+  let emVoo = 0;
   const limitePolling = Date.now() + 45_000;
-  for (let i = 0; i < intervalos.length; i++) {
-    await espera(intervalos[i]!);
-    if (Date.now() > limitePolling) break;
-    // Teto por requisição: um poll travado não pode segurar a tela inteira.
-    // A operadora usa long-poll: a resposta com o catálogo completo pode
-    // demorar ~30 s. O teto aqui é só contra travas de verdade.
-    const r = await limitarEspera(
-      chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) }),
-      35_000,
-    ).catch(() => null);
-    if (!r) continue;
-    dados = r.dados;
-    const meta = dados?.Aereos?.MetaData;
-    const total = Number(meta?.TotalItens ?? 0);
-    if (buscasAtivas(meta) === 0 && total > 0) break;
-    // Já há ofertas suficientes: entrega sem esperar companhias lentas.
-    if (total >= 40 && i >= 2) break;
-    if (buscasAtivas(meta) === 0 && i > 1) break;
+  const consultar = () => {
+    emVoo++;
+    void chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) })
+      .then((r) => {
+        const meta = (r?.dados as any)?.Aereos?.MetaData;
+        const total = Number(meta?.TotalItens ?? 0);
+        if (total >= Number(dados?.Aereos?.MetaData?.TotalItens ?? 0)) dados = r.dados;
+        if (total > 0 && (buscasAtivas(meta) === 0 || total >= 40)) pronto = true;
+      })
+      .catch(() => null)
+      .finally(() => {
+        emVoo--;
+      });
+  };
+
+  const intervalos = [700, 900, 1200, 1500, 1800, 2200, 3000, 4000, 5000, 5000, 5000, 5000];
+  for (const intervalo of intervalos) {
+    if (pronto || Date.now() > limitePolling) break;
+    await espera(intervalo);
+    if (pronto || Date.now() > limitePolling) break;
+    if (emVoo < 4) consultar();
   }
+  while (!pronto && emVoo > 0 && Date.now() < limitePolling) await espera(250);
 
   const itens: any[] = [...(dados?.Aereos?.Items ?? [])];
+
 
   // Páginas restantes em paralelo (lotes de 4) — antes era uma requisição por vez.
   const metaFinal = dados?.Aereos?.MetaData;
   const faltam = paginasRestantes(metaFinal, porPagina, itens.length);
   const paginas = Array.from({ length: faltam }, (_, k) => k + 2);
-  for (let ini = 0; ini < paginas.length; ini += 4) {
-    const lote = paginas.slice(ini, ini + 4);
+  // Uma única rodada paralela com teto por página: em lotes sequenciais de 4,
+  // cada rodada custava vários segundos e uma página lenta segurava tudo.
+  if (paginas.length) {
     const respostas = await Promise.all(
-      lote.map((pagina) =>
-        chamarCompreFacil(
-          `/api/Aereo/busca?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
-          { base, method: "POST", body: corpo(guid) },
+      paginas.map((pagina) =>
+        limitarEspera(
+          chamarCompreFacil(
+            `/api/Aereo/busca?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
+            { base, method: "POST", body: corpo(guid) },
+          ),
+          12_000,
         ).catch(() => null),
       ),
     );
-    let vazio = true;
     for (const r of respostas) {
       const its: any[] = (r?.dados as any)?.Aereos?.Items ?? [];
-      if (its.length) vazio = false;
       itens.push(...its);
+      if (itens.length >= MAX_ITENS) break;
     }
-    if (vazio || itens.length >= MAX_ITENS) break;
   }
 
-  // guarda o JSON bruto da operadora: a reserva real precisa do objeto original
   const buscaToken = await guardarBuscaCF("aereo", itens);
   return itens
     .map((it, idx) => {
@@ -337,22 +345,42 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     return itens.length * 10 + quartosReais;
   };
   melhorPontuacao = pontuar(melhorDados);
+  // Consultas sobrepostas: uma chamada presa no long-poll da operadora não
+  // pode segurar a busca inteira, então disparamos em cadência e ficamos com
+  // a melhor resposta recebida.
+  let pronto = false;
+  let emVoo = 0;
+  const limitePolling = Date.now() + 40_000;
+  const consultar = (rodada: number) => {
+    emVoo++;
+    void chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) })
+      .then((r) => {
+        const d = r?.dados as any;
+        const pontuacao = pontuar(d);
+        if (pontuacao > melhorPontuacao) {
+          melhorDados = d;
+          melhorPontuacao = pontuacao;
+        }
+        const meta = d?.MetaData;
+        const total = Number(meta?.TotalItens ?? 0);
+        if (buscasAtivas(meta) === 0 && total > 0 && temQuartoReal(d)) pronto = true;
+        else if (buscasAtivas(meta) === 0 && rodada > 1) pronto = true;
+        else if (rodada >= 2 && total >= 40 && temQuartoReal(d)) pronto = true;
+      })
+      .catch(() => null)
+      .finally(() => {
+        emVoo--;
+      });
+  };
   for (let i = 0; i < intervalos.length; i++) {
+    if (pronto || Date.now() > limitePolling) break;
     await espera(intervalos[i]!);
-    const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
-    dados = r.dados;
-    const pontuacao = pontuar(dados);
-    if (pontuacao > melhorPontuacao) {
-      melhorDados = dados;
-      melhorPontuacao = pontuacao;
-    }
-    const meta = dados?.MetaData;
-    const total = Number(meta?.TotalItens ?? 0);
-    if (buscasAtivas(meta) === 0 && total > 0 && temQuartoReal(dados)) break;
-    if (buscasAtivas(meta) === 0 && i > 1) break;
-    if (i >= 2 && total >= 40 && temQuartoReal(dados)) break;
+    if (pronto || Date.now() > limitePolling) break;
+    if (emVoo < 4) consultar(i);
   }
+  while (!pronto && emVoo > 0 && Date.now() < limitePolling) await espera(250);
   dados = melhorDados;
+
 
 
   const chaveHotel = (h: any) => `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`;
