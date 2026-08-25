@@ -161,6 +161,28 @@ export function ResumoPacote({
                     <small>+ ADICIONAL</small>
                     <b>+ {brl(s.valor ?? 0, moeda)}</b>
                   </div>
+                  {onRemoverServico ? (
+                    <button
+                      type="button"
+                      className="sum-svc-remove"
+                      aria-label={`Remover ${main || s.titulo}`}
+                      title="Remover adicional"
+                      onClick={() =>
+                        confirmThen(
+                          {
+                            title: "Remover serviço adicional?",
+                            description: `Deseja remover "${main || s.titulo}" do pacote?`,
+                            confirmText: "Remover",
+                            cancelText: "Manter",
+                            destructive: true,
+                          },
+                          () => onRemoverServico(s.id),
+                        )
+                      }
+                    >
+                      <X size={14} />
+                    </button>
+                  ) : null}
                   {i < servicos.length - 1 ? <div className="sum-svc-sep" /> : null}
                 </div>
               );
