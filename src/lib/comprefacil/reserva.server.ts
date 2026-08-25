@@ -289,14 +289,41 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
   }
 
 
-  // Releitura final: é depois de reservar que a operadora carimba o prazo de pagamento.
+  // Releitura final com repescagem: a operadora costuma carimbar localizador e
+  // prazo de pagamento alguns segundos depois de reservar (retorno do fornecedor).
   let prazoPagamento = extrairPrazoPagamento(orc);
-  try {
-    const final = await chamarCompreFacil(`/api/Reserva/${orcamentoId}/false`);
-    prazoPagamento = extrairPrazoPagamento(final.dados) ?? prazoPagamento;
-  } catch {
-    /* mantém o prazo já lido */
+  const precisaRepescar = (e.aereo && !localizadorAereo) || (hotelOrc && !localizadorHotel);
+  const tentativas = precisaRepescar ? 6 : 1;
+  for (let i = 0; i < tentativas; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 3000));
+    try {
+      const final = await chamarCompreFacil(`/api/Reserva/${orcamentoId}/false`);
+      const fd: any = final.dados ?? {};
+      prazoPagamento = extrairPrazoPagamento(fd) ?? prazoPagamento;
+      const a: any = fd?.Aereos?.[0] ?? null;
+      const h: any = fd?.Hoteis?.[0] ?? null;
+      localizadorAereo =
+        localizadorAereo || a?.Localizador || a?.LocalizadorAereo || a?.Reserva?.Localizador || null;
+      limiteEmissao = limiteEmissao || a?.DataLimiteEmissao || a?.LimiteEmissao || null;
+      localizadorHotel =
+        localizadorHotel || h?.Localizador || h?.LocalizadorHotel || h?.Reserva?.Localizador || null;
+    } catch {
+      /* mantém os dados já lidos */
+    }
+    if ((!e.aereo || localizadorAereo) && (!hotelOrc || localizadorHotel)) break;
   }
+
+  // Se a repescagem trouxe o localizador, corrige o passo que havia falhado.
+  const corrigirPasso = (nome: string, loc: string | null) => {
+    if (!loc) return;
+    const p = passos.find((x) => x.passo === nome);
+    if (p && !p.ok) {
+      p.ok = true;
+      p.detalhe = `Localizador ${loc}`;
+    }
+  };
+  corrigirPasso("Reservar aéreo", localizadorAereo);
+  corrigirPasso("Reservar hospedagem", localizadorHotel);
 
   const ok = passos.every((p) => p.ok);
   await registrarReservaFRT({
