@@ -129,9 +129,6 @@ export function CardVooSelecionado({
                   </small>
                 </div>
               </div>
-              <div className="sel-sub">
-                <span>{oferta.ida.familiaTarifaria || oferta.ida.classe || "Tarifa da companhia"}</span>
-              </div>
             </div>
 
             <div className="flight-stack">
@@ -139,9 +136,6 @@ export function CardVooSelecionado({
               {volta ? <Trecho voo={volta} rotulo="Volta" /> : null}
             </div>
 
-            <div className="overview-baggage-row">
-              <IconeBagagem voo={oferta.ida} tamanho={15} />
-            </div>
 
             <div className="overview-flight-toggle-row">
               <button type="button" className="overview-flight-more" onClick={() => setAberto((v) => !v)}>
