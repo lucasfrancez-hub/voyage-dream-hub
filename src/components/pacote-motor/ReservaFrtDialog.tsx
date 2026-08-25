@@ -285,51 +285,86 @@ export function ReservaFrtDialog({
           </div>
         )}
 
-        {r && (
-          <div className="space-y-4">
-            <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/30 p-4 text-sm">
-              <p>
-                ID FRT (orçamento): <strong>{r.orcamentoId ?? "—"}</strong>
-              </p>
-              {r.prazoPagamento && (
-                <p className="text-amber-600 dark:text-amber-400">
-                  Prazo de Pagamento: <strong>{formatarPrazoPagamento(r.prazoPagamento)}</strong>
-                </p>
-              )}
-              <p>
-                Localizador aéreo: <strong>{r.localizadorAereo ?? "—"}</strong>
-              </p>
-              <p>
-                Localizador hospedagem: <strong>{r.localizadorHotel ?? "—"}</strong>
-              </p>
-              {r.limiteEmissao && (
-                <p>
-                  Limite de emissão: <strong>{r.limiteEmissao}</strong>
-                </p>
-              )}
-            </div>
-            <ul className="space-y-2">
-              {r.passos.map((p, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                  {p.ok ? (
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <XCircle className="mt-0.5 h-4 w-4 text-destructive" />
-                  )}
-                  <span>
-                    <strong>{p.passo}</strong>
-                    {p.detalhe ? <span className="text-muted-foreground"> — {p.detalhe}</span> : null}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {r.orcamentoId ? <CancelarReservaFrt orcamentoId={r.orcamentoId} /> : null}
-            <Button variant="outline" className="w-full" onClick={onFechar}>
-              Fechar
-            </Button>
+        {r && (() => {
+          const passoDe = (re: RegExp) => r.passos.filter((p) => re.test(p.passo)).slice(-1)[0] ?? null;
+          const pAereo = passoDe(/a[ée]reo/i);
+          const pHotel = passoDe(/hospedagem|hotel/i);
+          const linha = (
+            rotuloItem: string,
+            existe: boolean,
+            localizador: string | null,
+            passo: { ok: boolean; detalhe?: string | null } | null,
+          ) => {
+            if (!existe) return null;
+            const okItem = Boolean(localizador) || Boolean(passo?.ok);
+            return (
+              <div className="flex items-start gap-2 text-sm">
+                {okItem ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                ) : (
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                )}
+                <span>
+                  <strong>
+                    {rotuloItem} {okItem ? "reservado" : "não reservado"}
+                  </strong>
+                  {okItem && localizador ? (
+                    <> — localizador <strong className="tabular-nums">{localizador}</strong></>
+                  ) : null}
+                  {!okItem && passo?.detalhe ? (
+                    <span className="text-muted-foreground"> — {passo.detalhe}</span>
+                  ) : null}
+                </span>
+              </div>
+            );
+          };
 
-          </div>
-        )}
+          return (
+            <div className="space-y-4">
+              <div className="space-y-2 rounded-xl border border-border/60 bg-muted/30 p-4">
+                <p className="text-sm">
+                  Pacote criado na operadora — ID FRT <strong className="tabular-nums">{r.orcamentoId ?? "—"}</strong>
+                </p>
+                {linha("Aéreo", Boolean(voo), r.localizadorAereo, pAereo)}
+                {linha("Hospedagem", Boolean(hotel), r.localizadorHotel, pHotel)}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
+                  {r.limiteEmissao && <span>Limite de emissão: {r.limiteEmissao}</span>}
+                  {r.prazoPagamento && (
+                    <span className="text-amber-600 dark:text-amber-400">
+                      Prazo de pagamento: {formatarPrazoPagamento(r.prazoPagamento)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <details className="rounded-xl border border-border/60 p-3">
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Ver detalhes técnicos
+                </summary>
+                <ul className="mt-2 space-y-2">
+                  {r.passos.map((p, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      {p.ok ? (
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <XCircle className="mt-0.5 h-4 w-4 text-destructive" />
+                      )}
+                      <span>
+                        <strong>{p.passo}</strong>
+                        {p.detalhe ? <span className="text-muted-foreground"> — {p.detalhe}</span> : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+
+              {r.orcamentoId ? <CancelarReservaFrt orcamentoId={r.orcamentoId} /> : null}
+              <Button variant="outline" className="w-full" onClick={onFechar}>
+                Fechar
+              </Button>
+            </div>
+          );
+        })()}
       </DialogContent>
     </Dialog>
   );
