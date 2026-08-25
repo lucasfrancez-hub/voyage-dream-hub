@@ -161,49 +161,42 @@ export async function buscarServicosDestinoCF(p: {
   const guid = (inicio.dados as any)?.MetaData?.Guid as string | undefined;
   if (!guid) return [];
 
+  // Polling em segundo plano: o laço continua consultando a operadora enquanto
+  // a função apenas observa o melhor lote já recebido. Assim uma resposta lenta
+  // nunca trava a tela — no prazo máximo devolvemos o que já chegou.
   let dados: any = inicio.dados;
-  let vazioSeguido = 0;
-  let anterior = -1;
-  let estavel = 0;
-  // polling adaptativo: começa rápido e só desacelera se a operadora demorar
+  let pronto = false;
   const intervalos = [700, 900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000];
-  const limite = Date.now() + 30_000; // teto de segurança: devolve o melhor lote já recebido
-  for (let i = 0; i < intervalos.length; i++) {
-    await espera(intervalos[i]!);
-    if (Date.now() > limite) break;
-    // Teto por requisição: quando a operadora engasga, um único poll chegava a
-    // travar minutos e a tela estourava o tempo de espera.
-    const r = await limitarEspera(
-      chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) }),
-      8_000,
-    ).catch(() => null);
-    if (!r) continue;
-    // guarda sempre a melhor resposta já vista (a operadora às vezes devolve vazio depois de preencher)
-    if (((r.dados as any)?.Items ?? []).length >= ((dados?.Items ?? []) as any[]).length) dados = r.dados;
-    const meta = (r.dados as any)?.MetaData;
-    const itens = Number(((r.dados as any)?.Items ?? []).length);
-    const ativas = buscasAtivas(meta);
-    // fornecedores terminaram e já há resultado: encerra imediatamente
-    if (itens > 0 && ativas === 0) break;
-    // sem fornecedores ativos e ainda sem itens: poucos ciclos de carência
-    if (ativas === 0 && itens === 0) {
-      vazioSeguido++;
-      if (vazioSeguido >= 3) break;
-    } else {
-      vazioSeguido = 0;
+  const limite = Date.now() + 32_000; // teto de segurança
+  void (async () => {
+    let vazioSeguido = 0;
+    let anterior = -1;
+    let estavel = 0;
+    for (let i = 0; i < intervalos.length && !pronto && Date.now() < limite; i++) {
+      await espera(intervalos[i]!);
+      const r = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) }).catch(
+        () => null,
+      );
+      if (!r) continue;
+      const lote = ((r.dados as any)?.Items ?? []) as any[];
+      // guarda sempre a melhor resposta já vista (a operadora às vezes devolve vazio depois de preencher)
+      if (lote.length >= ((dados?.Items ?? []) as any[]).length) dados = r.dados;
+      const ativas = buscasAtivas((r.dados as any)?.MetaData);
+      const itens = lote.length;
+      if (itens > 0 && ativas === 0) { pronto = true; return; }
+      if (ativas === 0 && itens === 0) {
+        if (++vazioSeguido >= 3) { pronto = true; return; }
+      } else vazioSeguido = 0;
+      if (itens > 0) {
+        estavel = itens === anterior ? estavel + 1 : 0;
+        if (estavel >= 2 && itens >= 20) { pronto = true; return; }
+      }
+      anterior = itens;
     }
-    // contagem estabilizada por 2 ciclos com muitos itens: não vale esperar mais
-    if (itens > 0) {
-      estavel = itens === anterior ? estavel + 1 : 0;
-      if (estavel >= 2 && itens >= 20) break;
-    }
-    anterior = itens;
-    // já há um catálogo utilizável: não vale segurar a tela esperando o resto
-    if (itens >= 20 && Date.now() - __t0 > 15_000) break;
-    if (Date.now() > limite) break;
-  }
+    pronto = true;
+  })();
 
-
+  while (!pronto && Date.now() < limite) await espera(250);
 
   __log("polling");
   const itens: any[] = [...((dados?.Items ?? []) as any[])];
