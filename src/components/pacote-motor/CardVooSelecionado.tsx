@@ -140,6 +140,11 @@ export function CardVooSelecionado({
               {volta ? <Trecho voo={volta} rotulo="Volta" /> : null}
             </div>
 
+            <div className="overview-baggage-row">
+              <IconeBagagem voo={oferta.ida} tamanho={15} />
+              {volta ? <IconeBagagem voo={volta} tamanho={15} /> : null}
+            </div>
+
             <div className="overview-flight-toggle-row">
               <button type="button" className="overview-flight-more" onClick={() => setAberto((v) => !v)}>
                 {aberto ? "Ver menos ⌃" : "Ver mais ⌄"}
