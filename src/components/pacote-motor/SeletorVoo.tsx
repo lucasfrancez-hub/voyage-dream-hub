@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParcelamentoPacote } from "@/lib/pacote-motor/parcelamento";
 import { LogoCia } from "@/components/pacote-motor/LogoCia";
+import { IconeBagagem } from "@/components/pacote-motor/IconeBagagem";
 import { FiltrosMkt } from "./FiltrosMkt";
 import { brl, hora, resumoVoo } from "@/lib/pacote-motor/mapear";
 import { nomeCia, trocasDeAeroporto } from "@/lib/pacote-motor/cia";
