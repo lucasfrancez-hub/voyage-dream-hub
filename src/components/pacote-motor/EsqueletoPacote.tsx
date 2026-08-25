@@ -1,3 +1,5 @@
+import { Sparkles } from "lucide-react";
+
 /** Esqueleto animado do pacote recomendado — quadradinhos piscando até chegarem os resultados. */
 function Bloco({ className = "" }: { className?: string }) {
   return (
@@ -59,6 +61,25 @@ export function EsqueletoPacote() {
   return (
     <div className="overview">
       <div className="overview-main">
+        {/* Aviso de progresso: mesma linguagem dos demais motores de busca. */}
+        <div className="mb-3 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="relative flex h-9 w-9 items-center justify-center">
+              <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+              <Sparkles className="h-4 w-4 animate-pulse text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Buscando pacotes de viagem…</p>
+              <p className="text-xs text-muted-foreground">
+                Comparando voos, hotéis e serviços — pode levar até 30 segundos
+              </p>
+            </div>
+          </div>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-full w-1/3 animate-[shimmer_1.4s_ease-in-out_infinite] rounded-full bg-primary/70" />
+          </div>
+        </div>
+
         <div className="overview-grid">
           <CardEsqueleto atraso={0} />
           <CardEsqueleto atraso={0.12} foto />

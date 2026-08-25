@@ -4,6 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeftRight, BedDouble, CalendarDays, Loader2, MapPin, Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  ENGINE_CARD,
+  ENGINE_LABEL,
+  ENGINE_FIELD,
+  ENGINE_BUTTON,
+  ENGINE_FIELD_WRAP,
+} from "@/components/search/engine-style";
 import { DateRangeField } from "@/components/search/DateRangeField";
 import { RoomsPaxField } from "@/components/search/RoomsPaxField";
 import { toast } from "sonner";
@@ -401,11 +408,11 @@ export function PacoteMotor({
         {/* Mesma linguagem visual das abas Aéreo/Hotel: card do design system,
             labels com ícone, calendário e seletor de hóspedes padrão. */}
         {/* Exatamente o mesmo painel da aba Aéreo: mesmas classes, mesmos campos. */}
-        <section className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
-          <div className="grid gap-3 lg:grid-cols-[1fr_1.2fr_auto]">
-            <div className="relative grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+        <section className={ENGINE_CARD}>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr_auto]">
+            <div className="relative grid grid-cols-2 gap-4">
+              <div className={ENGINE_FIELD_WRAP}>
+                <Label className={ENGINE_LABEL}>
                   <MapPin className="h-3 w-3" /> Origem
                 </Label>
                 <CidadeAutocompleteCF
@@ -413,7 +420,7 @@ export function PacoteMotor({
                   valor={origem}
                   campo="saida"
                   placeholder="De onde sairemos?"
-                  className="h-12 rounded-xl border-border bg-muted/40 text-sm font-semibold sm:text-base"
+                  className={ENGINE_FIELD}
                   onChange={(nome, _id, iata) => {
                     setOrigem(nome);
                     setOrigemIata(iata ?? "");
@@ -437,8 +444,8 @@ export function PacoteMotor({
               >
                 <ArrowLeftRight className="h-3.5 w-3.5" />
               </button>
-              <div className="space-y-1">
-                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+              <div className={ENGINE_FIELD_WRAP}>
+                <Label className={ENGINE_LABEL}>
                   <ArrowLeftRight className="h-3 w-3" /> Destino
                 </Label>
                 <CidadeAutocompleteCF
@@ -446,7 +453,7 @@ export function PacoteMotor({
                   valor={destino}
                   campo="destino"
                   placeholder="Para onde vamos?"
-                  className="h-12 rounded-xl border-border bg-muted/40 text-sm font-semibold sm:text-base"
+                  className={ENGINE_FIELD}
                   onChange={(nome, id, iata) => {
                     setDestino(nome);
                     setCidadeId(id);
@@ -456,8 +463,8 @@ export function PacoteMotor({
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+            <div className={ENGINE_FIELD_WRAP}>
+              <Label className={ENGINE_LABEL}>
                 <CalendarDays className="h-3 w-3" /> Ida e volta
               </Label>
               <DateRangeField
@@ -475,7 +482,7 @@ export function PacoteMotor({
             <div className="flex items-end">
               <Button
                 size="lg"
-                className="h-12 w-full lg:w-auto"
+                className={ENGINE_BUTTON}
                 onClick={pesquisar}
                 disabled={carregando}
               >
@@ -489,14 +496,14 @@ export function PacoteMotor({
             </div>
           </div>
 
-          <div className="mt-3 grid gap-3 border-t border-border/60 pt-3 md:grid-cols-[1.4fr_auto] md:items-end">
+          <div className="mt-2 grid gap-4 border-t border-border/40 pt-6 md:grid-cols-[1.4fr_auto] md:items-end">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Users className="h-3.5 w-3.5" />
               {plural(pax.hospedes, "passageiro", "passageiros")} ·{" "}
               {plural(quartos.length, "quarto", "quartos")}
             </div>
-            <div className="w-full space-y-1 md:w-72">
-              <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+            <div className="w-full space-y-2 md:w-72">
+              <Label className={ENGINE_LABEL}>
                 <BedDouble className="h-3 w-3" /> Quartos e hóspedes
               </Label>
               <RoomsPaxField

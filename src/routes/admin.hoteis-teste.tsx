@@ -38,6 +38,15 @@ import { FiltersAside } from "@/components/search/FiltersAside";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { DestinationAutocomplete } from "@/components/search/DestinationAutocomplete";
 import {
+  ENGINE_CARD,
+  ENGINE_LABEL,
+  ENGINE_FIELD,
+  ENGINE_BUTTON,
+  ENGINE_PAX_LABEL,
+  ENGINE_PAX_INPUT,
+  ENGINE_FIELD_WRAP,
+} from "@/components/search/engine-style";
+import {
   onerHotelDestinations,
   onerHotelSearch,
   onerHotelRooms,
@@ -1213,10 +1222,10 @@ export function HoteisPage({
             )}
           </div>
 
-          <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
-            <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_auto]">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <div className={ENGINE_CARD}>
+            <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr_auto]">
+              <div className={ENGINE_FIELD_WRAP}>
+                <Label className={ENGINE_LABEL}>
                   <MapPin className="h-3 w-3 text-primary" /> Destino
                 </Label>
                 <DestinationAutocomplete
@@ -1227,29 +1236,29 @@ export function HoteisPage({
                     setDestQuery(p?.name ?? "");
                   }}
                   placeholder="Cidade, região ou nome do hotel"
-                  className="h-12 rounded-xl border-border/40 bg-muted/40 px-4 text-base font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className={ENGINE_FIELD}
                 />
               </div>
 
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <CalendarDays className="h-3 w-3" /> Check-in
+              <div className="grid grid-cols-2 gap-4">
+                <div className={ENGINE_FIELD_WRAP}>
+                  <Label className={ENGINE_LABEL}>
+                    <CalendarDays className="h-3 w-3 text-primary" /> Check-in
                   </Label>
                   <Input
-                    className="h-11"
+                    className={ENGINE_FIELD}
                     type="date"
                     value={form.checkIn}
                     onChange={(e) => setForm({ ...form, checkIn: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <CalendarDays className="h-3 w-3" /> Check-out
+                <div className={ENGINE_FIELD_WRAP}>
+                  <Label className={ENGINE_LABEL}>
+                    <CalendarDays className="h-3 w-3 text-primary" /> Check-out
                   </Label>
                   <Input
-                    className="h-11"
+                    className={ENGINE_FIELD}
                     type="date"
                     value={form.checkOut}
                     onChange={(e) => setForm({ ...form, checkOut: e.target.value })}
@@ -1267,7 +1276,7 @@ export function HoteisPage({
                     <input type="hidden" name="ad" value={form.adults} />
                     <input type="hidden" name="ch" value={form.children} />
                     <input type="hidden" name="rm" value={form.rooms} />
-                    <Button type="submit" size="lg" className="h-11 w-full lg:w-auto" disabled={!canSearch}>
+                    <Button type="submit" size="lg" className={ENGINE_BUTTON} disabled={!canSearch}>
                       <Search className="mr-2 h-4 w-4" />
                       Buscar
                     </Button>
@@ -1275,7 +1284,7 @@ export function HoteisPage({
                 ) : (
                   <Button
                     size="lg"
-                    className="h-11 w-full lg:w-auto"
+                    className={ENGINE_BUTTON}
                     disabled={!canSearch || mut.isPending}
                     onClick={() => mut.mutate()}
                   >
@@ -1291,30 +1300,33 @@ export function HoteisPage({
 
             </div>
 
-            <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-border/60 pt-3">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Users className="h-3 w-3" /> {form.rooms} quarto(s) • {form.adults * form.rooms} adulto(s)
+            <div className="mt-2 flex flex-wrap items-center gap-6 border-t border-border/40 pt-6">
+              <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Users className="h-5 w-5" /> {form.rooms} quarto(s) • {form.adults * form.rooms} adulto(s)
                 {nights > 0 && ` • ${nights} noite(s)`}
               </span>
-              {[
-                { k: "rooms" as const, l: "Quartos", min: 1, max: 5 },
-                { k: "adults" as const, l: "Adultos/quarto", min: 1, max: 9 },
-                { k: "children" as const, l: "Crianças/quarto", min: 0, max: 6 },
-              ].map((p) => (
-                <div key={p.k} className="w-32 space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">{p.l}</Label>
-                  <Input
-                    className="h-9"
-                    type="number"
-                    min={p.min}
-                    max={p.max}
-                    value={form[p.k]}
-                    onChange={(e) => setForm({ ...form, [p.k]: Number(e.target.value) })}
-                  />
-                </div>
-              ))}
+              <div className="flex items-center gap-4">
+                {[
+                  { k: "rooms" as const, l: "Quartos", min: 1, max: 5 },
+                  { k: "adults" as const, l: "Adultos/quarto", min: 1, max: 9 },
+                  { k: "children" as const, l: "Crianças/quarto", min: 0, max: 6 },
+                ].map((p) => (
+                  <div key={p.k} className="flex flex-col">
+                    <span className={ENGINE_PAX_LABEL}>{p.l}</span>
+                    <Input
+                      className={ENGINE_PAX_INPUT}
+                      type="number"
+                      min={p.min}
+                      max={p.max}
+                      value={form[p.k]}
+                      onChange={(e) => setForm({ ...form, [p.k]: Number(e.target.value) })}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+
         </div>
       </header>
       )}
