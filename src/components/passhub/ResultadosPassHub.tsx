@@ -10,7 +10,9 @@ import {
   lerTarifacao,
   limparFilaTarifacao,
   useVersaoTarifacao,
+  forcarTarifacao,
 } from "@/lib/passhub/tarifacao-cache";
+
 
 export type FiltrosMotor = {
   ordem: "preco" | "duracao" | "partida" | "chegada";
@@ -1341,14 +1343,26 @@ function ResumoPerna({
 export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onReservar, onOrcamento }: Props) {
   const [idaSel, setIdaSel] = useState<string | null>(null);
   const [voltaSel, setVoltaSel] = useState<string | null>(null);
+  const [tarifando, setTarifando] = useState(false);
+  const [tarifaErro, setTarifaErro] = useState<string | null>(null);
+  const [tarifadoEm, setTarifadoEm] = useState<string | null>(null);
+  const tarifarOfertaFn = useServerFn(passhubTarifarOferta);
   const refVolta = useRef<HTMLDivElement | null>(null);
   const refResumo = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     limparFilaTarifacao();
     setIdaSel(null);
     setVoltaSel(null);
   }, [resultado]);
+
+  // Trocou de voo: a tarifação anterior não vale mais.
+  useEffect(() => {
+    setTarifadoEm(null);
+    setTarifaErro(null);
+  }, [idaSel, voltaSel]);
+
 
   const idas = useMemo(() => {
     const mapa = new Map<string, Perna>();
@@ -1413,6 +1427,30 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
     setVoltaSel(chave);
     rolar(refResumo);
   }
+
+  /** Tarifa a seleção atual na própria tela, sem abrir a reserva. */
+  async function tarifarSelecao() {
+    if (!vooPreco || tarifando) return;
+    setTarifando(true);
+    setTarifaErro(null);
+    try {
+      await forcarTarifacao(
+        tarifarOfertaFn as never,
+        [pernaIda?.voo.rateToken, pernaVolta?.voo.rateToken],
+        vooPreco.provedor ?? "",
+        vooPreco.precoTotal ?? 0,
+        ravPercentual,
+      );
+      setTarifadoEm(
+        new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      );
+    } catch (e) {
+      setTarifaErro(e instanceof Error ? e.message : "Falha ao tarifar");
+    } finally {
+      setTarifando(false);
+    }
+  }
+
 
   return (
     <div className="space-y-6">
@@ -1512,6 +1550,15 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
               <div>
                 <div className="cons-lab">Total da viagem (ida e volta)</div>
                 <div className="text-[24px] font-black tracking-tight">{brl(totalFinal)}</div>
+                <div className="mt-1 text-[11px] font-semibold opacity-70">
+                  {tarifando
+                    ? "Tarifando na PassHub…"
+                    : tarifaErro
+                      ? tarifaErro
+                      : tarifadoEm
+                        ? `Tarifado às ${tarifadoEm} · comissão ${brl(tarifacaoFinal?.comissao ?? 0)}`
+                        : "Clique em Tarifar para confirmar o valor atual"}
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {onOrcamento && (
@@ -1534,7 +1581,16 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
                 )}
                 <button
                   type="button"
+                  className="cons-btn h-11 px-5 text-[13px] font-bold disabled:opacity-60"
+                  disabled={tarifando}
+                  onClick={tarifarSelecao}
+                >
+                  {tarifando ? "Tarifando…" : tarifadoEm ? "Tarifar novamente" : "Tarifar"}
+                </button>
+                <button
+                  type="button"
                   className="cons-btn cons-btn-primary h-11 px-6 text-[14px] font-black"
+
                   onClick={() => {
                     // Envia só o par escolhido (ida + a volta selecionada),
                     // nunca a lista inteira de voltas combináveis da oferta.
