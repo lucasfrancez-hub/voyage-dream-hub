@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiltrosMkt } from "./FiltrosMkt";
 import { brl } from "@/lib/pacote-motor/mapear";
 import type { ServicoDisponivel } from "@/lib/comprefacil/servicos.server";
 import { GRUPOS_SERVICO, grupoServico } from "@/lib/pacote-motor/categorias";
 import { ServicoModal } from "@/components/pacote-motor/ServicoModal";
+import { Paginacao, ITENS_POR_PAGINA } from "@/components/pacote-motor/Paginacao";
 import seguroImg from "@/assets/seguro-viagem.jpg";
 
 

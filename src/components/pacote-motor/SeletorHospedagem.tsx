@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiltrosMkt } from "./FiltrosMkt";
 import { brl, plural, type HotelPacote } from "@/lib/pacote-motor/mapear";
 import { Chips } from "@/components/pacote-motor/SeletorVoo";
+import { Paginacao, ITENS_POR_PAGINA } from "@/components/pacote-motor/Paginacao";
 import { SobreHotelModal } from "@/components/pacote-motor/SobreHotelModal";
 import { Lightbox } from "@/components/pacote-motor/Lightbox";
 
