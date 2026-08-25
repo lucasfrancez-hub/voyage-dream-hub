@@ -235,12 +235,12 @@ export function SeletorHospedagem({
                   </button>
                   <div className="hotelmain">
                     <div className="hotelhead">
-                      <div>
-                        <div className="hotelselos">
+                      <div className="hotel-title-wrap">
+                        <div className="hotel-title-line">
                           {h.categoria ? <div className="stars">{"★".repeat(h.categoria)}</div> : null}
-                          <span className="engine-type">Hospedagem</span>
+                          <h3>{h.nome}</h3>
                         </div>
-                        <h3>{h.nome}</h3>
+                        <span className="engine-type">Hospedagem</span>
                         <p>{h.endereco ?? h.localizacao ?? "Localização não informada"}</p>
                       </div>
                       {h.avaliacao ? (
@@ -259,31 +259,30 @@ export function SeletorHospedagem({
                       </div>
                     ) : null}
 
-                    <div className="roomrow">
-                      <div>
-                        <b>{quartoAtivo?.nome ?? "Acomodação conforme o pacote"}</b>
-                        <span>
-                          {[
-                            plural(qtdQuartos, "quarto", "quartos"),
-                            quartoAtivo?.regime ?? h.regime,
-                            quartoAtivo?.politica,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ") || "—"}
-                        </span>
-                      </div>
-                      <div className="roomacts">
-                        <button type="button" className="more ghost-btn" onClick={() => setSobre(h)}>
-                          Sobre o hotel
-                        </button>
-                        <button
-                          type="button"
-                          className={`more solid-btn${expandido ? " on" : ""}`}
-                          onClick={() => setAberto(expandido ? null : h.id)}
-                        >
-                          {expandido ? "Fechar quartos" : `Alterar quarto${h.quartos.length > 1 ? ` (${h.quartos.length})` : ""}`}
-                        </button>
-                      </div>
+                    <div className="hotel-room-line">
+                      <b>{quartoAtivo?.nome ?? "Acomodação conforme o pacote"}</b>
+                      <span>
+                        {[
+                          plural(qtdQuartos, "quarto", "quartos"),
+                          quartoAtivo?.regime ?? h.regime,
+                          quartoAtivo?.politica,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "—"}
+                      </span>
+                    </div>
+
+                    <div className="hotel-card-foot">
+                      <button type="button" className="hotel-foot-link" onClick={() => setSobre(h)}>
+                        Sobre o hotel
+                      </button>
+                      <button
+                        type="button"
+                        className={`hotel-foot-btn${expandido ? " on" : ""}`}
+                        onClick={() => setAberto(expandido ? null : h.id)}
+                      >
+                        {expandido ? "Fechar quartos" : `Alterar quarto${h.quartos.length > 1 ? ` (${h.quartos.length})` : ""}`}
+                      </button>
                     </div>
                   </div>
 
