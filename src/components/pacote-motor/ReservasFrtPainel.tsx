@@ -159,6 +159,19 @@ function ItensReserva({ orcamentoId }: { orcamentoId: number }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao cancelar item"),
   });
 
+  const removerItem = useMutation({
+    mutationFn: (item: { tipo: "aereo" | "hotel" | "servico" | "seguro"; id: number }) =>
+      removerFn({ data: { orcamentoId, item } }),
+    onSuccess: (r) => {
+      const falha = r.passos?.find((p) => !p.ok);
+      if (falha) toast.error(falha.detalhe ?? "A operadora não removeu o serviço");
+      else toast.success("Serviço removido do orçamento");
+      qc.invalidateQueries({ queryKey: ["frt-itens", orcamentoId] });
+      qc.invalidateQueries({ queryKey: ["frt-reservas"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao remover serviço"),
+  });
+
   const itens = data?.itens ?? [];
   if (isLoading) return <div className="mt-2 text-[11px] text-muted-foreground">Carregando serviços…</div>;
   if (!itens.length) return null;
@@ -177,28 +190,51 @@ function ItensReserva({ orcamentoId }: { orcamentoId: number }) {
             {it.descricao}
             {it.localizador ? <span className="text-muted-foreground"> · {it.localizador}</span> : null}
           </span>
-          {it.cancelado ? (
-            <span className="text-rose-400">Cancelado</span>
-          ) : (
+          {it.cancelado ? <span className="text-rose-400">Cancelado</span> : null}
+          {!it.cancelado && (
             <button
               type="button"
               disabled={cancelarItem.isPending}
-              title="Excluir/cancelar este serviço na operadora"
+              title="Cancelar a reserva deste serviço na operadora"
               onClick={() =>
                 confirmThen(`Cancelar na operadora "${it.descricao}"?`, () =>
                   cancelarItem.mutate({ tipo: it.tipo, id: it.id }),
                 )
               }
-              className="inline-flex items-center gap-1 rounded-md border border-destructive/40 px-2 py-1 font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 font-semibold text-muted-foreground hover:bg-muted/50 disabled:opacity-50"
             >
               {cancelarItem.isPending && cancelarItem.variables?.id === it.id ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <Trash2 className="h-3 w-3" />
+                <XCircle className="h-3 w-3" />
               )}
-              Excluir
+              Cancelar
             </button>
           )}
+          <button
+            type="button"
+            disabled={removerItem.isPending}
+            title="Remover este serviço do orçamento na operadora"
+            onClick={() =>
+              confirmThen(`Remover do orçamento "${it.descricao}"?`, () =>
+                removerItem.mutate({ tipo: it.tipo, id: it.id }),
+              )
+            }
+            className="inline-flex items-center gap-1 rounded-md border border-destructive/40 px-2 py-1 font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          >
+            {removerItem.isPending && removerItem.variables?.id === it.id ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Trash2 className="h-3 w-3" />
+            )}
+            Excluir
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
         </div>
       ))}
     </div>
