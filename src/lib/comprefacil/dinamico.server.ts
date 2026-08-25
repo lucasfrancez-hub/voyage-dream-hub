@@ -40,6 +40,16 @@ const FILTRO_HOTEL = {
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+async function limitarEspera<T>(promessa: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  const resultado = await Promise.race([promessa, limite]);
+  if (timer) clearTimeout(timer);
+  return resultado;
+}
+
 /** Teto de segurança: nunca puxar mais que isso, mesmo que a operadora ofereça. */
 const MAX_ITENS = 600;
 const MAX_PAGINAS = 20;
@@ -299,20 +309,41 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   if (!guid) return [];
 
   let dados: any = inicio.dados;
-  // Polling adaptativo. Só encerramos quando a operadora termina as buscas
-  // (`BuscasAtivas` vazio): até lá ela devolve hotéis com um "quarto resumo"
-  // sem nome nem regime, o que fazia o portal mostrar "Acomodação 1".
+  // A API pode alternar respostas preenchidas e vazias enquanto consolida os
+  // fornecedores. Preservamos sempre o melhor lote já recebido para uma
+  // resposta vazia posterior não apagar hotéis que estavam prontos.
+  let melhorDados: any = inicio.dados;
+  let melhorPontuacao = 0;
+  // Polling adaptativo. Assim que há um lote útil com quartos reais, ele pode
+  // ser entregue sem esperar fornecedores lentos terminarem todo o catálogo.
   const intervalos = [900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000, 3000];
   const temQuartoReal = (d: any) =>
     ((d?.Items ?? []) as any[]).some((h) => (h?.Quartos ?? []).some((q: any) => typeof q?.Descricao === "string" && q.Descricao.trim()));
+  const pontuar = (d: any) => {
+    const itens = (d?.Items ?? []) as any[];
+    const quartosReais = itens.reduce(
+      (total, h) => total + ((h?.Quartos ?? []) as any[]).filter((q) => typeof q?.Descricao === "string" && q.Descricao.trim()).length,
+      0,
+    );
+    return itens.length * 10 + quartosReais;
+  };
+  melhorPontuacao = pontuar(melhorDados);
   for (let i = 0; i < intervalos.length; i++) {
     await espera(intervalos[i]!);
     const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
     dados = r.dados;
+    const pontuacao = pontuar(dados);
+    if (pontuacao > melhorPontuacao) {
+      melhorDados = dados;
+      melhorPontuacao = pontuacao;
+    }
     const meta = dados?.MetaData;
     const total = Number(meta?.TotalItens ?? 0);
     if (buscasAtivas(meta) === 0 && total > 0 && temQuartoReal(dados)) break;
+    if (buscasAtivas(meta) === 0 && i > 1) break;
+    if (i >= 2 && total >= 40 && temQuartoReal(dados)) break;
   }
+  dados = melhorDados;
 
 
   const chaveHotel = (h: any) => `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`;
@@ -350,8 +381,11 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
 
   // 2ª passada: mesma busca (mesmo Guid) ordenada do menor para o maior preço,
   // que é a única ordenação em que a operadora devolve o catálogo inteiro.
-  const primeira = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid, "asc") });
-  const dadosAsc: any = primeira.dados;
+  const primeira = await limitarEspera(
+    chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid, "asc") }),
+    12_000,
+  );
+  const dadosAsc: any = primeira?.dados ?? dados;
   const itens: any[] = [];
   const mapa = new Map<string, any>();
   acumular(itens, mapa, (dadosAsc?.Items ?? []) as any[]);
@@ -359,13 +393,17 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   // Páginas restantes em paralelo (lotes de 4) — antes era uma requisição por vez.
   const faltamH = paginasRestantes(dadosAsc?.MetaData, porPagina, itens.length);
   const paginas = Array.from({ length: faltamH }, (_, k) => k + 2);
-  for (let ini = 0; ini < paginas.length; ini += 4) {
-    const lote = paginas.slice(ini, ini + 4);
+  // Uma única rodada paralela: antes, até cinco lotes eram aguardados em
+  // sequência e uma página lenta mantinha toda a hospedagem em carregamento.
+  if (paginas.length) {
     const respostas = await Promise.all(
-      lote.map((pagina) =>
-        chamarCompreFacil(
-          `/api/Hotel/buscaasync?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
-          { base, method: "POST", body: corpo(guid, "asc") },
+      paginas.map((pagina) =>
+        limitarEspera(
+          chamarCompreFacil(
+            `/api/Hotel/buscaasync?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
+            { base, method: "POST", body: corpo(guid, "asc") },
+          ),
+          12_000,
         ).catch(() => null),
       ),
     );
@@ -375,7 +413,7 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
       if (its.length) vazio = false;
       acumular(itens, mapa, its);
     }
-    if (vazio || itens.length >= MAX_ITENS) break;
+    if (vazio) acumular(itens, mapa, primeiraPassada);
   }
 
   // a 1ª passada costuma trazer quartos que a ordenação por preço resume;
