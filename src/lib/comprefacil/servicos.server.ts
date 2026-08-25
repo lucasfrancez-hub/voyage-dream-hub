@@ -148,28 +148,38 @@ export async function buscarServicosDestinoCF(p: {
   let vazioSeguido = 0;
   let anterior = -1;
   let estavel = 0;
-  for (let i = 0; i < 16; i++) {
-    await espera(2000);
-    const r = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) });
+  // polling adaptativo: começa rápido e só desacelera se a operadora demorar
+  const intervalos = [700, 900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000];
+  const limite = Date.now() + 40_000; // teto de segurança: devolve o melhor lote já recebido
+  for (let i = 0; i < intervalos.length; i++) {
+    await espera(intervalos[i]!);
+    const r = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) }).catch(
+      () => null,
+    );
+    if (!r) continue;
     // guarda sempre a melhor resposta já vista (a operadora às vezes devolve vazio depois de preencher)
     if (((r.dados as any)?.Items ?? []).length >= ((dados?.Items ?? []) as any[]).length) dados = r.dados;
     const meta = (r.dados as any)?.MetaData;
     const itens = Number(((r.dados as any)?.Items ?? []).length);
-    // só encerra quando os fornecedores terminaram E a contagem parou de crescer
-    // (antes bastava um ciclo com BuscasAtivas vazio, o que cortava a lista pela metade)
-    if (itens > 0 && buscasAtivas(meta) === 0) {
-      estavel = itens === anterior ? estavel + 1 : 0;
-      if (estavel >= 1) break;
-    }
-    anterior = itens;
-    // fornecedores encerraram sem resultado: dá alguns ciclos de carência antes de desistir
-    if (buscasAtivas(meta) === 0 && itens === 0) {
+    const ativas = buscasAtivas(meta);
+    // fornecedores terminaram e já há resultado: encerra imediatamente
+    if (itens > 0 && ativas === 0) break;
+    // sem fornecedores ativos e ainda sem itens: poucos ciclos de carência
+    if (ativas === 0 && itens === 0) {
       vazioSeguido++;
-      if (vazioSeguido >= 4) break;
+      if (vazioSeguido >= 3) break;
     } else {
       vazioSeguido = 0;
     }
+    // contagem estabilizada por 2 ciclos com muitos itens: não vale esperar mais
+    if (itens > 0) {
+      estavel = itens === anterior ? estavel + 1 : 0;
+      if (estavel >= 2 && itens >= 20) break;
+    }
+    anterior = itens;
+    if (Date.now() > limite) break;
   }
+
 
 
   const itens: any[] = [...((dados?.Items ?? []) as any[])];
