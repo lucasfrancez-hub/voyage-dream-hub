@@ -412,7 +412,7 @@ export function SeletorVoo({
             <div className="state-box">Nenhum voo encontrado para este trecho e período.</div>
           )}
 
-          {lista.map((o) => {
+          {listaPaginada.map((o) => {
             const r = resumoVoo(o.ida);
             const volta = o.voltas?.[0] ?? null;
             const sel = o.id === selecionadaId;
