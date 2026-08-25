@@ -423,6 +423,13 @@ export function SeletorVoo({
                   </div>
 
                   <div className="flightmain">
+                    <div className="flight-mobile-head">
+                      <div className="airline-badge-mobile">
+                        <LogoCia iata={o.ida.companhiaIata} nome={r.companhia} size={28} />
+                        <span>{r.companhia}</span>
+                      </div>
+                      <span className="badge engine-badge">{volta ? "Ida e volta" : "Somente ida"}</span>
+                    </div>
                     <div className="legs">
                       <Perna voo={o.ida} rotulo="Saída" />
                       {volta ? <Perna voo={volta} rotulo="Saída" /> : null}
