@@ -151,23 +151,25 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
   const metaFinal = dados?.Aereos?.MetaData;
   const faltam = paginasRestantes(metaFinal, porPagina, itens.length);
   const paginas = Array.from({ length: faltam }, (_, k) => k + 2);
-  for (let ini = 0; ini < paginas.length; ini += 4) {
-    const lote = paginas.slice(ini, ini + 4);
+  // Uma única rodada paralela com teto por página: em lotes sequenciais de 4,
+  // cada rodada custava vários segundos e uma página lenta segurava tudo.
+  if (paginas.length) {
     const respostas = await Promise.all(
-      lote.map((pagina) =>
-        chamarCompreFacil(
-          `/api/Aereo/busca?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
-          { base, method: "POST", body: corpo(guid) },
+      paginas.map((pagina) =>
+        limitarEspera(
+          chamarCompreFacil(
+            `/api/Aereo/busca?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
+            { base, method: "POST", body: corpo(guid) },
+          ),
+          12_000,
         ).catch(() => null),
       ),
     );
-    let vazio = true;
     for (const r of respostas) {
       const its: any[] = (r?.dados as any)?.Aereos?.Items ?? [];
-      if (its.length) vazio = false;
       itens.push(...its);
+      if (itens.length >= MAX_ITENS) break;
     }
-    if (vazio || itens.length >= MAX_ITENS) break;
   }
 
   __log("paginas");
