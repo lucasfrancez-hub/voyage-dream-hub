@@ -3,9 +3,18 @@ import { Users, ChevronDown, Minus, Plus, BedDouble, Trash2 } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-export type QuartoPax = { adultos: number; criancas: number; bebes: number };
+export type QuartoPax = {
+  adultos: number;
+  criancas: number;
+  bebes: number;
+  /** Idade (2–11) de cada criança do quarto, na data da viagem. */
+  idades?: number[];
+};
 
-export const QUARTO_PADRAO: QuartoPax = { adultos: 2, criancas: 0, bebes: 0 };
+export const QUARTO_PADRAO: QuartoPax = { adultos: 2, criancas: 0, bebes: 0, idades: [] };
+
+/** Idade padrão usada quando o usuário ainda não escolheu. */
+export const IDADE_CRIANCA_PADRAO = 7;
 
 export function totalPax(quartos: QuartoPax[]) {
   return quartos.reduce(
