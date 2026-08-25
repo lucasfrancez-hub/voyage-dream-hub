@@ -38,6 +38,13 @@ import {
   onerExclusiveSearch,
 } from "@/lib/onertravel-extras.functions";
 import type {
+import {
+  ENGINE_CARD,
+  ENGINE_LABEL,
+  ENGINE_FIELD_BOX,
+  ENGINE_BUTTON,
+  ENGINE_FIELD_WRAP,
+} from "@/components/search/engine-style";
   ExclusiveCriteria,
   ExclusiveProduct,
   ExclusiveSearchResult,
@@ -75,7 +82,7 @@ function fmtDate(iso: string) {
 
 function field(children: React.ReactNode) {
   return (
-    <div className="flex h-11 items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-3 backdrop-blur">
+    <div className={ENGINE_FIELD_BOX}>
       {children}
     </div>
   );
@@ -217,9 +224,9 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
             </div>
           )}
 
-          <div className="mt-6 grid gap-3 rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl md:grid-cols-[1.1fr_1.1fr_0.9fr_0.7fr_auto]">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Categoria</Label>
+          <div className={`mt-6 ${ENGINE_CARD} grid gap-4 md:grid-cols-[1.1fr_1.1fr_0.9fr_0.7fr_auto]">
+            <div className={ENGINE_FIELD_WRAP}>
+              <Label className={ENGINE_LABEL}>Categoria</Label>
               {field(
                 <>
                   <Tag className="h-4 w-4 shrink-0 text-primary" />
@@ -239,8 +246,8 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Local de destino</Label>
+            <div className={ENGINE_FIELD_WRAP}>
+              <Label className={ENGINE_LABEL}>Local de destino</Label>
               {field(
                 <>
                   <MapPin className="h-4 w-4 shrink-0 text-primary" />
@@ -260,8 +267,8 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Data do evento</Label>
+            <div className={ENGINE_FIELD_WRAP}>
+              <Label className={ENGINE_LABEL}>Data do evento</Label>
               {field(
                 <>
                   <CalendarDays className="h-4 w-4 shrink-0 text-primary" />
@@ -281,8 +288,8 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Pessoas</Label>
+            <div className={ENGINE_FIELD_WRAP}>
+              <Label className={ENGINE_LABEL}>Pessoas</Label>
               {field(
                 <>
                   <Users className="h-4 w-4 shrink-0 text-primary" />
@@ -304,7 +311,7 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
 
             <div className="flex items-end">
               <Button
-                className="h-11 w-full rounded-xl px-6 md:w-auto"
+                className={ENGINE_BUTTON}
                 onClick={() => run.mutate()}
                 disabled={run.isPending}
               >
