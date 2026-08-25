@@ -66,6 +66,7 @@ export function ResumoPacote({
   moeda?: string;
   servicos?: { id: string; titulo: string; valor: number | null }[];
   onServicos?: () => void;
+  onRemoverServico?: (id: string) => void;
   acao?: React.ReactNode;
 }) {
   const pax = somaOcupacao(quartos);
