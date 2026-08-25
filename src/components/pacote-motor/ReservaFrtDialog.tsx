@@ -263,6 +263,13 @@ export function ReservaFrtDialog({
 
 
 
+            {cpfsDuplicados.length > 0 && (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                Cada passageiro precisa de um CPF diferente — a companhia aérea recusa a reserva com documentos
+                repetidos. Corrija o CPF antes de continuar.
+              </div>
+            )}
+
             <Button className="w-full" disabled={!podeReservar || m.isPending} onClick={() => m.mutate()}>
               {m.isPending ? (
                 <>
