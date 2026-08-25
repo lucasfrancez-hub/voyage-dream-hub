@@ -18,7 +18,7 @@ import {
 export function IconeBagagem({
   voo,
   tamanho = 16,
-  mostrarTexto = true,
+  mostrarTexto = false,
 }: {
   voo: PassHubVoo;
   tamanho?: number;
