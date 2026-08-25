@@ -1421,6 +1421,30 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
     rolar(refResumo);
   }
 
+  /** Tarifa a seleção atual na própria tela, sem abrir a reserva. */
+  async function tarifarSelecao() {
+    if (!vooPreco || tarifando) return;
+    setTarifando(true);
+    setTarifaErro(null);
+    try {
+      await forcarTarifacao(
+        tarifarOfertaFn as never,
+        [pernaIda?.voo.rateToken, pernaVolta?.voo.rateToken],
+        vooPreco.provedor ?? "",
+        vooPreco.precoTotal ?? 0,
+        ravPercentual,
+      );
+      setTarifadoEm(
+        new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      );
+    } catch (e) {
+      setTarifaErro(e instanceof Error ? e.message : "Falha ao tarifar");
+    } finally {
+      setTarifando(false);
+    }
+  }
+
+
   return (
     <div className="space-y-6">
       {/* Com tudo escolhido some a lista de etapas: fica só o resumo. */}
