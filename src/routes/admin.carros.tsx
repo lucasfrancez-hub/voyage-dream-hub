@@ -40,6 +40,12 @@ import {
 import { useIsPublicEngine } from "@/lib/public-engine";
 
 import type {
+import {
+  ENGINE_CARD,
+  ENGINE_LABEL,
+  ENGINE_BUTTON,
+  ENGINE_FIELD_WRAP,
+} from "@/components/search/engine-style";
   OnerCar,
   OnerCarLocation,
   OnerCarSearchResult,
@@ -1082,11 +1088,11 @@ export function CarrosPage({
             )}
           </div>
 
-          <div className="rounded-[32px] border border-border/50 bg-card/60 p-6 shadow-2xl backdrop-blur-xl">
-            <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_auto]">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <div className={ENGINE_CARD}>
+            <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr_auto]">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className={ENGINE_FIELD_WRAP}>
+                  <Label className={ENGINE_LABEL}>
                     Local de retirada
                   </Label>
                   <LocationInput
@@ -1095,8 +1101,8 @@ export function CarrosPage({
                     placeholder="Cidade, aeroporto ou endereço"
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="flex items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground">
+                <div className={ENGINE_FIELD_WRAP}>
+                  <Label className={`${ENGINE_LABEL} justify-between`}>
                     Devolução
                     <button
                       type="button"
@@ -1113,16 +1119,16 @@ export function CarrosPage({
                       placeholder="Local de devolução"
                     />
                   ) : (
-                    <div className="flex h-11 items-center rounded-lg border border-dashed border-border/70 px-3 text-sm text-muted-foreground">
+                    <div className="flex h-12 items-center rounded-xl border border-dashed border-border/50 bg-muted/20 px-4 text-sm font-medium text-muted-foreground">
                       Mesmo local da retirada
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <CalendarDays className="h-3 w-3" /> Retirada e devolução
+              <div className={ENGINE_FIELD_WRAP}>
+                <Label className={ENGINE_LABEL}>
+                  <CalendarDays className="h-3 w-3 text-primary" /> Retirada e devolução
                 </Label>
                 <DateRangeField
                   departureDate={form.pickupDate}
@@ -1133,13 +1139,13 @@ export function CarrosPage({
                 />
                 <div className="flex gap-2 pt-1">
                   <Input
-                    className="h-9"
+                    className="h-10 rounded-xl border-border/40 bg-muted/40 text-sm font-semibold"
                     type="time"
                     value={form.pickupTime}
                     onChange={(e) => setForm({ ...form, pickupTime: e.target.value })}
                   />
                   <Input
-                    className="h-9"
+                    className="h-10 rounded-xl border-border/40 bg-muted/40 text-sm font-semibold"
                     type="time"
                     value={form.returnTime}
                     onChange={(e) => setForm({ ...form, returnTime: e.target.value })}
@@ -1150,7 +1156,7 @@ export function CarrosPage({
               <div className="flex items-end">
                 <Button
                   size="lg"
-                  className="h-11 w-full lg:w-auto"
+                  className={ENGINE_BUTTON}
                   disabled={!canSearch || mut.isPending}
                   onClick={() => mut.mutate()}
                 >
