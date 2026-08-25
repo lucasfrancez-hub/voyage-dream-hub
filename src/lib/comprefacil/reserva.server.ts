@@ -234,25 +234,58 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
       politica ? (politica?.Mensagem ?? "Política recebida") : "Operadora não devolveu a política",
     );
 
-    if (politica) {
+    // Bloqueios que o próprio portal aplica antes de deixar reservar.
+    const alteracaoBloqueada =
+      Boolean(politica?.BloqueioAumentoTarifa) ||
+      (politica?.PoliticaValida === false &&
+        Boolean(politica?.AlterouValor) &&
+        Number(politica?.DiferencaValor ?? 0) > 0);
+
+    if (politica && alteracaoBloqueada) {
+      registrar(
+        "Reservar hospedagem",
+        false,
+        politica?.Mensagem ??
+          politica?.MensagemFornecedor ??
+          "O fornecedor atualizou o valor da hospedagem. Reveja o orçamento antes de reservar.",
+      );
+    } else if (politica) {
+      // O portal envia o objeto `Politica` exatamente como veio, sem campos extras.
       const res = await chamarCompreFacil("/api/Hotel/reservar", {
         base: COMPREFACIL_BASES.hotel,
         method: "POST",
-        body: { ...politica, CientePolitica: true },
+        body: politica,
       });
       const d: any = res.dados ?? {};
+      const hotelRes: any = d?.Hotel ?? d ?? {};
+      const status = Number(hotelRes?.Status ?? 0);
       localizadorHotel =
-        d?.Hotel?.Localizador ?? d?.Localizador ?? d?.LocalizadorHotel ?? d?.Hotel?.LocalizadorHotel ?? null;
-      registrar(
-        "Reservar hospedagem",
-        Boolean(localizadorHotel),
-        localizadorHotel
-          ? `Localizador ${localizadorHotel}`
-          : (d?.Hotel?.Mensagem ??
-            d?.message ??
-            "A operadora não concluiu a reserva do hotel — finalize pelo portal da FRT com o orçamento criado."),
-      );
+        hotelRes?.Localizador ?? hotelRes?.LocalizadorHotel ?? d?.Localizador ?? d?.LocalizadorHotel ?? null;
+
+      // Status da operadora: 3/4 = reservado, 1 = aguardando fornecedor, 7 = problema técnico.
+      if (status === 3 || status === 4) {
+        registrar(
+          "Reservar hospedagem",
+          true,
+          localizadorHotel ? `Localizador ${localizadorHotel}` : "Hospedagem reservada na operadora",
+        );
+      } else if (status === 1) {
+        registrar("Reservar hospedagem", true, "Reserva enviada — aguardando retorno do fornecedor");
+      } else if (status === 7) {
+        registrar("Reservar hospedagem", false, "A operadora relatou problema técnico nesta reserva de hotel");
+      } else {
+        registrar(
+          "Reservar hospedagem",
+          Boolean(localizadorHotel),
+          localizadorHotel
+            ? `Localizador ${localizadorHotel}`
+            : (hotelRes?.Mensagem ??
+              d?.message ??
+              "A operadora não concluiu a reserva do hotel — finalize pelo portal da FRT com o orçamento criado."),
+        );
+      }
     }
+
   }
 
 
