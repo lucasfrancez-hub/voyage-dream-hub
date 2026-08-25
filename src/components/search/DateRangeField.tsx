@@ -94,13 +94,15 @@ export function DateRangeField({
     const raf = window.requestAnimationFrame(measure);
     const timers = [80, 200, 400, 700].map((ms) => window.setTimeout(measure, ms));
 
+    // Nada de reposicionar no scroll: o painel está em coordenadas de documento
+    // e o reposicionamento a cada scroll fazia o calendário "sambar" no celular.
     window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
+
     return () => {
       window.cancelAnimationFrame(raf);
       timers.forEach((t) => window.clearTimeout(t));
       window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
+      
     };
   }, [open, embedded]);
 
@@ -206,7 +208,14 @@ export function DateRangeField({
         )}
       </div>
 
-      <div className="flex w-full min-w-0 flex-1 justify-center overflow-y-auto overscroll-contain">
+      <div
+        className={cn(
+          "flex w-full min-w-0 flex-1 justify-center",
+          // Embutido no site: o mês inteiro precisa aparecer de uma vez (o iframe
+          // cresce pra caber). Fora, mantemos o scroll interno do bottom sheet.
+          embedded ? "overflow-visible" : "overflow-y-auto overscroll-contain",
+        )}
+      >
         <Calendar
           mode="range"
           locale={ptBR}
