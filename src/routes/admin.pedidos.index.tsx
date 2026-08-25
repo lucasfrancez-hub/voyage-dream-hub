@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Search, ExternalLink, Loader2, Plus, Cloud, Trash2, RotateCcw, Copy } from "lucide-react";
+import { Search, ExternalLink, Loader2, Plus, Cloud, Trash2, RotateCcw, Copy, ArrowRightLeft } from "lucide-react";
 
 import { MondeSaleImportDialog } from "@/components/monde/MondeSaleImportDialog";
 import { toast } from "sonner";
@@ -66,7 +66,7 @@ function orderOrigin(o: OrderOriginRow): { label: string; className: string } {
 
 
 
-export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_party"; initialStatus?: StatusFilter }) {
+export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_party" | "lead"; initialStatus?: StatusFilter }) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus ?? "all");
   const [search, setSearch] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -87,9 +87,14 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
         .select("id, order_number, created_at, status, full_name, email, phone, cpf, payment_method, total_price, package_snapshot, package_id, supplier_name, supplier_order_number, airline_locator, owner_user_id, deleted_at, deleted_reason")
         .order("created_at", { ascending: false })
         .limit(500);
-      // leads do site entram sem responsável (owner_user_id null) — aparecem em "meus pedidos"
-      if (scope === "mine") q = q.or(`owner_user_id.eq.${currentUserId!},owner_user_id.is.null`);
-      else q = q.neq("owner_user_id", currentUserId!).not("owner_user_id", "is", null);
+      // leads do motor público ficam na própria aba (/admin/pedidos/leads)
+      if (scope === "lead") {
+        q = q.eq("is_lead", true);
+      } else if (scope === "mine") {
+        q = q.eq("is_lead", false).or(`owner_user_id.eq.${currentUserId!},owner_user_id.is.null`);
+      } else {
+        q = q.eq("is_lead", false).neq("owner_user_id", currentUserId!).not("owner_user_id", "is", null);
+      }
       if (showDeleted) q = q.not("deleted_at", "is", null);
       else q = q.is("deleted_at", null);
       const { data, error } = await q;
@@ -209,14 +214,16 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-display font-bold">
-            {scope === "third_party" ? "Pedidos de terceiro" : "Pedidos"}
+            {scope === "third_party" ? "Pedidos de terceiro" : scope === "lead" ? "Leads" : "Pedidos"}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
             {scope === "third_party"
               ? "Pedidos criados por agências parceiras"
-              : null}
-            {scope === "third_party" ? " · " : ""}
-            {orders?.length ?? 0} pedido(s) · resultado: {filtered.length}
+              : scope === "lead"
+                ? "Intenções de compra geradas pelo motor de busca do site"
+                : null}
+            {scope === "third_party" || scope === "lead" ? " · " : ""}
+            {orders?.length ?? 0} {scope === "lead" ? "lead(s)" : "pedido(s)"} · resultado: {filtered.length}
           </p>
         </div>
         {scope === "mine" && (
