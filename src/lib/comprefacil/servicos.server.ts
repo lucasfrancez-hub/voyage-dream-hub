@@ -167,7 +167,9 @@ export async function buscarServicosDestinoCF(p: {
   let dados: any = inicio.dados;
   let pronto = false;
   const intervalos = [700, 900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000];
-  const limite = Date.now() + 32_000; // teto de segurança
+  // A operadora mantém o último poll aberto (long-poll) por até ~30 s e é nele
+  // que o catálogo inteiro chega. Cortar antes disso devolvia zero serviços.
+  const limite = Date.now() + 55_000; // teto de segurança
   void (async () => {
     let vazioSeguido = 0;
     let anterior = -1;
@@ -203,7 +205,7 @@ export async function buscarServicosDestinoCF(p: {
   // Todas as páginas restantes em uma única rodada paralela, com teto de tempo.
   // Antes eram lotes de 4 aguardados em sequência: cada rodada custava ~20 s e
   // a busca de serviços passava de um minuto.
-  const totalPaginas = Math.min(2, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
+  const totalPaginas = Math.min(4, Number(dados?.MetaData?.TotalPaginas ?? 1) || 1);
   const paginas = Array.from({ length: Math.max(0, totalPaginas - 1) }, (_, k) => k + 2);
   if (paginas.length) {
     const respostas = await Promise.all(
