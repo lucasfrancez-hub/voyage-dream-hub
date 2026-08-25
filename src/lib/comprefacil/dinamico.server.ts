@@ -175,7 +175,6 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
     }
   }
 
-  // guarda o JSON bruto da operadora: a reserva real precisa do objeto original
   const buscaToken = await guardarBuscaCF("aereo", itens);
   return itens
     .map((it, idx) => {
