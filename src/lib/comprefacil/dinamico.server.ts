@@ -340,6 +340,7 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     const meta = dados?.MetaData;
     const total = Number(meta?.TotalItens ?? 0);
     if (buscasAtivas(meta) === 0 && total > 0 && temQuartoReal(dados)) break;
+    if (buscasAtivas(meta) === 0 && i > 1) break;
     if (i >= 2 && total >= 40 && temQuartoReal(dados)) break;
   }
   dados = melhorDados;
