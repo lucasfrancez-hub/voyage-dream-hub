@@ -130,7 +130,30 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
     hotelBruto.Quartos = [quartos[idx] ?? quartos[0]].filter(Boolean);
   }
 
-  const pessoas = e.passageiros.map((p, i) => pessoa(p, i + 1));
+  // A cia aérea recusa a reserva quando dois passageiros vão com o MESMO documento
+  // ("Passenger.DocumentTypeMatch.NotAllowed"). Mantemos o CPF/documento apenas no
+  // primeiro passageiro que o informou e limpamos as repetições.
+  const cpfsVistos = new Set<string>();
+  const docsVistos = new Set<string>();
+  const passageirosLimpos = e.passageiros.map((p) => {
+    const cpf = (p.cpf ?? "").replace(/\D/g, "");
+    const doc = (p.documento ?? "").trim().toUpperCase();
+    const cpfOk = cpf && !cpfsVistos.has(cpf);
+    const docOk = doc && !docsVistos.has(doc);
+    if (cpfOk) cpfsVistos.add(cpf);
+    if (docOk) docsVistos.add(doc);
+    return { ...p, cpf: cpfOk ? p.cpf : null, documento: docOk ? p.documento : null };
+  });
+  const repetidos = e.passageiros.length - passageirosLimpos.filter((p) => p.cpf || p.documento).length;
+  if (repetidos > 0) {
+    registrar(
+      "Conferir documentos dos passageiros",
+      true,
+      `${repetidos} passageiro(s) com documento repetido — enviados sem CPF para a cia aceitar a reserva.`,
+    );
+  }
+
+  const pessoas = passageirosLimpos.map((p, i) => pessoa(p, i + 1));
 
   // Mesma distribuição enviada na busca (o portal repassa `quartos` no orçamento).
   const quartosOrcamento = (
