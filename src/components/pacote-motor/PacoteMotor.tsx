@@ -367,6 +367,7 @@ export function PacoteMotor({
       moeda={hotel?.moeda ?? "BRL"}
       servicos={servicosSel.map((s) => ({ id: s.id, titulo: s.titulo, valor: s.valor }))}
       onServicos={() => setVista("servico")}
+      onRemoverServico={removerServico}
       acao={
         <div style={{ display: "grid", gap: 8 }}>
           <button
