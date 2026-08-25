@@ -40,6 +40,16 @@ const FILTRO_HOTEL = {
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+async function limitarEspera<T>(promessa: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  const resultado = await Promise.race([promessa, limite]);
+  if (timer) clearTimeout(timer);
+  return resultado;
+}
+
 /** Teto de segurança: nunca puxar mais que isso, mesmo que a operadora ofereça. */
 const MAX_ITENS = 600;
 const MAX_PAGINAS = 20;
@@ -370,8 +380,11 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
 
   // 2ª passada: mesma busca (mesmo Guid) ordenada do menor para o maior preço,
   // que é a única ordenação em que a operadora devolve o catálogo inteiro.
-  const primeira = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid, "asc") });
-  const dadosAsc: any = primeira.dados;
+  const primeira = await limitarEspera(
+    chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid, "asc") }),
+    12_000,
+  );
+  const dadosAsc: any = primeira?.dados ?? dados;
   const itens: any[] = [];
   const mapa = new Map<string, any>();
   acumular(itens, mapa, (dadosAsc?.Items ?? []) as any[]);
@@ -384,9 +397,12 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   if (paginas.length) {
     const respostas = await Promise.all(
       paginas.map((pagina) =>
-        chamarCompreFacil(
-          `/api/Hotel/buscaasync?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
-          { base, method: "POST", body: corpo(guid, "asc") },
+        limitarEspera(
+          chamarCompreFacil(
+            `/api/Hotel/buscaasync?Pagina=${pagina}&ItensPorPagina=${porPagina}`,
+            { base, method: "POST", body: corpo(guid, "asc") },
+          ),
+          12_000,
         ).catch(() => null),
       ),
     );
