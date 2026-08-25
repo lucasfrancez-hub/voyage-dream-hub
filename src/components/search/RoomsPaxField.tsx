@@ -92,8 +92,31 @@ export function RoomsPaxField({
   const t = totalPax(quartos);
   const pessoas = t.adultos + t.criancas + t.bebes;
 
-  function atualizar(indice: number, campo: keyof QuartoPax, valor: number) {
-    onChange(quartos.map((q, i) => (i === indice ? { ...q, [campo]: valor } : q)));
+  function atualizar(indice: number, campo: "adultos" | "criancas" | "bebes", valor: number) {
+    onChange(
+      quartos.map((q, i) => {
+        if (i !== indice) return q;
+        const proximo: QuartoPax = { ...q, [campo]: valor };
+        if (campo === "criancas") {
+          const idades = (q.idades ?? []).slice(0, valor);
+          while (idades.length < valor) idades.push(IDADE_CRIANCA_PADRAO);
+          proximo.idades = idades;
+        }
+        return proximo;
+      }),
+    );
+  }
+
+  function atualizarIdade(indice: number, criancaIdx: number, idade: number) {
+    onChange(
+      quartos.map((q, i) => {
+        if (i !== indice) return q;
+        const idades = [...(q.idades ?? [])];
+        while (idades.length < q.criancas) idades.push(IDADE_CRIANCA_PADRAO);
+        idades[criancaIdx] = idade;
+        return { ...q, idades };
+      }),
+    );
   }
 
   return (
