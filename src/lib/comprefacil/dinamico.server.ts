@@ -345,22 +345,42 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
     return itens.length * 10 + quartosReais;
   };
   melhorPontuacao = pontuar(melhorDados);
+  // Consultas sobrepostas: uma chamada presa no long-poll da operadora não
+  // pode segurar a busca inteira, então disparamos em cadência e ficamos com
+  // a melhor resposta recebida.
+  let pronto = false;
+  let emVoo = 0;
+  const limitePolling = Date.now() + 40_000;
+  const consultar = (rodada: number) => {
+    emVoo++;
+    void chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) })
+      .then((r) => {
+        const d = r?.dados as any;
+        const pontuacao = pontuar(d);
+        if (pontuacao > melhorPontuacao) {
+          melhorDados = d;
+          melhorPontuacao = pontuacao;
+        }
+        const meta = d?.MetaData;
+        const total = Number(meta?.TotalItens ?? 0);
+        if (buscasAtivas(meta) === 0 && total > 0 && temQuartoReal(d)) pronto = true;
+        else if (buscasAtivas(meta) === 0 && rodada > 1) pronto = true;
+        else if (rodada >= 2 && total >= 40 && temQuartoReal(d)) pronto = true;
+      })
+      .catch(() => null)
+      .finally(() => {
+        emVoo--;
+      });
+  };
   for (let i = 0; i < intervalos.length; i++) {
+    if (pronto || Date.now() > limitePolling) break;
     await espera(intervalos[i]!);
-    const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
-    dados = r.dados;
-    const pontuacao = pontuar(dados);
-    if (pontuacao > melhorPontuacao) {
-      melhorDados = dados;
-      melhorPontuacao = pontuacao;
-    }
-    const meta = dados?.MetaData;
-    const total = Number(meta?.TotalItens ?? 0);
-    if (buscasAtivas(meta) === 0 && total > 0 && temQuartoReal(dados)) break;
-    if (buscasAtivas(meta) === 0 && i > 1) break;
-    if (i >= 2 && total >= 40 && temQuartoReal(dados)) break;
+    if (pronto || Date.now() > limitePolling) break;
+    if (emVoo < 4) consultar(i);
   }
+  while (!pronto && emVoo > 0 && Date.now() < limitePolling) await espera(250);
   dados = melhorDados;
+
 
 
   const chaveHotel = (h: any) => `${h?.CodigoFornecedor}-${h?.Fornecedor}-${h?.Nome}`;
