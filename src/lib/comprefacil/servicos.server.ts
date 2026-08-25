@@ -198,6 +198,7 @@ export async function buscarServicosDestinoCF(p: {
   // página por página custava 12 s cada.
   const itens: any[] = [...((dados?.Items ?? []) as any[])];
   const totalItens = Number(dados?.MetaData?.TotalItens ?? 0);
+  console.log("[cf-serv] base", itens.length, "total", totalItens);
   if (totalItens > itens.length) {
     const completa = await limitarEspera(
       chamarCompreFacil(
@@ -207,6 +208,7 @@ export async function buscarServicosDestinoCF(p: {
       15_000,
     ).catch(() => null);
     const lote = ((completa?.dados as any)?.Items ?? []) as any[];
+    console.log("[cf-serv] completa", lote.length);
     if (lote.length > itens.length) itens.splice(0, itens.length, ...lote);
   }
 
