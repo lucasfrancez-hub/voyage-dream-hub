@@ -1646,15 +1646,30 @@ body:has([data-chat-root]),
 .mkt .svcbox-off {font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#8ba3b5}
 .mkt .svcbox-on {font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:#F26B1F}
 .mkt .svcbox .ghost {width:auto;justify-self:start;padding:9px 16px}
-.mkt .sum-svc {margin-top:12px;border-top:1px dashed rgba(255,255,255,.14);padding-top:12px;display:grid;gap:8px}
-.mkt .sum-svc-head {display:flex;align-items:center;justify-content:space-between;gap:8px}
-.mkt .sum-svc-head b {font-size:11px;color:#eef6fc}
+.mkt .sum-svc {margin-top:16px;border-top:1px dashed rgba(255,255,255,.14);padding-top:16px;display:grid;gap:12px}
+.mkt .sum-svc-title {display:grid;gap:6px}
+.mkt .sum-svc-title b {font-size:13px;color:#fff;font-weight:700;letter-spacing:-0.02em}
+.mkt .sum-svc-bar {height:3px;width:28px;border-radius:999px;background:var(--brand-orange);box-shadow:0 0 10px color-mix(in oklab, var(--brand-orange) 60%, transparent)}
 .mkt .sum-svc-off {font-size:9px;font-weight:800;text-transform:uppercase;color:#8ba3b5}
+.mkt .sum-svc-empty {padding:8px 0}
+.mkt .sum-svc-list {display:grid;gap:8px}
+.mkt .sum-svc-item {position:relative;display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:16px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);transition:background .25s ease, border-color .25s ease}
+.mkt .sum-svc-item:hover {background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.09)}
+.mkt .sum-svc-dot {flex-shrink:0;width:8px;height:8px;border-radius:50%;background:var(--brand-orange);margin-top:5px;box-shadow:0 0 10px color-mix(in oklab, var(--brand-orange) 70%, transparent)}
+.mkt .sum-svc-info {flex:1;min-width:0;display:grid;gap:3px}
+.mkt .sum-svc-info span {font-size:13px;font-weight:600;color:#eef6fc;line-height:1.35}
+.mkt .sum-svc-info em {font-size:11px;font-style:italic;color:#8ba3b5;line-height:1.3}
+.mkt .sum-svc-price {flex-shrink:0;text-align:right;display:grid;gap:2px}
+.mkt .sum-svc-price small {font-size:8px;font-weight:800;text-transform:uppercase;color:color-mix(in oklab, var(--brand-orange) 80%, #fff);letter-spacing:.04em}
+.mkt .sum-svc-price b {font-size:13px;font-weight:700;color:var(--brand-orange-light);white-space:nowrap}
+.mkt .sum-svc-sep {position:absolute;left:32px;right:32px;bottom:-5px;height:1px;background:linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);pointer-events:none}
+.mkt .sum-svc-btn {position:relative;overflow:hidden;width:100%;padding:13px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:transparent;color:#fff;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;cursor:pointer;transition:border-color .3s ease, transform .15s ease}
+.mkt .sum-svc-btn::before {content:"";position:absolute;inset:0;background:linear-gradient(90deg, transparent, color-mix(in oklab, var(--brand-orange) 10%, transparent), transparent);transform:translateX(-100%);transition:transform .7s ease}
+.mkt .sum-svc-btn:hover {border-color:color-mix(in oklab, var(--brand-orange) 55%, transparent)}
+.mkt .sum-svc-btn:hover::before {transform:translateX(100%)}
+.mkt .sum-svc-btn:active {transform:scale(0.98)}
+.mkt .sum-svc-btn span {position:relative;z-index:1}
 .mkt .sum-parcel {display:block;margin-top:6px;font-size:10px;line-height:1.4;font-weight:700;color:#1f7a3d}
-.mkt .sum-svc-list {list-style:none;margin:0;padding:0;display:grid;gap:5px}
-.mkt .sum-svc-list li {display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--muted)}
-.mkt .sum-svc-list li b {color:#fff}
-.mkt .sum-svc-btn {padding:9px}
 @media (max-width:760px){.mkt .svc {grid-template-columns:1fr}.mkt .svcside {text-align:left;flex-direction:row;align-items:center;justify-content:space-between}}
 
 /* botão "Sobre o hotel" no canto inferior direito da foto do hotel */
