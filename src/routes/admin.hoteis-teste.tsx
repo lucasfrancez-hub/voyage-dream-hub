@@ -38,6 +38,15 @@ import { FiltersAside } from "@/components/search/FiltersAside";
 import { SearchSkeleton } from "@/components/search/SearchSkeleton";
 import { DestinationAutocomplete } from "@/components/search/DestinationAutocomplete";
 import {
+  ENGINE_CARD,
+  ENGINE_LABEL,
+  ENGINE_FIELD,
+  ENGINE_BUTTON,
+  ENGINE_PAX_LABEL,
+  ENGINE_PAX_INPUT,
+  ENGINE_FIELD_WRAP,
+} from "@/components/search/engine-style";
+import {
   onerHotelDestinations,
   onerHotelSearch,
   onerHotelRooms,
