@@ -2491,6 +2491,292 @@ body:has([data-chat-root]),
 }
 
 /* ============================================================
+   Mobile cards — voo e hospedagem (layout escolhido v2-v4)
+   Reorganiza os cards de alterar voo / alterar hospedagem
+   para eliminar texto sobreposto e espaço vazio no mobile.
+   ============================================================ */
+
+/* header mobile do voo: escondido no desktop */
+.mkt .flight-mobile-head {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.mkt .flight-mobile-head .airline-badge-mobile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 999px;
+}
+.mkt .flight-mobile-head .airline-badge-mobile img,
+.mkt .flight-mobile-head .airline-badge-mobile .airlogo {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #fff;
+  padding: 2px;
+  object-fit: contain;
+}
+.mkt .flight-mobile-head .airline-badge-mobile span {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255,255,255,.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* mobile-only hotel footer: diferença como destaque */
+.mkt .hotel-diff-label-mobile,
+.mkt .hotel-diff-big-mobile,
+.mkt .hotel-total-sub-mobile {
+  display: none;
+}
+
+@media (max-width:780px) {
+  /* ===== VOO ===== */
+  .mkt .flightgrid {
+    display: flex;
+    flex-direction: column;
+  }
+  .mkt .flight-media {
+    display: none;
+  }
+  .mkt .flight-mobile-head {
+    display: flex;
+  }
+  .mkt .flightmain {
+    padding: 16px 16px 12px;
+  }
+  .mkt .flightmain .legs {
+    gap: 14px;
+  }
+  .mkt .flightmain .leg {
+    grid-template-columns: 62px 1fr 62px;
+    gap: 8px;
+  }
+  .mkt .flightmain .leg .side strong {
+    font-size: 24px;
+    letter-spacing: -0.03em;
+  }
+  .mkt .flightmain .leg .side b {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .mkt .flightmain .leg .side small {
+    font-size: 8px;
+    margin-top: 3px;
+  }
+  .mkt .flightmain .leg .middle span {
+    font-size: 8px;
+  }
+  .mkt .flightmain .leg .middle em {
+    font-size: 7.5px;
+    margin-top: 3px;
+  }
+  .mkt .flightmain .leg .middle .line {
+    margin: 5px 0;
+    background: rgba(255,255,255,.12);
+  }
+  .mkt .flightmain .leg .middle .line:before {
+    width: 6px;
+    height: 6px;
+    top: -3px;
+    background: var(--orange);
+  }
+  .mkt .flightmain .leg .middle .line:after {
+    width: 6px;
+    height: 6px;
+    top: -3px;
+  }
+  .mkt .flightmain .leg .troca-aero {
+    font-size: 7.5px;
+    margin-top: 4px;
+    padding: 4px 7px;
+  }
+  .mkt .flightmain .flightfoot-acts {
+    justify-content: center;
+    margin-top: 14px;
+  }
+  .mkt .flightmain .flightfoot-acts .more.solid-btn {
+    width: 100%;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+  }
+  .mkt .priceside {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    text-align: left;
+  }
+  .mkt .priceside .prow,
+  .mkt .priceside .divider,
+  .mkt .priceside .plabel,
+  .mkt .priceside .parcel {
+    display: none;
+  }
+  .mkt .priceside .big {
+    font-size: 20px;
+    margin: 0;
+    width: auto;
+  }
+  .mkt .priceside .big:before {
+    content: "Total ";
+    display: block;
+    font-size: 8px;
+    color: #6d8394;
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .mkt .priceside .select {
+    width: auto;
+    min-width: 120px;
+    margin-top: 0;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-size: 10px;
+  }
+
+  /* ===== HOSPEDAGEM ===== */
+  .mkt .hotelgrid {
+    display: flex;
+    flex-direction: column;
+  }
+  .mkt .hotel .photo {
+    width: 100%;
+    height: 180px;
+    min-height: 0;
+  }
+  .mkt .hotel .photo:after {
+    background: linear-gradient(90deg, transparent 60%, rgba(5,24,35,.35));
+  }
+  .mkt .hotelmain {
+    padding: 14px 16px;
+  }
+  .mkt .hotelmain .hotelhead {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .mkt .hotelmain .hotel-title-line {
+    flex-wrap: wrap;
+  }
+  .mkt .hotelmain .hotel-title-line .stars {
+    font-size: 12px;
+  }
+  .mkt .hotelmain .hotel-title-line h3 {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+  .mkt .hotelmain .hotelhead p {
+    font-size: 9px;
+    line-height: 1.5;
+  }
+  .mkt .hotelmain .rating {
+    align-self: flex-start;
+  }
+  .mkt .hotelmain .amen {
+    display: none;
+  }
+  .mkt .hotel .hotel-room-line {
+    padding: 12px;
+    margin-top: 12px;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.05);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .mkt .hotel .hotel-room-line b {
+    font-size: 11px;
+  }
+  .mkt .hotel .hotel-room-line span {
+    font-size: 8.5px;
+    margin-top: 3px;
+  }
+  .mkt .hotel .hotel-card-foot {
+    justify-content: center;
+    gap: 14px;
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  .mkt .hotel .hotel-foot-link {
+    font-size: 9.5px;
+  }
+  .mkt .hotel .hotel-foot-btn {
+    height: 32px;
+    padding: 0 16px;
+    font-size: 9.5px;
+  }
+  .mkt .hotelprice {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    text-align: left;
+  }
+  /* mobile: diferença como destaque */
+  .mkt .hotelprice .hotel-diff-row,
+  .mkt .hotelprice .hotel-diff-divider,
+  .mkt .hotelprice .hotel-total-label,
+  .mkt .hotelprice .hotel-total-big {
+    display: none;
+  }
+  .mkt .hotelprice .hotel-diff-label-mobile,
+  .mkt .hotelprice .hotel-diff-big-mobile,
+  .mkt .hotelprice .hotel-total-sub-mobile {
+    display: block;
+  }
+  .mkt .hotelprice .hotel-diff-label-mobile {
+    font-size: 8px;
+    color: #6d8394;
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .mkt .hotelprice .hotel-diff-big-mobile {
+    font-size: 20px;
+    font-weight: 1000;
+    color: #fff;
+    margin: 0 0 2px;
+  }
+  .mkt .hotelprice .hotel-diff-big-mobile.diff-pos {
+    color: #F26B1F;
+  }
+  .mkt .hotelprice .hotel-diff-big-mobile.diff-neg {
+    color: #4ade80;
+  }
+  .mkt .hotelprice .hotel-total-sub-mobile {
+    font-size: 8px;
+    color: #6d8394;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+  }
+  .mkt .hotelprice button {
+    width: auto;
+    min-width: 120px;
+    margin-top: 0;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-size: 10px;
+  }
+}
+
+/* ============================================================
    Refino visual VIA AIR — pacote recomendado + resumo
    Somente cor, gradiente, borda, brilho e transição.
    Estrutura, tamanhos e disposição permanecem inalterados.
