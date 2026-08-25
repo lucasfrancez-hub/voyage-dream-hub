@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParcelamentoPacote } from "@/lib/pacote-motor/parcelamento";
 import { LogoCia } from "@/components/pacote-motor/LogoCia";
 import { FiltrosMkt } from "./FiltrosMkt";
 import { brl, hora, resumoVoo } from "@/lib/pacote-motor/mapear";
 import { nomeCia, trocasDeAeroporto } from "@/lib/pacote-motor/cia";
+import { Paginacao, ITENS_POR_PAGINA } from "@/components/pacote-motor/Paginacao";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 
 const dataCurta = (iso: string) => (iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "—");
