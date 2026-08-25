@@ -299,7 +299,7 @@ export function SeletorHospedagem({
 
                     {/* mobile: diferença como destaque */}
                     <span className="plabel hotel-diff-label-mobile">Diferença</span>
-                    <div className="big hotel-diff-big-mobile">
+                    <div className={`big hotel-diff-big-mobile${Math.abs(dif) < 0.005 ? "" : dif > 0 ? " diff-pos" : " diff-neg"}`}>
                       {Math.abs(dif) < 0.005 ? "Incluído" : dif > 0 ? `+ ${brl(dif, h.moeda)}` : `- ${brl(Math.abs(dif), h.moeda)}`}
                     </div>
                     <span className="hotel-total-sub-mobile">
