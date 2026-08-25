@@ -146,6 +146,22 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao duplicar"),
   });
 
+  /** Converte um lead do motor público em pedido normal (assume a responsabilidade). */
+  const converter = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ is_lead: false, owner_user_id: currentUserId })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Lead convertido em pedido");
+      qc.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao converter lead"),
+  });
+
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
 
@@ -363,6 +379,21 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                   </button>
                 ) : (
                   <div className="absolute top-3 right-3 flex items-center gap-1">
+                    {scope === "lead" && (
+                      <button
+                        type="button"
+                        aria-label="Converter em pedido"
+                        disabled={converter.isPending}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          confirmThen("Converter este lead em pedido?", () => converter.mutate(o.id));
+                        }}
+                        className="rounded-full p-1.5 text-brand-orange hover:bg-brand-orange/10 disabled:opacity-50"
+                      >
+                        <ArrowRightLeft className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       type="button"
                       aria-label="Duplicar pedido"
@@ -488,6 +519,22 @@ export function AdminOrders({ scope, initialStatus }: { scope: "mine" | "third_p
                           </button>
                         ) : (
                           <>
+                            {scope === "lead" && (
+                              <button
+                                type="button"
+                                title="Converter em pedido"
+                                disabled={converter.isPending}
+                                onClick={() => confirmThen("Converter este lead em pedido?", () => converter.mutate(o.id))}
+                                className="inline-flex items-center gap-1.5 rounded-md border border-brand-orange/50 px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-orange hover:bg-brand-orange/10 disabled:opacity-50"
+                              >
+                                {converter.isPending && converter.variables === o.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <ArrowRightLeft className="h-3 w-3" />
+                                )}
+                                Converter
+                              </button>
+                            )}
                             <button
                               type="button"
                               aria-label="Duplicar"
