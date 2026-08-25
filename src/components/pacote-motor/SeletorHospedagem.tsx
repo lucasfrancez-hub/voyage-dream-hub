@@ -306,6 +306,7 @@ export function SeletorHospedagem({
                     <div className="big hotel-total-big">{brl(totalPacote(h, quartoAtivo?.id ?? null), h.moeda)}</div>
 
                     {/* mobile: diferença como destaque */}
+                    <div className="hotel-price-mobile-wrap">
                     <span className="plabel hotel-diff-label-mobile">Diferença</span>
                     <div className={`big hotel-diff-big-mobile${Math.abs(dif) < 0.005 ? "" : dif > 0 ? " diff-pos" : " diff-neg"}`}>
                       {Math.abs(dif) < 0.005 ? "Incluído" : dif > 0 ? `+ ${brl(dif, h.moeda)}` : `- ${brl(Math.abs(dif), h.moeda)}`}
@@ -313,6 +314,7 @@ export function SeletorHospedagem({
                     <span className="hotel-total-sub-mobile">
                       Total: {brl(totalPacote(h, quartoAtivo?.id ?? null), h.moeda)}
                     </span>
+                    </div>
 
                     <button type="button" onClick={() => onSelecionar(h, quartoAtivo?.id ?? null)}>
                       {sel ? "Selecionado" : "Selecionar hotel"}

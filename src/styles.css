@@ -3132,3 +3132,78 @@ body:has([data-chat-root]),
 /* Maior respiro entre os cards de quarto */
 .mkt .room-grid { gap: 14px; margin-top: 4px; }
 .mkt .room-card { padding: 14px 16px; }
+
+
+/* ===== V13 — ajustes rápidos (bagagem, abas e cards) ===== */
+
+/* botão "Ver detalhes do voo" mais discreto */
+.mkt .flightmain .flightfoot-acts .more.solid-btn {
+  height: 27px;
+  padding: 0 11px;
+  font-size: 7.5px;
+  letter-spacing: .4px;
+}
+
+/* abas: no celular cada aba mantém o tamanho do texto e a barra rola */
+@media(max-width:780px) {
+  .mkt .tabs-v2 {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+  .mkt .tabs-v2::-webkit-scrollbar { display: none; }
+  .mkt .tabs-v2 .tab {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: max-content;
+    padding: 10px 14px;
+    font-size: 10px;
+  }
+}
+
+/* hotel no celular: bloco de preço empilhado (sem sobrepor o botão) */
+.mkt .hotelprice .hotel-price-mobile-wrap { display: none; }
+@media(max-width:780px) {
+  .mkt .hotelprice .hotel-price-mobile-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    gap: 1px;
+  }
+  .mkt .hotelprice {
+    gap: 12px;
+    flex-wrap: nowrap;
+  }
+  .mkt .hotelprice .hotel-diff-big-mobile {
+    font-size: 17px;
+    line-height: 1.15;
+  }
+  .mkt .hotelprice .hotel-total-sub-mobile {
+    white-space: nowrap;
+  }
+  .mkt .hotelprice button { flex: 0 0 auto; }
+
+  /* nome do quarto/regime pode ocupar duas linhas em vez de virar "STA…" */
+  .mkt .hotel .hotel-room-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .mkt .hotel .hotel-room-line b,
+  .mkt .hotel .hotel-room-line span {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.35;
+  }
+  .mkt .flightmain .flightfoot-acts .more.solid-btn {
+    width: auto;
+    max-width: 100%;
+    height: 32px;
+    font-size: 8.5px;
+    letter-spacing: .06em;
+  }
+}

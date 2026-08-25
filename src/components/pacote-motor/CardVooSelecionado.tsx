@@ -142,7 +142,6 @@ export function CardVooSelecionado({
 
             <div className="overview-baggage-row">
               <IconeBagagem voo={oferta.ida} tamanho={15} />
-              {volta ? <IconeBagagem voo={volta} tamanho={15} /> : null}
             </div>
 
             <div className="overview-flight-toggle-row">
