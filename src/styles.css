@@ -2580,7 +2580,6 @@ body:has([data-chat-root]),
 
 /* Serviços adicionais no resumo */
 .mkt .sum-svc { border-top-color: rgba(211,229,241,.12); }
-.mkt .sum-svc-list li b { color: #ffb361; }
 
 /* Bloco de total */
 .mkt .total {
