@@ -198,18 +198,34 @@ export async function buscarServicosDestinoCF(p: {
   // página por página custava 12 s cada.
   const itens: any[] = [...((dados?.Items ?? []) as any[])];
   const totalItens = Number(dados?.MetaData?.TotalItens ?? 0);
-  console.log("[cf-serv] base", itens.length, "total", totalItens);
   if (totalItens > itens.length) {
+    // A operadora ignora pedidos acima de 300 por página (devolve vazio).
     const completa = await limitarEspera(
       chamarCompreFacil(
-        `/api/Servico/busca?Pagina=1&ItensPorPagina=${Math.min(500, totalItens)}`,
+        `/api/Servico/busca?Pagina=1&ItensPorPagina=${Math.min(300, totalItens)}`,
         { base, method: "POST", body: corpo(guid) },
       ),
       15_000,
     ).catch(() => null);
     const lote = ((completa?.dados as any)?.Items ?? []) as any[];
-    console.log("[cf-serv] completa", lote.length);
-    if (lote.length > itens.length) itens.splice(0, itens.length, ...lote);
+    if (lote.length > itens.length) {
+      itens.splice(0, itens.length, ...lote);
+    } else {
+      // Plano B: páginas restantes em paralelo.
+      const paginas = Array.from(
+        { length: Math.min(3, Math.max(0, Math.ceil(totalItens / porPagina) - 1)) },
+        (_, k) => k + 2,
+      );
+      const respostas = await Promise.all(
+        paginas.map((pagina) =>
+          limitarEspera(
+            chamarCompreFacil(rota(pagina), { base, method: "POST", body: corpo(guid) }),
+            12_000,
+          ).catch(() => null),
+        ),
+      );
+      for (const r of respostas) itens.push(...(((r?.dados as any)?.Items ?? []) as any[]));
+    }
   }
 
 
