@@ -514,12 +514,15 @@ export function PacoteMotor({
               <RoomsPaxField
                 quartos={quartos}
                 onChange={(novos) =>
-                  // Preserva as idades já informadas para cada quarto ao redistribuir.
+                  // Usa as idades informadas no seletor; completa o que faltar com as antigas.
                   setQuartos(
-                    novos.map((q, i) => ({
-                      ...q,
-                      idades: (quartos[i]?.idades ?? []).slice(0, q.criancas),
-                    })),
+                    novos.map((q, i) => {
+                      const idades = [
+                        ...(q.idades ?? quartos[i]?.idades ?? []),
+                      ].slice(0, q.criancas);
+                      while (idades.length < q.criancas) idades.push(7);
+                      return { ...q, idades };
+                    }),
                   )
                 }
               />
