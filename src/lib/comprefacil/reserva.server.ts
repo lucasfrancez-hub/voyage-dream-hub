@@ -130,30 +130,37 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
     hotelBruto.Quartos = [quartos[idx] ?? quartos[0]].filter(Boolean);
   }
 
-  // A cia aérea recusa a reserva quando dois passageiros vão com o MESMO documento
-  // ("Passenger.DocumentTypeMatch.NotAllowed"). Mantemos o CPF/documento apenas no
-  // primeiro passageiro que o informou e limpamos as repetições.
-  const cpfsVistos = new Set<string>();
-  const docsVistos = new Set<string>();
-  const passageirosLimpos = e.passageiros.map((p) => {
-    const cpf = (p.cpf ?? "").replace(/\D/g, "");
-    const doc = (p.documento ?? "").trim().toUpperCase();
-    const cpfOk = cpf && !cpfsVistos.has(cpf);
-    const docOk = doc && !docsVistos.has(doc);
-    if (cpfOk) cpfsVistos.add(cpf);
-    if (docOk) docsVistos.add(doc);
-    return { ...p, cpf: cpfOk ? p.cpf : null, documento: docOk ? p.documento : null };
-  });
-  const repetidos = e.passageiros.length - passageirosLimpos.filter((p) => p.cpf || p.documento).length;
-  if (repetidos > 0) {
+  // A cia aérea exige documento em TODOS os passageiros e recusa a reserva quando
+  // dois passageiros vão com o MESMO documento ("Passenger.DocumentTypeMatch.NotAllowed").
+  // Nesses casos paramos antes de criar o orçamento, com mensagem clara.
+  const docDe = (p: PaxReserva) => (p.cpf ?? p.documento ?? "").replace(/\D/g, "").trim();
+  const semDoc = e.passageiros.filter((p) => !docDe(p));
+  const contagemDoc = new Map<string, number>();
+  for (const p of e.passageiros) {
+    const d = docDe(p);
+    if (d) contagemDoc.set(d, (contagemDoc.get(d) ?? 0) + 1);
+  }
+  const duplicados = [...contagemDoc.values()].some((n) => n > 1);
+  if (semDoc.length || duplicados) {
     registrar(
       "Conferir documentos dos passageiros",
-      true,
-      `${repetidos} passageiro(s) com documento repetido — enviados sem CPF para a cia aceitar a reserva.`,
+      false,
+      semDoc.length
+        ? `Informe o CPF de: ${semDoc.map((p) => `${p.nome} ${p.sobrenome}`.trim()).join(", ")}.`
+        : "Cada passageiro precisa de um CPF diferente — a companhia recusa documentos repetidos.",
     );
+    return {
+      ok: false,
+      orcamentoId: null,
+      localizadorAereo: null,
+      localizadorHotel: null,
+      limiteEmissao: null,
+      prazoPagamento: null,
+      passos,
+    };
   }
 
-  const pessoas = passageirosLimpos.map((p, i) => pessoa(p, i + 1));
+  const pessoas = e.passageiros.map((p, i) => pessoa(p, i + 1));
 
   // Mesma distribuição enviada na busca (o portal repassa `quartos` no orçamento).
   const quartosOrcamento = (
