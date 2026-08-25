@@ -280,13 +280,28 @@ export async function reservarNaFRT(e: EntradaReservaFRT): Promise<ResultadoRese
           "O fornecedor atualizou o valor da hospedagem. Reveja o orçamento antes de reservar.",
       );
     } else if (politica) {
-      // O portal envia o objeto `Politica` exatamente como veio, sem campos extras.
+      // No portal o operador precisa dar o aceite antes de reservar: marcamos os
+      // mesmos "cientes" (política, tarifa em gastos e alteração de valor).
       const res = await chamarCompreFacil("/api/Hotel/reservar", {
         base: COMPREFACIL_BASES.hotel,
         method: "POST",
-        body: politica,
+        body: {
+          ...politica,
+          CientePolitica: true,
+          ...(politica?.EmGastos ? { CienteEmGastos: true } : {}),
+          ...(politica?.AlterouValor ? { CienteAlterouValor: true } : {}),
+        },
       });
       const d: any = res.dados ?? {};
+      // 406 = a operadora exige pagamento antes (tarifa "em gastos").
+      if (res.status === 406) {
+        registrar(
+          "Reservar hospedagem",
+          false,
+          d?.mensagem ??
+            "Tarifa em gastos: a FRT exige o pagamento antes de confirmar a hospedagem. Pague o orçamento e finalize a reserva do hotel.",
+        );
+      }
       const hotelRes: any = d?.Hotel ?? d ?? {};
       const status = Number(hotelRes?.Status ?? 0);
       localizadorHotel =
