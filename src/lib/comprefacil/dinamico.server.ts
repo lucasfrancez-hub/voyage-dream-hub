@@ -112,7 +112,10 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
   const rota = `/api/Aereo/busca?Pagina=1&ItensPorPagina=${porPagina}`;
   const base = COMPREFACIL_BASES.aereo;
 
+  const __t0 = Date.now();
+  const __log = (m: string) => console.log(`[cf-aereo] ${m} ${(Date.now() - __t0) / 1000}s`);
   const inicio = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(null) });
+  __log("start");
   const guid = (inicio.dados as any)?.Aereos?.MetaData?.Guid as string | undefined;
   if (!guid) return [];
 
@@ -141,6 +144,7 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
     if (buscasAtivas(meta) === 0 && i > 1) break;
   }
 
+  __log("polling");
   const itens: any[] = [...(dados?.Aereos?.Items ?? [])];
 
   // Páginas restantes em paralelo (lotes de 4) — antes era uma requisição por vez.
@@ -166,6 +170,7 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
     if (vazio || itens.length >= MAX_ITENS) break;
   }
 
+  __log("paginas");
   // guarda o JSON bruto da operadora: a reserva real precisa do objeto original
   const buscaToken = await guardarBuscaCF("aereo", itens);
   return itens
