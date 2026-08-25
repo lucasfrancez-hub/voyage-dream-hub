@@ -72,12 +72,8 @@ export async function itemBrutoCF(
   tipo: TipoBuscaCF,
   indice: number,
 ): Promise<any | null> {
-  // Se a gravação desta busca ainda estiver rodando neste mesmo servidor,
-  // espera terminar antes de consultar.
-  await gravacoesPendentes.get(token)?.catch(() => null);
-
   const { supabaseAdmin } = (await import("@/integrations/supabase/client.server")) as any;
-  for (let tentativa = 0; tentativa < 6; tentativa++) {
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
     const { data } = await supabaseAdmin
       .from("comprefacil_busca_cache")
       .select("itens")
@@ -93,7 +89,7 @@ export async function itemBrutoCF(
       return itens[indice] ?? null;
     }
     // A gravação roda em segundo plano: dá um tempo para ela concluir.
-    await espera(1500);
+    await espera(800);
   }
   return null;
 }
