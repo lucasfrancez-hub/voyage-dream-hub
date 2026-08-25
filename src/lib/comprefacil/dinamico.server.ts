@@ -240,7 +240,10 @@ function mapearVoo(seg: any, tarifa: { total: number; tarifa: number; taxas: num
     })) as any,
     bagagemDespachada: bagagem > 0,
     bagagemDespachadaQtd: bagagem,
-    bagagemMao: seg?.BagagemDeBordo !== false,
+    bagagemMao: temMao,
+    bagagemPeso: peso > 0 ? peso : undefined,
+    mochila: temMochila,
+
     servicos: [],
     precoTotal: tarifa.total,
     precoTarifa: tarifa.tarifa,
