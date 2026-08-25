@@ -163,7 +163,8 @@ export async function cancelarReservaFRT(entrada: {
         body: {},
       });
     }
-    const msg = texto((resp?.dados as any)?.Mensagem ?? (resp?.dados as any)?.message);
+    const d = resp?.dados as any;
+    const msg = texto(d?.Mensagem ?? d?.mensagem ?? d?.message ?? d?.Message);
     registrar(`Cancelar ${item.descricao}`, Boolean(resp?.ok), msg ?? (resp?.ok ? "Cancelado" : "A operadora recusou"));
   }
 
