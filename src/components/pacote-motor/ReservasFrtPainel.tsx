@@ -235,9 +235,3 @@ function ItensReserva({ orcamentoId }: { orcamentoId: number }) {
     </div>
   );
 }
-
-        </div>
-      ))}
-    </div>
-  );
-}
