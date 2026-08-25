@@ -40,31 +40,31 @@ async function descompactar(base64: string): Promise<unknown> {
 
 /**
  * Salva os itens brutos e devolve o token para referenciá-los depois.
- * A gravação não bloqueia a busca — quem lê aguarda o registro aparecer.
+ * A gravação é aguardada: no runtime serverless o trabalho que sobra depois
+ * da resposta é descartado, e sem o registro a reserva acusava "busca
+ * expirada". Compactado, o insert leva menos de 1 s.
  */
 export async function guardarBuscaCF(tipo: TipoBuscaCF, itens: unknown[]): Promise<string | null> {
   if (!itens.length) return null;
   const token = crypto.randomUUID();
-  const gravar = (async () => {
-    try {
-      const { supabaseAdmin } = (await import("@/integrations/supabase/client.server")) as any;
-      const { error } = await supabaseAdmin.from("comprefacil_busca_cache").insert({
-        token,
-        tipo,
-        itens: { gz: await compactar(itens) } as never,
-      });
-      if (error) console.error("[comprefacil] cache da busca falhou:", error.message);
-    } catch (e) {
-      console.error("[comprefacil] cache da busca falhou:", e instanceof Error ? e.message : e);
+  try {
+    const { supabaseAdmin } = (await import("@/integrations/supabase/client.server")) as any;
+    const { error } = await supabaseAdmin.from("comprefacil_busca_cache").insert({
+      token,
+      tipo,
+      itens: { gz: await compactar(itens) } as never,
+    });
+    if (error) {
+      console.error("[comprefacil] cache da busca falhou:", error.message);
+      return null;
     }
-  })();
-  // Mantém a referência viva no runtime serverless sem travar a resposta.
-  gravacoesPendentes.set(token, gravar.finally(() => gravacoesPendentes.delete(token)));
+  } catch (e) {
+    console.error("[comprefacil] cache da busca falhou:", e instanceof Error ? e.message : e);
+    return null;
+  }
   return token;
 }
 
-/** Gravações em andamento, para a leitura conseguir esperar a que interessa. */
-const gravacoesPendentes = new Map<string, Promise<void>>();
 
 /** Recupera um item bruto guardado na busca. */
 export async function itemBrutoCF(
