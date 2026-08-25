@@ -158,7 +158,18 @@ export function ReservaFrtDialog({
     })
     .filter(Boolean) as string[];
 
+  // A cia aérea recusa reservas com o mesmo CPF em mais de um passageiro.
+  const cpfsDuplicados = (() => {
+    const contagem = new Map<string, number>();
+    for (const p of pax) {
+      const c = p.cpf.replace(/\D/g, "");
+      if (c.length === 11) contagem.set(c, (contagem.get(c) ?? 0) + 1);
+    }
+    return [...contagem.entries()].filter(([, n]) => n > 1).map(([c]) => c);
+  })();
+
   const podeReservar =
+    cpfsDuplicados.length === 0 &&
     pax.every(
       (p) =>
         p.nome.trim() &&
