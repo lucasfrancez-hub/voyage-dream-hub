@@ -208,7 +208,14 @@ export function DateRangeField({
         )}
       </div>
 
-      <div className="flex w-full min-w-0 flex-1 justify-center overflow-y-auto overscroll-contain">
+      <div
+        className={cn(
+          "flex w-full min-w-0 flex-1 justify-center",
+          // Embutido no site: o mês inteiro precisa aparecer de uma vez (o iframe
+          // cresce pra caber). Fora, mantemos o scroll interno do bottom sheet.
+          embedded ? "overflow-visible" : "overflow-y-auto overscroll-contain",
+        )}
+      >
         <Calendar
           mode="range"
           locale={ptBR}
