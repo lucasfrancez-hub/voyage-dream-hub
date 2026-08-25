@@ -18,6 +18,8 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { confirmThen } from "@/lib/confirm";
+import { ReservasFrtPainel } from "@/components/pacote-motor/ReservasFrtPainel";
+
 
 
 export const Route = createFileRoute("/admin/pedidos/")({
