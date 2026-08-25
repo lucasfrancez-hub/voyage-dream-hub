@@ -1,5 +1,6 @@
 import { nomeCia } from "@/lib/pacote-motor/cia";
 import { confirmThen } from "@/lib/confirm";
+import { IconeBagagem } from "@/components/pacote-motor/IconeBagagem";
 import { brl, hora, plural, type HotelPacote, type OcupacaoQuarto, type QuartoPacote } from "@/lib/pacote-motor/mapear";
 import { somaOcupacao } from "@/lib/pacote-motor/mapear";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
