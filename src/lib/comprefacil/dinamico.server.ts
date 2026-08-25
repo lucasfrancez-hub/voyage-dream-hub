@@ -120,9 +120,16 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
   // Polling adaptativo (mesmo padrão da hotelaria): começa curto e cresce,
   // devolvendo a lista assim que já há resultado útil em vez de ciclos fixos de 3s.
   const intervalos = [700, 900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000];
+  const limitePolling = Date.now() + 30_000;
   for (let i = 0; i < intervalos.length; i++) {
     await espera(intervalos[i]!);
-    const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
+    if (Date.now() > limitePolling) break;
+    // Teto por requisição: um poll travado não pode segurar a tela inteira.
+    const r = await limitarEspera(
+      chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) }),
+      8_000,
+    ).catch(() => null);
+    if (!r) continue;
     dados = r.dados;
     const meta = dados?.Aereos?.MetaData;
     const total = Number(meta?.TotalItens ?? 0);

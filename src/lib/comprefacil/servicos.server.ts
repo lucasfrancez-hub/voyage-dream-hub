@@ -170,9 +170,13 @@ export async function buscarServicosDestinoCF(p: {
   const limite = Date.now() + 30_000; // teto de segurança: devolve o melhor lote já recebido
   for (let i = 0; i < intervalos.length; i++) {
     await espera(intervalos[i]!);
-    const r = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) }).catch(
-      () => null,
-    );
+    if (Date.now() > limite) break;
+    // Teto por requisição: quando a operadora engasga, um único poll chegava a
+    // travar minutos e a tela estourava o tempo de espera.
+    const r = await limitarEspera(
+      chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) }),
+      8_000,
+    ).catch(() => null);
     if (!r) continue;
     // guarda sempre a melhor resposta já vista (a operadora às vezes devolve vazio depois de preencher)
     if (((r.dados as any)?.Items ?? []).length >= ((dados?.Items ?? []) as any[]).length) dados = r.dados;
