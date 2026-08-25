@@ -29,7 +29,14 @@ export function SeletorServicos({
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"preco" | "precoDesc">("preco");
   const [detalhe, setDetalhe] = useState<ServicoDisponivel | null>(null);
+  const [pagina, setPagina] = useState(1);
 
+  useEffect(() => setPagina(1), [lista]);
+
+  const listaPaginada = useMemo(
+    () => lista.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA),
+    [lista, pagina],
+  );
 
   const categorias = useMemo(() => {
     const mapa = new Map<string, number>();
