@@ -50,6 +50,7 @@ export function ResumoPacote({
   moeda = "BRL",
   servicos = [],
   onServicos,
+  onRemoverServico,
   acao,
 }: {
   destino: string;
