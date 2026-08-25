@@ -224,7 +224,7 @@ export function ExclusivosPage({ header }: { header?: React.ReactNode } = {}) {
             </div>
           )}
 
-          <div className={`mt-6 ${ENGINE_CARD} grid gap-4 md:grid-cols-[1.1fr_1.1fr_0.9fr_0.7fr_auto]">
+          <div className={`mt-6 ${ENGINE_CARD} grid gap-4 md:grid-cols-[1.1fr_1.1fr_0.9fr_0.7fr_auto] md:items-end`}>
             <div className={ENGINE_FIELD_WRAP}>
               <Label className={ENGINE_LABEL}>Categoria</Label>
               {field(

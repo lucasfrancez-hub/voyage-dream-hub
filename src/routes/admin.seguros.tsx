@@ -277,7 +277,7 @@ export function SegurosPage({ header }: { header?: React.ReactNode } = {}) {
             </div>
           )}
 
-          <div className={`mt-6 ${ENGINE_CARD} grid gap-4 md:grid-cols-[1.2fr_1.4fr_auto]">
+          <div className={`mt-6 ${ENGINE_CARD} grid gap-4 md:grid-cols-[1.2fr_1.4fr_auto] md:items-end`}>
             <div className={ENGINE_FIELD_WRAP}>
               <Label className={ENGINE_LABEL}>Destino</Label>
               {fieldShell(
