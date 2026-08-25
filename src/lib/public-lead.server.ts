@@ -61,6 +61,7 @@ export async function createPublicFlightLeadHandler({ data }: { data: PublicFlig
       supplier_name: "Comprar Viagem",
       trip_title: tripTitle,
       notes,
+      is_lead: true,
       package_snapshot: {},
     } as never)
     .select("id, order_number")

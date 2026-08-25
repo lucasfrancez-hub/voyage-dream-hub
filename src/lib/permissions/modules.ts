@@ -42,6 +42,7 @@ export const MODULOS: Modulo[] = [
   { key: "pedidos", label: "Meus pedidos", grupo: "Pedidos", paths: ["/admin/pedidos"] },
   { key: "orcamentos", label: "Orçamentos", grupo: "Pedidos", paths: ["/admin/orcamentos"] },
   { key: "pedidos-terceiros", label: "Pedidos de terceiro", grupo: "Pedidos", paths: ["/admin/pedidos/terceiros"] },
+  { key: "pedidos-leads", label: "Leads", grupo: "Pedidos", paths: ["/admin/pedidos/leads"] },
   { key: "reservas", label: "Reservas", grupo: "Pedidos", paths: ["/admin/reservas"] },
   { key: "bilhetes", label: "Bilhetes", grupo: "Pedidos", paths: ["/admin/bilhetes"] },
 

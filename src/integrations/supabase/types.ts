@@ -6124,6 +6124,7 @@ export type Database = {
           expected_total: number | null
           full_name: string | null
           id: string
+          is_lead: boolean
           monde_sale_id: string | null
           notes: string | null
           notes_log: Json
@@ -6184,6 +6185,7 @@ export type Database = {
           expected_total?: number | null
           full_name?: string | null
           id?: string
+          is_lead?: boolean
           monde_sale_id?: string | null
           notes?: string | null
           notes_log?: Json
@@ -6244,6 +6246,7 @@ export type Database = {
           expected_total?: number | null
           full_name?: string | null
           id?: string
+          is_lead?: boolean
           monde_sale_id?: string | null
           notes?: string | null
           notes_log?: Json
