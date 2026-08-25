@@ -36,8 +36,14 @@ function texto(v: unknown): string | null {
   return s ? s : null;
 }
 
+/**
+ * A operadora devolve o status ora como texto ("Cancelado"), ora como código
+ * numérico — 8 é o código de cancelado confirmado no portal.
+ */
 function statusCancelado(s: unknown): boolean {
   const t = (texto(s) ?? "").toUpperCase();
+  if (!t) return false;
+  if (/^\d+$/.test(t)) return t === "8";
   return t.includes("CANCEL");
 }
 
