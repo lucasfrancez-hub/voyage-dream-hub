@@ -530,7 +530,7 @@ export function PacoteMotor({
 
         {/* Abas e resultados só entram em cena depois da pesquisa. */}
         {buscou && (
-        <div className="tabs">
+        <div className="tabs tabs-v2">
           <button type="button" className={`tab${vista === "overview" ? " active" : ""}`} onClick={() => setVista("overview")}>
             Visão geral
           </button>

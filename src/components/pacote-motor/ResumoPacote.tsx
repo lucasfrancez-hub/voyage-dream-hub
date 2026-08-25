@@ -121,11 +121,13 @@ export function ResumoPacote({
             <div className="hotel-kicker">
               Hospedagem incluída · {dataCurta(checkin)} → {dataCurta(checkout)}
             </div>
-            <b className="hotel-name">{hotel.nome}</b>
-            <div className="hotel-rating-line">
+            <div className="hotel-name-row">
+              <b className="hotel-name">{hotel.nome}</b>
               {hotel.categoria ? (
-                <span className="hotel-stars">{"★".repeat(hotel.categoria)}</span>
+                <span className="hotel-stars-inline">{"★".repeat(hotel.categoria)}</span>
               ) : null}
+            </div>
+            <div className="hotel-rating-line">
               {[hotel.avaliacao ? `${hotel.avaliacao}/5` : null, hotel.localizacao]
                 .filter(Boolean)
                 .join(" · ")}
