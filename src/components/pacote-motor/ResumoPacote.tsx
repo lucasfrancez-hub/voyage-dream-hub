@@ -137,23 +137,39 @@ export function ResumoPacote({
       ) : null}
 
       <div className="sum-svc">
-        <div className="sum-svc-head">
+        <div className="sum-svc-title">
           <b>Serviços adicionais</b>
-          {servicos.length === 0 ? <span className="sum-svc-off">Não incluso</span> : null}
+          <div className="sum-svc-bar" />
         </div>
         {servicos.length ? (
-          <ul className="sum-svc-list">
-            {servicos.map((s) => (
-              <li key={s.id}>
-                <span>{s.titulo}</span>
-                <b>+ {brl(s.valor ?? 0, moeda)}</b>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+          <div className="sum-svc-list">
+            {servicos.map((s, i) => {
+              const [main, ...rest] = s.titulo.split(" - ");
+              const sub = rest.join(" - ");
+              return (
+                <div key={s.id} className="sum-svc-item">
+                  <div className="sum-svc-dot" />
+                  <div className="sum-svc-info">
+                    <span>{main || s.titulo}</span>
+                    {sub ? <em>{sub}</em> : null}
+                  </div>
+                  <div className="sum-svc-price">
+                    <small>+ ADICIONAL</small>
+                    <b>+ {brl(s.valor ?? 0, moeda)}</b>
+                  </div>
+                  {i < servicos.length - 1 ? <div className="sum-svc-sep" /> : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="sum-svc-empty">
+            <span className="sum-svc-off">Não incluso</span>
+          </div>
+        )}
         {onServicos ? (
-          <button type="button" className="ghost sum-svc-btn" onClick={onServicos}>
-            {servicos.length ? "Alterar serviços" : "Adicionar serviços"}
+          <button type="button" className="sum-svc-btn" onClick={onServicos}>
+            <span>{servicos.length ? "Alterar serviços" : "Adicionar serviços"}</span>
           </button>
         ) : null}
       </div>
