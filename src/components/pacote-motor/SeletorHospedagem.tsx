@@ -392,6 +392,13 @@ export function SeletorHospedagem({
               </article>
             );
           })}
+
+          <Paginacao
+            pagina={pagina}
+            total={lista.length}
+            onChange={setPagina}
+            rotulo="hotéis"
+          />
         </div>
 
         {resumo}

@@ -190,6 +190,12 @@ export function SeletorServicos({
             );
           })}
 
+          <Paginacao
+            pagina={pagina}
+            total={lista.length}
+            onChange={setPagina}
+            rotulo="serviços"
+          />
         </div>
 
         {resumo}
