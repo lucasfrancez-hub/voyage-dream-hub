@@ -2436,3 +2436,124 @@ body:has([data-chat-root]),
   .mkt .hotel .hotelgrid {height:auto;}
   .mkt .hotel .amen {max-height:none;}
 }
+
+/* ============================================================
+   Refino visual VIA AIR — pacote recomendado + resumo
+   Somente cor, gradiente, borda, brilho e transição.
+   Estrutura, tamanhos e disposição permanecem inalterados.
+   ============================================================ */
+
+/* Cards selecionados (voo e hospedagem) */
+.mkt .sel-card {
+  background:
+    radial-gradient(420px 180px at 12% -20%, rgba(38,118,168,.16), transparent 70%),
+    linear-gradient(180deg, #0b2634 0%, #071c28 100%);
+  border-color: rgba(211,229,241,.11);
+  box-shadow: 0 24px 58px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.05);
+  transition: border-color .22s ease, box-shadow .22s ease;
+}
+.mkt .sel-card:hover {
+  border-color: rgba(242,107,31,.26);
+  box-shadow: 0 28px 66px rgba(0,0,0,.44), 0 0 0 1px rgba(242,107,31,.08), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.mkt .sel-head {
+  border-bottom: 1px solid rgba(211,229,241,.07);
+}
+.mkt .sel-main-title b {
+  background: linear-gradient(180deg,#ffffff,#cfe1ee);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.mkt .sel-status {
+  background: linear-gradient(180deg, rgba(73,201,150,.16), rgba(73,201,150,.07));
+  border: 1px solid rgba(73,201,150,.28);
+  color: #8ff0c6;
+}
+
+/* Painel de voo */
+.mkt .flight-pane {
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+  border: 1px solid rgba(211,229,241,.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+.mkt .flight-pane .mid div {
+  background: linear-gradient(90deg, transparent, rgba(242,107,31,.45), transparent);
+}
+.mkt .flight-pane .dotline i, .mkt .flight-pane .dot {
+  background: var(--orange); box-shadow: 0 0 10px rgba(242,107,31,.7);
+}
+
+/* Resumo do pacote */
+.mkt .summary {
+  background:
+    radial-gradient(520px 220px at 100% -10%, rgba(242,107,31,.10), transparent 68%),
+    linear-gradient(180deg, #0c2a39 0%, #061a25 100%);
+  border-color: rgba(211,229,241,.13);
+  box-shadow: 0 30px 70px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.mkt .summary small.label2 {
+  color: #ffa557;
+}
+.mkt .summary h3 {
+  background: linear-gradient(180deg,#ffffff,#d3e4f0);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.mkt .summary-meta span {
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border: 1px solid rgba(211,229,241,.1);
+  color: #b9cbd8;
+}
+.mkt .summary-meta span strong { color: #fff; }
+
+/* Trechos no resumo */
+.mkt .sum-trip { border-top-color: rgba(211,229,241,.08); }
+.mkt .sum-trip .sum-head b { color: #eaf3f9; }
+.mkt .sum-trip .sum-head span { color: #8ea3b3; }
+.mkt .sum-route strong { color: #fff; }
+.mkt .sum-route small { color: #ff9d55; }
+.mkt .sum-route .arrow { color: rgba(242,107,31,.6); }
+
+/* Hotel no resumo */
+.mkt .sum-hotel {
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.018));
+  border-color: rgba(211,229,241,.1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+.mkt .sum-hotel .hotel-kicker { color: #ffa557; }
+.mkt .sum-hotel b.hotel-name { color: #fff; }
+.mkt .sum-hotel .hotel-rating-line { color: #93a8b7; }
+.mkt .hotel-rating-line .hotel-stars { color: var(--orange); text-shadow: 0 0 10px rgba(242,107,31,.35); }
+.mkt .sum-hotel .hotel-room-line { border-top-color: rgba(211,229,241,.08); }
+.mkt .sum-hotel .hotel-room-line strong { color: #eaf3f9; }
+.mkt .sum-hotel .hotel-room-line small { color: #8ea3b3; }
+.mkt .sum-hotel .hotel-room-count { color: #ffb361; }
+.mkt .sum-hotel-photo { box-shadow: 0 18px 38px rgba(0,0,0,.4); }
+
+/* Serviços adicionais no resumo */
+.mkt .sum-svc { border-top-color: rgba(211,229,241,.12); }
+.mkt .sum-svc-list li b { color: #ffb361; }
+
+/* Bloco de total */
+.mkt .total {
+  background: linear-gradient(180deg, rgba(242,107,31,.10), rgba(255,255,255,.02));
+  border-color: rgba(242,107,31,.24);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+.mkt .total:before { background: rgba(242,107,31,.24); }
+.mkt .total strong {
+  background: linear-gradient(180deg,#ffffff,#ffd8b4);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.mkt .total .total-parcela b { color: #ffb361; }
+.mkt .total .total-parcela i { color: #9db0be; }
+
+/* Botão principal do resumo */
+.mkt .summary .primary {
+  background: linear-gradient(180deg, #ff8a3d, #ef6413);
+  border: 1px solid rgba(255,180,120,.35);
+  box-shadow: 0 14px 30px rgba(242,107,31,.32), inset 0 1px 0 rgba(255,255,255,.28);
+  transition: filter .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.mkt .summary .primary:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 18px 38px rgba(242,107,31,.42), inset 0 1px 0 rgba(255,255,255,.3);
+}
