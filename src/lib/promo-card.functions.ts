@@ -9,8 +9,14 @@ async function assertAdmin(ctx: { supabase: any; userId: string }) {
   if (!data) throw new Error("Acesso restrito");
 }
 
+const nullableUrl = () =>
+  z.preprocess(
+    (val) => (val === "" ? null : val),
+    z.string().url().nullable(),
+  );
+
 const cardDataSchema = z.object({
-  destinationImage: z.string().url().nullable(),
+  destinationImage: nullableUrl(),
   imagePosition: z.string().max(30).optional(),
   logoVariant: z.enum(["color", "white", "black"]).optional(),
   fareFoundAt: z.string().max(40).nullable().optional(),
@@ -27,7 +33,7 @@ const cardDataSchema = z.object({
   returnDate: z.string().max(12).nullable(),
   airline: z.string().max(60),
   airlineIata: z.string().max(5).nullable(),
-  airlineLogo: z.string().url().nullable(),
+  airlineLogo: nullableUrl(),
   baggage: z.string().max(120),
   totalPrice: z.number(),
   interestFreeInstallments: z.number().int().min(1).max(24),
