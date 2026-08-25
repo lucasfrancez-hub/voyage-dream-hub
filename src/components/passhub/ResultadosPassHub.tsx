@@ -1357,6 +1357,13 @@ export function ResultadosPassHub({ resultado, filtros, ravPercentual = 0, onRes
     setVoltaSel(null);
   }, [resultado]);
 
+  // Trocou de voo: a tarifação anterior não vale mais.
+  useEffect(() => {
+    setTarifadoEm(null);
+    setTarifaErro(null);
+  }, [idaSel, voltaSel]);
+
+
   const idas = useMemo(() => {
     const mapa = new Map<string, Perna>();
     for (const o of resultado.ofertas) {
