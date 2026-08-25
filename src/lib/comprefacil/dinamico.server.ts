@@ -320,7 +320,7 @@ export async function buscarHotelDinamicoCF(p: BuscaHotelCF): Promise<HotelPacot
   let melhorPontuacao = 0;
   // Polling adaptativo. Assim que há um lote útil com quartos reais, ele pode
   // ser entregue sem esperar fornecedores lentos terminarem todo o catálogo.
-  const intervalos = [900, 1200, 1500, 1800, 2200, 2500, 3000, 3000, 3000, 3000, 3000, 3000];
+  const intervalos = [800, 900, 1000, 1200, 1200, 1400, 1600, 1800, 2000, 2200, 2500, 2500, 3000];
   const temQuartoReal = (d: any) =>
     ((d?.Items ?? []) as any[]).some((h) => (h?.Quartos ?? []).some((q: any) => typeof q?.Descricao === "string" && q.Descricao.trim()));
   const pontuar = (d: any) => {
