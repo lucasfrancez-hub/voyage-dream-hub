@@ -4,7 +4,7 @@ import { Copy, Loader2, Package, Trash2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { listarReservasFRT } from "@/lib/comprefacil/reservas-lista.functions";
-import { cancelarReservaFRTFn, consultarReservaFRTFn } from "@/lib/comprefacil/cancelamento.functions";
+import { cancelarReservaFRTFn, consultarReservaFRTFn, removerItemFRTFn } from "@/lib/comprefacil/cancelamento.functions";
 import { confirmThen } from "@/lib/confirm";
 
 const dataHora = (iso: string | null) => {
@@ -139,6 +139,7 @@ function ItensReserva({ orcamentoId }: { orcamentoId: number }) {
   const qc = useQueryClient();
   const consultar = useServerFn(consultarReservaFRTFn);
   const cancelarFn = useServerFn(cancelarReservaFRTFn);
+  const removerFn = useServerFn(removerItemFRTFn);
 
   const { data, isLoading } = useQuery({
     queryKey: ["frt-itens", orcamentoId],
