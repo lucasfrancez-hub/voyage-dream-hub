@@ -96,6 +96,13 @@ export function SeletorHospedagem({
     return ordenados;
   }, [hoteis, busca, estrelas, regimes, comodidades, notaMinima, soReembolsavel, precoMax, ordem]);
 
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => setPagina(1), [lista]);
+  const listaPaginada = useMemo(
+    () => lista.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA),
+    [lista, pagina],
+  );
+
   const limparFiltros = () => {
     setBusca("");
     setEstrelas([]);

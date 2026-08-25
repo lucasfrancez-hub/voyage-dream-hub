@@ -56,6 +56,13 @@ export function SeletorServicos({
     });
   }, [servicos, categoria, busca, ordem]);
 
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => setPagina(1), [lista]);
+  const listaPaginada = useMemo(
+    () => lista.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA),
+    [lista, pagina],
+  );
+
   return (
     <section className="screen active">
       <div className="title">

@@ -260,6 +260,13 @@ export function SeletorVoo({
     ordem,
   ]);
 
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => setPagina(1), [lista]);
+  const listaPaginada = useMemo(
+    () => lista.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA),
+    [lista, pagina],
+  );
+
   const temVolta = ofertas.some((o) => (o.voltas?.length ?? 0) > 0);
   const limpar = () => {
     setSomenteBagagem(false);
