@@ -558,9 +558,16 @@ async function sincronizarRepasses(rows: Record<string, any>[]) {
       let bruto = "";
       let falha: string | null = null;
       if (r.repasse_transfer_id) {
-        const t: any = await getAsaasTransfer(String(r.repasse_transfer_id));
-        bruto = String(t?.status ?? "").toUpperCase();
-        falha = t?.failReason ?? null;
+        try {
+          const t: any = await getAsaasTransfer(String(r.repasse_transfer_id));
+          bruto = String(t?.status ?? "").toUpperCase();
+          falha = t?.failReason ?? null;
+        } catch (error) {
+          const mensagem = error instanceof Error ? error.message : String(error);
+          // Um id antigo, de outro ambiente ou indisponível na conta atual
+          // não pode impedir a conferência do status salvo pelos webhooks.
+          if (!mensagem.startsWith("ASAAS (404):")) throw error;
+        }
       }
       if (!bruto) {
         // Sem id de transferência (ou id inválido): confere o registro local
