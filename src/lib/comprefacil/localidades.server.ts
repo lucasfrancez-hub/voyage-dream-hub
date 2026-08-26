@@ -134,7 +134,9 @@ export async function montarSugestoesCF(
   // Destinos que não são aeroporto (Porto de Galinhas, Búzios, Gramado…):
   // a hospedagem usa a cidade certa e o voo vai pelo aeroporto mais próximo.
   try {
-    const { buscarDestinosCF, iataMaisProximo } = await import("./destinos.server");
+    const { buscarDestinosCF, iataMaisProximo, iataPeloAutocompleteFrt } = await import(
+      "./destinos.server"
+    );
     const oficiais = await cidadesOficiaisCF();
     const iataPorCidade = new Map<number, string>();
     const permitidos = new Set<string>();
