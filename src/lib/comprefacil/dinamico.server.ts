@@ -131,7 +131,10 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
         const meta = (r?.dados as any)?.Aereos?.MetaData;
         const total = Number(meta?.TotalItens ?? 0);
         if (total >= Number(dados?.Aereos?.MetaData?.TotalItens ?? 0)) dados = r.dados;
-        if (total > 0 && (buscasAtivas(meta) === 0 || total >= 40)) pronto = true;
+        // Só encerramos quando a operadora fecha todas as buscas ativas —
+        // cortar em "40 resultados" devolvia só a primeira companhia a
+        // responder (normalmente a Azul) e escondia LATAM/GOL etc.
+        if (total > 0 && (buscasAtivas(meta) === 0 || Date.now() > limitePolling - 8_000)) pronto = true;
       })
       .catch(() => null)
       .finally(() => {
@@ -186,9 +189,13 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
     .filter(Boolean) as PassHubOferta[];
 
   // Trava de destino: a operadora às vezes devolve aeroporto vizinho. Só
-  // entregamos voos que realmente chegam no destino que o cliente preencheu.
+  // entregamos voos que realmente chegam (e voltam) do destino preenchido.
   if (!alvo) return ofertas;
-  const noAlvo = ofertas.filter((o) => String(o.ida?.destino ?? "").toUpperCase() === alvo);
+  const noAlvo = ofertas.filter((o) => {
+    if (String(o.ida?.destino ?? "").toUpperCase() !== alvo) return false;
+    const volta = o.voltas?.[0];
+    return !volta || String(volta.origem ?? "").toUpperCase() === alvo;
+  });
   return noAlvo.length ? noAlvo : ofertas;
 }
 
