@@ -13,3 +13,4 @@ console.log("chaves:", [...chaves].join(", "));
 for (const s of itens.slice(0, 20)) console.log(String(s.Titulo).slice(0,45), "| VV", s.ValorVenda, "| Taxa", s.Taxa, "| Mult", s.Multiplica, "| Adt", s.Adt, "| Fornec", s.Fornecedor);
 const taxas = new Map(); itens.forEach(s=>taxas.set(`${s.Fornecedor}:${s.Taxa}:${s.Multiplica}`,(taxas.get(`${s.Fornecedor}:${s.Taxa}:${s.Multiplica}`)??0)+1));
 console.log([...taxas.entries()]);
+for (const s of itens.slice(0,5)) console.log(JSON.stringify({T:String(s.Titulo).slice(0,30),VV:s.ValorVenda,Taxa:s.Taxa,Mult:s.Multiplica,VL:s.ValorListagem,VTL:s.ValorTotalListagem,VTF:s.ValorTotalFechamento,VF:s.ValorFechamento,MN:s.MoedaNet?.Sigla,ML:s.MoedaListagem?.Sigla,MF:s.MoedaFechamento?.Sigla,VTTV:s.ValorTotalTaxasVenda,Tarifas:s.Tarifas?.length}));
