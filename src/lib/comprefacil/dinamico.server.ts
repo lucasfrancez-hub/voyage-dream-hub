@@ -265,9 +265,14 @@ function mapearOfertaAereo(it: any, idx: number): PassHubOferta | null {
   const paxes: any[] = it?.PaxesTarifa ?? [];
   // SubTotal/TotalTaxas da CompreFácil já vêm somados para a quantidade de pax
   // daquela categoria — multiplicar por QtdPax dobrava o valor do aéreo.
-  const total = paxes.reduce((a, p) => a + Number(p?.SubTotal ?? 0), 0);
-  const taxas = paxes.reduce((a, p) => a + Number(p?.TotalTaxas ?? 0), 0);
+  const total = Number(it?.ValorListagem ?? 0) || paxes.reduce((a, p) => a + Number(p?.SubTotal ?? 0), 0);
+  // TotalTaxas vem por passageiro; TaxasListagemTotal/TaxasTotal já é o somatório.
+  const taxas =
+    Number(it?.TaxasListagemTotal ?? 0) ||
+    Number(it?.TaxasTotal ?? 0) ||
+    paxes.reduce((a, p) => a + Number(p?.TotalTaxas ?? 0) * (Number(p?.QtdPax ?? 1) || 1), 0);
   const tarifa = { total: Number(total.toFixed(2)), tarifa: Number((total - taxas).toFixed(2)), taxas: Number(taxas.toFixed(2)) };
+
   const [ida, ...voltas] = segs;
   return {
     id: `cf-${idx}-${it?.CiaValidadora ?? ""}-${segs[0]?.Voos?.[0]?.NumeroVoo ?? ""}`,
