@@ -6,6 +6,7 @@
  * e ao período pesquisado, já com o valor tarifado para a ocupação.
  */
 import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.server";
+import { contexto as cambioContexto, valorBRL } from "./cambio";
 
 export type ServicoDisponivel = {
   id: string;
@@ -94,26 +95,13 @@ function mapear(s: any, i: number): ServicoDisponivel {
     .map((im: any) => (typeof im === "string" ? im : (im?.Url ?? im?.Imagem ?? im?.Caminho ?? "")))
     .map((u: any) => String(u ?? "").trim())
     .filter((u: string) => /^https?:\/\//i.test(u));
-  // `ValorVenda` vem na moeda do fornecedor (MoedaNet, quase sempre USD) e
-  // `Taxa` é o câmbio do dia. O portal exibe o valor já convertido em BRL
-  // (`ValorListagem` = ValorVenda × Taxa). Usar ValorVenda cru fazia o serviço
-  // aparecer ~5x mais barato do que a operadora cobra.
-  const num = (...v: unknown[]) => {
-    for (const x of v) {
-      const n = Number(x);
-      if (Number.isFinite(n) && n > 0) return n;
-    }
-    return 0;
-  };
-  const moedaNet = String(s?.MoedaNet?.Sigla ?? "").toUpperCase();
-  const moedaListagem = String(s?.MoedaListagem?.Sigla ?? "BRL").toUpperCase();
-  const cambio = num(s?.Taxa) || 1;
-  const bruto = num(s?.ValorVenda);
-  const valor = num(
-    s?.ValorListagem,
-    s?.ValorTotalListagem,
-    moedaNet && moedaNet !== moedaListagem ? bruto * cambio : bruto,
-  );
+  // Regra: valor em moeda estrangeira é convertido pelo câmbio (`Taxa`) que a
+  // operadora manda no próprio payload; valor já em BRL passa direto.
+  const ctx = cambioContexto(s);
+  const valor = valorBRL(s, {
+    listagem: [s?.ValorListagem, s?.ValorTotalListagem],
+    bruto: [s?.ValorVenda],
+  }, ctx);
   const informacoes = [
     s?.Combo ? "Combo de serviços" : null,
     extra?.CategoriaServico ? `Categoria ${String(extra.CategoriaServico).toLowerCase()}` : null,
@@ -136,16 +124,14 @@ function mapear(s: any, i: number): ServicoDisponivel {
     opcoes.push({ codigo, data, hora, valor: valorOpcao });
   };
   for (const t of (Array.isArray(s?.Tarifas) ? s.Tarifas : []) as any[]) {
-    const bruta = num(t?.ValorVenda);
-    const valorT = num(
-      t?.ValorListagem,
-      t?.ValorTotalListagem,
-      moedaNet && moedaNet !== moedaListagem ? bruta * cambio : bruta,
-    );
-    adicionar(t?.Data ?? t?.DataServico, t?.Codigo ? String(t.Codigo) : null, valorT > 0 ? Number(valorT.toFixed(2)) : null);
+    const valorT = valorBRL(t, {
+      listagem: [t?.ValorListagem, t?.ValorTotalListagem],
+      bruto: [t?.ValorVenda],
+    }, { ...cambioContexto(t), taxa: t?.Taxa ?? ctx.taxa });
+    adicionar(t?.Data ?? t?.DataServico, t?.Codigo ? String(t.Codigo) : null, valorT > 0 ? valorT : null);
   }
   for (const d of (Array.isArray(s?.DatasDisponiveis) ? s.DatasDisponiveis : []) as any[]) {
-    adicionar(d, null, valor > 0 ? Number(valor.toFixed(2)) : null);
+    adicionar(d, null, valor > 0 ? valor : null);
   }
   opcoes.sort((a, b) => a.data.localeCompare(b.data) || (a.hora ?? "").localeCompare(b.hora ?? ""));
 
@@ -162,7 +148,7 @@ function mapear(s: any, i: number): ServicoDisponivel {
     politica: semHtml(s?.PoliticaCancelamento),
     informacoes,
     recomendado: false,
-    valor: valor > 0 ? Number(valor.toFixed(2)) : null,
+    valor: valor > 0 ? valor : null,
     moeda: "BRL" as const,
     imagem: imagens[0] ?? null,
     imagens,
