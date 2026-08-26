@@ -1,6 +1,6 @@
 import { chamarCompreFacil, COMPREFACIL_BASES } from "./auth.server";
 
-export type CidadeOficialCF = { id: number; nome: string; iata: string | null };
+export type CidadeOficialCF = { id: number; nome: string; iata: string | null; descricao: string };
 export type SugestaoCF = { nome: string; cidadeId: number | null; iata: string | null; total: number };
 
 let cache: { em: number; itens: CidadeOficialCF[] } | null = null;
@@ -22,10 +22,11 @@ export async function cidadesOficiaisCF(): Promise<CidadeOficialCF[]> {
         const nome = String(a?.Cidade?.Nome ?? a?.Descricao ?? "").trim();
         if (!id || !nome) continue;
         const iata = a?.Iata ? String(a.Iata).toUpperCase() : null;
+        const descricao = String(a?.Descricao ?? nome).trim();
         // Uma cidade pode ter vários aeroportos (ex.: Orlando = MCO e MIA):
         // guardamos cada aeroporto separadamente para não perder o código certo.
         const chave = `${id}-${iata ?? "s"}`;
-        if (!mapa.has(chave)) mapa.set(chave, { id, nome, iata });
+        if (!mapa.has(chave)) mapa.set(chave, { id, nome, iata, descricao });
       }
       const totalPaginas = Number(dados?.MetaData?.TotalPaginas ?? 0);
       if (!totalPaginas || pagina >= totalPaginas) break;
@@ -40,6 +41,7 @@ export async function cidadesOficiaisCF(): Promise<CidadeOficialCF[]> {
   if (itens.length) cache = { em: Date.now(), itens };
   return itens;
 }
+
 
 export function semAcento(v: string): string {
   return v
