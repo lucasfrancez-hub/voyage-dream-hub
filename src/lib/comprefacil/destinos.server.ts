@@ -19,6 +19,12 @@ export type DestinoCF = {
   lng: number | null;
 };
 
+export type DestinoFrt = {
+  nome: string;
+  iata: string;
+  regiao: string | null;
+};
+
 const cacheTermo = new Map<string, { em: number; itens: DestinoCF[] }>();
 const cacheIata = new Map<string, { em: number; iata: string | null }>();
 const TTL = 6 * 60 * 60 * 1000;
@@ -144,9 +150,39 @@ export async function iataMaisProximo(
  * geográfico: é a mesma resposta que o operador vê no portal.
  */
 const cacheFrt = new Map<string, { em: number; iata: string | null }>();
+const cacheSugestoesFrt = new Map<string, { em: number; itens: DestinoFrt[] }>();
 
 function semAcentoLocal(v: string): string {
   return v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+/** Opções exibidas pelo próprio autopreencher da FRT. */
+export async function buscarSugestoesFrt(termoRecebido: string): Promise<DestinoFrt[]> {
+  const termo = termoRecebido.trim();
+  if (termo.length < 2) return [];
+  const chave = semAcentoLocal(termo);
+  const guardado = cacheSugestoesFrt.get(chave);
+  if (guardado && Date.now() - guardado.em < TTL) return guardado.itens;
+  try {
+    const { frtSugestoesLocal } = await import("@/lib/frt/frt-connector.server");
+    const { opcoes } = await frtSugestoesLocal("destino", termo);
+    const itens = opcoes
+      .map((o) => {
+        const m = /\(([A-Z]{3})\)\s*$/.exec(o.label ?? "");
+        const partes = (o.label ?? "").replace(/\s*\([A-Z]{3}\)\s*$/, "").split(",").map((p) => p.trim());
+        const nome = partes[0] ?? "";
+        const iata = m?.[1];
+        if (!iata || !nome) return null;
+        return { nome, iata, regiao: partes.slice(1).filter(Boolean).join(", ") || null };
+      })
+      .filter((x): x is DestinoFrt => x !== null);
+    const unicos = [...new Map(itens.map((item) => [`${semAcentoLocal(item.nome)}-${item.iata}`, item])).values()];
+    cacheSugestoesFrt.set(chave, { em: Date.now(), itens: unicos });
+    return unicos;
+  } catch (e) {
+    console.error("[comprefacil] autocomplete FRT indisponível:", e instanceof Error ? e.message : e);
+    return guardado?.itens ?? [];
+  }
 }
 
 export async function iataPeloAutocompleteFrt(nome: string): Promise<string | null> {
@@ -157,15 +193,8 @@ export async function iataPeloAutocompleteFrt(nome: string): Promise<string | nu
   if (guardado && Date.now() - guardado.em < TTL) return guardado.iata;
 
   try {
-    const { frtSugestoesLocal } = await import("@/lib/frt/frt-connector.server");
-    const { opcoes } = await frtSugestoesLocal("destino", termo);
-    const comIata = opcoes
-      .map((o) => {
-        const m = /\(([A-Z]{3})\)\s*$/.exec(o.label ?? "");
-        const cidade = semAcentoLocal((o.label ?? "").split(",")[0] ?? "");
-        return m ? { iata: m[1]!, cidade } : null;
-      })
-      .filter((x): x is { iata: string; cidade: string } => !!x);
+    const opcoes = await buscarSugestoesFrt(termo);
+    const comIata = opcoes.map((o) => ({ iata: o.iata, cidade: semAcentoLocal(o.nome) }));
 
     const exato = comIata.find((x) => x.cidade === chave);
     const parcial = comIata.find((x) => x.cidade.includes(chave) || chave.includes(x.cidade));
