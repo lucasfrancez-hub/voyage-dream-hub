@@ -157,9 +157,14 @@ export async function montarSugestoesCF(
 
       let iata = iataPorCidade.get(d.cidadeId) ?? null;
       let via = false;
-      if (!iata && d.lat != null && d.lng != null && consultasProximidade < 4) {
+      if (!iata && consultasProximidade < 4) {
         consultasProximidade++;
-        iata = await iataMaisProximo(d.lat, d.lng, permitidos);
+        // 1º o autopreencher da própria FRT (mesma resposta do portal);
+        // só se ela não responder caímos no aeroporto mais próximo por mapa.
+        iata = await iataPeloAutocompleteFrt(d.nome);
+        if (!iata && d.lat != null && d.lng != null) {
+          iata = await iataMaisProximo(d.lat, d.lng, permitidos);
+        }
         via = !!iata;
       }
       saida.push({
