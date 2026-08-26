@@ -369,7 +369,14 @@ export function PacoteMotor({
       total={total}
       diferenca={Number((total - baseTotalRecomendado).toFixed(2))}
       moeda={hotel?.moeda ?? "BRL"}
-      servicos={servicosSel.map((s) => ({ id: s.id, titulo: s.titulo, valor: s.valor }))}
+      servicos={servicosSel.map((s) => ({
+        id: s.id,
+        titulo: s.titulo,
+        valor: s.valor,
+        quando: s.dataSelecionada
+          ? `${s.dataSelecionada.split("-").reverse().join("/")}${s.horaSelecionada ? ` · ${s.horaSelecionada}` : ""}`
+          : null,
+      }))}
       onServicos={() => setVista("servico")}
       onRemoverServico={removerServico}
       acao={

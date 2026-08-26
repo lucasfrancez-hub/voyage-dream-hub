@@ -68,7 +68,7 @@ export function ResumoPacote({
   total: number;
   diferenca: number;
   moeda?: string;
-  servicos?: { id: string; titulo: string; valor: number | null }[];
+  servicos?: { id: string; titulo: string; valor: number | null; quando?: string | null }[];
   onServicos?: () => void;
   onRemoverServico?: (id: string) => void;
   acao?: React.ReactNode;
@@ -162,6 +162,7 @@ export function ResumoPacote({
                   <div className="sum-svc-info">
                     <span>{main || s.titulo}</span>
                     {sub ? <em>{sub}</em> : null}
+                    {s.quando ? <em>{s.quando}</em> : null}
                   </div>
                   <div className="sum-svc-price">
                     <small>+ ADICIONAL</small>
