@@ -616,8 +616,26 @@ let pendingDesde: number | null = null;
 /** Busca automática do código na caixa dedicada (roda por polling, nunca bloqueia). */
 let autoBuscaAtiva = false;
 let autoMensagem: string | null = null;
+/**
+ * Um desafio 2FA sem código validado não pode bloquear a integração para sempre:
+ * depois desta janela ele é descartado e um novo login pode começar (a FRT
+ * reenvia o código e a busca automática volta a rodar).
+ */
+const DESAFIO_2FA_TTL_MS = 15 * 60_000;
+
+/** Descarta desafio 2FA antigo que ninguém validou (evita travar o autocomplete). */
+function expirarDesafio2faAntigo() {
+  if (!pendingAuth || !pendingDesde) return;
+  if (Date.now() - pendingDesde <= DESAFIO_2FA_TTL_MS) return;
+  pendingAuth = null;
+  pendingDesde = null;
+  autoBuscaAtiva = false;
+  autoMensagem = "O desafio 2FA anterior expirou sem código. Um novo login será tentado.";
+  trace("desafio 2FA expirado automaticamente");
+}
 
 /** Estado do desafio 2FA (para a UI de diagnóstico). */
+
 export function frtEstado2fa() {
   return {
     pendente: Boolean(pendingAuth),
