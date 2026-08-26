@@ -27,7 +27,27 @@ export type ServicoDisponivel = {
   logo?: string | null;
   /** coberturas detalhadas (seguro viagem) */
   coberturas?: { nome: string; valor: string | null }[];
+  /** datas/horários que a operadora oferece para este serviço */
+  opcoes?: OpcaoServico[];
+  /** data escolhida pelo cliente (YYYY-MM-DD) */
+  dataSelecionada?: string | null;
+  /** horário escolhido pelo cliente (HH:MM) */
+  horaSelecionada?: string | null;
+  /** true quando o cliente só trocou data/horário de um serviço já incluído */
+  substituir?: boolean;
 };
+
+export type OpcaoServico = {
+  /** código da tarifa daquela data/horário (usado na reserva) */
+  codigo: string | null;
+  /** YYYY-MM-DD */
+  data: string;
+  /** HH:MM quando a operadora envia horário; null = dia inteiro */
+  hora: string | null;
+  /** valor total em BRL daquela opção */
+  valor: number | null;
+};
+
 
 
 const semHtml = (v: unknown): string | null => {
@@ -100,6 +120,35 @@ function mapear(s: any, i: number): ServicoDisponivel {
     extra?.NomeFornecedor ? `Operado por ${String(extra.NomeFornecedor).trim()}` : null,
   ].filter(Boolean) as string[];
 
+  // Datas/horários que a operadora libera: `Tarifas` traz uma linha por data
+  // (e horário, quando o passeio tem sessão); `DatasDisponiveis` é o plano B.
+  const opcoes: OpcaoServico[] = [];
+  const vistas = new Set<string>();
+  const adicionar = (bruto: unknown, codigo: string | null, valorOpcao: number | null) => {
+    const txt = String(bruto ?? "").trim();
+    const m = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(txt);
+    if (!m) return;
+    const data = m[1]!;
+    const hora = m[2] && m[3] && `${m[2]}:${m[3]}` !== "00:00" ? `${m[2]}:${m[3]}` : null;
+    const chave = `${data}|${hora ?? ""}`;
+    if (vistas.has(chave)) return;
+    vistas.add(chave);
+    opcoes.push({ codigo, data, hora, valor: valorOpcao });
+  };
+  for (const t of (Array.isArray(s?.Tarifas) ? s.Tarifas : []) as any[]) {
+    const bruta = num(t?.ValorVenda);
+    const valorT = num(
+      t?.ValorListagem,
+      t?.ValorTotalListagem,
+      moedaNet && moedaNet !== moedaListagem ? bruta * cambio : bruta,
+    );
+    adicionar(t?.Data ?? t?.DataServico, t?.Codigo ? String(t.Codigo) : null, valorT > 0 ? Number(valorT.toFixed(2)) : null);
+  }
+  for (const d of (Array.isArray(s?.DatasDisponiveis) ? s.DatasDisponiveis : []) as any[]) {
+    adicionar(d, null, valor > 0 ? Number(valor.toFixed(2)) : null);
+  }
+  opcoes.sort((a, b) => a.data.localeCompare(b.data) || (a.hora ?? "").localeCompare(b.hora ?? ""));
+
   return {
     id: `cfs-${s?.CodigoFornecedor ?? i}-${i}`,
     externoId: Number(s?.CodigoFornecedor ?? 0) || 0,
@@ -117,8 +166,12 @@ function mapear(s: any, i: number): ServicoDisponivel {
     moeda: "BRL" as const,
     imagem: imagens[0] ?? null,
     imagens,
+    opcoes,
+    dataSelecionada: null,
+    horaSelecionada: null,
   };
 }
+
 
 /** Espera com teto de tempo: devolve null se a operadora demorar demais. */
 async function limitarEspera<T>(promessa: Promise<T>, ms: number): Promise<T | null> {

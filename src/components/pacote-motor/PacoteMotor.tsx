@@ -267,10 +267,14 @@ export function PacoteMotor({
   };
 
   function alternarServico(s: ServicoDisponivel) {
-    setServicosSel((atual) =>
-      atual.some((x) => x.id === s.id) ? atual.filter((x) => x.id !== s.id) : [...atual, s],
-    );
+    setServicosSel((atual) => {
+      const jaTem = atual.some((x) => x.id === s.id);
+      // trocar a data/horário de um serviço já incluído só atualiza a escolha
+      if (jaTem && s.substituir) return atual.map((x) => (x.id === s.id ? { ...s, substituir: false } : x));
+      return jaTem ? atual.filter((x) => x.id !== s.id) : [...atual, s];
+    });
   }
+
 
   function removerServico(id: string) {
     setServicosSel((atual) => atual.filter((x) => x.id !== id));
@@ -365,7 +369,14 @@ export function PacoteMotor({
       total={total}
       diferenca={Number((total - baseTotalRecomendado).toFixed(2))}
       moeda={hotel?.moeda ?? "BRL"}
-      servicos={servicosSel.map((s) => ({ id: s.id, titulo: s.titulo, valor: s.valor }))}
+      servicos={servicosSel.map((s) => ({
+        id: s.id,
+        titulo: s.titulo,
+        valor: s.valor,
+        quando: s.dataSelecionada
+          ? `${s.dataSelecionada.split("-").reverse().join("/")}${s.horaSelecionada ? ` · ${s.horaSelecionada}` : ""}`
+          : null,
+      }))}
       onServicos={() => setVista("servico")}
       onRemoverServico={removerServico}
       acao={

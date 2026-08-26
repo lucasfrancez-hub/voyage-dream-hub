@@ -7,6 +7,12 @@ import { ServicoModal } from "@/components/pacote-motor/ServicoModal";
 import { Paginacao, ITENS_POR_PAGINA } from "@/components/pacote-motor/Paginacao";
 import seguroImg from "@/assets/seguro-viagem.jpg";
 
+/** 2027-01-13 -> 13/01/2027 */
+function formatarData(iso: string) {
+  const [a, m, d] = iso.split("-");
+  return d && m && a ? `${d}/${m}/${a}` : iso;
+}
+
 
 
 /** Adicionar serviços — mesmo padrão: filtros | resultados | resumo. */
@@ -29,6 +35,9 @@ export function SeletorServicos({
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"preco" | "precoDesc">("preco");
   const [detalhe, setDetalhe] = useState<ServicoDisponivel | null>(null);
+  /** data/horário escolhidos pelo cliente para cada serviço */
+  const [escolhas, setEscolhas] = useState<Record<string, { data: string; hora: string | null }>>({});
+
 
   const categorias = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -137,7 +146,35 @@ export function SeletorServicos({
             const sel = selecionados.includes(s.id);
             const ehSeguro = /seguro/i.test(grupoServico(s)) || /seguro/i.test(s.titulo);
             const capa = s.imagens?.[0] ?? s.imagem ?? (ehSeguro ? (seguroImg as unknown as string) : null);
+            const opcoes = s.opcoes ?? [];
+            const datas = Array.from(new Set(opcoes.map((o) => o.data)));
+            const escolha = escolhas[s.id];
+            const dataAtual = escolha?.data ?? datas[0] ?? null;
+            const horarios = opcoes
+              .filter((o) => o.data === dataAtual && o.hora)
+              .map((o) => o.hora as string);
+            const horaAtual = escolha?.hora ?? horarios[0] ?? null;
+            const opcaoAtual =
+              opcoes.find((o) => o.data === dataAtual && (o.hora ?? null) === (horaAtual ?? null)) ??
+              opcoes.find((o) => o.data === dataAtual) ??
+              null;
+            const valorAtual = opcaoAtual?.valor ?? s.valor;
+            const escolher = (data: string | null, hora: string | null) => {
+              if (!data) return;
+              setEscolhas((a) => ({ ...a, [s.id]: { data, hora } }));
+              if (sel) {
+                const o = opcoes.find((x) => x.data === data && (x.hora ?? null) === (hora ?? null));
+                onAlternar({
+                  ...s,
+                  dataSelecionada: data,
+                  horaSelecionada: hora,
+                  valor: o?.valor ?? s.valor,
+                  substituir: true,
+                } as ServicoDisponivel);
+              }
+            };
             return (
+
               <article key={s.id} className={`svc${sel ? " selected" : ""}`}>
                 {capa ? (
                   <button
@@ -168,6 +205,38 @@ export function SeletorServicos({
                   {s.descricao ? (
                     <p>{s.descricao.length > 120 ? `${s.descricao.slice(0, 120)}…` : s.descricao}</p>
                   ) : null}
+                  {datas.length ? (
+                    <div className="svcdata">
+                      <label>
+                        <span>Data do serviço</span>
+                        <select
+                          value={dataAtual ?? ""}
+                          onChange={(e) => escolher(e.target.value, null)}
+                        >
+                          {datas.map((d) => (
+                            <option key={d} value={d}>
+                              {formatarData(d)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {horarios.length ? (
+                        <label>
+                          <span>Horário</span>
+                          <select
+                            value={horaAtual ?? ""}
+                            onChange={(e) => escolher(dataAtual, e.target.value)}
+                          >
+                            {horarios.map((h) => (
+                              <option key={h} value={h}>
+                                {h}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="svcacts">
                     <button type="button" className="more solid-btn" onClick={() => setDetalhe(s)}>
                       {s.coberturas?.length ? "Ver coberturas e detalhes" : "Ver detalhes"}
@@ -175,16 +244,24 @@ export function SeletorServicos({
                   </div>
                 </div>
                 <div className="svcside">
-                  <div className="svcval">{s.valor != null ? `+ ${brl(s.valor, s.moeda)}` : "Sob consulta"}</div>
+                  <div className="svcval">{valorAtual != null ? `+ ${brl(valorAtual, s.moeda)}` : "Sob consulta"}</div>
                   <button
                     type="button"
                     className={sel ? "ghost" : "primary"}
-                    disabled={s.valor == null}
-                    onClick={() => onAlternar(s)}
+                    disabled={valorAtual == null}
+                    onClick={() =>
+                      onAlternar({
+                        ...s,
+                        valor: valorAtual,
+                        dataSelecionada: dataAtual,
+                        horaSelecionada: horaAtual,
+                      })
+                    }
                   >
                     {sel ? "Selecionado" : "Selecionar"}
                   </button>
                 </div>
+
               </article>
             );
           })}
