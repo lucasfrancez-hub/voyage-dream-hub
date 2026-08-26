@@ -12,7 +12,7 @@ import {
   testarLembreteAgenda,
 } from "@/lib/calendar/notify.functions";
 import { chaveVapidChat, salvarPushChat } from "@/lib/chat/push.functions";
-import { b64urlParaUint8, ehIOS, ehStandalone, nomeDoAparelho, SW_URL, suportaPush } from "@/lib/chat/push-client";
+import { b64urlParaUint8, ehIOS, ehStandalone, nomeDoAparelho, registrarSwChat, suportaPush } from "@/lib/chat/push-client";
 
 export const Route = createFileRoute("/chat/agenda-notificacoes")({
   ssr: false,
@@ -86,7 +86,7 @@ function AgendaNotificacoes() {
     }
     if (typeof window !== "undefined" && "Notification" in window) setPermissao(Notification.permission);
     if (suportaPush()) {
-      const reg = await navigator.serviceWorker.getRegistration(SW_URL).catch(() => null);
+      const reg = await navigator.serviceWorker.getRegistration("/chat/").catch(() => null);
       const sub = await reg?.pushManager.getSubscription().catch(() => null);
       setEndpoint(sub?.endpoint ?? null);
     }

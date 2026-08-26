@@ -11,7 +11,7 @@ import {
   testarPushChat,
   listarAparelhosPushChat,
 } from "@/lib/chat/push.functions";
-import { assinarPush, ehIOS, ehStandalone, nomeDoAparelho, SW_URL } from "@/lib/chat/push-client";
+import { assinarPush, ehIOS, ehStandalone, nomeDoAparelho, registrarSwChat } from "@/lib/chat/push-client";
 
 export const Route = createFileRoute("/chat/notificacoes")({
   ssr: false,
@@ -72,7 +72,7 @@ function NotificacoesPage() {
     setSuportado(cap);
     if ("Notification" in window) setPermissao(Notification.permission);
     if (cap) {
-      const reg = await navigator.serviceWorker.getRegistration(SW_URL).catch(() => null);
+      const reg = await navigator.serviceWorker.getRegistration("/chat/").catch(() => null);
       setSwOk(!!reg);
       const sub = await reg?.pushManager.getSubscription().catch(() => null);
       setAssinado(!!sub);
@@ -153,7 +153,7 @@ function NotificacoesPage() {
   const desativar = async () => {
     setOcupado(true);
     try {
-      const reg = await navigator.serviceWorker.getRegistration(SW_URL);
+      const reg = await navigator.serviceWorker.getRegistration("/chat/");
       const sub = await reg?.pushManager.getSubscription();
       if (sub) {
         await remover({ data: { endpoint: sub.endpoint } });
