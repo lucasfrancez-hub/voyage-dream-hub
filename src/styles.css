@@ -2470,6 +2470,11 @@ body:has([data-chat-root]),
 .mkt .svcmain .svclogo {height:22px;max-width:96px;object-fit:contain;border-radius:5px;background:#fff;padding:2px 4px;}
 .mkt .svcmain .svcforn {font-size:8px;font-weight:800;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;}
 .mkt .svcmain .svcacts {display:flex;margin-top:9px;}
+.mkt .svcmain .svcdata {display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.mkt .svcmain .svcdata label {display:flex;flex-direction:column;gap:3px;min-width:132px;}
+.mkt .svcmain .svcdata label span {font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;}
+.mkt .svcmain .svcdata select {padding:7px 9px;border-radius:9px;border:1px solid color-mix(in srgb, currentColor 18%, transparent);background:transparent;color:inherit;font-size:13px;}
+
 
 @media(max-width:780px){
   .mkt .engine-media,
