@@ -3,7 +3,7 @@
   "short_name": "VIA AIR Chat",
   "description": "Central de atendimento WhatsApp + IA da VIA AIR.",
   "start_url": "/chat/inbox",
-  "scope": "/chat",
+  "scope": "/chat/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
