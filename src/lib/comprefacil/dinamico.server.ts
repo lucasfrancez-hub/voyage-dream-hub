@@ -9,6 +9,7 @@ import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.
 import { guardarBuscaCF } from "./busca-cache.server";
 import type { PassHubOferta, PassHubVoo } from "@/lib/passhub/types";
 import type { HotelPacote, OcupacaoQuarto, QuartoPacote } from "@/lib/pacote-motor/mapear";
+import { contexto as cambioContexto, paraBRL } from "./cambio";
 
 const FILTRO_AEREO = {
   HorarioIdaMinimo: 0,
@@ -265,12 +266,18 @@ function mapearOfertaAereo(it: any, idx: number): PassHubOferta | null {
   const paxes: any[] = it?.PaxesTarifa ?? [];
   // SubTotal/TotalTaxas da CompreFácil já vêm somados para a quantidade de pax
   // daquela categoria — multiplicar por QtdPax dobrava o valor do aéreo.
-  const total = Number(it?.ValorListagem ?? 0) || paxes.reduce((a, p) => a + Number(p?.SubTotal ?? 0), 0);
+  const ctxCambio = cambioContexto(it);
+  const total =
+    Number(it?.ValorListagem ?? 0) ||
+    paraBRL(paxes.reduce((a, p) => a + Number(p?.SubTotal ?? 0), 0), ctxCambio);
   // TotalTaxas vem por passageiro; TaxasListagemTotal/TaxasTotal já é o somatório.
   const taxas =
     Number(it?.TaxasListagemTotal ?? 0) ||
-    Number(it?.TaxasTotal ?? 0) ||
-    paxes.reduce((a, p) => a + Number(p?.TotalTaxas ?? 0) * (Number(p?.QtdPax ?? 1) || 1), 0);
+    paraBRL(
+      Number(it?.TaxasTotal ?? 0) ||
+        paxes.reduce((a, p) => a + Number(p?.TotalTaxas ?? 0) * (Number(p?.QtdPax ?? 1) || 1), 0),
+      ctxCambio,
+    );
   const tarifa = { total: Number(total.toFixed(2)), tarifa: Number((total - taxas).toFixed(2)), taxas: Number(taxas.toFixed(2)) };
 
   const [ida, ...voltas] = segs;
@@ -528,10 +535,8 @@ function mapearHotel(h: any, i: number): HotelPacote {
     const listagem =
       Number(q?.ValorTotalListagem ?? 0) || Number(q?.ValorListagem ?? 0) || 0;
     if (listagem > 0) return listagem;
-    const venda = Number(q?.ValorVenda ?? 0) || 0;
-    const taxa = Number(q?.Taxa ?? 0) || 0;
-    const moedaDiferente = Number(q?.MoedaNetId ?? 1) !== Number(q?.MoedaListagemId ?? 1);
-    return moedaDiferente && taxa > 0 ? Number((venda * taxa).toFixed(2)) : venda;
+    // moeda estrangeira → converte pelo câmbio do payload; BRL passa direto
+    return paraBRL(Number(q?.ValorVenda ?? 0) || 0, cambioContexto(q));
   };
   const valores = quartosBrutos.map(precoQuarto).filter((v) => v > 0);
   const menor = valores.length
