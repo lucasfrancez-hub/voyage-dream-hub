@@ -576,6 +576,7 @@ async function doLogin(): Promise<Session> {
 }
 
 async function getSession(force = false): Promise<Session> {
+  expirarDesafio2faAntigo();
   if (pendingAuth) {
     throw new FrtError(
       "FRT_2FA_REQUIRED",
