@@ -137,3 +137,43 @@ export async function iataMaisProximo(
     return null;
   }
 }
+
+/* ── IATA pelo autopreencher da própria FRT ──────────────────────────────
+ * A FRT já resolve região → aeroporto ("Porto De Galinhas, Região Nordeste,
+ * Brasil (REC)"), então usamos a lista dela antes de qualquer cálculo
+ * geográfico: é a mesma resposta que o operador vê no portal.
+ */
+const cacheFrt = new Map<string, { em: number; iata: string | null }>();
+
+function semAcentoLocal(v: string): string {
+  return v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+export async function iataPeloAutocompleteFrt(nome: string): Promise<string | null> {
+  const termo = nome.trim();
+  if (termo.length < 3) return null;
+  const chave = semAcentoLocal(termo);
+  const guardado = cacheFrt.get(chave);
+  if (guardado && Date.now() - guardado.em < TTL) return guardado.iata;
+
+  try {
+    const { frtSugestoesLocal } = await import("@/lib/frt/frt-connector.server");
+    const { opcoes } = await frtSugestoesLocal("destino", termo);
+    const comIata = opcoes
+      .map((o) => {
+        const m = /\(([A-Z]{3})\)\s*$/.exec(o.label ?? "");
+        const cidade = semAcentoLocal((o.label ?? "").split(",")[0] ?? "");
+        return m ? { iata: m[1]!, cidade } : null;
+      })
+      .filter((x): x is { iata: string; cidade: string } => !!x);
+
+    const exato = comIata.find((x) => x.cidade === chave);
+    const parcial = comIata.find((x) => x.cidade.includes(chave) || chave.includes(x.cidade));
+    const iata = (exato ?? parcial ?? comIata[0])?.iata ?? null;
+    cacheFrt.set(chave, { em: Date.now(), iata });
+    return iata;
+  } catch (e) {
+    console.error("[comprefacil] autocomplete FRT indisponível:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
