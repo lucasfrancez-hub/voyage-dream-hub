@@ -27,7 +27,25 @@ export type ServicoDisponivel = {
   logo?: string | null;
   /** coberturas detalhadas (seguro viagem) */
   coberturas?: { nome: string; valor: string | null }[];
+  /** datas/horários que a operadora oferece para este serviço */
+  opcoes?: OpcaoServico[];
+  /** data escolhida pelo cliente (YYYY-MM-DD) */
+  dataSelecionada?: string | null;
+  /** horário escolhido pelo cliente (HH:MM) */
+  horaSelecionada?: string | null;
 };
+
+export type OpcaoServico = {
+  /** código da tarifa daquela data/horário (usado na reserva) */
+  codigo: string | null;
+  /** YYYY-MM-DD */
+  data: string;
+  /** HH:MM quando a operadora envia horário; null = dia inteiro */
+  hora: string | null;
+  /** valor total em BRL daquela opção */
+  valor: number | null;
+};
+
 
 
 const semHtml = (v: unknown): string | null => {
