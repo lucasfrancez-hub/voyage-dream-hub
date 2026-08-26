@@ -140,7 +140,35 @@ export function SeletorServicos({
             const sel = selecionados.includes(s.id);
             const ehSeguro = /seguro/i.test(grupoServico(s)) || /seguro/i.test(s.titulo);
             const capa = s.imagens?.[0] ?? s.imagem ?? (ehSeguro ? (seguroImg as unknown as string) : null);
+            const opcoes = s.opcoes ?? [];
+            const datas = Array.from(new Set(opcoes.map((o) => o.data)));
+            const escolha = escolhas[s.id];
+            const dataAtual = escolha?.data ?? datas[0] ?? null;
+            const horarios = opcoes
+              .filter((o) => o.data === dataAtual && o.hora)
+              .map((o) => o.hora as string);
+            const horaAtual = escolha?.hora ?? horarios[0] ?? null;
+            const opcaoAtual =
+              opcoes.find((o) => o.data === dataAtual && (o.hora ?? null) === (horaAtual ?? null)) ??
+              opcoes.find((o) => o.data === dataAtual) ??
+              null;
+            const valorAtual = opcaoAtual?.valor ?? s.valor;
+            const escolher = (data: string | null, hora: string | null) => {
+              if (!data) return;
+              setEscolhas((a) => ({ ...a, [s.id]: { data, hora } }));
+              if (sel) {
+                const o = opcoes.find((x) => x.data === data && (x.hora ?? null) === (hora ?? null));
+                onAlternar({
+                  ...s,
+                  dataSelecionada: data,
+                  horaSelecionada: hora,
+                  valor: o?.valor ?? s.valor,
+                  substituir: true,
+                } as ServicoDisponivel);
+              }
+            };
             return (
+
               <article key={s.id} className={`svc${sel ? " selected" : ""}`}>
                 {capa ? (
                   <button
