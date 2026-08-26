@@ -85,16 +85,25 @@ export function CidadeAutocompleteCF({ valor, onChange, campo, placeholder, publ
               }}
               className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
             >
-              <span className="flex items-center gap-2">
-                <MapPin className="h-3.5 w-3.5 text-primary" />
-                {c.nome}
+              <span className="flex min-w-0 items-center gap-2">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
+                <span className="min-w-0">
+                  <span className="block truncate">{c.nome}</span>
+                  {(c.regiao || c.viaAeroporto) && (
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      {c.regiao}
+                      {c.regiao && c.viaAeroporto ? " • " : ""}
+                      {c.viaAeroporto && c.iata ? `voo por ${c.iata}` : ""}
+                    </span>
+                  )}
+                </span>
                 {c.iata && (
-                  <span className="rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-primary">
+                  <span className="shrink-0 rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-primary">
                     {c.iata}
                   </span>
                 )}
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="shrink-0 text-xs text-muted-foreground">
                 {c.total > 0 ? `${c.total} pacotes` : "consultar"}
               </span>
             </button>
