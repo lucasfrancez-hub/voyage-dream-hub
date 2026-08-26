@@ -199,6 +199,38 @@ export function SeletorServicos({
                   {s.descricao ? (
                     <p>{s.descricao.length > 120 ? `${s.descricao.slice(0, 120)}…` : s.descricao}</p>
                   ) : null}
+                  {datas.length ? (
+                    <div className="svcdata">
+                      <label>
+                        <span>Data do serviço</span>
+                        <select
+                          value={dataAtual ?? ""}
+                          onChange={(e) => escolher(e.target.value, null)}
+                        >
+                          {datas.map((d) => (
+                            <option key={d} value={d}>
+                              {formatarData(d)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {horarios.length ? (
+                        <label>
+                          <span>Horário</span>
+                          <select
+                            value={horaAtual ?? ""}
+                            onChange={(e) => escolher(dataAtual, e.target.value)}
+                          >
+                            {horarios.map((h) => (
+                              <option key={h} value={h}>
+                                {h}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="svcacts">
                     <button type="button" className="more solid-btn" onClick={() => setDetalhe(s)}>
                       {s.coberturas?.length ? "Ver coberturas e detalhes" : "Ver detalhes"}
@@ -206,16 +238,24 @@ export function SeletorServicos({
                   </div>
                 </div>
                 <div className="svcside">
-                  <div className="svcval">{s.valor != null ? `+ ${brl(s.valor, s.moeda)}` : "Sob consulta"}</div>
+                  <div className="svcval">{valorAtual != null ? `+ ${brl(valorAtual, s.moeda)}` : "Sob consulta"}</div>
                   <button
                     type="button"
                     className={sel ? "ghost" : "primary"}
-                    disabled={s.valor == null}
-                    onClick={() => onAlternar(s)}
+                    disabled={valorAtual == null}
+                    onClick={() =>
+                      onAlternar({
+                        ...s,
+                        valor: valorAtual,
+                        dataSelecionada: dataAtual,
+                        horaSelecionada: horaAtual,
+                      })
+                    }
                   >
                     {sel ? "Selecionado" : "Selecionar"}
                   </button>
                 </div>
+
               </article>
             );
           })}
