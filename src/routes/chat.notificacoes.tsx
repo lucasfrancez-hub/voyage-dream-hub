@@ -111,8 +111,7 @@ function NotificacoesPage() {
         toast.error("Notificações não configuradas no servidor.");
         return;
       }
-      const reg = await navigator.serviceWorker.register(SW_URL, { scope: "/" });
-      await navigator.serviceWorker.ready;
+      const reg = await registrarSwChat();
 
       // Assina (recriando se a assinatura antiga for de outra chave VAPID) e,
       // se o push service disser que expirou, refaz uma vez do zero.

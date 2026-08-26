@@ -84,7 +84,7 @@ export async function atualizarBadge(total: number) {
     } else if ("clearAppBadge" in navigator && total === 0) {
       await (navigator as Navigator & { clearAppBadge(): Promise<void> }).clearAppBadge();
     }
-    const reg = await navigator.serviceWorker?.getRegistration(SW_URL);
+    const reg = await navigator.serviceWorker?.getRegistration("/chat/");
     reg?.active?.postMessage({ type: "badge", count: total });
   } catch {
     /* badge é opcional */

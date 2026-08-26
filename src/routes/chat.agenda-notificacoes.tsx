@@ -130,8 +130,7 @@ function AgendaNotificacoes() {
       if (perm !== "granted") return toast.error("Permissão negada. Libere em Ajustes > Notificações.");
       const { vapid } = await pegarVapid({});
       if (!vapid) return toast.error("Notificações não configuradas no servidor.");
-      const reg = await navigator.serviceWorker.register(SW_URL, { scope: "/" });
-      await navigator.serviceWorker.ready;
+      const reg = await registrarSwChat();
       const sub =
         (await reg.pushManager.getSubscription()) ??
         (await reg.pushManager.subscribe({
