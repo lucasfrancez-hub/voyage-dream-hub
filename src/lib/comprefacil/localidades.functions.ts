@@ -1,7 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type LocalidadeCF = { nome: string; cidadeId: number | null; iata: string | null; total: number };
+export type LocalidadeCF = {
+  nome: string;
+  cidadeId: number | null;
+  iata: string | null;
+  total: number;
+  /** Cidade sem aeroporto: o voo sai/chega pelo aeroporto mais próximo. */
+  viaAeroporto?: boolean;
+  regiao?: string | null;
+};
 
 /**
  * Autopreencher de origem/destino do CompreFácil: junta as cidades do catálogo
