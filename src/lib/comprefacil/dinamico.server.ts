@@ -516,14 +516,23 @@ function mapearHotel(h: any, i: number): HotelPacote {
   const todos: any[] = h?.Quartos ?? [];
   const reais = todos.filter((q) => nomeQuarto(q?.Descricao) || Number(q?.ValorVenda ?? 0) > 0);
   const quartosBrutos: any[] = reais.length ? reais : todos;
-  // Alguns fornecedores só preenchem ValorListagem/ValorTotalListagem; sem esse
-  // fallback o hotel ficava com total 0 e todos apareciam com o mesmo preço.
-  const precoQuarto = (q: any) =>
-    Number(q?.ValorVenda ?? 0) || Number(q?.ValorTotalListagem ?? 0) || Number(q?.ValorListagem ?? 0) || 0;
+  // A operadora devolve `ValorVenda` na moeda NET do fornecedor (ex.: USD) e só
+  // os campos "Listagem" já vêm convertidos em BRL com impostos (IOF) somados —
+  // usar ValorVenda deixava o hotel muito mais barato que o portal da operadora.
+  const precoQuarto = (q: any) => {
+    const listagem =
+      Number(q?.ValorTotalListagem ?? 0) || Number(q?.ValorListagem ?? 0) || 0;
+    if (listagem > 0) return listagem;
+    const venda = Number(q?.ValorVenda ?? 0) || 0;
+    const taxa = Number(q?.Taxa ?? 0) || 0;
+    const moedaDiferente = Number(q?.MoedaNetId ?? 1) !== Number(q?.MoedaListagemId ?? 1);
+    return moedaDiferente && taxa > 0 ? Number((venda * taxa).toFixed(2)) : venda;
+  };
   const valores = quartosBrutos.map(precoQuarto).filter((v) => v > 0);
   const menor = valores.length
     ? Math.min(...valores)
-    : Number(h?.ValorTotalVenda ?? 0) || Number(h?.ValorTotalListagem ?? 0) || 0;
+    : Number(h?.ValorTotalListagem ?? 0) || Number(h?.ValorTotalVenda ?? 0) || 0;
+
 
   const quartos: QuartoPacote[] = quartosBrutos.map((q, idx) => {
     const valor = precoQuarto(q);
