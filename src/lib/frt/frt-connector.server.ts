@@ -476,6 +476,7 @@ function credentials() {
 }
 
 async function doLogin(): Promise<Session> {
+  expirarDesafio2faAntigo();
   if (pendingAuth) {
     // Nunca reiniciar login enquanto houver desafio 2FA aguardando código.
     throw new FrtError(
