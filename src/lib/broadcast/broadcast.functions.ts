@@ -354,7 +354,15 @@ export const enviarPacoteWhatsapp = createServerFn({ method: "POST" })
     if (!data.texto?.trim()) throw new Error("Escreva ou gere o texto antes de enviar");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { sendBroadcastBlock } = await import("./sync.server");
+    const { sendBroadcastBlock, waConnectionStatus } = await import("./sync.server");
+
+    // Sem conexão, todo destino falharia com mensagem genérica.
+    const conexao = await waConnectionStatus();
+    if (!conexao.conectado) {
+      throw new Error(
+        `WhatsApp desconectado (${conexao.status}${conexao.motivo ? ` — ${conexao.motivo}` : ""}). Reconecte a instância antes de disparar.`,
+      );
+    }
 
     let imagemUrl: string | null = null;
     if (data.imagem_base64) {
