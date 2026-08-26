@@ -1,6 +1,32 @@
 /** Utilidades de Web Push usadas no navegador (Chat). */
 
-export const SW_URL = "/chat-sw.js";
+/** Fica DENTRO do escopo do app (/chat) — é isso que faz o Android mostrar
+ *  a notificação como "VIA AIR Chat" em vez de "Google Chrome". */
+export const SW_URL = "/chat/sw.js";
+const SW_ANTIGO = "/chat-sw.js";
+
+/**
+ * Registra o service worker no escopo do app instalado e limpa o registro
+ * antigo de escopo "/" (que fazia as notificações saírem pelo navegador).
+ */
+export async function registrarSwChat(): Promise<ServiceWorkerRegistration> {
+  const reg = await navigator.serviceWorker.register(SW_URL, { scope: "/chat/" });
+  try {
+    for (const r of await navigator.serviceWorker.getRegistrations()) {
+      if (r !== reg && r.active?.scriptURL.endsWith(SW_ANTIGO)) {
+        await r.pushManager
+          .getSubscription()
+          .then((s) => s?.unsubscribe())
+          .catch(() => {});
+        await r.unregister().catch(() => {});
+      }
+    }
+  } catch {
+    /* limpeza é best-effort */
+  }
+  await navigator.serviceWorker.ready;
+  return reg;
+}
 
 export function b64urlParaUint8(base64: string) {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -58,7 +84,7 @@ export async function atualizarBadge(total: number) {
     } else if ("clearAppBadge" in navigator && total === 0) {
       await (navigator as Navigator & { clearAppBadge(): Promise<void> }).clearAppBadge();
     }
-    const reg = await navigator.serviceWorker?.getRegistration(SW_URL);
+    const reg = await navigator.serviceWorker?.getRegistration("/chat/");
     reg?.active?.postMessage({ type: "badge", count: total });
   } catch {
     /* badge é opcional */

@@ -3,7 +3,7 @@ import { Bell, BellOff, BellRing, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { chaveVapidChat, salvarPushChat, removerPushChat, testarPushChat } from "@/lib/chat/push.functions";
-import { assinarPush } from "@/lib/chat/push-client";
+import { assinarPush, registrarSwChat } from "@/lib/chat/push-client";
 
 function b64urlParaUint8(base64: string) {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -46,7 +46,7 @@ export function ChatPushToggle() {
         return;
       }
       try {
-        const reg = await navigator.serviceWorker.register("/chat-sw.js");
+        const reg = await registrarSwChat();
         const sub = await reg.pushManager.getSubscription();
         setLigado(!!sub && Notification.permission === "granted");
       } catch {
@@ -76,8 +76,7 @@ export function ChatPushToggle() {
         toast.error("Notificações não configuradas no servidor.");
         return;
       }
-      const reg = await navigator.serviceWorker.register("/chat-sw.js");
-      await navigator.serviceWorker.ready;
+      const reg = await registrarSwChat();
       const sub = await assinarPush(reg, vapid);
       const j = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
       if (!j.endpoint || !j.keys?.p256dh || !j.keys.auth) {
@@ -99,7 +98,7 @@ export function ChatPushToggle() {
   const desativar = async () => {
     setOcupado(true);
     try {
-      const reg = await navigator.serviceWorker.getRegistration("/chat-sw.js");
+      const reg = await navigator.serviceWorker.getRegistration("/chat/");
       const sub = await reg?.pushManager.getSubscription();
       if (sub) {
         await remover({ data: { endpoint: sub.endpoint } });
