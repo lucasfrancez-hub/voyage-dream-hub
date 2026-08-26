@@ -153,7 +153,7 @@ export async function montarSugestoesCF(
         cidadeId: destino?.cidadeId ?? oficial?.id ?? null,
         iata: opcao.iata,
         total: porNome.get(nomeChave)?.total ?? 0,
-        regiao: opcao.regiao ?? [destino?.estado, destino?.pais].filter(Boolean).join(", ") || null,
+        regiao: opcao.regiao ?? ([destino?.estado, destino?.pais].filter(Boolean).join(", ") || null),
       });
       nomesComAeroporto.add(nomeChave);
       existentes.add(chave);
