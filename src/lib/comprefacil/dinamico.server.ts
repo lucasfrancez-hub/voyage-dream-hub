@@ -177,13 +177,21 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
   }
 
   const buscaToken = await guardarBuscaCF("aereo", itens);
-  return itens
+  const alvo = String(p.destino ?? "").trim().toUpperCase();
+  const ofertas = itens
     .map((it, idx) => {
       const o = mapearOfertaAereo(it, idx);
       return o && buscaToken ? { ...o, buscaToken, buscaIndice: idx } : o;
     })
     .filter(Boolean) as PassHubOferta[];
+
+  // Trava de destino: a operadora às vezes devolve aeroporto vizinho. Só
+  // entregamos voos que realmente chegam no destino que o cliente preencheu.
+  if (!alvo) return ofertas;
+  const noAlvo = ofertas.filter((o) => String(o.ida?.destino ?? "").toUpperCase() === alvo);
+  return noAlvo.length ? noAlvo : ofertas;
 }
+
 
 const minutos = (dur: string) => {
   const [h, m] = String(dur || "").split(":");
