@@ -301,7 +301,9 @@ export function PromoSocialDialog({
         const res = await enviarWaFn({ data: { destino_ids: ids, texto, imagem_base64: imagem } });
         if (res.enviados > 0) await marcarPublicado(promoId);
         if (res.falhas.length) {
-          return `Enviado para ${res.enviados}. Falhou em: ${res.falhas.map((f) => f.nome).join(", ")}`;
+          return `Enviado para ${res.enviados}. Falhou em: ${res.falhas
+            .map((f) => `${f.nome}${f.error ? ` (${f.error})` : ""}`)
+            .join(", ")}`;
         }
         return `Enviado para ${res.enviados} destino${res.enviados === 1 ? "" : "s"}`;
       },
