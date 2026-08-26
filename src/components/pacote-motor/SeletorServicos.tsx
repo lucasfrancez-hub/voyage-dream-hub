@@ -7,6 +7,12 @@ import { ServicoModal } from "@/components/pacote-motor/ServicoModal";
 import { Paginacao, ITENS_POR_PAGINA } from "@/components/pacote-motor/Paginacao";
 import seguroImg from "@/assets/seguro-viagem.jpg";
 
+/** 2027-01-13 -> 13/01/2027 */
+function formatarData(iso: string) {
+  const [a, m, d] = iso.split("-");
+  return d && m && a ? `${d}/${m}/${a}` : iso;
+}
+
 
 
 /** Adicionar serviços — mesmo padrão: filtros | resultados | resumo. */

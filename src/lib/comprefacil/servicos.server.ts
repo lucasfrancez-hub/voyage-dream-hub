@@ -33,6 +33,8 @@ export type ServicoDisponivel = {
   dataSelecionada?: string | null;
   /** horário escolhido pelo cliente (HH:MM) */
   horaSelecionada?: string | null;
+  /** true quando o cliente só trocou data/horário de um serviço já incluído */
+  substituir?: boolean;
 };
 
 export type OpcaoServico = {
