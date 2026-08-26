@@ -637,6 +637,7 @@ function expirarDesafio2faAntigo() {
 /** Estado do desafio 2FA (para a UI de diagnóstico). */
 
 export function frtEstado2fa() {
+  expirarDesafio2faAntigo();
   return {
     pendente: Boolean(pendingAuth),
     desde: pendingDesde ? new Date(pendingDesde).toISOString() : null,
