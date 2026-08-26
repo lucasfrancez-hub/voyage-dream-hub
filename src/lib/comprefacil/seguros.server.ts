@@ -9,6 +9,7 @@
 import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.server";
 import { REGIOES_SEGURO, regiaoSeguroDoDestino } from "./seguro-regioes";
 import type { ServicoDisponivel } from "./servicos.server";
+import { contexto as cambioContexto, paraBRL } from "./cambio";
 
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
