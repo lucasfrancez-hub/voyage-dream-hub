@@ -131,6 +131,49 @@ export async function montarSugestoesCF(
 
   for (const [chave, item] of porNome) if (!nomesComAeroporto.has(chave)) saida.push(item);
 
+  // Destinos que não são aeroporto (Porto de Galinhas, Búzios, Gramado…):
+  // a hospedagem usa a cidade certa e o voo vai pelo aeroporto mais próximo.
+  try {
+    const { buscarDestinosCF, iataMaisProximo } = await import("./destinos.server");
+    const oficiais = await cidadesOficiaisCF();
+    const iataPorCidade = new Map<number, string>();
+    const permitidos = new Set<string>();
+    for (const c of oficiais) {
+      if (!c.iata) continue;
+      permitidos.add(c.iata);
+      if (!iataPorCidade.has(c.id)) iataPorCidade.set(c.id, c.iata);
+    }
+
+    const jaTem = new Set(saida.map((s) => `${s.cidadeId ?? "s"}-${semAcento(s.nome)}`));
+    const destinos = await buscarDestinosCF(termo, 8);
+    let consultasProximidade = 0;
+    for (const d of destinos) {
+      const chave = `${d.cidadeId}-${semAcento(d.nome)}`;
+      const nomeChave = semAcento(d.nome);
+      if (jaTem.has(chave) || nomesComAeroporto.has(nomeChave)) continue;
+      jaTem.add(chave);
+
+      let iata = iataPorCidade.get(d.cidadeId) ?? null;
+      let via = false;
+      if (!iata && d.lat != null && d.lng != null && consultasProximidade < 4) {
+        consultasProximidade++;
+        iata = await iataMaisProximo(d.lat, d.lng, permitidos);
+        via = !!iata;
+      }
+      saida.push({
+        nome: d.nome,
+        cidadeId: d.cidadeId,
+        iata,
+        total: porNome.get(nomeChave)?.total ?? 0,
+        viaAeroporto: via,
+        regiao: [d.estado, d.pais].filter(Boolean).join(", ") || null,
+      });
+    }
+  } catch (e) {
+    console.error("[comprefacil] destinos sem aeroporto indisponíveis:", e instanceof Error ? e.message : e);
+  }
+
+
   const codigo = alvo.length === 3 ? alvo.toUpperCase() : null;
   return saida
     .sort((a, b) => {
