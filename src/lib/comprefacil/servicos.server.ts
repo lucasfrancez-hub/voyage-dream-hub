@@ -74,7 +74,26 @@ function mapear(s: any, i: number): ServicoDisponivel {
     .map((im: any) => (typeof im === "string" ? im : (im?.Url ?? im?.Imagem ?? im?.Caminho ?? "")))
     .map((u: any) => String(u ?? "").trim())
     .filter((u: string) => /^https?:\/\//i.test(u));
-  const valor = Number(s?.ValorVenda ?? 0);
+  // `ValorVenda` vem na moeda do fornecedor (MoedaNet, quase sempre USD) e
+  // `Taxa` é o câmbio do dia. O portal exibe o valor já convertido em BRL
+  // (`ValorListagem` = ValorVenda × Taxa). Usar ValorVenda cru fazia o serviço
+  // aparecer ~5x mais barato do que a operadora cobra.
+  const num = (...v: unknown[]) => {
+    for (const x of v) {
+      const n = Number(x);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    return 0;
+  };
+  const moedaNet = String(s?.MoedaNet?.Sigla ?? "").toUpperCase();
+  const moedaListagem = String(s?.MoedaListagem?.Sigla ?? "BRL").toUpperCase();
+  const cambio = num(s?.Taxa) || 1;
+  const bruto = num(s?.ValorVenda);
+  const valor = num(
+    s?.ValorListagem,
+    s?.ValorTotalListagem,
+    moedaNet && moedaNet !== moedaListagem ? bruto * cambio : bruto,
+  );
   const informacoes = [
     s?.Combo ? "Combo de serviços" : null,
     extra?.CategoriaServico ? `Categoria ${String(extra.CategoriaServico).toLowerCase()}` : null,
