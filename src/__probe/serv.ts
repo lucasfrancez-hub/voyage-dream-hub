@@ -14,3 +14,10 @@ const chaves = new Set<string>(); for(const s of its) Object.keys(s).forEach(k=>
 console.log([...chaves].join(", "));
 const s0=its[0];
 console.log(JSON.stringify(s0,null,1).slice(0,4000));
+
+const achados = new Set<string>();
+const walk=(o:any,path:string,depth=0)=>{ if(!o||depth>4||typeof o!=="object")return; for(const [k,v] of Object.entries(o)){ if(/hor|hour|time|slot|sessao|sess/i.test(k)) achados.add(`${path}.${k} = ${JSON.stringify(v)?.slice(0,200)}`); if(Array.isArray(v)) v.slice(0,2).forEach((x)=>walk(x,`${path}.${k}[]`,depth+1)); else walk(v,`${path}.${k}`,depth+1);} };
+for(const s of its) walk(s,"s");
+console.log("=== campos de horário ==="); console.log([...achados].slice(0,40).join("\n"));
+console.log("=== Tarifas exemplo ==="); console.log(JSON.stringify(its.find(x=>(x.Tarifas??[]).length)?.Tarifas?.slice(0,2),null,1)?.slice(0,1500));
+console.log("=== DataUnica true? ===", its.filter(x=>x.DataUnica).length, "de", its.length);
