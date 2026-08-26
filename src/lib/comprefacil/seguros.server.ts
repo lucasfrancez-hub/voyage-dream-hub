@@ -9,6 +9,7 @@
 import { chamarCompreFacil, COMPREFACIL_BASES, sessaoCompreFacil } from "./auth.server";
 import { REGIOES_SEGURO, regiaoSeguroDoDestino } from "./seguro-regioes";
 import type { ServicoDisponivel } from "./servicos.server";
+import { contexto as cambioContexto, paraBRL } from "./cambio";
 
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -249,10 +250,12 @@ export async function buscarSegurosCF(p: {
   itens.forEach((s: any, i: number) => {
     const titulo =
       texto(s?.Titulo) ?? texto(s?.Nome) ?? texto(s?.Plano) ?? texto(s?.NomePlano) ?? "Seguro viagem";
-    // A operadora já devolve o total da ocupação/período em ValorTotalListagem.
+    // A operadora já devolve o total da ocupação/período em ValorTotalListagem
+    // (BRL). Se só vier o valor NET em moeda estrangeira, converte pelo câmbio.
     const total = num(s?.ValorTotalListagem, s?.ValorListagem, s?.ValorTotal, s?.ValorVendaTotal);
     const unit = num(s?.ValorVenda, s?.Valor, s?.ValorPorPassageiro, s?.ValorDiaria, s?.Preco);
-    const calculado = total > 0 ? total : unit * pax;
+    const calculado = total > 0 ? total : paraBRL(unit * pax, cambioContexto(s));
+
 
 
     const chave = `${titulo}|${calculado.toFixed(2)}`;
