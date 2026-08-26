@@ -189,9 +189,13 @@ export async function buscarAereoDinamicoCF(p: BuscaAereoCF): Promise<PassHubOfe
     .filter(Boolean) as PassHubOferta[];
 
   // Trava de destino: a operadora às vezes devolve aeroporto vizinho. Só
-  // entregamos voos que realmente chegam no destino que o cliente preencheu.
+  // entregamos voos que realmente chegam (e voltam) do destino preenchido.
   if (!alvo) return ofertas;
-  const noAlvo = ofertas.filter((o) => String(o.ida?.destino ?? "").toUpperCase() === alvo);
+  const noAlvo = ofertas.filter(
+    (o) =>
+      String(o.ida?.destino ?? "").toUpperCase() === alvo &&
+      (!o.volta || String(o.volta?.origem ?? "").toUpperCase() === alvo),
+  );
   return noAlvo.length ? noAlvo : ofertas;
 }
 
