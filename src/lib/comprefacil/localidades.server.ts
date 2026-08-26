@@ -127,9 +127,11 @@ export async function montarSugestoesCF(
     .sort((a, b) => {
       const ca = codigo && a.iata === codigo ? 0 : 1;
       const cb = codigo && b.iata === codigo ? 0 : 1;
+      const ea = semAcento(a.nome) === alvo ? 0 : 1;
+      const eb = semAcento(b.nome) === alvo ? 0 : 1;
       const pa = semAcento(a.nome).startsWith(alvo) ? 0 : 1;
       const pb = semAcento(b.nome).startsWith(alvo) ? 0 : 1;
-      return ca - cb || pa - pb || b.total - a.total || a.nome.localeCompare(b.nome, "pt-BR");
+      return ca - cb || ea - eb || pa - pb || b.total - a.total || a.nome.localeCompare(b.nome, "pt-BR");
     })
     .slice(0, 12);
 }
