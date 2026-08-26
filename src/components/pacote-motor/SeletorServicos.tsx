@@ -29,6 +29,9 @@ export function SeletorServicos({
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"preco" | "precoDesc">("preco");
   const [detalhe, setDetalhe] = useState<ServicoDisponivel | null>(null);
+  /** data/horário escolhidos pelo cliente para cada serviço */
+  const [escolhas, setEscolhas] = useState<Record<string, { data: string; hora: string | null }>>({});
+
 
   const categorias = useMemo(() => {
     const mapa = new Map<string, number>();
