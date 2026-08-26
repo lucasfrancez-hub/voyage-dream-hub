@@ -85,17 +85,40 @@ export async function montarSugestoesCF(
   const nomesComAeroporto = new Set<string>();
   try {
     const oficiais = await cidadesOficiaisCF();
+
+    // A operadora repete o mesmo IATA em cidades diferentes (ex.: "Miami
+    // (Orlando)" com o código MIA dentro de Orlando). O dono do código é a
+    // cidade cujo nome bate com a descrição do aeroporto — os apelidos são
+    // descartados para a busca sempre usar o destino que foi preenchido.
+    const donoDoIata = new Map<string, string>();
+    for (const c of oficiais) {
+      if (!c.iata) continue;
+      const desc = semAcento(c.descricao);
+      const cidade = semAcento(c.nome);
+      if (desc === cidade || desc.startsWith(`${cidade},`) || desc.startsWith(`${cidade} `)) {
+        if (!donoDoIata.has(c.iata)) donoDoIata.set(c.iata, cidade);
+      }
+    }
+
     const porIata = alvo.length === 3;
+    const vistos = new Set<string>();
     for (const c of oficiais) {
       const casaIata = porIata && (c.iata ?? "").toLowerCase() === alvo;
       if (!casaIata && !semAcento(c.nome).includes(alvo)) continue;
       const chave = semAcento(c.nome);
+      // Apelido de outra cidade (MIA dentro de Orlando): não sugerimos.
+      const dono = c.iata ? donoDoIata.get(c.iata) : undefined;
+      if (dono && dono !== chave) continue;
+      const unico = `${c.id}-${c.iata ?? "s"}`;
+      if (vistos.has(unico)) continue;
+      vistos.add(unico);
       nomesComAeroporto.add(chave);
       saida.push({ nome: c.nome, cidadeId: c.id, iata: c.iata, total: porNome.get(chave)?.total ?? 0 });
     }
   } catch (e) {
     console.error("[comprefacil] cidades oficiais indisponíveis:", e instanceof Error ? e.message : e);
   }
+
 
   for (const [chave, item] of porNome) if (!nomesComAeroporto.has(chave)) saida.push(item);
 
