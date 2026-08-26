@@ -1,7 +1,16 @@
 import { chamarCompreFacil, COMPREFACIL_BASES } from "./auth.server";
 
 export type CidadeOficialCF = { id: number; nome: string; iata: string | null; descricao: string };
-export type SugestaoCF = { nome: string; cidadeId: number | null; iata: string | null; total: number };
+export type SugestaoCF = {
+  nome: string;
+  cidadeId: number | null;
+  iata: string | null;
+  total: number;
+  /** Cidade sem aeroporto: o voo usa o aeroporto mais próximo (`iata`). */
+  viaAeroporto?: boolean;
+  /** Estado/país, só para o usuário reconhecer o destino na lista. */
+  regiao?: string | null;
+};
 
 let cache: { em: number; itens: CidadeOficialCF[] } | null = null;
 const TTL = 6 * 60 * 60 * 1000; // 6h
