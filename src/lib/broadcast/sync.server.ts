@@ -228,6 +228,29 @@ export async function addBroadcastDestinoByLink(link: string): Promise<AddResult
 }
 
 /**
+ * Estado da conexão do WhatsApp (UazAPI). Usado para avisar o operador
+ * ANTES de tentar disparar — evita a mensagem genérica "Falhou em: ...".
+ */
+export async function waConnectionStatus(): Promise<{ conectado: boolean; status: string; motivo?: string }> {
+  try {
+    const base = process.env.UAZAPI_URL?.replace(/\/+$/, "");
+    const token = process.env.UAZAPI_TOKEN;
+    if (!base || !token) return { conectado: false, status: "sem_credencial" };
+    const res = await fetch(`${base}/instance/status`, { headers: { token } });
+    if (!res.ok) return { conectado: false, status: `HTTP ${res.status}` };
+    const data = (await res.json()) as { instance?: { status?: string; lastDisconnectReason?: string } };
+    const status = data.instance?.status ?? "desconhecido";
+    return {
+      conectado: status === "connected",
+      status,
+      motivo: data.instance?.lastDisconnectReason ?? undefined,
+    };
+  } catch (err) {
+    return { conectado: false, status: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
  * Envia UM bloco de mensagem para UM destino (grupo/canal).
  * Retorna { id, error }. Suporta text/image/video/document/buttons.
  */
