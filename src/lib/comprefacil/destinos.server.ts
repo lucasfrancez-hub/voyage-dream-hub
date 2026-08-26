@@ -90,16 +90,33 @@ export async function iataMaisProximo(
 
   const query = `[out:json][timeout:20];nwr(around:250000,${lat},${lng})[aeroway=aerodrome]["iata"];out center 200;`;
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 20_000);
-    const res = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      signal: ctrl.signal,
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ data: query }).toString(),
-    }).finally(() => clearTimeout(timer));
-    if (!res.ok) return null;
-    const json = (await res.json()) as { elements?: any[] };
+    // O Overpass recusa requisições sem User-Agent (HTTP 406); mantemos um
+    // espelho de reserva para não depender de um único servidor.
+    const espelhos = [
+      "https://overpass-api.de/api/interpreter",
+      "https://overpass.kumi.systems/api/interpreter",
+    ];
+    let json: { elements?: any[] } | null = null;
+    for (const url of espelhos) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 20_000);
+      const res = await fetch(url, {
+        method: "POST",
+        signal: ctrl.signal,
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "VIA AIR motor de pacotes (contato@viaair.tur.br)",
+          accept: "application/json",
+        },
+        body: new URLSearchParams({ data: query }).toString(),
+      })
+        .catch(() => null)
+        .finally(() => clearTimeout(timer));
+      if (!res?.ok) continue;
+      json = (await res.json().catch(() => null)) as { elements?: any[] } | null;
+      if (json) break;
+    }
+    if (!json) return null;
 
     let melhor: { iata: string; km: number } | null = null;
     for (const el of json.elements ?? []) {
