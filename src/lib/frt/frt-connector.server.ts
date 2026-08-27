@@ -905,6 +905,25 @@ async function persistSession(s: Session) {
   }
 }
 
+/**
+ * Confirma que a sessão ainda está autenticada abrindo venda.xhtml. Quando
+ * está viva, renova o carimbo de uso e regrava os cookies (keep-alive), assim
+ * a integração nunca pede código novo com sessão ativa.
+ */
+async function revalidarSessao(s: Session): Promise<Session | null> {
+  try {
+    const venda = await abrirVenda(s);
+    if (venda.aguardandoCodigo || venda.voltouParaLogin || venda.estado !== "ok") return null;
+    s.viewState = venda.viewState;
+    s.createdAt = Date.now();
+    await persistSession(s);
+    trace("sessão FRT revalidada (keep-alive)");
+    return s;
+  } catch {
+    return null;
+  }
+}
+
 async function restoreSession(): Promise<Session | null> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -915,18 +934,16 @@ async function restoreSession(): Promise<Session | null> {
       .maybeSingle();
     if (!data?.cookies) return null;
     const idade = Date.now() - new Date(data.updated_at as string).getTime();
-    if (idade > SESSION_TTL_MS) return null;
+    if (idade > SESSION_MAX_AGE_MS) return null;
     const s: Session = {
       cookies: new Map(Object.entries(data.cookies as Record<string, string>)),
       viewState: (data.view_state as string | null) ?? null,
       createdAt: Date.now() - idade,
     };
-    const venda = await abrirVenda(s);
-    if (venda.estado !== "ok") return null;
-    s.viewState = venda.viewState;
+    const viva = await revalidarSessao(s);
+    if (!viva) return null;
     trace("sessão FRT restaurada do backend");
-
-    return s;
+    return viva;
   } catch {
     return null;
   }
