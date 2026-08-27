@@ -38,7 +38,14 @@ const VENDA_URL = `${BASE}/admin/venda/venda.xhtml`;
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
 const TIMEOUT_MS = 45_000;
-const SESSION_TTL_MS = 20 * 60_000;
+/** Janela em que a sessão é usada sem revalidar (evita ida extra ao portal). */
+const SESSION_TTL_MS = 5 * 60_000;
+/**
+ * Idade máxima absoluta da sessão persistida. Entre TTL e este limite a sessão
+ * NÃO é descartada: ela é revalidada abrindo venda.xhtml. Só cai no login (e
+ * portanto em novo código 2FA) quando o portal realmente derrubou a sessão.
+ */
+const SESSION_MAX_AGE_MS = 12 * 60 * 60_000;
 const LOGIN_COOLDOWN_MS = 60_000;
 const MAX_LOGIN_FAILS = 3;
 
