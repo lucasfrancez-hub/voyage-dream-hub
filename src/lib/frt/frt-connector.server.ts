@@ -593,6 +593,12 @@ async function getSession(force = false): Promise<Session> {
   if (!force && session && Date.now() - session.createdAt < SESSION_TTL_MS) {
     return session;
   }
+  if (!force && session) {
+    // Sessão em memória "velha" ≠ sessão morta: revalida antes de relogar.
+    const viva = await revalidarSessao(session);
+    if (viva) return viva;
+    session = null;
+  }
   if (!force) {
     const restored = await restoreSession();
     if (restored) {
