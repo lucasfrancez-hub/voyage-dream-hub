@@ -38,7 +38,14 @@ const VENDA_URL = `${BASE}/admin/venda/venda.xhtml`;
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
 const TIMEOUT_MS = 45_000;
-const SESSION_TTL_MS = 20 * 60_000;
+/** Janela em que a sessão é usada sem revalidar (evita ida extra ao portal). */
+const SESSION_TTL_MS = 5 * 60_000;
+/**
+ * Idade máxima absoluta da sessão persistida. Entre TTL e este limite a sessão
+ * NÃO é descartada: ela é revalidada abrindo venda.xhtml. Só cai no login (e
+ * portanto em novo código 2FA) quando o portal realmente derrubou a sessão.
+ */
+const SESSION_MAX_AGE_MS = 12 * 60 * 60_000;
 const LOGIN_COOLDOWN_MS = 60_000;
 const MAX_LOGIN_FAILS = 3;
 
@@ -586,6 +593,12 @@ async function getSession(force = false): Promise<Session> {
   if (!force && session && Date.now() - session.createdAt < SESSION_TTL_MS) {
     return session;
   }
+  if (!force && session) {
+    // Sessão em memória "velha" ≠ sessão morta: revalida antes de relogar.
+    const viva = await revalidarSessao(session);
+    if (viva) return viva;
+    session = null;
+  }
   if (!force) {
     const restored = await restoreSession();
     if (restored) {
@@ -892,6 +905,25 @@ async function persistSession(s: Session) {
   }
 }
 
+/**
+ * Confirma que a sessão ainda está autenticada abrindo venda.xhtml. Quando
+ * está viva, renova o carimbo de uso e regrava os cookies (keep-alive), assim
+ * a integração nunca pede código novo com sessão ativa.
+ */
+async function revalidarSessao(s: Session): Promise<Session | null> {
+  try {
+    const venda = await abrirVenda(s);
+    if (venda.aguardandoCodigo || venda.voltouParaLogin || venda.estado !== "ok") return null;
+    s.viewState = venda.viewState;
+    s.createdAt = Date.now();
+    await persistSession(s);
+    trace("sessão FRT revalidada (keep-alive)");
+    return s;
+  } catch {
+    return null;
+  }
+}
+
 async function restoreSession(): Promise<Session | null> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -902,18 +934,16 @@ async function restoreSession(): Promise<Session | null> {
       .maybeSingle();
     if (!data?.cookies) return null;
     const idade = Date.now() - new Date(data.updated_at as string).getTime();
-    if (idade > SESSION_TTL_MS) return null;
+    if (idade > SESSION_MAX_AGE_MS) return null;
     const s: Session = {
       cookies: new Map(Object.entries(data.cookies as Record<string, string>)),
       viewState: (data.view_state as string | null) ?? null,
       createdAt: Date.now() - idade,
     };
-    const venda = await abrirVenda(s);
-    if (venda.estado !== "ok") return null;
-    s.viewState = venda.viewState;
+    const viva = await revalidarSessao(s);
+    if (!viva) return null;
     trace("sessão FRT restaurada do backend");
-
-    return s;
+    return viva;
   } catch {
     return null;
   }
