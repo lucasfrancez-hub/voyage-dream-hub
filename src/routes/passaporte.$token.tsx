@@ -25,6 +25,8 @@ import type { PassportPublic } from "@/lib/passaporte.server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TopBar } from "@/components/TopBar";
+import { ContactFooter } from "@/components/ContactFooter";
 
 const PRECO_PIX = 285;
 const PRECO_CARTAO = 320;
@@ -192,145 +194,215 @@ function PassaportePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="min-h-screen bg-background">
+        <TopBar backLabel="Voltar ao site" />
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-brand-orange" />
+        </div>
+        <ContactFooter intro="Precisa de ajuda com a sua solicitação de passaporte? Fale com a gente." />
       </div>
     );
   }
 
   if (!req) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-6 text-center">
-        <div>
-          <h1 className="text-xl font-semibold">Link inválido</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Esta solicitação não existe ou foi removida. Fale com a VIA AIR.
-          </p>
+      <div className="min-h-screen bg-background">
+        <TopBar backLabel="Voltar ao site" />
+        <div className="flex min-h-[60vh] items-center justify-center p-6 text-center">
+          <div>
+            <h1 className="text-xl font-semibold">Link inválido</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Esta solicitação não existe ou foi removida. Fale com a VIA AIR.
+            </p>
+          </div>
         </div>
+        <ContactFooter intro="Precisa de ajuda com a sua solicitação de passaporte? Fale com a gente." />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-muted/40 via-background to-background">
-      <header className="border-b bg-card/70 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl flex-col gap-1 px-5 py-6">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
-            VIA AIR
-          </span>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Solicitação de renovação de passaporte
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Protocolo VIA AIR{" "}
-            <strong className="font-semibold text-foreground">{req.protocolo}</strong>
-            {req.pfProtocolo ? (
+    <div className="min-h-screen bg-background">
+      <TopBar
+        backLabel="Voltar ao site"
+        whatsappMessage={`Olá! Preciso de ajuda com a solicitação de passaporte ${req.protocolo}.`}
+      />
+
+      <main className="relative overflow-hidden">
+        {/* brilho de fundo */}
+        <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-[52rem] -translate-x-1/2 rounded-full bg-brand-orange/10 blur-[120px]" />
+
+        <div className="relative mx-auto max-w-3xl px-5 pb-20 pt-14 sm:pt-20">
+          {/* Hero */}
+          <div className="text-center">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-orange/25 bg-brand-orange/10 px-4 py-1.5">
+              <ShieldCheck className="h-4 w-4 text-brand-orange" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-orange">
+                Protocolo {req.protocolo}
+                {req.pfProtocolo ? ` · PF ${req.pfProtocolo}` : ""}
+              </span>
+            </div>
+
+            <h1 className="font-display text-4xl font-black tracking-tight md:text-5xl">
+              Renovação de{" "}
+              <span className="bg-gradient-to-r from-brand-orange to-brand-orange/60 bg-clip-text text-transparent">
+                Passaporte
+              </span>
+            </h1>
+
+            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
+              Preencha o formulário oficial passo a passo. É rápido, seguro e 100% digital — a VIA
+              AIR cuida do resto.
+            </p>
+          </div>
+
+          {/* Stepper */}
+          <div className="mt-12">
+            <Stepper step={step} onStep={(i) => !concluido && i < step && setStep(i)} />
+          </div>
+
+          {/* Card do formulário */}
+          <div className="mt-12 rounded-[2rem] border border-border/60 bg-card/80 p-6 shadow-[0_32px_80px_-24px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:p-10">
+            {concluido && step === 4 ? (
+              <Confirmacao req={req} />
+            ) : (
               <>
-                {" · "}Protocolo Polícia Federal{" "}
-                <strong className="font-semibold text-foreground">{req.pfProtocolo}</strong>
+                <div className="mb-8">
+                  <h2 className="flex items-center gap-3 text-xl font-bold sm:text-2xl">
+                    <span className="h-6 w-1 rounded-full bg-brand-orange" />
+                    {ETAPAS[step]?.label}
+                  </h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Confira se as informações estão idênticas ao documento original.
+                  </p>
+                </div>
+
+                {step === 0 && <EtapaPessoais v={pessoais} set={setPessoais} />}
+                {step === 1 && <EtapaDocumentos v={documentos} set={setDocumentos} />}
+                {step === 2 && <EtapaComplementares v={complementares} set={setComplementares} />}
+                {step === 3 && (
+                  <EtapaRevisao
+                    pessoais={pessoais}
+                    documentos={documentos}
+                    complementares={complementares}
+                    declarou={declarou}
+                    setDeclarou={setDeclarou}
+                  />
+                )}
+                {step === 4 && (
+                  <EtapaPagamento
+                    metodo={metodo}
+                    setMetodo={setMetodo}
+                    parcelas={parcelas}
+                    setParcelas={setParcelas}
+                    total={total}
+                    valorParcela={valorParcela}
+                  />
+                )}
+
+                <div className="mt-10 flex flex-col-reverse items-center gap-5 border-t border-border/60 pt-7 sm:flex-row sm:justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Conexão segura · dados protegidos
+                    </span>
+                  </div>
+
+                  <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+                    <Button
+                      variant="ghost"
+                      className="rounded-xl"
+                      disabled={step === 0 || saving}
+                      onClick={() => setStep((s) => Math.max(0, s - 1))}
+                    >
+                      Anterior
+                    </Button>
+                    {step < 4 ? (
+                      <Button
+                        size="lg"
+                        className="rounded-xl px-8 font-bold shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.7)] transition hover:-translate-y-0.5"
+                        disabled={saving || (step === 3 && !declarou)}
+                        onClick={() => void salvar(step + 1)}
+                      >
+                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {step === 3 ? "Ir para o pagamento" : "Prosseguir"}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="lg"
+                        className="rounded-xl px-8 font-bold shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.7)] transition hover:-translate-y-0.5"
+                        disabled={saving}
+                        onClick={() => void finalizar()}
+                      >
+                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {metodo === "PIX" ? "Gerar Pix" : "Ir para o pagamento seguro"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </>
-            ) : null}
+            )}
+          </div>
+
+          <p className="mt-10 text-center text-[9px] font-black uppercase tracking-[0.35em] text-muted-foreground/70">
+            VIA AIR · Paranavaí/PR · atendimento 100% digital
           </p>
         </div>
-      </header>
+      </main>
 
-      <div className="mx-auto max-w-4xl px-5 py-8">
-        <Stepper step={step} onStep={(i) => !concluido && i < step && setStep(i)} />
-
-        <div className="mt-6 rounded-2xl border bg-card p-5 shadow-sm sm:p-7">
-          {concluido && step === 4 ? (
-            <Confirmacao req={req} />
-          ) : (
-            <>
-              {step === 0 && <EtapaPessoais v={pessoais} set={setPessoais} />}
-              {step === 1 && <EtapaDocumentos v={documentos} set={setDocumentos} />}
-              {step === 2 && <EtapaComplementares v={complementares} set={setComplementares} />}
-              {step === 3 && (
-                <EtapaRevisao
-                  pessoais={pessoais}
-                  documentos={documentos}
-                  complementares={complementares}
-                  declarou={declarou}
-                  setDeclarou={setDeclarou}
-                />
-              )}
-              {step === 4 && (
-                <EtapaPagamento
-                  metodo={metodo}
-                  setMetodo={setMetodo}
-                  parcelas={parcelas}
-                  setParcelas={setParcelas}
-                  total={total}
-                  valorParcela={valorParcela}
-                />
-              )}
-
-              <div className="mt-8 flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:justify-between">
-                <Button
-                  variant="outline"
-                  disabled={step === 0 || saving}
-                  onClick={() => setStep((s) => Math.max(0, s - 1))}
-                >
-                  Anterior
-                </Button>
-                {step < 4 ? (
-                  <Button
-                    disabled={saving || (step === 3 && !declarou)}
-                    onClick={() => void salvar(step + 1)}
-                  >
-                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {step === 3 ? "Ir para o pagamento" : "Próximo"}
-                  </Button>
-                ) : (
-                  <Button disabled={saving} onClick={() => void finalizar()}>
-                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {metodo === "PIX" ? "Gerar Pix" : "Ir para o pagamento seguro"}
-                  </Button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          VIA AIR Agência e Representações · Paranavaí/PR · atendimento 100% digital
-        </p>
-      </div>
+      <ContactFooter
+        intro="Ficou alguma dúvida sobre a renovação do seu passaporte? Nosso time responde na hora."
+        whatsappMessage={`Olá! Estou com uma dúvida na solicitação de passaporte ${req.protocolo}.`}
+      />
     </div>
   );
 }
 
 function Stepper({ step, onStep }: { step: number; onStep: (i: number) => void }) {
+  const progresso = ETAPAS.length > 1 ? (step / (ETAPAS.length - 1)) * 100 : 0;
   return (
-    <ol className="flex snap-x gap-2 overflow-x-auto pb-1">
-      {ETAPAS.map((e, i) => {
-        const done = i < step;
-        const active = i === step;
-        const Icon = e.icon;
-        return (
-          <li key={e.key} className="min-w-[9.5rem] flex-1 snap-start">
-            <button
-              type="button"
-              onClick={() => onStep(i)}
-              className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition ${
-                active
-                  ? "border-primary bg-primary text-primary-foreground shadow"
-                  : done
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-border bg-muted/40 text-muted-foreground"
-              }`}
-            >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-background/25">
-                {done ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+    <div className="relative mx-auto max-w-xl">
+      <div className="absolute left-0 top-5 h-px w-full bg-border" />
+      <div
+        className="absolute left-0 top-5 h-[2px] bg-brand-orange transition-all duration-500"
+        style={{ width: `${progresso}%` }}
+      />
+      <ol className="relative flex justify-between">
+        {ETAPAS.map((e, i) => {
+          const done = i < step;
+          const active = i === step;
+          const Icon = e.icon;
+          return (
+            <li key={e.key} className="flex flex-col items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onStep(i)}
+                aria-label={e.label}
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition ${
+                  active
+                    ? "bg-brand-orange text-white ring-8 ring-brand-orange/10 shadow-[0_0_20px_rgba(242,107,31,0.35)]"
+                    : done
+                      ? "bg-brand-orange/20 text-brand-orange border border-brand-orange/40"
+                      : "border border-border bg-muted/40 text-muted-foreground"
+                }`}
+              >
+                {done ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+              </button>
+              <span
+                className={`max-w-[5.5rem] text-center text-[9px] font-bold uppercase leading-tight tracking-[0.12em] ${
+                  active ? "text-brand-orange" : "text-muted-foreground"
+                }`}
+              >
+                {e.label}
               </span>
-              <span className="leading-tight">{e.label}</span>
-            </button>
-          </li>
-        );
-      })}
-    </ol>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
+
 
 function Secao({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -397,7 +469,7 @@ const upd = (set: (f: (v: Campos) => Campos) => void, key: string) => (v: string
 function EtapaPessoais({ v, set }: { v: Campos; set: React.Dispatch<React.SetStateAction<Campos>> }) {
   return (
     <>
-      <Secao title="Dados pessoais">
+      <Secao title="Identificação">
         <Campo label="Nome completo" required wide value={v.nomeCompleto ?? ""} onChange={upd(set, "nomeCompleto")} />
         <Campo label="Data de nascimento" type="date" required value={v.nascimento ?? ""} onChange={upd(set, "nascimento")} />
         <Campo label="Sexo" required value={v.sexo ?? ""} onChange={upd(set, "sexo")} options={["FEMININO", "MASCULINO"]} />
