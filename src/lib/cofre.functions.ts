@@ -199,6 +199,8 @@ export const listCofreOrders = createServerFn({ method: "GET" })
             : null,
         snapshotKind: (snap.kind as string) ?? null,
         isManual: snap.manual === true,
+        quotePublicId: (snap.quote_public_id as string) ?? null,
+        quoteUrl: (snap.quote_url as string) ?? null,
         boletoCapture,
         passengers,
 
