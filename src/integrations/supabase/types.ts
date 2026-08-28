@@ -7030,6 +7030,7 @@ export type Database = {
           id: string
           installments: number | null
           invoice_url: string | null
+          order_id: string | null
           paid_at: string | null
           payment_method: string | null
           payment_status: string
@@ -7060,6 +7061,7 @@ export type Database = {
           id?: string
           installments?: number | null
           invoice_url?: string | null
+          order_id?: string | null
           paid_at?: string | null
           payment_method?: string | null
           payment_status?: string
@@ -7090,6 +7092,7 @@ export type Database = {
           id?: string
           installments?: number | null
           invoice_url?: string | null
+          order_id?: string | null
           paid_at?: string | null
           payment_method?: string | null
           payment_status?: string

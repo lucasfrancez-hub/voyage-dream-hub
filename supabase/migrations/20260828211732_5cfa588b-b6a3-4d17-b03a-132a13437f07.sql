@@ -1,0 +1,2 @@
+ALTER TABLE public.passport_requests ADD COLUMN IF NOT EXISTS order_id uuid;
+CREATE UNIQUE INDEX IF NOT EXISTS passport_requests_order_id_key ON public.passport_requests (order_id) WHERE order_id IS NOT NULL;
