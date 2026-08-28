@@ -147,11 +147,21 @@ function PassaportePage() {
     if (!req) return;
     setSaving(true);
     try {
+      if (metodo === "CREDIT_CARD") {
+        // Cartão: checkout seguro InfinitePay (nenhum dado de cartão trafega pelo portal).
+        await saveFn({ data: { token, dadosPessoais: pessoais, documentos, complementares } });
+        const { checkoutUrl } = (await checkoutFn({ data: { token } })) as {
+          checkoutUrl: string;
+        };
+        window.location.href = checkoutUrl;
+        return;
+      }
+
       const updated = (await payFn({
         data: {
           token,
           metodo,
-          parcelas: metodo === "CREDIT_CARD" ? parcelas : 1,
+          parcelas: 1,
           nome: (pessoais.nomeCompleto || "").trim(),
           cpf: (documentos.cpf || "").replace(/\D/g, ""),
           email: (complementares.email || "").trim(),
@@ -163,11 +173,6 @@ function PassaportePage() {
           bairro: complementares.bairro || null,
           cidade: complementares.cidade || null,
           estado: (complementares.uf || "").slice(0, 2) || null,
-          cartaoTitular: cartao.titular || null,
-          cartaoNumero: cartao.numero || null,
-          cartaoMes: cartao.mes || null,
-          cartaoAno: cartao.ano || null,
-          cartaoCvv: cartao.cvv || null,
         },
       })) as PassportPublic;
       setReq(updated);
@@ -179,6 +184,7 @@ function PassaportePage() {
       setSaving(false);
     }
   }
+
 
   if (loading) {
     return (
