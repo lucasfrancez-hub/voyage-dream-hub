@@ -115,6 +115,21 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               continue;
             }
 
+            // IDEMPOTÊNCIA: marca ANTES de enviar, com CAS (`inactivity_warned_at IS NULL`).
+            // Se dois ciclos do cron se sobrepuserem, só um consegue o claim e o
+            // cliente recebe um único aviso.
+            const { data: claimed } = await supabaseAdmin
+              .from("wa_protocolos")
+              .update({ inactivity_warned_at: new Date().toISOString() })
+              .eq("id", proto.id)
+              .is("inactivity_warned_at", null)
+              .select("id")
+              .maybeSingle();
+            if (!claimed) {
+              skipped.push(proto.numero);
+              continue;
+            }
+
             const avisoMsg =
               `Notei que ficou um tempinho sem responder por aqui. Vou encerrar o atendimento por aqui, mas fique tranquila(o), qualquer coisa é só mandar mensagem que a gente volta a tratar do assunto de onde parou, ok? 😊`;
 
@@ -130,11 +145,6 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               wa_message_id: sentAviso[0]?.id ?? null,
               skip_protocolo: true,
             });
-
-            await supabaseAdmin
-              .from("wa_protocolos")
-              .update({ inactivity_warned_at: new Date().toISOString() })
-              .eq("id", proto.id);
 
             warned.push(proto.numero);
           }
