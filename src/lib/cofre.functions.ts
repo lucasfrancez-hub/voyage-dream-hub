@@ -64,6 +64,8 @@ export type CofreOrder = {
   firstAmount: number | null;
   snapshotKind: string | null;
   isManual: boolean;
+  quotePublicId: string | null;
+  quoteUrl: string | null;
   boletoCapture: BoletoCapture | null;
   passengers: SnapshotPassenger[];
 
