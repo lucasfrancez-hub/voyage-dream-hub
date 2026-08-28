@@ -284,7 +284,7 @@ function PassaportePage() {
                 ) : (
                   <Button disabled={saving} onClick={() => void finalizar()}>
                     {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {metodo === "PIX" ? "Gerar Pix" : "Pagar no cartão"}
+                    {metodo === "PIX" ? "Gerar Pix" : "Ir para o pagamento seguro"}
                   </Button>
                 )}
               </div>
