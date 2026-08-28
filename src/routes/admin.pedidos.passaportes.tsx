@@ -151,15 +151,15 @@ function Card({
   const [pf, setPf] = useState(row.pfProtocolo ?? "");
   const [aberto, setAberto] = useState(false);
   return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="text-sm font-semibold">{row.applicantName ?? "Sem nome"}</div>
-          <div className="text-xs text-muted-foreground">
+    <div className="min-w-0 overflow-hidden rounded-xl border bg-card p-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold">{row.applicantName ?? "Sem nome"}</div>
+          <div className="truncate text-xs text-muted-foreground">
             Protocolo VIA AIR {row.protocolo} · {new Date(row.createdAt).toLocaleString("pt-BR")}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{row.status}</span>
           <span
             className={`rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -172,8 +172,8 @@ function Card({
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <code className="max-w-full truncate rounded bg-muted px-2 py-1 text-xs">{link}</code>
+      <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2">
+        <code className="min-w-0 max-w-full truncate rounded bg-muted px-2 py-1 text-xs">{link}</code>
         <Button
           size="sm"
           variant="outline"
