@@ -595,7 +595,7 @@ function EtapaPagamento({
     <div>
       <h2 className="text-base font-semibold">Pagamento da solicitação</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Serviço de assessoria VIA AIR para renovação de passaporte.
+        Serviço VIA AIR de apoio completo à renovação do seu passaporte.
       </p>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">

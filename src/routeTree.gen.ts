@@ -106,6 +106,7 @@ import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
+import { Route as PassaporteTokenRouteImport } from './routes/passaporte.$token'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
 import { Route as ReservaTokenRouteImport } from './routes/reserva.$token'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
@@ -677,6 +678,11 @@ const PacotesAdminRoute = PacotesAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => PacotesRoute,
 } as any)
+const PassaporteTokenRoute = PassaporteTokenRouteImport.update({
+  id: '/passaporte/$token',
+  path: '/passaporte/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProtocoloProtocoloIdRoute = ProtocoloProtocoloIdRouteImport.update({
   id: '/protocolo/$protocoloId',
   path: '/protocolo/$protocoloId',
@@ -1241,6 +1247,7 @@ export interface FileRoutesByFullPath {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
+  '/passaporte/$token': typeof PassaporteTokenRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
@@ -1422,6 +1429,7 @@ export interface FileRoutesByTo {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
+  '/passaporte/$token': typeof PassaporteTokenRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
@@ -1607,6 +1615,7 @@ export interface FileRoutesById {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
+  '/passaporte/$token': typeof PassaporteTokenRoute
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
@@ -1793,6 +1802,7 @@ export interface FileRouteTypes {
     | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
+    | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
     | '/w/$slug'
@@ -1974,6 +1984,7 @@ export interface FileRouteTypes {
     | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
+    | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
     | '/w/$slug'
@@ -2158,6 +2169,7 @@ export interface FileRouteTypes {
     | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
+    | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
     | '/w/$slug'
@@ -2276,6 +2288,7 @@ export interface RootRouteChildren {
   EmbedPassagensBaratasRoute: typeof EmbedPassagensBaratasRoute
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
+  PassaporteTokenRoute: typeof PassaporteTokenRoute
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   ReservaTokenRoute: typeof ReservaTokenRoute
   WSlugRoute: typeof WSlugRoute
@@ -3023,6 +3036,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/pacotes/admin'
       preLoaderRoute: typeof PacotesAdminRouteImport
       parentRoute: typeof PacotesRoute
+    }
+    '/passaporte/$token': {
+      id: '/passaporte/$token'
+      path: '/passaporte/$token'
+      fullPath: '/passaporte/$token'
+      preLoaderRoute: typeof PassaporteTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/protocolo/$protocoloId': {
       id: '/protocolo/$protocoloId'
@@ -3882,6 +3902,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmbedPassagensBaratasRoute: EmbedPassagensBaratasRoute,
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
+  PassaporteTokenRoute: PassaporteTokenRoute,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   ReservaTokenRoute: ReservaTokenRoute,
   WSlugRoute: WSlugRoute,
