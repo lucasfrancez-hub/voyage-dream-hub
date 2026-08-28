@@ -80,6 +80,8 @@ function PassaportePage() {
   const getFn = useServerFn(getPassportRequest);
   const saveFn = useServerFn(savePassportStep);
   const payFn = useServerFn(submitPassportPayment);
+  const checkoutFn = useServerFn(criarCheckoutPassaporte);
+
 
   const [loading, setLoading] = useState(true);
   const [req, setReq] = useState<PassportPublic | null>(null);
