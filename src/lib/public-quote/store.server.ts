@@ -328,6 +328,14 @@ async function enriquecerHoteis(quote: PublicQuote): Promise<PublicQuote> {
   return { ...quote, products, options };
 }
 
+/** Corta uma espera opcional: nunca deixa a página do cliente travar. */
+function comLimite<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    p.catch(() => fallback),
+    new Promise<T>((r) => setTimeout(() => r(fallback), ms)),
+  ]);
+}
+
 export async function getPublicQuoteByPublicId(publicId: string): Promise<PublicQuote | null> {
   const supabaseAdmin = await db();
   const { data } = await supabaseAdmin
@@ -337,16 +345,27 @@ export async function getPublicQuoteByPublicId(publicId: string): Promise<Public
     .maybeSingle();
   if (!data) return null;
   const row = data as Record<string, unknown>;
-  await supabaseAdmin
-    .from("public_quotes")
-    .update({
-      view_count: (Number(row.view_count) || 0) + 1,
-      last_viewed_at: new Date().toISOString(),
-    } as never)
-    .eq("public_id", publicId);
   const quote = rowToQuote(row);
-  return await enriquecerHoteis(quote).catch(() => quote);
+
+  // Métrica de visualização e enriquecimento do TripAdvisor NUNCA seguram o
+  // carregamento do link do cliente — ambos são time-boxed.
+  const metrica = Promise.resolve(
+    supabaseAdmin
+      .from("public_quotes")
+      .update({
+        view_count: (Number(row.view_count) || 0) + 1,
+        last_viewed_at: new Date().toISOString(),
+      } as never)
+      .eq("public_id", publicId),
+  );
+
+  const [, enriquecida] = await Promise.all([
+    comLimite(metrica as Promise<unknown>, 400, null),
+    comLimite(enriquecerHoteis(quote), 2500, quote),
+  ]);
+  return enriquecida;
 }
+
 
 export async function registrarEventoOrcamento(
   publicQuoteId: string,
