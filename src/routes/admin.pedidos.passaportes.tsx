@@ -14,7 +14,7 @@ import {
   type PassportAdminRow,
 } from "@/lib/passaporte.functions";
 import { listarPagamentosPassaporte } from "@/lib/passaporte-infinitepay.functions";
-import type { PassportPaymentRow } from "@/lib/passaporte-pagamento.server";
+import type { PassportPaymentRow } from "@/lib/passaporte-pagamento.types";
 
 
 export const Route = createFileRoute("/admin/pedidos/passaportes")({

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { ConfirmacaoResultado, PassportPaymentRow } from "./passaporte-pagamento.server";
+import type { ConfirmacaoResultado, PassportPaymentRow } from "./passaporte-pagamento.types";
 
 /** Cria (ou reaproveita) o checkout de cartão InfinitePay do passaporte. Valor definido no backend. */
 export const criarCheckoutPassaporte = createServerFn({ method: "POST" })
