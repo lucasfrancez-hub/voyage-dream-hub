@@ -584,8 +584,6 @@ function EtapaPagamento({
   setMetodo,
   parcelas,
   setParcelas,
-  cartao,
-  setCartao,
   total,
   valorParcela,
 }: {
@@ -593,8 +591,6 @@ function EtapaPagamento({
   setMetodo: (m: "PIX" | "CREDIT_CARD") => void;
   parcelas: number;
   setParcelas: (p: number) => void;
-  cartao: Campos;
-  setCartao: React.Dispatch<React.SetStateAction<Campos>>;
   total: number;
   valorParcela: number;
 }) {
@@ -636,9 +632,11 @@ function EtapaPagamento({
       </div>
 
       {metodo === "CREDIT_CARD" ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">Parcelas</Label>
+        <div className="mt-6 space-y-4">
+          <div>
+            <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Simulação de parcelas
+            </Label>
             <select
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={parcelas}
@@ -651,11 +649,18 @@ function EtapaPagamento({
               ))}
             </select>
           </div>
-          <Campo label="Nome impresso no cartão" required wide value={cartao.titular ?? ""} onChange={upd(setCartao, "titular")} />
-          <Campo label="Número do cartão" required wide value={cartao.numero ?? ""} onChange={upd(setCartao, "numero")} />
-          <Campo label="Mês (MM)" required value={cartao.mes ?? ""} onChange={upd(setCartao, "mes")} />
-          <Campo label="Ano (AAAA)" required value={cartao.ano ?? ""} onChange={upd(setCartao, "ano")} />
-          <Campo label="CVV" required value={cartao.cvv ?? ""} onChange={upd(setCartao, "cvv")} />
+          <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div className="text-sm">
+              <p className="font-medium">Pagamento em ambiente seguro</p>
+              <p className="mt-1 text-muted-foreground">
+                Ao continuar, você será direcionado para a tela de pagamento protegida onde escolhe
+                o parcelamento (até {MAX_PARCELAS}x) e informa os dados do cartão. Nenhum dado do
+                cartão é digitado ou armazenado neste site. Após a aprovação, você volta
+                automaticamente para acompanhar sua solicitação.
+              </p>
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -673,6 +678,7 @@ function EtapaPagamento({
     </div>
   );
 }
+
 
 function Confirmacao({ req }: { req: PassportPublic }) {
   const pago = req.paymentStatus === "paid";
