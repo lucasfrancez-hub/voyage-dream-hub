@@ -469,7 +469,7 @@ const upd = (set: (f: (v: Campos) => Campos) => void, key: string) => (v: string
 function EtapaPessoais({ v, set }: { v: Campos; set: React.Dispatch<React.SetStateAction<Campos>> }) {
   return (
     <>
-      <Secao title="Dados pessoais">
+      <Secao title="Identificação">
         <Campo label="Nome completo" required wide value={v.nomeCompleto ?? ""} onChange={upd(set, "nomeCompleto")} />
         <Campo label="Data de nascimento" type="date" required value={v.nascimento ?? ""} onChange={upd(set, "nascimento")} />
         <Campo label="Sexo" required value={v.sexo ?? ""} onChange={upd(set, "sexo")} options={["FEMININO", "MASCULINO"]} />
