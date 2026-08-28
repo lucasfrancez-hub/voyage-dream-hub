@@ -358,11 +358,12 @@ function mapHotel(bh: any): { hotel: NormalizedHotel; pax: Pax } {
         typeof hotel?.address?.coordinates?.longitude === "number" ? hotel.address.coordinates.longitude : null,
       total,
     },
-    pax: { adults, children },
+    pax,
   };
 }
 
-function mapFlight(bf: any): { flights: NormalizedFlight[]; pax: { adults: number; children: number }; total: number | null } {
+function mapFlight(bf: any): { flights: NormalizedFlight[]; pax: Pax; total: number | null } {
+
   const out: NormalizedFlight[] = [];
   const groups: any[] = Array.isArray(bf?.flights) ? bf.flights : [];
   for (const g of groups) {
