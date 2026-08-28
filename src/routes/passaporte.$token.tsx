@@ -260,8 +260,6 @@ function PassaportePage() {
                   setMetodo={setMetodo}
                   parcelas={parcelas}
                   setParcelas={setParcelas}
-                  cartao={cartao}
-                  setCartao={setCartao}
                   total={total}
                   valorParcela={valorParcela}
                 />
