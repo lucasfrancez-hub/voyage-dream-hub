@@ -213,6 +213,8 @@ function Card({
             <Bloco titulo="Dados pessoais" dados={row.dadosPessoais} />
             <Bloco titulo="Documentos" dados={row.documentos} />
             <Bloco titulo="Dados complementares" dados={row.complementares} />
+            <BlocoInfinitePay requestId={row.id} />
+
 
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">Pagamento</h4>
