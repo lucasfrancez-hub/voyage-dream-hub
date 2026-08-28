@@ -286,21 +286,43 @@ const cleanText = (v: unknown): string | null =>
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-function mapHotel(bh: any): { hotel: NormalizedHotel; pax: { adults: number; children: number } } {
+type Pax = { adults: number; children: number; infants: number };
+
+const paxZero = (): Pax => ({ adults: 0, children: 0, infants: 0 });
+
+/** Conta passageiros pelo TIPO da operadora (ADT/CHD/INF); idade só no fallback. */
+function contarPax(lista: any[]): Pax {
+  const pax = paxZero();
+  for (const p of lista ?? []) {
+    const tipo = String(p?.type ?? "").toUpperCase();
+    const idade = typeof p?.age === "number" ? p.age : null;
+    if (tipo === "INF" || tipo === "INFANT" || (!tipo && idade != null && idade < 2)) pax.infants += 1;
+    else if (tipo === "CHD" || tipo === "CNN" || tipo === "CHILD" || (!tipo && idade != null && idade < 12))
+      pax.children += 1;
+    else pax.adults += 1;
+  }
+  return pax;
+}
+
+const maxPax = (a: Pax, b: Pax): Pax => ({
+  adults: Math.max(a.adults, b.adults),
+  children: Math.max(a.children, b.children),
+  infants: Math.max(a.infants, b.infants),
+});
+
+function mapHotel(bh: any): { hotel: NormalizedHotel; pax: Pax } {
   const hotel = bh?.hotel ?? {};
   const rooms: any[] = Array.isArray(bh?.rooms) ? bh.rooms : [];
   const first = rooms[0] ?? {};
   const checkin = isoDate(first.checkIn);
   const checkout = isoDate(first.checkOut);
 
-  let adults = 0;
-  let children = 0;
+  let pax = paxZero();
   for (const r of rooms) {
-    for (const n of (r?.names ?? []) as any[]) {
-      if (String(n?.type ?? "").toUpperCase() === "CHD" || (typeof n?.age === "number" && n.age < 12)) children += 1;
-      else adults += 1;
-    }
+    const p = contarPax((r?.names ?? []) as any[]);
+    pax = { adults: pax.adults + p.adults, children: pax.children + p.children, infants: pax.infants + p.infants };
   }
+
 
   const total = rooms.reduce<number | null>((acc, r) => {
     const v = sumFares(r?.fares);
