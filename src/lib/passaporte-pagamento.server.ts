@@ -290,6 +290,13 @@ export async function confirmarPagamentoPassaporte(params: {
     } as never)
     .eq("id", pay.passport_request_id);
 
+  try {
+    const { sincronizarPedidoPassaporte } = await import("./passaporte-order.server");
+    await sincronizarPedidoPassaporte(pay.passport_request_id);
+  } catch (e) {
+    console.error("[passaporte-pagamento] pedido não gerado", (e as Error).message);
+  }
+
   await logPagamento(
     "infinitepay_payment_confirmed",
     { orderNsu: params.orderNsu, parcelas, receiptUrl: check.receiptUrl },

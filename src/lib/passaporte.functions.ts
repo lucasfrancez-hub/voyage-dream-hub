@@ -173,6 +173,14 @@ export const submitPassportPayment = createServerFn({ method: "POST" })
       .select(SELECT)
       .single();
     if (error) throw new Error(error.message);
+    if (pago) {
+      try {
+        const { sincronizarPedidoPassaporte } = await import("./passaporte-order.server");
+        await sincronizarPedidoPassaporte((updated as Record<string, any>).id);
+      } catch (e) {
+        console.error("[passaporte] pedido não gerado", (e as Error).message);
+      }
+    }
     return mapPassport(updated as Record<string, any>);
   });
 
