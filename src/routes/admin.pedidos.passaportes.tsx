@@ -333,3 +333,89 @@ function Item({ rotulo, valor }: { rotulo: string; valor: string }) {
   );
 }
 
+/** Cobranças de cartão (InfinitePay) desta solicitação de passaporte. */
+function BlocoInfinitePay({ requestId }: { requestId: string }) {
+  const listar = useServerFn(listarPagamentosPassaporte);
+  const [rows, setRows] = useState<PassportPaymentRow[] | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const r = (await listar({ data: { requestId } })) as PassportPaymentRow[];
+        if (alive) setRows(r);
+      } catch {
+        if (alive) setRows([]);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [listar, requestId]);
+
+  return (
+    <div>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">
+        Cobranças no cartão (InfinitePay)
+      </h4>
+      {rows === null ? (
+        <p className="mt-1 text-xs text-muted-foreground">Carregando…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-1 text-xs text-muted-foreground">Nenhuma cobrança de cartão gerada.</p>
+      ) : (
+        <div className="mt-2 space-y-2">
+          {rows.map((p) => (
+            <div key={p.id} className="rounded-lg border bg-muted/20 p-3">
+              <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                <Item rotulo="Situação" valor={p.status} />
+                <Item
+                  rotulo="Valor"
+                  valor={formatBRL((p.paidAmount ?? p.amount) / 100)}
+                />
+                <Item rotulo="Parcelas" valor={p.installments ? `${p.installments}x` : "—"} />
+                <Item rotulo="Forma capturada" valor={p.captureMethod ?? "—"} />
+                <Item rotulo="Pedido (order_nsu)" valor={p.orderNsu} />
+                <Item rotulo="Transação (transaction_nsu)" valor={p.transactionNsu ?? "—"} />
+                <Item
+                  rotulo="Criada em"
+                  valor={new Date(p.createdAt).toLocaleString("pt-BR")}
+                />
+                <Item
+                  rotulo="Paga em"
+                  valor={p.paidAt ? new Date(p.paidAt).toLocaleString("pt-BR") : "—"}
+                />
+              </dl>
+              {p.notes ? (
+                <p className="mt-2 text-xs font-medium text-amber-700">{p.notes}</p>
+              ) : null}
+              <div className="mt-2 flex flex-wrap gap-3">
+                {p.receiptUrl ? (
+                  <a
+                    href={p.receiptUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-medium text-primary underline"
+                  >
+                    Ver comprovante
+                  </a>
+                ) : null}
+                {p.checkoutUrl ? (
+                  <a
+                    href={p.checkoutUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-medium text-primary underline"
+                  >
+                    Abrir link de pagamento
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
