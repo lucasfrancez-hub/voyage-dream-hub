@@ -19,6 +19,8 @@ import {
   savePassportStep,
   submitPassportPayment,
 } from "@/lib/passaporte.functions";
+import { criarCheckoutPassaporte } from "@/lib/passaporte-infinitepay.functions";
+
 import type { PassportPublic } from "@/lib/passaporte.server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
