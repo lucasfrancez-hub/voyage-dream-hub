@@ -67,7 +67,7 @@ async function transcribeOnce(
   const ext = extMap[baseType] ?? "ogg";
 
   const form = new FormData();
-  form.append("model", "openai/gpt-4o-transcribe");
+  form.append("model", model);
   form.append("file", blob, `audio.${ext}`);
 
   try {
@@ -78,15 +78,62 @@ async function transcribeOnce(
     });
     const raw = await res.text();
     if (!res.ok) {
-      console.error("[wa/media] transcrição falhou:", res.status, raw.slice(0, 300));
+      console.error(`[wa/media] transcrição falhou (${model}):`, res.status, raw.slice(0, 300));
       return null;
     }
     const data = JSON.parse(raw) as { text?: string };
-    return data.text?.trim() ?? null;
+    return data.text?.trim() || null;
   } catch (err) {
-    console.error("[wa/media] exception transcrição:", err instanceof Error ? err.message : err);
+    console.error(
+      `[wa/media] exception transcrição (${model}):`,
+      err instanceof Error ? err.message : err,
+    );
     return null;
   }
+}
+
+/**
+ * Transcreve áudio com pipeline resiliente:
+ *   modelo principal → retry → modelo de fallback.
+ * Retorna `null` só quando TODAS as tentativas falharam — nesse caso o chamador
+ * NUNCA pode mandar "[Áudio]" pro modelo como se fosse conteúdo.
+ * Registra provider/modelo, tentativas, duração e resultado no log estruturado.
+ */
+export async function transcribeAudio(blob: Blob, mimeType: string): Promise<string | null> {
+  const tentativas: Array<{ model: string }> = [
+    { model: "openai/gpt-4o-transcribe" },
+    { model: "openai/gpt-4o-transcribe" },
+    { model: "openai/gpt-4o-mini-transcribe" },
+  ];
+  const inicio = Date.now();
+  for (let i = 0; i < tentativas.length; i++) {
+    const { model } = tentativas[i]!;
+    const texto = await transcribeOnce(blob, mimeType, model);
+    if (texto) {
+      console.log(
+        JSON.stringify({
+          event: "audio_transcription",
+          status: "ok",
+          model,
+          attempt: i + 1,
+          duration_ms: Date.now() - inicio,
+          chars: texto.length,
+        }),
+      );
+      return texto;
+    }
+    if (i < tentativas.length - 1) await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+  }
+  console.error(
+    JSON.stringify({
+      event: "audio_transcription",
+      status: "transcription_failed",
+      attempts: tentativas.length,
+      duration_ms: Date.now() - inicio,
+      mime: mimeType,
+    }),
+  );
+  return null;
 }
 
 /**
