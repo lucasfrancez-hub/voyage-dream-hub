@@ -53,7 +53,7 @@ export const savePassportStep = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabaseAdmin
       .from("passport_requests")
-      .update(patch)
+      .update(patch as never)
       .eq("token", data.token)
       .select(SELECT)
       .single();
@@ -254,7 +254,7 @@ export const updatePassportAdmin = createServerFn({ method: "POST" })
 
     const { data: row, error } = await context.supabase
       .from("passport_requests")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.id)
       .select(SELECT)
       .single();

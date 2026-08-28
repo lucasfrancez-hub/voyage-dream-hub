@@ -40,9 +40,9 @@ export type PassportPublic = {
   status: string;
   serviceType: string;
   applicantName: string | null;
-  dadosPessoais: Record<string, unknown>;
-  documentos: Record<string, unknown>;
-  complementares: Record<string, unknown>;
+  dadosPessoais: Record<string, string>;
+  documentos: Record<string, string>;
+  complementares: Record<string, string>;
   paymentMethod: string | null;
   paymentStatus: string;
   amount: number | null;
@@ -53,8 +53,14 @@ export type PassportPublic = {
   pfProtocolo: string | null;
 };
 
-const asObj = (v: unknown): Record<string, unknown> =>
-  v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+const asObj = (v: unknown): Record<string, string> => {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+  const out: Record<string, string> = {};
+  for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+    out[k] = val == null ? "" : String(val);
+  }
+  return out;
+};
 
 export function mapPassport(row: Record<string, any>): PassportPublic {
   return {
