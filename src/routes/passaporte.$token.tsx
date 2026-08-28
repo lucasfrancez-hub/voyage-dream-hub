@@ -25,6 +25,8 @@ import type { PassportPublic } from "@/lib/passaporte.server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TopBar } from "@/components/TopBar";
+import { ContactFooter } from "@/components/ContactFooter";
 
 const PRECO_PIX = 285;
 const PRECO_CARTAO = 320;
