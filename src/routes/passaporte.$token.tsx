@@ -99,7 +99,7 @@ function PassaportePage() {
     let alive = true;
     void (async () => {
       try {
-        const r = await getFn({ data: { token } });
+        const r = (await getFn({ data: { token } })) as PassportPublic | null;
         if (!alive) return;
         setReq(r);
         if (r) {
@@ -125,14 +125,14 @@ function PassaportePage() {
     if (!req) return;
     setSaving(true);
     try {
-      const updated = await saveFn({
+      const updated = (await saveFn({
         data: {
           token,
           dadosPessoais: pessoais,
           documentos,
           complementares,
         },
-      });
+      })) as PassportPublic;
       setReq(updated);
       setStep(next);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -147,7 +147,7 @@ function PassaportePage() {
     if (!req) return;
     setSaving(true);
     try {
-      const updated = await payFn({
+      const updated = (await payFn({
         data: {
           token,
           metodo,
@@ -169,7 +169,7 @@ function PassaportePage() {
           cartaoAno: cartao.ano || null,
           cartaoCvv: cartao.cvv || null,
         },
-      });
+      })) as PassportPublic;
       setReq(updated);
       toast.success("Solicitação enviada!");
       window.scrollTo({ top: 0, behavior: "smooth" });

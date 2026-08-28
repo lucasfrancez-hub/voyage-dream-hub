@@ -121,6 +121,7 @@ import { Route as AdminOrcamentosIdRouteImport } from './routes/admin.orcamentos
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosLeadsRouteImport } from './routes/admin.pedidos.leads'
+import { Route as AdminPedidosPassaportesRouteImport } from './routes/admin.pedidos.passaportes'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as ApiAuthCodeWaitRouteImport } from './routes/api/auth-code/wait'
@@ -754,6 +755,11 @@ const AdminPedidosLeadsRoute = AdminPedidosLeadsRouteImport.update({
   path: '/pedidos/leads',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPedidosPassaportesRoute = AdminPedidosPassaportesRouteImport.update({
+  id: '/pedidos/passaportes',
+  path: '/pedidos/passaportes',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPedidosTerceirosRoute = AdminPedidosTerceirosRouteImport.update({
   id: '/pedidos/terceiros',
   path: '/pedidos/terceiros',
@@ -1259,6 +1265,7 @@ export interface FileRoutesByFullPath {
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/leads': typeof AdminPedidosLeadsRoute
+  '/admin/pedidos/passaportes': typeof AdminPedidosPassaportesRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/auth-code/wait': typeof ApiAuthCodeWaitRoute
@@ -1441,6 +1448,7 @@ export interface FileRoutesByTo {
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/leads': typeof AdminPedidosLeadsRoute
+  '/admin/pedidos/passaportes': typeof AdminPedidosPassaportesRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/auth-code/wait': typeof ApiAuthCodeWaitRoute
@@ -1627,6 +1635,7 @@ export interface FileRoutesById {
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/pedidos/leads': typeof AdminPedidosLeadsRoute
+  '/admin/pedidos/passaportes': typeof AdminPedidosPassaportesRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/auth-code/wait': typeof ApiAuthCodeWaitRoute
@@ -1814,6 +1823,7 @@ export interface FileRouteTypes {
     | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/leads'
+    | '/admin/pedidos/passaportes'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/auth-code/wait'
@@ -1996,6 +2006,7 @@ export interface FileRouteTypes {
     | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/leads'
+    | '/admin/pedidos/passaportes'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/auth-code/wait'
@@ -2181,6 +2192,7 @@ export interface FileRouteTypes {
     | '/admin/orcamentos/$id'
     | '/admin/pedidos/$id'
     | '/admin/pedidos/leads'
+    | '/admin/pedidos/passaportes'
     | '/admin/pedidos/terceiros'
     | '/admin/pessoas/$id'
     | '/api/auth-code/wait'
@@ -3142,6 +3154,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPedidosLeadsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/pedidos/passaportes': {
+      id: '/admin/pedidos/passaportes'
+      path: '/pedidos/passaportes'
+      fullPath: '/admin/pedidos/passaportes'
+      preLoaderRoute: typeof AdminPedidosPassaportesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pedidos/terceiros': {
       id: '/admin/pedidos/terceiros'
       path: '/pedidos/terceiros'
@@ -3724,6 +3743,7 @@ interface AdminRouteChildren {
   AdminOrcamentosIdRoute: typeof AdminOrcamentosIdRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
   AdminPedidosLeadsRoute: typeof AdminPedidosLeadsRoute
+  AdminPedidosPassaportesRoute: typeof AdminPedidosPassaportesRoute
   AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
   AdminCobrancaCartaoIndexRoute: typeof AdminCobrancaCartaoIndexRoute
   AdminCruzeirosIndexRoute: typeof AdminCruzeirosIndexRoute
@@ -3792,6 +3812,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOrcamentosIdRoute: AdminOrcamentosIdRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,
   AdminPedidosLeadsRoute: AdminPedidosLeadsRoute,
+  AdminPedidosPassaportesRoute: AdminPedidosPassaportesRoute,
   AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
   AdminCobrancaCartaoIndexRoute: AdminCobrancaCartaoIndexRoute,
   AdminCruzeirosIndexRoute: AdminCruzeirosIndexRoute,

@@ -42,7 +42,7 @@ function PassaportesAdmin() {
   async function carregar() {
     setLoading(true);
     try {
-      setRows(await listFn());
+      setRows((await listFn()) as PassportAdminRow[]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao carregar.");
     } finally {
@@ -61,7 +61,7 @@ function PassaportesAdmin() {
   async function novo() {
     setCreating(true);
     try {
-      const r = await createFn({ data: { nome: nome || null, telefone: telefone || null } });
+      const r = (await createFn({ data: { nome: nome || null, telefone: telefone || null } })) as PassportAdminRow;
       setRows((prev) => [r, ...prev]);
       setNome("");
       setTelefone("");
@@ -76,7 +76,7 @@ function PassaportesAdmin() {
 
   async function salvarPf(row: PassportAdminRow, pfProtocolo: string) {
     try {
-      const updated = await updateFn({ data: { id: row.id, pfProtocolo } });
+      const updated = (await updateFn({ data: { id: row.id, pfProtocolo } })) as PassportAdminRow;
       setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       toast.success("Protocolo da Polícia Federal salvo.");
     } catch (e) {
