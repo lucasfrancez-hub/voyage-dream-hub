@@ -88,9 +88,9 @@ function PassaportesAdmin() {
   }
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+    <div className="mx-auto w-full max-w-6xl space-y-6 overflow-x-hidden p-4 sm:p-6">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold">Renovação de passaporte</h1>
           <p className="text-sm text-muted-foreground">
             Gere o link público, acompanhe o preenchimento e lance o protocolo da Polícia Federal.
