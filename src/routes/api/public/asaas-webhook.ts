@@ -111,6 +111,52 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
 
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
 
+        // ----- Solicitações de passaporte (Pix/cartão via ASAAS) -----
+        try {
+          const { data: pp } = await supabaseAdmin
+            .from('passport_requests')
+            .select('id, payment_status')
+            .eq('asaas_payment_id', paymentId)
+            .maybeSingle()
+          if (pp) {
+            const pagos = ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED']
+            if (pagos.includes(event)) {
+              if (pp.payment_status !== 'paid') {
+                await supabaseAdmin
+                  .from('passport_requests')
+                  .update({
+                    payment_status: 'paid',
+                    paid_at: payment?.paymentDate
+                      ? new Date(payment.paymentDate).toISOString()
+                      : new Date().toISOString(),
+                    status: 'enviado',
+                  } as never)
+                  .eq('id', pp.id)
+              }
+              const { sincronizarPedidoPassaporte } = await import(
+                '@/lib/passaporte-order.server'
+              )
+              const res = await sincronizarPedidoPassaporte(pp.id)
+              return Response.json({ ok: true, event, passaporte: res })
+            }
+            const cancelados: Record<string, string> = {
+              PAYMENT_OVERDUE: 'overdue',
+              PAYMENT_DELETED: 'cancelled',
+              PAYMENT_REFUNDED: 'refunded',
+            }
+            if (cancelados[event]) {
+              await supabaseAdmin
+                .from('passport_requests')
+                .update({ payment_status: cancelados[event] } as never)
+                .eq('id', pp.id)
+            }
+            return Response.json({ ok: true, event, passaporte: true })
+          }
+        } catch (e) {
+          console.error('[asaas-webhook] passaporte error', (e as Error).message)
+        }
+
+
         let { data: cob } = await supabaseAdmin
           .from('pix_cobrancas')
           .select('id, order_id, status, valor')
