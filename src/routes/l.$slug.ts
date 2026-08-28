@@ -70,10 +70,10 @@ export const Route = createFileRoute("/l/$slug")({
           /* métricas nunca bloqueiam o redirect */
         }
 
-        // no máximo ~1.5s: métrica nunca segura o usuário
+        // no máximo ~350ms: métrica nunca segura o usuário
         await Promise.race([
           Promise.allSettled(tarefas),
-          new Promise((r) => setTimeout(r, 1500)),
+          new Promise((r) => setTimeout(r, 350)),
         ]);
 
 
