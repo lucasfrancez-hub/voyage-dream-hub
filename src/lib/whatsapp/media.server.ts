@@ -40,7 +40,11 @@ export async function downloadWhatsAppMedia(
  * Transcreve um áudio via Lovable AI Gateway (openai/gpt-4o-transcribe).
  * WhatsApp geralmente manda OGG/Opus; o modelo aceita ogg.
  */
-export async function transcribeAudio(blob: Blob, mimeType: string): Promise<string | null> {
+async function transcribeOnce(
+  blob: Blob,
+  mimeType: string,
+  model: string,
+): Promise<string | null> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) {
     console.error("[wa/media] LOVABLE_API_KEY ausente");
