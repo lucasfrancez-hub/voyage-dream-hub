@@ -413,19 +413,14 @@ function mapFlight(bf: any): { flights: NormalizedFlight[]; pax: Pax; total: num
     });
   }
   const travellers: any[] = Array.isArray(bf?.travellers) ? bf.travellers : Array.isArray(bf?.names) ? bf.names : [];
-  let adults = 0;
-  let children = 0;
-  for (const t of travellers) {
-    if (String(t?.type ?? "").toUpperCase() === "CHD") children += 1;
-    else adults += 1;
-  }
+  const pax = contarPax(travellers);
   const breakdown = splitFlightFares(bf?.fares);
-  const passengerCount = Math.max(1, adults + children);
+  const passengerCount = Math.max(1, pax.adults + pax.children + pax.infants);
   if (out[0]) {
     out[0].fare = breakdown.fare == null ? null : Math.round((breakdown.fare / passengerCount) * 100) / 100;
     out[0].taxes = breakdown.taxes == null ? null : Math.round((breakdown.taxes / passengerCount) * 100) / 100;
   }
-  return { flights: out, pax: { adults, children }, total: breakdown.total };
+  return { flights: out, pax, total: breakdown.total };
 }
 
 /**
