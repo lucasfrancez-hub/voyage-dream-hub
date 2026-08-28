@@ -109,6 +109,7 @@ import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as PassaporteTokenRouteImport } from './routes/passaporte.$token'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
 import { Route as ReservaTokenRouteImport } from './routes/reserva.$token'
+import { Route as VistoAmericanoTokenRouteImport } from './routes/visto-americano.$token'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
 import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
 import { Route as AdminCobrancaCartaoIndexRouteImport } from './routes/admin.cobranca-cartao.index'
@@ -123,6 +124,7 @@ import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminPedidosLeadsRouteImport } from './routes/admin.pedidos.leads'
 import { Route as AdminPedidosPassaportesRouteImport } from './routes/admin.pedidos.passaportes'
 import { Route as AdminPedidosTerceirosRouteImport } from './routes/admin.pedidos.terceiros'
+import { Route as AdminPedidosVistosRouteImport } from './routes/admin.pedidos.vistos'
 import { Route as AdminPessoasIdRouteImport } from './routes/admin.pessoas.$id'
 import { Route as ApiAuthCodeWaitRouteImport } from './routes/api/auth-code/wait'
 import { Route as ApiChatCamilaRouteImport } from './routes/api/chat.camila'
@@ -191,6 +193,7 @@ import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/ap
 import { Route as ApiPublicV1CruiseImportRouteImport } from './routes/api/public/v1/cruise-import'
 import { Route as ApiPublicV1ExtensionPairRouteImport } from './routes/api/public/v1/extension-pair'
 import { Route as ApiPublicV1QuoteImportsRouteImport } from './routes/api/public/v1/quote-imports'
+import { Route as ApiPublicVistoTokenRouteImport } from './routes/api/public/visto.$token'
 import { Route as CruzeirosUiPreviewScreenModelRouteImport } from './routes/cruzeiros_.ui-preview.$screen.$model'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -696,6 +699,11 @@ const ReservaTokenRoute = ReservaTokenRouteImport.update({
   path: '/reserva/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VistoAmericanoTokenRoute = VistoAmericanoTokenRouteImport.update({
+  id: '/visto-americano/$token',
+  path: '/visto-americano/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WSlugRoute = WSlugRouteImport.update({
   id: '/w/$slug',
   path: '/w/$slug',
@@ -765,6 +773,11 @@ const AdminPedidosPassaportesRoute = AdminPedidosPassaportesRouteImport.update({
 const AdminPedidosTerceirosRoute = AdminPedidosTerceirosRouteImport.update({
   id: '/pedidos/terceiros',
   path: '/pedidos/terceiros',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPedidosVistosRoute = AdminPedidosVistosRouteImport.update({
+  id: '/pedidos/vistos',
+  path: '/pedidos/vistos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPessoasIdRoute = AdminPessoasIdRouteImport.update({
@@ -1147,6 +1160,11 @@ const ApiPublicV1QuoteImportsRoute = ApiPublicV1QuoteImportsRouteImport.update({
   path: '/api/public/v1/quote-imports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicVistoTokenRoute = ApiPublicVistoTokenRouteImport.update({
+  id: '/api/public/visto/$token',
+  path: '/api/public/visto/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CruzeirosUiPreviewScreenModelRoute =
   CruzeirosUiPreviewScreenModelRouteImport.update({
     id: '/cruzeiros_/ui-preview/$screen/$model',
@@ -1269,6 +1287,7 @@ export interface FileRoutesByFullPath {
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
+  '/visto-americano/$token': typeof VistoAmericanoTokenRoute
   '/w/$slug': typeof WSlugRoute
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
@@ -1280,6 +1299,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/leads': typeof AdminPedidosLeadsRoute
   '/admin/pedidos/passaportes': typeof AdminPedidosPassaportesRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
+  '/admin/pedidos/vistos': typeof AdminPedidosVistosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/auth-code/wait': typeof ApiAuthCodeWaitRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
@@ -1353,6 +1373,7 @@ export interface FileRoutesByFullPath {
   '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
+  '/api/public/visto/$token': typeof ApiPublicVistoTokenRoute
   '/cruzeiros/ui-preview/$screen/$model': typeof CruzeirosUiPreviewScreenModelRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1454,6 +1475,7 @@ export interface FileRoutesByTo {
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
+  '/visto-americano/$token': typeof VistoAmericanoTokenRoute
   '/w/$slug': typeof WSlugRoute
   '/editair': typeof EditairIndexRoute
   '/pacotes': typeof PacotesIndexRoute
@@ -1465,6 +1487,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/leads': typeof AdminPedidosLeadsRoute
   '/admin/pedidos/passaportes': typeof AdminPedidosPassaportesRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
+  '/admin/pedidos/vistos': typeof AdminPedidosVistosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/auth-code/wait': typeof ApiAuthCodeWaitRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
@@ -1538,6 +1561,7 @@ export interface FileRoutesByTo {
   '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
+  '/api/public/visto/$token': typeof ApiPublicVistoTokenRoute
   '/cruzeiros/ui-preview/$screen/$model': typeof CruzeirosUiPreviewScreenModelRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1643,6 +1667,7 @@ export interface FileRoutesById {
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
+  '/visto-americano/$token': typeof VistoAmericanoTokenRoute
   '/w/$slug': typeof WSlugRoute
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
@@ -1654,6 +1679,7 @@ export interface FileRoutesById {
   '/admin/pedidos/leads': typeof AdminPedidosLeadsRoute
   '/admin/pedidos/passaportes': typeof AdminPedidosPassaportesRoute
   '/admin/pedidos/terceiros': typeof AdminPedidosTerceirosRoute
+  '/admin/pedidos/vistos': typeof AdminPedidosVistosRoute
   '/admin/pessoas/$id': typeof AdminPessoasIdRoute
   '/api/auth-code/wait': typeof ApiAuthCodeWaitRoute
   '/api/chat/camila': typeof ApiChatCamilaRoute
@@ -1727,6 +1753,7 @@ export interface FileRoutesById {
   '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
   '/api/public/v1/quote-imports': typeof ApiPublicV1QuoteImportsRoute
+  '/api/public/visto/$token': typeof ApiPublicVistoTokenRoute
   '/cruzeiros_/ui-preview/$screen/$model': typeof CruzeirosUiPreviewScreenModelRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1833,6 +1860,7 @@ export interface FileRouteTypes {
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
+    | '/visto-americano/$token'
     | '/w/$slug'
     | '/editair/'
     | '/pacotes/'
@@ -1844,6 +1872,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/leads'
     | '/admin/pedidos/passaportes'
     | '/admin/pedidos/terceiros'
+    | '/admin/pedidos/vistos'
     | '/admin/pessoas/$id'
     | '/api/auth-code/wait'
     | '/api/chat/camila'
@@ -1917,6 +1946,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
+    | '/api/public/visto/$token'
     | '/cruzeiros/ui-preview/$screen/$model'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -2018,6 +2048,7 @@ export interface FileRouteTypes {
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
+    | '/visto-americano/$token'
     | '/w/$slug'
     | '/editair'
     | '/pacotes'
@@ -2029,6 +2060,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/leads'
     | '/admin/pedidos/passaportes'
     | '/admin/pedidos/terceiros'
+    | '/admin/pedidos/vistos'
     | '/admin/pessoas/$id'
     | '/api/auth-code/wait'
     | '/api/chat/camila'
@@ -2102,6 +2134,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
+    | '/api/public/visto/$token'
     | '/cruzeiros/ui-preview/$screen/$model'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -2206,6 +2239,7 @@ export interface FileRouteTypes {
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
+    | '/visto-americano/$token'
     | '/w/$slug'
     | '/editair/'
     | '/pacotes/'
@@ -2217,6 +2251,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/leads'
     | '/admin/pedidos/passaportes'
     | '/admin/pedidos/terceiros'
+    | '/admin/pedidos/vistos'
     | '/admin/pessoas/$id'
     | '/api/auth-code/wait'
     | '/api/chat/camila'
@@ -2290,6 +2325,7 @@ export interface FileRouteTypes {
     | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
     | '/api/public/v1/quote-imports'
+    | '/api/public/visto/$token'
     | '/cruzeiros_/ui-preview/$screen/$model'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -2328,6 +2364,7 @@ export interface RootRouteChildren {
   PassaporteTokenRoute: typeof PassaporteTokenRouteWithChildren
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   ReservaTokenRoute: typeof ReservaTokenRoute
+  VistoAmericanoTokenRoute: typeof VistoAmericanoTokenRoute
   WSlugRoute: typeof WSlugRoute
   ApiAuthCodeWaitRoute: typeof ApiAuthCodeWaitRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
@@ -2388,6 +2425,7 @@ export interface RootRouteChildren {
   ApiPublicV1CruiseImportRoute: typeof ApiPublicV1CruiseImportRoute
   ApiPublicV1ExtensionPairRoute: typeof ApiPublicV1ExtensionPairRoute
   ApiPublicV1QuoteImportsRoute: typeof ApiPublicV1QuoteImportsRoute
+  ApiPublicVistoTokenRoute: typeof ApiPublicVistoTokenRoute
   CruzeirosUiPreviewScreenModelRoute: typeof CruzeirosUiPreviewScreenModelRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -3096,6 +3134,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReservaTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/visto-americano/$token': {
+      id: '/visto-americano/$token'
+      path: '/visto-americano/$token'
+      fullPath: '/visto-americano/$token'
+      preLoaderRoute: typeof VistoAmericanoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/w/$slug': {
       id: '/w/$slug'
       path: '/w/$slug'
@@ -3192,6 +3237,13 @@ declare module '@tanstack/react-router' {
       path: '/pedidos/terceiros'
       fullPath: '/admin/pedidos/terceiros'
       preLoaderRoute: typeof AdminPedidosTerceirosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pedidos/vistos': {
+      id: '/admin/pedidos/vistos'
+      path: '/pedidos/vistos'
+      fullPath: '/admin/pedidos/vistos'
+      preLoaderRoute: typeof AdminPedidosVistosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pessoas/$id': {
@@ -3670,6 +3722,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicV1QuoteImportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/visto/$token': {
+      id: '/api/public/visto/$token'
+      path: '/api/public/visto/$token'
+      fullPath: '/api/public/visto/$token'
+      preLoaderRoute: typeof ApiPublicVistoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cruzeiros_/ui-preview/$screen/$model': {
       id: '/cruzeiros_/ui-preview/$screen/$model'
       path: '/cruzeiros/ui-preview/$screen/$model'
@@ -3785,6 +3844,7 @@ interface AdminRouteChildren {
   AdminPedidosLeadsRoute: typeof AdminPedidosLeadsRoute
   AdminPedidosPassaportesRoute: typeof AdminPedidosPassaportesRoute
   AdminPedidosTerceirosRoute: typeof AdminPedidosTerceirosRoute
+  AdminPedidosVistosRoute: typeof AdminPedidosVistosRoute
   AdminCobrancaCartaoIndexRoute: typeof AdminCobrancaCartaoIndexRoute
   AdminCruzeirosIndexRoute: typeof AdminCruzeirosIndexRoute
   AdminOrcamentosIndexRoute: typeof AdminOrcamentosIndexRoute
@@ -3854,6 +3914,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPedidosLeadsRoute: AdminPedidosLeadsRoute,
   AdminPedidosPassaportesRoute: AdminPedidosPassaportesRoute,
   AdminPedidosTerceirosRoute: AdminPedidosTerceirosRoute,
+  AdminPedidosVistosRoute: AdminPedidosVistosRoute,
   AdminCobrancaCartaoIndexRoute: AdminCobrancaCartaoIndexRoute,
   AdminCruzeirosIndexRoute: AdminCruzeirosIndexRoute,
   AdminOrcamentosIndexRoute: AdminOrcamentosIndexRoute,
@@ -3978,6 +4039,7 @@ const rootRouteChildren: RootRouteChildren = {
   PassaporteTokenRoute: PassaporteTokenRouteWithChildren,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   ReservaTokenRoute: ReservaTokenRoute,
+  VistoAmericanoTokenRoute: VistoAmericanoTokenRoute,
   WSlugRoute: WSlugRoute,
   ApiAuthCodeWaitRoute: ApiAuthCodeWaitRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
@@ -4047,6 +4109,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicV1CruiseImportRoute: ApiPublicV1CruiseImportRoute,
   ApiPublicV1ExtensionPairRoute: ApiPublicV1ExtensionPairRoute,
   ApiPublicV1QuoteImportsRoute: ApiPublicV1QuoteImportsRoute,
+  ApiPublicVistoTokenRoute: ApiPublicVistoTokenRoute,
   CruzeirosUiPreviewScreenModelRoute: CruzeirosUiPreviewScreenModelRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
