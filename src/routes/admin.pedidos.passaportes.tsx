@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Copy, Loader2, Plus, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Loader2, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -146,6 +146,7 @@ function Card({
   onSavePf: (row: PassportAdminRow, pf: string) => Promise<void>;
 }) {
   const [pf, setPf] = useState(row.pfProtocolo ?? "");
+  const [aberto, setAberto] = useState(false);
   return (
     <div className="rounded-xl border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
