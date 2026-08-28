@@ -154,6 +154,7 @@ import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.ind
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as PagarReservaCodigoRouteImport } from './routes/pagar_.reserva.$codigo'
 import { Route as PassaporteTokenRetornoRouteImport } from './routes/passaporte.$token.retorno'
+import { Route as VistoAmericanoTokenFormRouteImport } from './routes/visto-americano.$token.form'
 import { Route as AdminBilhetesIdEticketRouteImport } from './routes/admin.bilhetes_.$id.eticket'
 import { Route as AdminCruzeirosPreviaIdRouteImport } from './routes/admin.cruzeiros.previa.$id'
 import { Route as AdminPedidosIdPlanoViagemRouteImport } from './routes/admin.pedidos_.$id.plano-viagem'
@@ -932,6 +933,11 @@ const PassaporteTokenRetornoRoute = PassaporteTokenRetornoRouteImport.update({
   path: '/retorno',
   getParentRoute: () => PassaporteTokenRoute,
 } as any)
+const VistoAmericanoTokenFormRoute = VistoAmericanoTokenFormRouteImport.update({
+  id: '/visto-americano/$token/form',
+  path: '/visto-americano/$token/form',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminBilhetesIdEticketRoute = AdminBilhetesIdEticketRouteImport.update({
   id: '/bilhetes_/$id/eticket',
   path: '/bilhetes/$id/eticket',
@@ -1321,6 +1327,7 @@ export interface FileRoutesByFullPath {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pagar/reserva/$codigo': typeof PagarReservaCodigoRoute
   '/passaporte/$token/retorno': typeof PassaporteTokenRetornoRoute
+  '/visto-americano/$token/form': typeof VistoAmericanoTokenFormRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/motor-pacote/': typeof AdminMotorPacoteIndexRoute
@@ -1508,6 +1515,7 @@ export interface FileRoutesByTo {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pagar/reserva/$codigo': typeof PagarReservaCodigoRoute
   '/passaporte/$token/retorno': typeof PassaporteTokenRetornoRoute
+  '/visto-americano/$token/form': typeof VistoAmericanoTokenFormRoute
   '/admin/cobranca-cartao': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros': typeof AdminCruzeirosIndexRoute
   '/admin/motor-pacote': typeof AdminMotorPacoteIndexRoute
@@ -1699,6 +1707,7 @@ export interface FileRoutesById {
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pagar_/reserva/$codigo': typeof PagarReservaCodigoRoute
   '/passaporte/$token/retorno': typeof PassaporteTokenRetornoRoute
+  '/visto-americano/$token/form': typeof VistoAmericanoTokenFormRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/motor-pacote/': typeof AdminMotorPacoteIndexRoute
@@ -1891,6 +1900,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/pagar/reserva/$codigo'
     | '/passaporte/$token/retorno'
+    | '/visto-americano/$token/form'
     | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
     | '/admin/motor-pacote/'
@@ -2078,6 +2088,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/pagar/reserva/$codigo'
     | '/passaporte/$token/retorno'
+    | '/visto-americano/$token/form'
     | '/admin/cobranca-cartao'
     | '/admin/cruzeiros'
     | '/admin/motor-pacote'
@@ -2268,6 +2279,7 @@ export interface FileRouteTypes {
     | '/pacotes/$slug/checkout'
     | '/pagar_/reserva/$codigo'
     | '/passaporte/$token/retorno'
+    | '/visto-americano/$token/form'
     | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
     | '/admin/motor-pacote/'
@@ -2377,6 +2389,7 @@ export interface RootRouteChildren {
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   MultitrechoCotacaoTokenRoute: typeof MultitrechoCotacaoTokenRoute
   PagarReservaCodigoRoute: typeof PagarReservaCodigoRoute
+  VistoAmericanoTokenFormRoute: typeof VistoAmericanoTokenFormRoute
   CruzeirosUiPreviewIndexRoute: typeof CruzeirosUiPreviewIndexRoute
   ApiPublicAdminManifestTokenRoute: typeof ApiPublicAdminManifestTokenRoute
   ApiPublicAgendaManifestTokenRoute: typeof ApiPublicAgendaManifestTokenRoute
@@ -3436,6 +3449,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PassaporteTokenRetornoRouteImport
       parentRoute: typeof PassaporteTokenRoute
     }
+    '/visto-americano/$token/form': {
+      id: '/visto-americano/$token/form'
+      path: '/visto-americano/$token/form'
+      fullPath: '/visto-americano/$token/form'
+      preLoaderRoute: typeof VistoAmericanoTokenFormRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/bilhetes_/$id/eticket': {
       id: '/admin/bilhetes_/$id/eticket'
       path: '/bilhetes/$id/eticket'
@@ -4045,6 +4065,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   MultitrechoCotacaoTokenRoute: MultitrechoCotacaoTokenRoute,
   PagarReservaCodigoRoute: PagarReservaCodigoRoute,
+  VistoAmericanoTokenFormRoute: VistoAmericanoTokenFormRoute,
   CruzeirosUiPreviewIndexRoute: CruzeirosUiPreviewIndexRoute,
   ApiPublicAdminManifestTokenRoute: ApiPublicAdminManifestTokenRoute,
   ApiPublicAgendaManifestTokenRoute: ApiPublicAgendaManifestTokenRoute,
