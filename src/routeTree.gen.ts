@@ -109,7 +109,6 @@ import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as PassaporteTokenRouteImport } from './routes/passaporte.$token'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
 import { Route as ReservaTokenRouteImport } from './routes/reserva.$token'
-import { Route as VistoAmericanoTokenRouteImport } from './routes/visto-americano.$token'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
 import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
 import { Route as AdminCobrancaCartaoIndexRouteImport } from './routes/admin.cobranca-cartao.index'
@@ -699,11 +698,6 @@ const ReservaTokenRoute = ReservaTokenRouteImport.update({
   path: '/reserva/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VistoAmericanoTokenRoute = VistoAmericanoTokenRouteImport.update({
-  id: '/visto-americano/$token',
-  path: '/visto-americano/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WSlugRoute = WSlugRouteImport.update({
   id: '/w/$slug',
   path: '/w/$slug',
@@ -1287,7 +1281,6 @@ export interface FileRoutesByFullPath {
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
-  '/visto-americano/$token': typeof VistoAmericanoTokenRoute
   '/w/$slug': typeof WSlugRoute
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
@@ -1475,7 +1468,6 @@ export interface FileRoutesByTo {
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
-  '/visto-americano/$token': typeof VistoAmericanoTokenRoute
   '/w/$slug': typeof WSlugRoute
   '/editair': typeof EditairIndexRoute
   '/pacotes': typeof PacotesIndexRoute
@@ -1667,7 +1659,6 @@ export interface FileRoutesById {
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
-  '/visto-americano/$token': typeof VistoAmericanoTokenRoute
   '/w/$slug': typeof WSlugRoute
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
@@ -1860,7 +1851,6 @@ export interface FileRouteTypes {
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
-    | '/visto-americano/$token'
     | '/w/$slug'
     | '/editair/'
     | '/pacotes/'
@@ -2048,7 +2038,6 @@ export interface FileRouteTypes {
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
-    | '/visto-americano/$token'
     | '/w/$slug'
     | '/editair'
     | '/pacotes'
@@ -2239,7 +2228,6 @@ export interface FileRouteTypes {
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
-    | '/visto-americano/$token'
     | '/w/$slug'
     | '/editair/'
     | '/pacotes/'
@@ -2364,7 +2352,6 @@ export interface RootRouteChildren {
   PassaporteTokenRoute: typeof PassaporteTokenRouteWithChildren
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   ReservaTokenRoute: typeof ReservaTokenRoute
-  VistoAmericanoTokenRoute: typeof VistoAmericanoTokenRoute
   WSlugRoute: typeof WSlugRoute
   ApiAuthCodeWaitRoute: typeof ApiAuthCodeWaitRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
@@ -3132,13 +3119,6 @@ declare module '@tanstack/react-router' {
       path: '/reserva/$token'
       fullPath: '/reserva/$token'
       preLoaderRoute: typeof ReservaTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/visto-americano/$token': {
-      id: '/visto-americano/$token'
-      path: '/visto-americano/$token'
-      fullPath: '/visto-americano/$token'
-      preLoaderRoute: typeof VistoAmericanoTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/w/$slug': {
@@ -4039,7 +4019,6 @@ const rootRouteChildren: RootRouteChildren = {
   PassaporteTokenRoute: PassaporteTokenRouteWithChildren,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   ReservaTokenRoute: ReservaTokenRoute,
-  VistoAmericanoTokenRoute: VistoAmericanoTokenRoute,
   WSlugRoute: WSlugRoute,
   ApiAuthCodeWaitRoute: ApiAuthCodeWaitRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
