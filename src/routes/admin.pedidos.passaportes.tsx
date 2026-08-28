@@ -25,7 +25,7 @@ export const Route = createFileRoute("/admin/pedidos/passaportes")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: PassaportesAdmin;
+  component: PassaportesAdmin,
 });
 
 function PassaportesAdmin() {
