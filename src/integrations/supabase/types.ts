@@ -6911,6 +6911,99 @@ export type Database = {
         }
         Relationships: []
       }
+      passport_requests: {
+        Row: {
+          amount: number | null
+          applicant_cpf: string | null
+          applicant_email: string | null
+          applicant_name: string | null
+          applicant_phone: string | null
+          asaas_payment_id: string | null
+          complementares: Json
+          created_at: string
+          created_by: string | null
+          dados_pessoais: Json
+          documentos: Json
+          id: string
+          installments: number | null
+          invoice_url: string | null
+          paid_at: string | null
+          payment_method: string | null
+          payment_status: string
+          pf_notes: string | null
+          pf_protocolo: string | null
+          pf_protocolo_at: string | null
+          pix_payload: string | null
+          pix_qr_base64: string | null
+          protocolo: string
+          service_type: string
+          status: string
+          submitted_at: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          applicant_cpf?: string | null
+          applicant_email?: string | null
+          applicant_name?: string | null
+          applicant_phone?: string | null
+          asaas_payment_id?: string | null
+          complementares?: Json
+          created_at?: string
+          created_by?: string | null
+          dados_pessoais?: Json
+          documentos?: Json
+          id?: string
+          installments?: number | null
+          invoice_url?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          pf_notes?: string | null
+          pf_protocolo?: string | null
+          pf_protocolo_at?: string | null
+          pix_payload?: string | null
+          pix_qr_base64?: string | null
+          protocolo?: string
+          service_type?: string
+          status?: string
+          submitted_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          applicant_cpf?: string | null
+          applicant_email?: string | null
+          applicant_name?: string | null
+          applicant_phone?: string | null
+          asaas_payment_id?: string | null
+          complementares?: Json
+          created_at?: string
+          created_by?: string | null
+          dados_pessoais?: Json
+          documentos?: Json
+          id?: string
+          installments?: number | null
+          invoice_url?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          pf_notes?: string | null
+          pf_protocolo?: string | null
+          pf_protocolo_at?: string | null
+          pix_payload?: string | null
+          pix_qr_base64?: string | null
+          protocolo?: string
+          service_type?: string
+          status?: string
+          submitted_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pedido_assinatura_signers: {
         Row: {
           assinatura_id: string
@@ -10667,6 +10760,7 @@ export type Database = {
       detect_card_brand: { Args: { num: string }; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       gerar_numero_protocolo: { Args: never; Returns: string }
+      gerar_protocolo_passaporte: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
