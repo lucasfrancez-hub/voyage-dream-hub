@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>Via Air — Formulário de apoio ao DS-160</title>
+<style>
+
+:root{
+  --navy-0:#020f19;
+  --navy-1:#041725;
+  --navy-2:#072335;
+  --navy-3:#0a2c42;
+  --navy-4:#0d3852;
+  --navy-5:#154861;
+  --orange:#ff7a1a;
+  --orange-2:#ff9a4d;
+  --orange-soft:rgba(255,122,26,.12);
+  --white:#f7fbff;
+  --text:#e9f2f7;
+  --muted:#8fa7b7;
+  --muted-2:#6e8b9e;
+  --line:rgba(184,216,234,.12);
+  --line-strong:rgba(184,216,234,.22);
+  --success:#4bd59b;
+  --danger:#ff7b7b;
+  --shadow:0 30px 90px rgba(0,0,0,.30);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;min-height:100vh;color:var(--text);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  background:
+    radial-gradient(circle at 12% -5%,rgba(255,122,26,.16),transparent 26%),
+    radial-gradient(circle at 92% 8%,rgba(40,150,202,.14),transparent 29%),
+    linear-gradient(135deg,var(--navy-0) 0%,var(--navy-1) 45%,#052033 100%);
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:-2;opacity:.32;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:linear-gradient(to bottom,black 0%,rgba(0,0,0,.5) 52%,transparent 92%);
+}
+body::after{
+  content:"";position:fixed;width:520px;height:520px;right:-180px;top:110px;z-index:-1;
+  border:1px solid rgba(255,255,255,.05);border-radius:50%;pointer-events:none;
+  box-shadow:0 0 0 68px rgba(255,255,255,.012),0 0 0 138px rgba(255,255,255,.009),0 0 0 210px rgba(255,255,255,.006);
+}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+svg{display:block}
+input,select,textarea{-webkit-appearance:none;appearance:none}
+
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(2,15,25,.78);backdrop-filter:blur(22px) saturate(135%);
+  border-bottom:1px solid rgba(255,255,255,.07)
+}
+.topbar-inner{
+  max-width:1380px;height:76px;margin:auto;padding:0 34px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px
+}
+.brand{display:flex;align-items:center;gap:12px;color:#fff;font-weight:900;letter-spacing:.055em}
+.brand>svg{width:40px;height:40px;filter:drop-shadow(0 10px 22px rgba(255,122,26,.22))}
+.brand-text{font-size:18px}.brand-text b{color:var(--orange)}
+.top-actions{display:flex;align-items:center;gap:12px}
+.save-state{display:flex;align-items:center;gap:9px;color:#9db1bf;font-size:11.5px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 0 5px rgba(75,213,155,.08)}
+.ghost{
+  border:1px solid var(--line-strong);background:rgba(255,255,255,.04);color:#e7f0f5;
+  border-radius:999px;padding:10px 16px;font-size:11.5px;font-weight:800;
+  transition:.18s;backdrop-filter:blur(12px)
+}
+.ghost:hover{border-color:rgba(255,122,26,.55);background:rgba(255,122,26,.09);color:#ffd5b7}
+
+.wrap{max-width:1380px;margin:0 auto;padding:42px 34px 90px}
+
+.hero{
+  position:relative;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);
+  gap:36px;align-items:stretch;margin-top:8px
+}
+.hero-copy{
+  min-height:330px;padding:44px 44px 40px;border:1px solid rgba(255,255,255,.08);
+  border-radius:34px;position:relative;overflow:hidden;
+  background:
+    linear-gradient(135deg,rgba(11,49,72,.96),rgba(5,29,45,.88)),
+    radial-gradient(circle at 20% 0%,rgba(255,122,26,.16),transparent 30%);
+  box-shadow:var(--shadow)
+}
+.hero-copy::after{
+  content:"";position:absolute;right:-95px;bottom:-130px;width:360px;height:360px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.05);box-shadow:0 0 0 38px rgba(255,255,255,.014),0 0 0 78px rgba(255,255,255,.01)
+}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:9px;color:#ffba88;
+  font-size:10.5px;font-weight:900;letter-spacing:.18em;text-transform:uppercase
+}
+.eyebrow svg{width:17px;height:17px;stroke:var(--orange)}
+.hero h1{
+  margin:15px 0 0;color:#fff;max-width:790px;font-size:48px;line-height:1.02;
+  letter-spacing:-.05em;font-weight:850
+}
+.hero h1 span{color:var(--orange)}
+.hero p{margin:16px 0 0;color:#acc0cd;font-size:14px;line-height:1.75;max-width:720px}
+.notice{
+  margin-top:28px;max-width:760px;padding:15px 16px;display:flex;gap:12px;align-items:flex-start;
+  border:1px solid rgba(255,255,255,.09);border-radius:17px;background:rgba(255,255,255,.035);
+  color:#b8c9d3;font-size:11.5px;line-height:1.65
+}
+.notice b{color:#fff}
+.notice-icon{
+  width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;border-radius:11px;
+  color:#ffad71;background:rgba(255,122,26,.12);border:1px solid rgba(255,122,26,.14)
+}
+.notice-icon svg{width:17px;height:17px}
+
+.hero-visual{
+  min-height:330px;padding:26px;border-radius:34px;border:1px solid rgba(255,255,255,.08);
+  position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;
+  background:
+    radial-gradient(circle at 75% 20%,rgba(56,156,201,.18),transparent 32%),
+    linear-gradient(155deg,rgba(13,56,82,.94),rgba(4,25,40,.96));
+  box-shadow:var(--shadow)
+}
+.hero-visual::before{
+  content:"";position:absolute;inset:0;opacity:.12;
+  background-image:radial-gradient(rgba(255,255,255,.8) .7px,transparent .7px);
+  background-size:22px 22px
+}
+.visual-top,.visual-bottom{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.visual-label{font-size:9px;letter-spacing:.2em;color:#7f9bad;text-transform:uppercase;font-weight:900}
+.visual-chip{
+  border:1px solid rgba(255,122,26,.22);background:rgba(255,122,26,.08);color:#ffba8a;
+  border-radius:999px;padding:7px 10px;font-size:9px;font-weight:850;letter-spacing:.08em
+}
+.route-orbit{position:relative;z-index:2;height:180px;margin:8px 2px 0}
+.route-orbit svg{width:100%;height:100%}
+.route-orbit .route-path{stroke:rgba(255,255,255,.18);stroke-width:1.4;stroke-dasharray:5 7;fill:none}
+.route-orbit .route-glow{stroke:var(--orange);stroke-width:2.5;fill:none;stroke-linecap:round;filter:drop-shadow(0 0 7px rgba(255,122,26,.4))}
+.route-orbit .route-node{fill:#eaf4f8;stroke:var(--navy-3);stroke-width:5}
+.route-orbit .plane{fill:var(--orange);filter:drop-shadow(0 6px 10px rgba(255,122,26,.28))}
+.visual-bottom strong{font-size:16px;color:#fff;letter-spacing:-.02em}
+.visual-bottom span{display:block;font-size:10.5px;color:#7f9aac;margin-top:4px}
+.secure-pill{
+  width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+  background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);color:#9ec4d7
+}
+.secure-pill svg{width:17px;height:17px}
+
+.progress-shell{
+  margin-top:22px;padding:15px 18px;border:1px solid rgba(255,255,255,.075);border-radius:18px;
+  background:rgba(7,35,53,.7);backdrop-filter:blur(15px)
+}
+.progress-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px;color:#8099aa}
+.progress-meta strong{color:#dae7ee;font-size:11.5px}
+.progress{height:5px;background:rgba(255,255,255,.07);border-radius:999px;margin-top:11px;overflow:hidden}
+.progress>i{display:block;height:100%;width:12.5%;border-radius:999px;background:linear-gradient(90deg,var(--orange),#ffad73);box-shadow:0 0 16px rgba(255,122,26,.28);transition:width .25s ease}
+
+.layout{display:grid;grid-template-columns:292px minmax(0,1fr);gap:24px;margin-top:24px;align-items:start}
+.steps{
+  position:sticky;top:98px;padding:14px 10px;border-radius:24px;
+  background:rgba(5,27,42,.62);border:1px solid rgba(255,255,255,.07);
+  box-shadow:0 24px 58px rgba(0,0,0,.18);backdrop-filter:blur(18px)
+}
+.step{position:relative;display:flex;align-items:center;gap:13px;padding:13px 12px;border-radius:16px;color:#a9bdc9;transition:.2s}
+.step:not(:last-child)::after{content:"";position:absolute;left:27px;top:44px;width:1px;height:18px;background:rgba(255,255,255,.07)}
+.step:hover{background:rgba(255,255,255,.035)}
+.step.active{background:linear-gradient(90deg,rgba(255,122,26,.13),rgba(255,122,26,.035));box-shadow:inset 3px 0 0 var(--orange)}
+.num{
+  width:31px;height:31px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  color:#86a3b5;background:#08293e;border:1px solid rgba(255,255,255,.09);
+  font-size:10.5px;font-weight:900;transition:.2s
+}
+.step.active .num{background:var(--orange);border-color:transparent;color:#fff;box-shadow:0 8px 22px rgba(255,122,26,.22)}
+.step.done .num{background:rgba(75,213,155,.11);border-color:rgba(75,213,155,.16);color:#65dbaa}
+.step-title{font-size:12.2px;font-weight:800;color:#dce8ee}
+.step-sub{font-size:9.7px;color:#718d9f;margin-top:3px;line-height:1.35}
+
+.main-card{background:transparent;border:0;box-shadow:none;overflow:visible}
+.card-head{
+  position:relative;overflow:hidden;margin-bottom:16px;padding:26px 28px;border-radius:24px;
+  border:1px solid rgba(255,255,255,.08);
+  background:
+    radial-gradient(circle at 90% 0%,rgba(255,122,26,.10),transparent 27%),
+    linear-gradient(135deg,rgba(11,48,71,.94),rgba(6,31,47,.92));
+  box-shadow:0 18px 48px rgba(0,0,0,.18)
+}
+.card-head::after{
+  content:"";position:absolute;right:24px;bottom:-48px;width:150px;height:150px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.045);box-shadow:0 0 0 26px rgba(255,255,255,.012)
+}
+.card-head h2{margin:0;color:#fff;font-size:28px;letter-spacing:-.04em}
+.card-head p{margin:8px 0 0;color:#8fa9b9;font-size:12.3px;line-height:1.6;max-width:700px}
+.stage-chip{
+  position:absolute;top:24px;right:24px;border:1px solid rgba(255,122,26,.2);
+  background:rgba(255,122,26,.08);color:#ffb37c;border-radius:999px;padding:8px 11px;
+  font-size:9px;font-weight:900;letter-spacing:.12em
+}
+.card-body{padding:0}
+.page{display:none}.page.active{display:block;animation:pageIn .24s ease-out}
+@keyframes pageIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+.section{
+  position:relative;margin:0 0 16px;padding:24px;border:1px solid rgba(255,255,255,.075);
+  border-radius:24px;background:
+    linear-gradient(150deg,rgba(10,45,66,.94),rgba(6,31,47,.95));
+  box-shadow:0 18px 46px rgba(0,0,0,.16);overflow:hidden
+}
+.section::before{
+  content:"";position:absolute;left:0;top:0;width:100%;height:1px;
+  background:linear-gradient(90deg,rgba(255,122,26,.55),rgba(255,255,255,.08),transparent 78%);
+  opacity:.7
+}
+.section:last-child{margin-bottom:0}
+.section-title{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.iconbox{
+  width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto;
+  color:#ffad72;background:rgba(255,122,26,.09);border:1px solid rgba(255,122,26,.13)
+}
+.iconbox svg{width:18px;height:18px;stroke:currentColor}
+.section-title h3{margin:0;color:#f2f7fa;font-size:14px;font-weight:850;letter-spacing:-.01em}
+.section-title small{display:block;margin-top:3px;color:#7894a6;font-size:10.5px;line-height:1.4}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.full{grid-column:1/-1}
+.field label,.security-detail label{
+  display:block;margin:0 0 7px;color:#a3b8c5;font-size:10.8px;font-weight:750;letter-spacing:.01em
+}
+.req{color:var(--orange)}
+.input,select,textarea{
+  width:100%;border:1px solid rgba(187,216,233,.13);border-radius:14px;
+  background:rgba(2,20,32,.58);color:#edf5f9;padding:12px 13px;outline:none;
+  font-size:12.5px;transition:.17s;box-shadow:inset 0 1px 0 rgba(255,255,255,.018)
+}
+.input::placeholder,textarea::placeholder{color:#587487}
+.input:hover,select:hover,textarea:hover{border-color:rgba(187,216,233,.23);background:rgba(3,24,38,.68)}
+.input:focus,select:focus,textarea:focus{
+  border-color:rgba(255,122,26,.62);background:#061f30;
+  box-shadow:0 0 0 4px rgba(255,122,26,.08),0 12px 30px rgba(0,0,0,.12)
+}
+select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%238fa7b7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:39px
+}
+select option{background:#08283b;color:#eef6fa}
+textarea{min-height:98px;resize:vertical}
+
+.question{
+  position:relative;padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.065);
+  background:rgba(2,20,32,.42);box-shadow:inset 0 1px 0 rgba(255,255,255,.018)
+}
+.question+.question{margin-top:11px}
+.q-top{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.q-text{color:#c7d7e0;font-size:12.2px;font-weight:720;line-height:1.55}
+.segment{display:flex;gap:7px;flex-wrap:wrap}
+.seg{
+  min-width:66px;border-radius:999px;border:1px solid rgba(187,216,233,.14);
+  background:rgba(255,255,255,.035);color:#879fad;padding:8px 13px;font-size:10.8px;font-weight:850;transition:.16s
+}
+.seg:hover{border-color:rgba(255,255,255,.22);color:#cddce4;background:rgba(255,255,255,.055)}
+.seg.active{
+  color:#fff3ea;border-color:rgba(255,122,26,.38);background:rgba(255,122,26,.14);
+  box-shadow:0 0 0 3px rgba(255,122,26,.035)
+}
+.helper{margin-top:6px;color:#6f8b9d;font-size:10px}
+.conditional{
+  display:none;margin-top:14px;padding:16px;border-radius:16px;
+  border:1px solid rgba(255,122,26,.14);background:linear-gradient(135deg,rgba(255,122,26,.065),rgba(3,23,36,.35))
+}
+.conditional.show{display:block;animation:reveal .18s ease-out}
+@keyframes reveal{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+.repeat-item,.person-row{
+  position:relative;padding:16px;border-radius:16px;border:1px solid rgba(255,255,255,.065);
+  background:rgba(2,20,32,.34)
+}
+.repeat-item+.repeat-item{margin-top:10px}
+.repeat-title,.person-title{margin-bottom:12px;color:#d9e6ed;font-size:11px;font-weight:850}
+.repeat-actions{margin-top:11px}
+.add-btn{
+  display:inline-flex;align-items:center;gap:8px;border-radius:999px;
+  border:1px solid rgba(255,122,26,.22);background:rgba(255,122,26,.075);color:#ffb37e;
+  padding:9px 12px;font-size:10.5px;font-weight:850;transition:.16s
+}
+.add-btn svg{width:14px;height:14px;stroke:currentColor}
+.add-btn:hover{background:rgba(255,122,26,.13);border-color:rgba(255,122,26,.36);color:#ffd0ae}
+.remove-btn{
+  margin-top:10px;border:0;background:transparent;color:#d77f7f;padding:0;font-size:10px;font-weight:800
+}
+
+.socials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.social-card{
+  padding:14px;border-radius:18px;border:1px solid rgba(255,255,255,.07);
+  background:rgba(2,20,32,.42);transition:.18s
+}
+.social-card.enabled{
+  border-color:rgba(255,122,26,.22);background:linear-gradient(145deg,rgba(255,122,26,.07),rgba(2,20,32,.48));
+  box-shadow:0 12px 28px rgba(0,0,0,.11)
+}
+.social-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.social-info{display:flex;align-items:center;gap:10px;min-width:0}
+.social-info b{display:block;color:#dce8ee;font-size:11.8px}
+.social-info small{display:block;color:#6f8b9d;font-size:9.5px;margin-top:2px}
+.social-brand{
+  width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto;
+  border:1px solid rgba(255,255,255,.07);background:#08283b
+}
+.social-brand svg{width:18px;height:18px}
+.social-brand.facebook{color:#5e9cff;background:rgba(24,119,242,.09)}
+.social-brand.instagram{color:#ff7da9;background:linear-gradient(135deg,rgba(225,48,108,.10),rgba(255,174,0,.07))}
+.social-brand.twitter{color:#e7f1f6;background:rgba(255,255,255,.04)}
+.social-brand.other{color:#8ec6e1;background:rgba(79,164,205,.08)}
+.switch{
+  width:43px;height:25px;border-radius:999px;border:1px solid rgba(255,255,255,.07);
+  background:#123447;position:relative;padding:0;transition:.2s;flex:0 0 auto
+}
+.switch::after{
+  content:"";position:absolute;left:3px;top:3px;width:17px;height:17px;border-radius:50%;
+  background:#7e9aaa;box-shadow:0 2px 6px rgba(0,0,0,.28);transition:.2s
+}
+.switch.on{background:rgba(255,122,26,.22);border-color:rgba(255,122,26,.25)}
+.switch.on::after{left:21px;background:var(--orange)}
+.social-body{display:none;margin-top:12px}.social-card.enabled .social-body{display:block;animation:reveal .16s ease-out}
+
+.security-q{
+  padding:16px;border:1px solid rgba(255,255,255,.065);border-radius:18px;
+  background:rgba(2,20,32,.42)
+}
+.security-q+.security-q{margin-top:10px}
+.security-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
+.security-top p{margin:0;color:#c6d7df;font-size:11.7px;line-height:1.58;font-weight:680}
+.security-detail{display:none;margin-top:13px;padding-top:13px;border-top:1px solid rgba(255,255,255,.06)}
+.security-q.yes{border-color:rgba(255,122,26,.18);background:linear-gradient(135deg,rgba(255,122,26,.055),rgba(2,20,32,.46))}
+.security-q.yes .security-detail{display:block;animation:reveal .17s ease-out}
+
+.review-box{
+  padding:16px;border-radius:17px;border:1px solid rgba(255,255,255,.065);
+  background:rgba(2,20,32,.38)
+}
+.review-box+.review-box{margin-top:10px}
+.review-title{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#e0ebf1;font-size:11.8px;font-weight:850}
+.review-title button{
+  border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);color:#8da7b7;
+  border-radius:999px;padding:7px 10px;font-size:9.5px;font-weight:800
+}
+.review-lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin-top:13px}
+.review-lines span{font-size:10.5px;color:#7893a4}.review-lines b{color:#b8cad4}
+
+.card-foot{
+  position:sticky;bottom:12px;z-index:25;margin-top:16px;padding:12px 14px;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  border:1px solid rgba(255,255,255,.085);border-radius:20px;
+  background:rgba(3,20,32,.84);backdrop-filter:blur(22px);box-shadow:0 18px 46px rgba(0,0,0,.22)
+}
+.nav-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:112px;
+  border:1px solid rgba(255,255,255,.11);border-radius:999px;background:rgba(255,255,255,.04);
+  color:#cbdbe3;padding:11px 16px;font-size:11px;font-weight:850;transition:.16s
+}
+.nav-btn svg{width:15px;height:15px}
+.nav-btn:hover{background:rgba(255,255,255,.065);border-color:rgba(255,255,255,.18)}
+.nav-btn.primary{
+  border-color:transparent;color:#fff;background:linear-gradient(135deg,#ff7110,#ff9145);
+  box-shadow:0 10px 28px rgba(255,122,26,.22)
+}
+.nav-btn.primary:hover{transform:translateY(-1px);box-shadow:0 13px 32px rgba(255,122,26,.28)}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.foot-note{color:#708c9e;font-size:9.8px;text-align:center}
+
+.mobile-nav{display:none}
+
+@media(max-width:1020px){
+  .hero{grid-template-columns:1fr}
+  .hero-visual{min-height:250px}
+  .route-orbit{height:120px}
+  .layout{grid-template-columns:1fr}
+  .steps{display:none}
+  .progress-shell{display:none}
+  .mobile-nav{
+    display:block;position:sticky;top:72px;z-index:32;margin-top:18px;padding:13px 14px;
+    border:1px solid rgba(255,255,255,.08);border-radius:18px;
+    background:rgba(5,29,45,.86);backdrop-filter:blur(20px);box-shadow:0 12px 34px rgba(0,0,0,.18)
+  }
+  .mobile-current{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .mobile-current-text{min-width:0}
+  .mobile-kicker{display:block;color:#ffab70;font-size:8.5px;letter-spacing:.14em;font-weight:900}
+  .mobile-title{display:block;margin-top:3px;color:#f3f7f9;font-size:13px}
+  .mobile-menu-btn{
+    display:flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid rgba(255,255,255,.10);
+    background:rgba(255,255,255,.035);color:#9db3c1;border-radius:999px;padding:8px 11px;font-size:9.5px;font-weight:800
+  }
+  .mobile-menu-btn svg{width:13px;height:13px;transition:.18s}
+  .mobile-nav.open .mobile-menu-btn svg{transform:rotate(180deg)}
+  .mobile-progress{height:4px;margin-top:10px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+  .mobile-progress i{display:block;height:100%;width:12.5%;background:var(--orange);border-radius:999px;transition:.25s}
+  .mobile-progress-meta{display:flex;justify-content:space-between;margin-top:6px;color:#6f8d9f;font-size:8.5px}
+  .mobile-menu{
+    display:none;position:fixed;left:14px;right:14px;bottom:14px;z-index:80;
+    max-height:min(72vh,620px);overflow:auto;padding:14px;border-radius:24px;
+    border:1px solid rgba(255,255,255,.10);background:#061f30;box-shadow:0 30px 90px rgba(0,0,0,.5)
+  }
+  .mobile-nav.open::before{
+    content:"";position:fixed;inset:0;z-index:70;background:rgba(1,10,17,.72);backdrop-filter:blur(4px)
+  }
+  .mobile-nav.open .mobile-menu{display:grid;grid-template-columns:1fr;gap:7px}
+  .mobile-pill{
+    text-align:left;border:1px solid rgba(255,255,255,.07);border-radius:14px;
+    background:rgba(255,255,255,.025);color:#97adba;padding:12px 13px;font-size:10.5px;font-weight:750
+  }
+  .mobile-pill.active{border-color:rgba(255,122,26,.24);background:rgba(255,122,26,.09);color:#ffd0ad}
+}
+@media(max-width:720px){
+  .topbar-inner,.wrap{padding-left:16px;padding-right:16px}
+  .topbar-inner{height:66px}
+  .brand>svg{width:35px;height:35px}.brand-text{font-size:16px}
+  .save-state{display:none}.ghost{padding:9px 12px;font-size:10px}
+  .wrap{padding-top:24px;padding-bottom:76px}
+  .hero-copy,.hero-visual{border-radius:25px}
+  .hero-copy{min-height:auto;padding:28px 22px}
+  .hero h1{font-size:33px;line-height:1.06}
+  .hero p{font-size:12.5px;line-height:1.65}
+  .notice{margin-top:20px;padding:13px;font-size:10.5px}
+  .hero-visual{min-height:220px;padding:20px}
+  .route-orbit{height:108px}
+  .mobile-nav{top:72px;margin-top:14px}
+  .card-head{padding:22px 20px;border-radius:21px}.card-head h2{font-size:23px}.stage-chip{display:none}
+  .section{padding:19px 16px;border-radius:20px}
+  .grid,.grid.three,.socials{grid-template-columns:1fr}
+  .q-top,.security-top{grid-template-columns:1fr;align-items:flex-start}
+  .segment{width:100%}
+  .q-top .segment .seg,.security-top .segment .seg{flex:1}
+  .review-lines{grid-template-columns:1fr}
+  .card-foot{
+    bottom:8px;margin-left:-2px;margin-right:-2px;padding:10px;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom))
+  }
+  .foot-note{display:none}
+  .nav-btn{min-width:auto;flex:1;padding:11px 13px}
+}
+@media(max-width:420px){
+  .hero h1{font-size:29px}
+  .hero-visual{display:none}
+  .eyebrow{font-size:9px}
+  .section-title{align-items:flex-start}
+  .iconbox{width:35px;height:35px}
+}
+
+
+.us-badge{
+  position:absolute;right:26px;top:26px;display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:16px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 12px 28px rgba(0,0,0,.14);backdrop-filter:blur(12px)
+}
+.us-badge .flag{
+  width:34px;height:24px;border-radius:6px;overflow:hidden;flex:0 0 auto;
+  box-shadow:0 2px 10px rgba(0,0,0,.18)
+}
+.us-badge b{display:block;color:#fff;font-size:10.2px;letter-spacing:.08em}
+.us-badge span{display:block;color:#9db8c7;font-size:9.2px;margin-top:2px}
+.us-stars{
+  position:absolute;right:110px;bottom:28px;display:grid;grid-template-columns:repeat(4,1fr);
+  gap:10px;opacity:.18;pointer-events:none
+}
+.us-stars svg{width:11px;height:11px;fill:#ffffff}
+.hero-visual .usa-pill{
+  display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.05);padding:8px 10px;border-radius:999px;color:#dfe9ef;
+  font-size:9.2px;font-weight:850;letter-spacing:.08em
+}
+.hero-visual .usa-pill .mini-flag{
+  width:20px;height:14px;border-radius:3px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.2)
+}
+.visa-glass{
+  margin-top:14px;padding:14px 15px;border-radius:18px;border:1px solid rgba(255,255,255,.09);
+  background:rgba(255,255,255,.045);display:flex;align-items:center;justify-content:space-between;gap:14px
+}
+.visa-glass strong{display:block;color:#fff;font-size:12.5px}
+.visa-glass span{display:block;color:#8ea7b7;font-size:10px;margin-top:4px}
+.visa-dotrow{display:flex;gap:7px;align-items:center}
+.visa-dotrow i{
+  width:9px;height:9px;border-radius:50%;display:block;background:rgba(255,255,255,.18)
+}
+.visa-dotrow i:nth-child(1){background:#3c78d8}
+.visa-dotrow i:nth-child(2){background:#ffffff}
+.visa-dotrow i:nth-child(3){background:#d74c4c}
+.section-title .mini-america{
+  margin-left:auto;display:inline-flex;align-items:center;gap:7px;padding:6px 9px;border-radius:999px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:#86a5b7;
+  font-size:9px;font-weight:850;letter-spacing:.08em
+}
+.section-title .mini-america .mini-flag{
+  width:18px;height:12px;border-radius:3px;overflow:hidden
+}
+@media(max-width:720px){
+  .us-badge{position:relative;right:auto;top:auto;margin-top:20px;display:inline-flex}
+  .us-stars{display:none}
+}
+
+</style>
+
+<style>
+/* Hero simplificado — menos informação, mais impacto visual */
+.hero{
+  grid-template-columns:1fr !important;
+  gap:0 !important;
+}
+.hero-copy{
+  min-height:auto !important;
+  padding:38px 40px 34px !important;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:26px;
+  align-items:center;
+}
+.hero-copy::after{display:none !important}
+.hero-copy .eyebrow{
+  grid-column:1;
+  margin:0 0 10px;
+}
+.hero-copy h1{
+  grid-column:1;
+  margin:0 !important;
+  max-width:760px !important;
+  font-size:43px !important;
+}
+.hero-copy > p{
+  grid-column:1;
+  margin:13px 0 0 !important;
+  max-width:690px !important;
+}
+.hero-copy .us-badge{
+  position:static !important;
+  grid-column:2;
+  grid-row:1 / span 3;
+  align-self:center;
+  padding:12px 14px !important;
+  border-radius:18px !important;
+  min-width:190px;
+}
+.hero-copy .us-badge .flag{
+  width:38px !important;
+  height:26px !important;
+}
+.hero-copy .us-badge b{font-size:9.8px !important}
+.hero-copy .us-badge span{font-size:8.8px !important}
+.hero-copy .notice,
+.hero-copy .us-stars,
+.hero-visual{
+  display:none !important;
+}
+.progress-shell{
+  margin-top:18px !important;
+}
+@media(max-width:820px){
+  .hero-copy{
+    grid-template-columns:1fr !important;
+    padding:28px 22px 26px !important;
+  }
+  .hero-copy .us-badge{
+    grid-column:1 !important;
+    grid-row:auto !important;
+    width:max-content;
+    min-width:0;
+    margin-top:18px !important;
+  }
+  .hero-copy h1{font-size:32px !important}
+}
+</style>
+
+
+<style id="viaair-experience-v4">
+:root{
+  --x-bg:#020d16;
+  --x-bg2:#041826;
+  --x-card:#08283a;
+  --x-card2:#0a3146;
+  --x-line:rgba(202,230,244,.11);
+  --x-line2:rgba(202,230,244,.20);
+  --x-orange:#ff7a1a;
+  --x-orange2:#ffad72;
+  --x-blue:#6ac6ee;
+  --x-text:#edf6fb;
+  --x-muted:#89a5b6;
+}
+body{
+  background:
+    radial-gradient(900px 520px at 8% -8%, rgba(255,122,26,.12), transparent 60%),
+    radial-gradient(720px 520px at 93% 14%, rgba(63,168,219,.11), transparent 64%),
+    linear-gradient(145deg,#020d16 0%,#041522 45%,#051b29 100%) !important;
+}
+body::before{
+  opacity:.24 !important;
+  background-size:56px 56px !important;
+}
+.topbar{
+  border-bottom:1px solid rgba(255,255,255,.055)!important;
+  background:rgba(2,13,22,.80)!important;
+}
+.topbar-inner{max-width:1460px!important}
+
+/* Product shell */
+.wrap{max-width:1460px!important;padding-top:28px!important}
+.hero{margin-top:0!important}
+.hero-copy{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 310px!important;
+  min-height:310px!important;
+  padding:0!important;
+  border-radius:34px!important;
+  border:1px solid rgba(255,255,255,.075)!important;
+  overflow:hidden!important;
+  background:
+    radial-gradient(circle at 15% 10%,rgba(255,122,26,.11),transparent 30%),
+    linear-gradient(135deg,rgba(8,39,58,.98),rgba(4,24,37,.98))!important;
+  box-shadow:0 36px 90px rgba(0,0,0,.26)!important;
+}
+.hero-copy::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(120deg,transparent 0 58%,rgba(255,255,255,.025) 58% 59%,transparent 59%),
+    radial-gradient(circle at 78% 55%,rgba(82,183,225,.10),transparent 35%);
+}
+.hero-copy > .eyebrow,
+.hero-copy > h1,
+.hero-copy > p{
+  grid-column:1!important;
+  margin-left:42px!important;
+  margin-right:28px!important;
+  position:relative;z-index:2
+}
+.hero-copy > .eyebrow{margin-top:46px!important}
+.hero-copy h1{
+  max-width:700px!important;
+  font-size:48px!important;
+  line-height:1.02!important;
+  letter-spacing:-.055em!important;
+}
+.hero-copy > p{
+  max-width:650px!important;
+  margin-top:14px!important;
+  margin-bottom:44px!important;
+  font-size:13.2px!important;
+  line-height:1.72!important;
+}
+.hero-copy .us-badge,
+.hero-copy .us-stars,
+.hero-copy .notice{display:none!important}
+
+/* Unique "visa pass" card */
+.visa-pass{
+  grid-column:2!important;grid-row:1 / span 3!important;
+  position:relative;z-index:3;margin:24px 24px 24px 0;
+  min-height:262px;border-radius:26px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.10);
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.025)),
+    linear-gradient(160deg,#0b3550,#08283c);
+  box-shadow:0 24px 64px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06);
+}
+.visa-pass::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:5px;
+  background:linear-gradient(90deg,#274b8f 0 33%,#fff 33% 66%,#c53b43 66% 100%);
+  opacity:.88
+}
+.visa-pass-top{
+  display:flex;align-items:center;justify-content:space-between;padding:20px 20px 0
+}
+.visa-pass-brand{font-size:9px;font-weight:900;letter-spacing:.18em;color:#90acbc}
+.visa-pass-flag{
+  width:42px;height:29px;border-radius:8px;overflow:hidden;
+  box-shadow:0 7px 20px rgba(0,0,0,.2)
+}
+.visa-pass-mid{padding:34px 20px 16px}
+.visa-pass-kicker{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#7798aa;font-weight:900}
+.visa-pass-mid strong{
+  display:block;margin-top:7px;color:#fff;font-size:30px;letter-spacing:-.04em
+}
+.visa-pass-mid span{display:block;margin-top:4px;color:#8fb0c0;font-size:11px}
+.visa-pass-route{
+  margin:24px 20px 0;height:58px;position:relative
+}
+.visa-pass-route:before{
+  content:"";position:absolute;left:10px;right:10px;top:28px;height:1px;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.25) 0 5px,transparent 5px 10px)
+}
+.vp-node{
+  position:absolute;top:22px;width:13px;height:13px;border-radius:50%;
+  background:#eaf5fa;border:4px solid #123b51;z-index:2
+}
+.vp-node.start{left:4px}.vp-node.end{right:4px}
+.vp-plane{
+  position:absolute;left:47%;top:15px;transform:translateX(-50%) rotate(6deg);
+  color:var(--x-orange);filter:drop-shadow(0 6px 12px rgba(255,122,26,.28))
+}
+.vp-plane svg{width:26px;height:26px;fill:currentColor}
+.visa-pass-foot{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:16px 20px 22px
+}
+.visa-pass-foot small{display:block;color:#6f8d9f;font-size:8.5px;letter-spacing:.12em}
+.visa-pass-foot b{display:block;margin-top:4px;color:#eaf4f8;font-size:11px}
+.vp-step{
+  min-width:72px;padding:9px 11px;border-radius:14px;text-align:center;
+  color:#ffb17b;background:rgba(255,122,26,.09);border:1px solid rgba(255,122,26,.16)
+}
+.vp-step small{color:#c58458}.vp-step b{font-size:15px;color:#ffc59c}
+
+/* Progress becomes "journey status" */
+.progress-shell{
+  margin-top:16px!important;padding:13px 16px!important;border-radius:16px!important;
+  background:rgba(5,29,44,.62)!important
+}
+.progress-shell .progress{height:4px!important}
+
+/* Main experience */
+.layout{
+  grid-template-columns:245px minmax(0,1fr)!important;
+  gap:18px!important;margin-top:18px!important;
+}
+.steps{
+  top:92px!important;padding:12px!important;border-radius:22px!important;
+  background:rgba(4,24,37,.72)!important;
+}
+.step{
+  padding:12px 10px!important;border-radius:15px!important;
+}
+.step.active{
+  background:
+    radial-gradient(circle at 0 50%,rgba(255,122,26,.14),transparent 60%),
+    rgba(255,255,255,.025)!important;
+}
+.step.active .step-title{color:#fff!important}
+.step-title{font-size:11.8px!important}
+.step-sub{font-size:9.2px!important}
+.num{width:29px!important;height:29px!important}
+
+/* "Passport page" content card */
+.card-head{
+  min-height:120px!important;padding:24px 28px!important;border-radius:24px!important;
+  display:flex!important;flex-direction:column!important;justify-content:center!important;
+  background:
+    linear-gradient(135deg,rgba(10,49,72,.94),rgba(6,31,47,.94))!important;
+}
+.card-head h2{font-size:30px!important}
+.card-head p{max-width:680px!important}
+.card-head::before{
+  content:"";position:absolute;right:30px;top:24px;width:66px;height:66px;
+  border:1px solid rgba(255,255,255,.07);border-radius:50%;
+  box-shadow:0 0 0 14px rgba(255,255,255,.015),0 0 0 28px rgba(255,255,255,.009)
+}
+.stage-chip{
+  top:auto!important;bottom:22px!important;right:26px!important;
+  color:#9db7c6!important;border-color:rgba(255,255,255,.08)!important;
+  background:rgba(255,255,255,.035)!important;
+}
+
+/* Distinct section rhythm */
+.section{
+  border-radius:22px!important;
+  background:
+    radial-gradient(circle at 100% 0,rgba(76,169,210,.055),transparent 34%),
+    linear-gradient(150deg,rgba(9,43,63,.96),rgba(6,29,44,.97))!important;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease!important;
+}
+.section:hover{
+  border-color:rgba(202,230,244,.13)!important;
+  box-shadow:0 24px 58px rgba(0,0,0,.19)!important
+}
+.section-title{margin-bottom:18px!important}
+.section-title .mini-america{display:none!important}
+.iconbox{
+  width:41px!important;height:41px!important;border-radius:14px!important;
+  background:linear-gradient(145deg,rgba(255,122,26,.13),rgba(255,122,26,.055))!important;
+}
+.input,select,textarea{
+  min-height:46px;
+  background:rgba(1,17,27,.50)!important;
+  border-color:rgba(205,232,245,.115)!important;
+}
+.input:focus,select:focus,textarea:focus{
+  transform:translateY(-1px);
+  box-shadow:0 0 0 4px rgba(255,122,26,.07),0 14px 30px rgba(0,0,0,.13)!important;
+}
+.question,.security-q,.social-card,.repeat-item,.person-row,.review-box{
+  background:rgba(1,17,27,.38)!important
+}
+.question:hover,.security-q:hover,.social-card:hover{
+  border-color:rgba(205,232,245,.12)!important
+}
+.seg{
+  background:rgba(255,255,255,.027)!important;
+}
+.seg.active{
+  background:linear-gradient(135deg,rgba(255,122,26,.18),rgba(255,122,26,.08))!important;
+  box-shadow:0 8px 22px rgba(255,122,26,.07)!important;
+}
+
+/* Motion / continuation cue */
+.page.active .section{
+  animation:sectionRise .32s ease both;
+}
+.page.active .section:nth-child(2){animation-delay:.035s}
+.page.active .section:nth-child(3){animation-delay:.07s}
+.page.active .section:nth-child(4){animation-delay:.105s}
+@keyframes sectionRise{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+.nav-btn.primary{
+  position:relative;overflow:hidden!important;
+  background:linear-gradient(135deg,#ff7110,#ff9145)!important;
+}
+.nav-btn.primary::after{
+  content:"";position:absolute;inset:-2px auto -2px -35%;width:24%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.30),transparent);
+  transform:skewX(-20deg);transition:left .45s ease
+}
+.nav-btn.primary:hover::after{left:112%}
+
+/* subtle progress marker */
+.card-foot::before{
+  content:"";position:absolute;left:16px;right:16px;top:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,122,26,.30),transparent)
+}
+
+@media(max-width:1020px){
+  .hero-copy{grid-template-columns:1fr 270px!important}
+  .visa-pass{min-height:250px}
+  .layout{grid-template-columns:1fr!important}
+}
+@media(max-width:820px){
+  .hero-copy{
+    grid-template-columns:1fr!important;
+    padding:0!important;
+  }
+  .hero-copy > .eyebrow,
+  .hero-copy > h1,
+  .hero-copy > p{
+    margin-left:22px!important;margin-right:22px!important
+  }
+  .hero-copy > .eyebrow{margin-top:28px!important}
+  .hero-copy h1{font-size:35px!important}
+  .hero-copy > p{margin-bottom:22px!important}
+  .visa-pass{
+    grid-column:1!important;grid-row:auto!important;
+    margin:0 16px 16px!important;
+    min-height:225px!important;border-radius:22px!important;
+  }
+  .visa-pass-mid{padding-top:24px}
+  .visa-pass-route{margin-top:14px}
+  .card-head{min-height:auto!important;padding:22px 20px!important}
+}
+@media(max-width:520px){
+  .hero-copy{border-radius:26px!important}
+  .hero-copy h1{font-size:31px!important}
+  .visa-pass{display:block!important}
+  .visa-pass-mid strong{font-size:25px}
+  .visa-pass-route{height:48px}
+  .visa-pass-foot{padding-bottom:20px}
+}
+</style>
+
+
+<style id="usa-branding-layer">
+/* American identity layer — visible, but not government-official */
+.usa-topmark{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 11px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.09);
+  background:rgba(255,255,255,.035);
+  color:#dbe9f0;font-size:10px;font-weight:850;
+  letter-spacing:.06em;white-space:nowrap
+}
+.usa-topmark .flag-mini{
+  width:28px;height:18px;border-radius:4px;overflow:hidden;
+  box-shadow:0 3px 10px rgba(0,0,0,.18)
+}
+.usa-topmark small{
+  color:#7f9bac;font-size:8px;letter-spacing:.12em;margin-left:2px
+}
+
+.usa-hero-mark{
+  position:absolute;right:34px;bottom:26px;z-index:2;
+  display:flex;align-items:center;gap:12px;
+  opacity:.9
+}
+.usa-roundel{
+  width:66px;height:66px;border-radius:50%;
+  display:grid;place-items:center;
+  border:1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(circle at 50% 50%,rgba(255,255,255,.07),rgba(255,255,255,.018));
+  box-shadow:0 14px 36px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.05)
+}
+.usa-roundel svg{width:42px;height:42px}
+.usa-roundel .star-ring{fill:none;stroke:rgba(255,255,255,.28);stroke-width:1.2}
+.usa-roundel .star{fill:#f1f7fa}
+.usa-roundel .liberty{fill:#8fc9e0;opacity:.9}
+.usa-hero-copy{
+  text-align:right
+}
+.usa-hero-copy b{
+  display:block;color:#f3f7fa;font-size:11px;letter-spacing:.16em
+}
+.usa-hero-copy span{
+  display:block;color:#7f9eaf;font-size:8.5px;letter-spacing:.11em;margin-top:4px
+}
+
+.usa-watermark{
+  position:absolute;right:-16px;top:18px;width:190px;height:120px;
+  opacity:.055;pointer-events:none;z-index:0
+}
+.usa-watermark svg{width:100%;height:100%}
+
+.usa-stars-band{
+  position:absolute;left:28px;bottom:20px;display:flex;gap:9px;
+  opacity:.14;pointer-events:none
+}
+.usa-stars-band svg{width:10px;height:10px;fill:#fff}
+
+.section.usa-accent::after{
+  content:"";position:absolute;right:0;top:0;width:7px;height:100%;
+  background:linear-gradient(#284a8c 0 33%,#f3f7fa 33% 66%,#c83f46 66% 100%);
+  opacity:.65
+}
+
+.visa-pass{
+  position:relative;
+}
+.visa-pass .usa-ribbon{
+  position:absolute;left:0;right:0;top:0;height:4px;z-index:5;
+  background:linear-gradient(90deg,#284a8c 0 33%,#fff 33% 66%,#c63d44 66% 100%)
+}
+.visa-pass .usa-corner{
+  position:absolute;right:16px;bottom:16px;display:flex;gap:4px;opacity:.12
+}
+.visa-pass .usa-corner svg{width:9px;height:9px;fill:#fff}
+
+.mobile-usa{
+  display:none
+}
+
+@media(max-width:1020px){
+  .usa-topmark{display:none}
+  .mobile-usa{
+    display:flex;align-items:center;gap:8px;margin-top:10px;
+    color:#a7bcc8;font-size:9.5px;font-weight:800
+  }
+  .mobile-usa .flag-mini{width:25px;height:16px;border-radius:4px;overflow:hidden}
+}
+@media(max-width:720px){
+  .usa-hero-mark{
+    position:relative;right:auto;bottom:auto;
+    justify-content:flex-start;margin:18px 22px 0
+  }
+  .usa-hero-copy{text-align:left}
+  .usa-roundel{width:54px;height:54px}
+  .usa-roundel svg{width:34px;height:34px}
+  .usa-watermark{width:150px;height:95px;right:-18px;top:12px}
+}
+</style>
+
+
+<style id="us-form-badges-visible">
+/* Reexibe o selo U.S. FORM + bandeira em cada bloco do formulário */
+.section-title .mini-america{
+  margin-left:auto !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:7px !important;
+  padding:6px 9px !important;
+  border-radius:999px !important;
+  background:rgba(255,255,255,.045) !important;
+  border:1px solid rgba(255,255,255,.08) !important;
+  color:#91aebe !important;
+  font-size:8.8px !important;
+  font-weight:900 !important;
+  letter-spacing:.09em !important;
+  white-space:nowrap !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025) !important;
+}
+.section-title .mini-america .mini-flag{
+  width:20px !important;
+  height:13px !important;
+  border-radius:3px !important;
+  overflow:hidden !important;
+  flex:0 0 auto !important;
+  box-shadow:0 2px 7px rgba(0,0,0,.18) !important;
+}
+.section-title .mini-america .mini-flag svg{
+  width:100% !important;
+  height:100% !important;
+  display:block !important;
+}
+@media(max-width:720px){
+  .section-title{
+    flex-wrap:wrap !important;
+  }
+  .section-title .mini-america{
+    margin-left:auto !important;
+    padding:5px 8px !important;
+    font-size:8px !important;
+  }
+  .section-title .mini-america .mini-flag{
+    width:18px !important;
+    height:12px !important;
+  }
+}
+</style>
+
+</head>
+<body>
+<header class="topbar"><div class="topbar-inner">
+<div class="brand"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="15" fill="#0b3148" stroke="rgba(255,255,255,.12)"/><path d="M10 27.5 38 16l-8 11 6 3-3.5 2.2-7.4-1.4-6.8 8.2-3.6-1.5 3.9-8.2L10 27.5Z" fill="#ff7a1a"/></svg><div class="brand-text">VIA <b>AIR</b></div></div>
+<div class="top-actions">
+
+<div class="usa-topmark" aria-label="Formulário de visto para os Estados Unidos">
+  <span class="flag-mini">
+<svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect width="38" height="26" fill="#fff"/>
+  <rect y="0" width="38" height="2" fill="#c73a3a"/>
+  <rect y="4" width="38" height="2" fill="#c73a3a"/>
+  <rect y="8" width="38" height="2" fill="#c73a3a"/>
+  <rect y="12" width="38" height="2" fill="#c73a3a"/>
+  <rect y="16" width="38" height="2" fill="#c73a3a"/>
+  <rect y="20" width="38" height="2" fill="#c73a3a"/>
+  <rect y="24" width="38" height="2" fill="#c73a3a"/>
+  <rect width="16" height="14" fill="#274b8f"/>
+  <g fill="#fff">
+    <circle cx="3" cy="3" r=".7"/><circle cx="7" cy="3" r=".7"/><circle cx="11" cy="3" r=".7"/>
+    <circle cx="5" cy="6" r=".7"/><circle cx="9" cy="6" r=".7"/><circle cx="13" cy="6" r=".7"/>
+    <circle cx="3" cy="9" r=".7"/><circle cx="7" cy="9" r=".7"/><circle cx="11" cy="9" r=".7"/>
+  </g>
+</svg></span>
+  UNITED STATES
+  <small>VISA</small>
+</div>
+<div class="save-state"><span class="dot"></span><span id="saveText">Rascunho salvo automaticamente</span></div><button class="ghost" id="saveExit">Salvar e sair</button></div>
+</div></header>
+<main class="wrap">
+<section class="hero">
+  <div class="hero-copy">
+    
+    <div class="us-badge" aria-hidden="true">
+      <div class="flag">
+        <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <rect width="38" height="26" fill="#fff"/>
+          <rect y="0" width="38" height="2" fill="#c73a3a"/>
+          <rect y="4" width="38" height="2" fill="#c73a3a"/>
+          <rect y="8" width="38" height="2" fill="#c73a3a"/>
+          <rect y="12" width="38" height="2" fill="#c73a3a"/>
+          <rect y="16" width="38" height="2" fill="#c73a3a"/>
+          <rect y="20" width="38" height="2" fill="#c73a3a"/>
+          <rect y="24" width="38" height="2" fill="#c73a3a"/>
+          <rect width="16" height="14" fill="#274b8f"/>
+          <g fill="#fff">
+            <circle cx="3" cy="3" r="0.8"/><circle cx="7" cy="3" r="0.8"/><circle cx="11" cy="3" r="0.8"/>
+            <circle cx="5" cy="6" r="0.8"/><circle cx="9" cy="6" r="0.8"/><circle cx="13" cy="6" r="0.8"/>
+            <circle cx="3" cy="9" r="0.8"/><circle cx="7" cy="9" r="0.8"/><circle cx="11" cy="9" r="0.8"/>
+            <circle cx="5" cy="12" r="0.8"/><circle cx="9" cy="12" r="0.8"/><circle cx="13" cy="12" r="0.8"/>
+          </g>
+        </svg>
+      </div>
+      <div>
+        <b>UNITED STATES</b>
+        <span>DS-160 assistido pela Via Air</span>
+      </div>
+    </div>
+    
+    <div class="eyebrow">
+      <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24">
+        <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>
+      </svg>
+      Assessoria de visto americano
+    </div>
+    <h1>Sua jornada para os EUA começa <span>aqui</span>.</h1>
+    <p>Uma experiência guiada da Via Air para organizar seu DS-160 com clareza, ritmo e sem campos desnecessários.</p>
+<div class="mobile-usa">
+  <span class="flag-mini">
+<svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect width="38" height="26" fill="#fff"/>
+  <rect y="0" width="38" height="2" fill="#c73a3a"/>
+  <rect y="4" width="38" height="2" fill="#c73a3a"/>
+  <rect y="8" width="38" height="2" fill="#c73a3a"/>
+  <rect y="12" width="38" height="2" fill="#c73a3a"/>
+  <rect y="16" width="38" height="2" fill="#c73a3a"/>
+  <rect y="20" width="38" height="2" fill="#c73a3a"/>
+  <rect y="24" width="38" height="2" fill="#c73a3a"/>
+  <rect width="16" height="14" fill="#274b8f"/>
+  <g fill="#fff">
+    <circle cx="3" cy="3" r=".7"/><circle cx="7" cy="3" r=".7"/><circle cx="11" cy="3" r=".7"/>
+    <circle cx="5" cy="6" r=".7"/><circle cx="9" cy="6" r=".7"/><circle cx="13" cy="6" r=".7"/>
+    <circle cx="3" cy="9" r=".7"/><circle cx="7" cy="9" r=".7"/><circle cx="11" cy="9" r=".7"/>
+  </g>
+</svg></span>
+  United States · DS-160
+</div>
+
+<div class="usa-hero-mark" aria-hidden="true">
+  <div class="usa-hero-copy">
+    <b>UNITED STATES</b>
+    <span>VISA JOURNEY</span>
+  </div>
+  <div class="usa-roundel">
+    <svg viewBox="0 0 64 64">
+      <circle class="star-ring" cx="32" cy="32" r="25"/>
+      <g class="star">
+        <path d="M32 5.5l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4L32 5.5Z"/>
+        <path d="M49 11l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4L49 11Z"/>
+        <path d="M54 29l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4L54 29Z"/>
+        <path d="M15 11l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4L15 11Z"/>
+        <path d="M10 29l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4L10 29Z"/>
+      </g>
+      <path class="liberty" d="M29 17h6l-1 7 4 6-2.5 4.5V46h3v3H25v-3h3V34.5L25.5 30l4-6-.5-7Zm3-7 1.8 3.2 3.6.7-2.6 2.5.6 3.6-3.4-1.7-3.4 1.7.6-3.6-2.6-2.5 3.6-.7L32 10Z"/>
+    </svg>
+  </div>
+</div>
+<div class="usa-watermark" aria-hidden="true">
+  <svg viewBox="0 0 300 180">
+    <path d="M18 61 39 53l19 4 13-9 26 8 21-5 14 6 23-8 19 3 16-7 20 7 21-2 10 11 17 5 10 15-6 11 7 11-15 8-10 14-16 1-8 13-22 5-14 9-21-4-16 6-16-10-20 4-13-10-21-2-11-14-15-6 3-14-8-10 7-12-12-11 7-12-4-10Z" fill="#ffffff"/>
+  </svg>
+</div>
+<div class="usa-stars-band" aria-hidden="true">
+  <svg viewBox="0 0 24 24"><path d="m12 2.8 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.8 6.9 18.5l.97-5.68L3.75 8.8l5.7-.83L12 2.8Z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="m12 2.8 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.8 6.9 18.5l.97-5.68L3.75 8.8l5.7-.83L12 2.8Z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="m12 2.8 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.8 6.9 18.5l.97-5.68L3.75 8.8l5.7-.83L12 2.8Z"/></svg>
+</div>
+
+    
+    <div class="us-stars" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="m12 2.8 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.8 6.9 18.5l.97-5.68L3.75 8.8l5.7-.83L12 2.8Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="m12 2.8 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.8 6.9 18.5l.97-5.68L3.75 8.8l5.7-.83L12 2.8Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="m12 2.8 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.8 6.9 18.5l.97-5.68L3.75 8.8l5.7-.83L12 2.8Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="m12 2.8 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.8 6.9 18.5l.97-5.68L3.75 8.8l5.7-.83L12 2.8Z"/></svg>
+    </div>
+    
+    <div class="notice">
+      <div class="notice-icon">
+        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+      </div>
+      <div><b>Preenchimento assistido.</b> Este não é o site oficial do governo dos EUA. A Via Air usa suas respostas para organizar e conferir as informações antes da inserção no sistema oficial.</div>
+    </div>
+  </div>
+
+  <div class="hero-visual" aria-hidden="true">
+    <div class="visual-top">
+      <span class="visual-label">VIA AIR · VISA JOURNEY</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="usa-pill">
+          <span class="mini-flag">
+            <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <rect width="38" height="26" fill="#fff"/>
+              <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+              <rect width="16" height="14" fill="#274b8f"/>
+              <g fill="#fff"><circle cx="3" cy="3" r="0.8"/><circle cx="7" cy="3" r="0.8"/><circle cx="11" cy="3" r="0.8"/><circle cx="5" cy="6" r="0.8"/><circle cx="9" cy="6" r="0.8"/><circle cx="13" cy="6" r="0.8"/><circle cx="3" cy="9" r="0.8"/><circle cx="7" cy="9" r="0.8"/><circle cx="11" cy="9" r="0.8"/><circle cx="5" cy="12" r="0.8"/><circle cx="9" cy="12" r="0.8"/><circle cx="13" cy="12" r="0.8"/></g>
+            </svg>
+          </span>
+          USA
+        </span>
+        <span class="visual-chip">8 ETAPAS</span>
+      </div>
+    </div>
+    <div class="route-orbit">
+      <svg viewBox="0 0 520 190" preserveAspectRatio="none">
+        <path class="route-path" d="M36 145 C120 20, 232 180, 332 74 S460 44, 490 107"/>
+        <path class="route-glow" d="M36 145 C98 54, 176 77, 225 117"/>
+        <circle class="route-node" cx="36" cy="145" r="7"/>
+        <circle class="route-node" cx="490" cy="107" r="7"/>
+        <g class="plane" transform="translate(217 105) rotate(27)">
+          <path d="M0 12 28 2l-7 9 8 5-4 2.3-9.7-2.5-6 8.2-3.8-1.4 3.6-8.2L0 12Z"/>
+        </g>
+      </svg>
+    </div>
+    <div class="visa-glass">
+      <div>
+        <strong>Estados Unidos como destino</strong>
+        <span>Bandeira, linguagem visual e atmosfera conectadas ao objetivo do formulário</span>
+      </div>
+      <div class="visa-dotrow"><i></i><i></i><i></i></div>
+    </div>
+    <div class="visual-bottom">
+      <div><strong>Do primeiro dado à revisão final</strong><span>Campos condicionais · autosave · navegação guiada</span></div>
+      <div class="secure-pill">
+        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24">
+          <rect x="5" y="10" width="14" height="10" rx="2"/>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+        </svg>
+      </div>
+    </div>
+  
+  <aside class="visa-pass" aria-hidden="true"><div class="usa-ribbon"></div>
+    <div class="visa-pass-top">
+      <div class="visa-pass-brand">VIA AIR · VISA PASS</div>
+      <div class="visa-pass-flag">
+        <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <rect width="38" height="26" fill="#fff"/>
+          <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+          <rect width="16" height="14" fill="#274b8f"/>
+          <g fill="#fff"><circle cx="3" cy="3" r=".7"/><circle cx="7" cy="3" r=".7"/><circle cx="11" cy="3" r=".7"/><circle cx="5" cy="6" r=".7"/><circle cx="9" cy="6" r=".7"/><circle cx="13" cy="6" r=".7"/><circle cx="3" cy="9" r=".7"/><circle cx="7" cy="9" r=".7"/><circle cx="11" cy="9" r=".7"/></g>
+        </svg>
+      </div>
+    </div>
+    <div class="visa-pass-mid">
+      <div class="visa-pass-kicker">Destination</div>
+      <strong>United States</strong>
+      <span>DS-160 · Tourist / Business Visa</span>
+    </div>
+    <div class="visa-pass-route">
+      <span class="vp-node start"></span>
+      <span class="vp-plane">
+        <svg viewBox="0 0 24 24"><path d="M22 2 9.7 13.2 4.8 11.4 2 13.8l6.8 3.1L11 22l2.1-1.6 2.2-5.1L22 4.4V2Z"/></svg>
+      </span>
+      <span class="vp-node end"></span>
+    </div>
+    <div class="visa-pass-foot">
+      <div>
+        <small>JOURNEY</small>
+        <b>Via Air Visa Experience</b>
+      </div>
+      <div class="vp-step">
+        <small>STEP</small>
+        <b id="vpStepValue">01 / 08</b>
+      </div>
+    </div>
+  <div class="usa-corner" aria-hidden="true">
+  <svg viewBox="0 0 24 24"><path d="m12 2.8 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.8 6.9 18.5l.97-5.68L3.75 8.8l5.7-.83L12 2.8Z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="m12 2.8 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.8 6.9 18.5l.97-5.68L3.75 8.8l5.7-.83L12 2.8Z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="m12 2.8 2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.8 6.9 18.5l.97-5.68L3.75 8.8l5.7-.83L12 2.8Z"/></svg>
+</div></aside>
+</div>
+</section>
+<div class="progress-shell"><div class="progress-meta"><strong id="progressTitle">Etapa 1 de 8 · Dados pessoais</strong><span id="progressPct">13% concluído</span></div><div class="progress"><i id="progressBar"></i></div></div>
+<div class="mobile-nav" id="mobileNav"><div class="mobile-current"><div class="mobile-current-text"><span class="mobile-kicker" id="mobileKicker">ETAPA 1 DE 8</span><strong class="mobile-title" id="mobileTitle">Dados pessoais</strong></div><button class="mobile-menu-btn" id="mobileMenuBtn" type="button">Ver etapas <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button></div><div class="mobile-progress"><i id="mobileProgressBar"></i></div><div class="mobile-progress-meta"><span id="mobileProgressLabel">Etapa 1 de 8</span><span id="mobileProgressPct">13%</span></div><div class="mobile-menu" id="mobileSteps"></div></div>
+<div class="layout"><aside class="steps" id="steps"></aside><section class="main-card"><div class="card-head"><div><h2 id="pageTitle">Dados pessoais</h2><p id="pageDesc"></p></div><div class="stage-chip" id="stageChip">ETAPA 01</div></div><div class="card-body">
+<!-- PAGE 0 -->
+<div class="page active" data-page="0">
+<div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="12" cy="8" r="3"></circle><path d="M5.5 20a6.5 6.5 0 0 1 13 0"></path><rect height="20" rx="3" width="18" x="3" y="2"></rect></svg></div><div><h3>Identificação</h3><small>Dados exatamente como constam nos documentos.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div>
+<div class="grid"><div class="field full"><label>Nome completo <span class="req">*</span></label><input class="input" name="nome_completo" placeholder="Como no passaporte"/></div><div class="field"><label>Data de nascimento</label><input class="input" name="data_nascimento" placeholder="dd/mm/aaaa"/></div><div class="field"><label>CPF</label><input class="input" name="cpf" placeholder="000.000.000-00"/></div><div class="field full"><label>Cidade / UF de nascimento</label><input class="input" name="nascimento_local" placeholder="Ex.: Paranavaí / PR"/></div></div>
+<div class="question" style="margin-top:15px"><div class="q-top"><div class="q-text">Você já usou outro nome? <span style="font-weight:500;color:var(--muted)">(ex.: nome de solteiro(a), religioso, profissional etc.)</span></div><div class="segment toggle-group" data-target="otherNames"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="otherNames"><div class="repeater" data-repeater="otherNames"><div class="repeat-item"><div class="repeat-title">Outro nome utilizado</div><div class="grid"><div class="field full"><label>Nome completo utilizado</label><input class="input" name="outro_nome[]"/></div></div></div></div><div class="repeat-actions"><button class="add-btn" data-add="otherNames"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar outro nome</button></div></div></div>
+<div class="grid" style="margin-top:15px"><div class="field full"><label>Estado civil oficial</label><select name="estado_civil"><option value="">Selecione…</option><option>Solteiro(a)</option><option>Casado(a)</option><option>Divorciado(a)</option><option>Viúvo(a)</option><option>União estável</option><option>União de facto</option><option>Outro</option></select></div></div>
+<div class="question" style="margin-top:15px"><div class="q-top"><div class="q-text">Você possui outra nacionalidade além da brasileira?</div><div class="segment toggle-group" data-target="otherNationality"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="otherNationality"><div class="repeater" data-repeater="nationalities"><div class="repeat-item"><div class="repeat-title">Outra nacionalidade</div><div class="grid"><div class="field"><label>Nacionalidade</label><input class="input" name="nacionalidade_extra[]" placeholder="Ex.: Italiana"/></div><div class="field"><label>Possui passaporte dessa nacionalidade?</label><select name="nacionalidade_passaporte[]"><option value="">Selecione…</option><option>Não</option><option>Sim</option></select></div><div class="field"><label>Número do passaporte</label><input class="input" name="nacionalidade_passaporte_numero[]"/></div><div class="field"><label>Validade</label><input class="input" name="nacionalidade_passaporte_validade[]" placeholder="dd/mm/aaaa"/></div></div></div></div><div class="repeat-actions"><button class="add-btn" data-add="nationalities"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar nacionalidade</button></div></div></div>
+</div>
+<div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h14V10"></path><path d="M9 20v-6h6v6"></path></svg></div><div><h3>Contato e endereço</h3><small>Inclua também os contatos utilizados nos últimos cinco anos.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="grid"><div class="field full"><label>Endereço residencial</label><input class="input" name="endereco"/></div><div class="field"><label>Bairro</label><input class="input" name="bairro"/></div><div class="field"><label>Cidade / UF</label><input class="input" name="cidade_uf"/></div><div class="field"><label>CEP</label><input class="input" name="cep"/></div><div class="field"><label>Telefone celular</label><input class="input" name="celular"/></div><div class="field"><label>Telefone residencial</label><input class="input" name="telefone_residencial"/></div><div class="field"><label>Telefone trabalho / escola</label><input class="input" name="telefone_trabalho"/></div><div class="field"><label>E-mail</label><input class="input" name="email" type="email"/></div><div class="field full"><label>Outros e-mails usados nos últimos 5 anos</label><input class="input" name="outros_emails" placeholder="Separe por vírgula"/></div><div class="field full"><label>Outros telefones usados nos últimos 5 anos</label><input class="input" name="outros_telefones" placeholder="Separe por vírgula"/></div></div></div>
+<div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.4 7"></path></svg></div><div><h3>Redes sociais</h3><small>Ative somente as redes que você utiliza e informe o nome de usuário.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="socials">
+<div class="social-card"><div class="social-head"><div class="social-info"><span class="social-brand facebook"><svg aria-hidden="true" fill="currentColor" viewbox="0 0 24 24"><path d="M13.6 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.5 1.6-1.5h1.7V4a22 22 0 0 0-2.5-.1c-2.5 0-4.2 1.5-4.2 4.3V10H7.4v3h2.8v8h3.4Z"></path></svg></span><div><b>Facebook</b><small>Perfil ou nome de usuário</small></div></div><button aria-label="Ativar Facebook" class="switch" data-social="facebook"></button></div><div class="social-body"><div class="field"><label>Nome de usuário</label><input class="input" name="facebook" placeholder="usuario ou URL"/></div></div></div>
+<div class="social-card"><div class="social-head"><div class="social-info"><span class="social-brand instagram"><svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" viewbox="0 0 24 24"><rect height="17.6" rx="5" width="17.6" x="3.2" y="3.2"></rect><circle cx="12" cy="12" r="4.1"></circle><circle cx="17.4" cy="6.7" fill="currentColor" r="1" stroke="none"></circle></svg></span><div><b>Instagram</b><small>@usuário</small></div></div><button aria-label="Ativar Instagram" class="switch" data-social="instagram"></button></div><div class="social-body"><div class="field"><label>Nome de usuário</label><input class="input" name="instagram" placeholder="@usuario"/></div></div></div>
+<div class="social-card"><div class="social-head"><div class="social-info"><span class="social-brand twitter"><svg aria-hidden="true" fill="currentColor" viewbox="0 0 24 24"><path d="M5.3 4h3.9l3.5 4.7L16.8 4h1.9l-5.1 5.9L19.3 20h-3.9l-4-5.3L6.8 20H4.9l5.5-6.5L5.3 4Zm2.9 1.4H7.6l8.7 13.2h.7L8.2 5.4Z"></path></svg></span><div><b>X / Twitter</b><small>@usuário</small></div></div><button aria-label="Ativar Twitter" class="switch" data-social="twitter"></button></div><div class="social-body"><div class="field"><label>Nome de usuário</label><input class="input" name="twitter" placeholder="@usuario"/></div></div></div>
+<div class="social-card"><div class="social-head"><div class="social-info"><span class="social-brand other"><svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"></path><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"></path></svg></span><div><b>Outra rede</b><small>Informe a plataforma</small></div></div><button aria-label="Ativar outra rede" class="switch" data-social="otherSocial"></button></div><div class="social-body"><div class="grid"><div class="field"><label>Rede social</label><input class="input" name="outra_rede_nome"/></div><div class="field"><label>Nome de usuário</label><input class="input" name="outra_rede_usuario"/></div></div></div></div>
+</div></div>
+</div>
+<!-- PAGE 1 -->
+<div class="page" data-page="1"><div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M8 7h8M8 11h8M8 15h5"></path></svg></div><div><h3>Passaporte</h3><small>Dados do passaporte que será usado na solicitação.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="grid"><div class="field"><label>Número do passaporte</label><input class="input" name="passaporte_numero"/></div><div class="field"><label>Cidade / UF de emissão</label><input class="input" name="passaporte_emissao_local"/></div><div class="field"><label>Data de expedição</label><input class="input" name="passaporte_emissao_data" placeholder="dd/mm/aaaa"/></div><div class="field"><label>Data de validade</label><input class="input" name="passaporte_validade" placeholder="dd/mm/aaaa"/></div></div>
+<div class="question" style="margin-top:15px"><div class="q-top"><div class="q-text">Você já teve algum passaporte perdido ou roubado?</div><div class="segment toggle-group" data-target="lostPassport"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="lostPassport"><div class="repeater" data-repeater="lostPassports"><div class="repeat-item"><div class="repeat-title">Passaporte perdido / roubado</div><div class="grid"><div class="field"><label>Número do passaporte</label><input class="input" name="passaporte_perdido_numero[]"/></div><div class="field full"><label>Explique como foi perdido ou roubado</label><textarea name="passaporte_perdido_detalhes[]" placeholder="Inclua data aproximada, local e contexto"></textarea></div></div></div></div><div class="repeat-actions"><button class="add-btn" data-add="lostPassports"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar outro passaporte</button></div></div></div>
+</div><div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2Z"></path></svg></div><div><h3>Viagem</h3><small>Planejamento atual; pode ser aproximado quando permitido.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="grid"><div class="field"><label>Quando pretende viajar?</label><input class="input" name="viagem_data" placeholder="dd/mm/aaaa"/></div><div class="field"><label>Destino principal</label><input class="input" name="viagem_destino" placeholder="Cidade / Estado"/></div><div class="field"><label>Quanto tempo de viagem?</label><input class="input" name="viagem_duracao" placeholder="Ex.: 12 dias"/></div><div class="field full"><label>Onde vai ficar nos EUA?</label><input class="input" name="viagem_hospedagem" placeholder="Hotel, endereço ou contato"/></div></div></div></div>
+<!-- PAGE 2 -->
+<div class="page" data-page="2"><div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M15.2 8.5c-.8-.7-1.8-1-3-1-1.7 0-3 .8-3 2.1 0 3.1 6.4 1.7 6.4 5 0 1.4-1.4 2.3-3.4 2.3-1.3 0-2.5-.4-3.4-1.2M12 5.5v13"></path></svg></div><div><h3>Quem vai pagar sua viagem?</h3><small>Selecione uma opção. Os campos adicionais só aparecem quando necessários.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="segment payer-group"><button class="seg" data-value="self">Recursos próprios</button><button class="seg" data-value="person">Outra pessoa</button></div><div class="conditional" id="payerPerson"><div class="grid"><div class="field full"><label>Nome completo do pagador</label><input class="input" name="pagador_nome"/></div><div class="field"><label>Telefone</label><input class="input" name="pagador_telefone"/></div><div class="field"><label>E-mail</label><input class="input" name="pagador_email" type="email"/></div><div class="field"><label>Parentesco / vínculo</label><input class="input" name="pagador_vinculo"/></div><div class="field full"><label>Endereço</label><input class="input" name="pagador_endereco"/></div></div></div></div>
+<div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path><circle cx="17" cy="9" r="2.3"></circle><path d="M15.5 14.5A4.5 4.5 0 0 1 21 19"></path></svg></div><div><h3>Companheiros de viagem</h3><small>Informe todas as pessoas que viajarão com você.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="question"><div class="q-top"><div class="q-text">Existem outras pessoas viajando com você?</div><div class="segment toggle-group" data-target="travelCompanions"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="travelCompanions"><div class="repeater" data-repeater="companions"><div class="repeat-item"><div class="repeat-title">Companheiro de viagem</div><div class="grid"><div class="field"><label>Nome completo</label><input class="input" name="acompanhante_nome[]"/></div><div class="field"><label>Parentesco / relação</label><input class="input" name="acompanhante_parentesco[]"/></div></div></div></div><div class="repeat-actions"><button class="add-btn" data-add="companions"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar pessoa</button></div></div></div>
+<div class="question"><div class="q-top"><div class="q-text">Está viajando com grupo ou organização?</div><div class="segment toggle-group" data-target="travelGroup"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="travelGroup"><div class="field"><label>Nome do grupo ou organização</label><input class="input" name="grupo_nome"/></div></div></div></div></div>
+<!-- PAGE 3 -->
+<div class="page" data-page="3"><div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M4 20V5a2 2 0 0 1 2-2h12l-2 4 2 4H6"></path></svg></div><div><h3>Histórico com os Estados Unidos</h3><small>Respostas “Sim” abrem somente o campo necessário para explicar.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div>
+<div class="question"><div class="q-top"><div class="q-text">Alguma vez você teve negada uma autorização de viagem pelo ESTA?</div><div class="segment toggle-group" data-target="estaDenied"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="estaDenied"><div class="grid"><div class="field"><label>Onde foi recusado?</label><input class="input" name="esta_local"/></div><div class="field"><label>Quando?</label><input class="input" name="esta_data"/></div><div class="field full"><label>Explique em detalhes</label><textarea name="esta_detalhes"></textarea></div></div></div></div>
+<div class="question"><div class="q-top"><div class="q-text">Alguma vez lhe foi negado um visto dos EUA ou recusada a entrada nos Estados Unidos?</div><div class="segment toggle-group" data-target="visaDenied"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="visaDenied"><div class="grid"><div class="field"><label>Onde?</label><input class="input" name="visa_recusa_local"/></div><div class="field"><label>Quando?</label><input class="input" name="visa_recusa_data"/></div><div class="field"><label>Tipo de visto</label><input class="input" name="visa_recusa_tipo"/></div><div class="field full"><label>Detalhes</label><textarea name="visa_recusa_detalhes"></textarea></div></div></div></div>
+<div class="question"><div class="q-top"><div class="q-text">Alguém já entrou com uma petição de imigrante em seu nome nos Estados Unidos?</div><div class="segment toggle-group" data-target="immigrantPetition"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="immigrantPetition"><div class="field"><label>Explique</label><textarea name="peticao_imigrante_detalhes" placeholder="Informe quem entrou com a petição, quando e o contexto"></textarea></div></div></div>
+</div><div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></div><div><h3>Contato nos EUA</h3><small>Pode ser parente, amigo, contato comercial, organização ou hotel.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="grid"><div class="field full"><label>Nome do contato ou organização</label><input class="input" name="usa_contato_nome"/></div><div class="field"><label>Relação / parentesco</label><input class="input" name="usa_contato_relacao"/></div><div class="field"><label>Telefone +1</label><input class="input" name="usa_contato_telefone"/></div><div class="field full"><label>Endereço completo nos EUA</label><input class="input" name="usa_contato_endereco"/></div><div class="field full"><label>E-mail (ou “Não sei”)</label><input class="input" name="usa_contato_email"/></div></div></div></div>
+<!-- PAGE 4 -->
+<div class="page" data-page="4"><div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="8" cy="8" r="3"></circle><circle cx="16" cy="8" r="3"></circle><path d="M3 20a5 5 0 0 1 10 0M11 20a5 5 0 0 1 10 0"></path></svg></div><div><h3>Pai e mãe</h3><small>Preencha mesmo se falecidos.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="person-row"><div class="person-title">Dados do pai</div><div class="grid"><div class="field full"><label>Nome completo</label><input class="input" name="pai_nome"/></div><div class="field"><label>Data de nascimento</label><input class="input" name="pai_nascimento"/></div><div class="field"><label>Seu pai está nos EUA?</label><div class="segment inline-parent-toggle" data-target="fatherUSA"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="field full conditional" id="fatherUSA"><label>Situação do pai nos EUA</label><select name="pai_status_usa"><option value="">Selecione…</option><option>U.S. Citizen</option><option>Nonimmigrant</option><option>U.S. Legal Permanent Resident</option><option>Outro / Não sei</option></select></div></div></div>
+<div class="person-row"><div class="person-title">Dados da mãe</div><div class="grid"><div class="field full"><label>Nome completo</label><input class="input" name="mae_nome"/></div><div class="field"><label>Data de nascimento</label><input class="input" name="mae_nascimento"/></div><div class="field"><label>Sua mãe está nos EUA?</label><div class="segment inline-parent-toggle" data-target="motherUSA"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="field full conditional" id="motherUSA"><label>Situação da mãe nos EUA</label><select name="mae_status_usa"><option value="">Selecione…</option><option>U.S. Citizen</option><option>Nonimmigrant</option><option>U.S. Legal Permanent Resident</option><option>Outro / Não sei</option></select></div></div></div></div>
+<div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg></div><div><h3>Outros parentes nos EUA</h3><small>Os campos aparecem apenas quando você responder “Sim”.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div>
+<div class="question"><div class="q-top"><div class="q-text">Você tem algum outro parente imediato nos Estados Unidos? <span style="font-weight:500;color:var(--muted)">(filhos ou irmãos)</span></div><div class="segment toggle-group" data-target="immediateRelatives"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="immediateRelatives"><div class="repeater" data-repeater="immediate"><div class="repeat-item"><div class="repeat-title">Parente imediato</div><div class="grid"><div class="field"><label>Nome completo</label><input class="input" name="parente_imediato_nome[]"/></div><div class="field"><label>Parentesco</label><input class="input" name="parente_imediato_parentesco[]"/></div><div class="field full"><label>Situação nos EUA</label><select name="parente_imediato_status[]"><option value="">Selecione…</option><option>U.S. Citizen</option><option>Nonimmigrant</option><option>U.S. Legal Permanent Resident</option><option>Outro / Não sei</option></select></div></div></div></div><div class="repeat-actions"><button class="add-btn" data-add="immediate"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar parente</button></div></div></div>
+<div class="question"><div class="q-top"><div class="q-text">Você tem algum outro parente não imediato nos Estados Unidos?</div><div class="segment toggle-group" data-target="otherRelatives"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="otherRelatives"><div class="repeater" data-repeater="otherRelativesRep"><div class="repeat-item"><div class="repeat-title">Parente não imediato</div><div class="grid"><div class="field"><label>Nome completo</label><input class="input" name="parente_outro_nome[]"/></div><div class="field"><label>Parentesco</label><input class="input" name="parente_outro_parentesco[]"/></div><div class="field full"><label>Situação nos EUA</label><select name="parente_outro_status[]"><option value="">Selecione…</option><option>U.S. Citizen</option><option>Nonimmigrant</option><option>U.S. Legal Permanent Resident</option><option>Outro / Não sei</option></select></div></div></div></div><div class="repeat-actions"><button class="add-btn" data-add="otherRelativesRep"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar parente</button></div></div></div></div>
+<div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path></svg></div><div><h3>Cônjuge atual ou anterior</h3><small>Preencha quando aplicável ao seu estado civil ou histórico.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="grid"><div class="field full"><label>Nome completo</label><input class="input" name="conjuge_nome"/></div><div class="field"><label>Data de nascimento</label><input class="input" name="conjuge_nascimento"/></div><div class="field"><label>Nacionalidade</label><input class="input" name="conjuge_nacionalidade"/></div><div class="field"><label>Cidade / UF de nascimento</label><input class="input" name="conjuge_local_nascimento"/></div><div class="field"><label>Data de casamento</label><input class="input" name="casamento_data"/></div><div class="field"><label>Data do divórcio</label><input class="input" name="divorcio_data"/></div><div class="field full"><label>Como o casamento terminou?</label><textarea name="casamento_fim"></textarea></div><div class="field full"><label>País em que o casamento terminou</label><input class="input" name="casamento_fim_pais"/></div></div></div></div>
+<!-- PAGE 5 -->
+<div class="page" data-page="5"><div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><rect height="15" rx="2" width="16" x="4" y="5"></rect><path d="M8 5V3h8v2M8 10h8M8 14h8"></path></svg></div><div><h3>Ocupação atual</h3><small>Dados profissionais atuais.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="grid"><div class="field"><label>Ocupação atual</label><input class="input" name="ocupacao_atual"/></div><div class="field"><label>Início</label><input class="input" name="ocupacao_inicio"/></div><div class="field"><label>Se aposentado, ano da aposentadoria</label><input class="input" name="aposentadoria_ano"/></div><div class="field full"><label>Se desempregado, explique</label><textarea name="desempregado_explicacao"></textarea></div><div class="field"><label>Razão social</label><input class="input" name="empresa_razao"/></div><div class="field"><label>Nome fantasia</label><input class="input" name="empresa_fantasia"/></div><div class="field"><label>CNPJ</label><input class="input" name="empresa_cnpj"/></div><div class="field full"><label>Endereço completo</label><input class="input" name="empresa_endereco"/></div><div class="field"><label>Telefone da empresa</label><input class="input" name="empresa_telefone"/></div><div class="field"><label>Remuneração mensal</label><input class="input" name="empresa_remuneracao"/></div><div class="field full"><label>Descreva brevemente suas funções / atividades diárias</label><textarea name="empresa_funcoes"></textarea></div></div></div>
+<div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg></div><div><h3>Ocupações anteriores</h3><small>Locais de trabalho dos últimos 5 anos, quando aplicável.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="repeater" data-repeater="jobs"><div class="repeat-item"><div class="repeat-title">Emprego anterior</div><div class="grid"><div class="field"><label>Nome da empresa</label><input class="input" name="emprego_anterior_nome[]"/></div><div class="field"><label>Telefone</label><input class="input" name="emprego_anterior_telefone[]"/></div><div class="field full"><label>Endereço completo</label><input class="input" name="emprego_anterior_endereco[]"/></div><div class="field"><label>Último cargo</label><input class="input" name="emprego_anterior_cargo[]"/></div><div class="field"><label>Nome completo do gerente</label><input class="input" name="emprego_anterior_gerente[]"/></div><div class="field"><label>Data de admissão</label><input class="input" name="emprego_anterior_admissao[]"/></div><div class="field"><label>Data de demissão</label><input class="input" name="emprego_anterior_demissao[]"/></div><div class="field full"><label>Descreva brevemente suas funções</label><textarea name="emprego_anterior_funcoes[]"></textarea></div></div></div></div><div class="repeat-actions"><button class="add-btn" data-add="jobs" data-max="2"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar outro emprego</button></div></div></div>
+<!-- PAGE 6 -->
+<div class="page" data-page="6"><div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"></path><path d="M4 19a2 2 0 0 1 2-2h14"></path></svg></div><div><h3>Formação escolar / acadêmica</h3><small>Escolha o maior nível concluído ou cursado; o formulário mostra somente o necessário.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="field full"><label>Maior nível de formação</label><select id="educationLevel" name="formacao_nivel"><option value="">Selecione…</option><option value="superior">Ensino superior / pós-graduação</option><option value="medio">Ensino médio</option><option value="fundamental">Ensino fundamental</option></select></div>
+<div class="conditional" id="eduSuperior"><div class="person-row"><div class="person-title">Formação superior</div><div class="repeater" data-repeater="higherEducation"><div class="repeat-item"><div class="grid"><div class="field full"><label>Nome da instituição</label><input class="input" name="superior_instituicao[]"/></div><div class="field full"><label>Endereço completo</label><input class="input" name="superior_endereco[]"/></div><div class="field full"><label>Curso de estudo</label><input class="input" name="superior_curso[]"/></div><div class="field"><label>Data de início</label><input class="input" name="superior_inicio[]"/></div><div class="field"><label>Data de término</label><input class="input" name="superior_fim[]"/></div></div></div></div><div class="repeat-actions"><button class="add-btn" data-add="higherEducation"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar outra formação superior</button></div></div></div>
+<div class="conditional" id="eduMedio"><div class="person-row"><div class="person-title">Ensino Médio ou equivalente</div><div class="grid"><div class="field full"><label>Nome da instituição</label><input class="input" name="medio_instituicao"/></div><div class="field full"><label>Endereço completo</label><input class="input" name="medio_endereco"/></div><div class="field full"><label>Grade / séries / curso</label><input class="input" name="medio_curso"/></div><div class="field"><label>Data de início</label><input class="input" name="medio_inicio"/></div><div class="field"><label>Data de término</label><input class="input" name="medio_fim"/></div></div></div></div>
+<div class="conditional" id="eduFundamental"><div class="person-row"><div class="person-title">Ensino Fundamental</div><div class="grid"><div class="field full"><label>Nome da instituição</label><input class="input" name="fundamental_instituicao"/></div><div class="field full"><label>Endereço completo</label><input class="input" name="fundamental_endereco"/></div><div class="field"><label>Data de início</label><input class="input" name="fundamental_inicio"/></div><div class="field"><label>Data de término</label><input class="input" name="fundamental_fim"/></div></div></div></div></div>
+<div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M4 5h16v11H8l-4 4V5Z"></path><path d="M8 9h8M8 12h5"></path></svg></div><div><h3>Idiomas</h3><small>Adicione um idioma por vez.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="repeater" data-repeater="languages"><div class="repeat-item"><div class="grid"><div class="field full"><label>Idioma</label><input class="input" name="idioma[]" placeholder="Ex.: Português"/></div></div></div></div><div class="repeat-actions"><button class="add-btn" data-add="languages"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar idioma</button></div></div>
+<div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg></div><div><h3>Viagens e serviço militar</h3><small>Campos adicionais aparecem somente para respostas “Sim”.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="question"><div class="q-top"><div class="q-text">Você viajou para outros países nos últimos 5 anos?</div><div class="segment toggle-group" data-target="countriesVisited"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="countriesVisited"><div class="repeater" data-repeater="countries"><div class="repeat-item"><div class="field"><label>País visitado</label><input class="input" name="pais_visitado[]"/></div></div></div><div class="repeat-actions"><button class="add-btn" data-add="countries"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Adicionar país</button></div></div></div>
+<div class="question"><div class="q-top"><div class="q-text">Você prestou serviço militar?</div><div class="segment toggle-group" data-target="military"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="conditional" id="military"><div class="grid"><div class="field"><label>Em qual país?</label><input class="input" name="militar_pais"/></div><div class="field"><label>Nome do batalhão / serviço</label><input class="input" name="militar_batalhao"/></div><div class="field"><label>Posição / patente</label><input class="input" name="militar_patente"/></div><div class="field"><label>Especialidade militar</label><input class="input" name="militar_especialidade"/></div><div class="field"><label>Data de início</label><input class="input" name="militar_inicio"/></div><div class="field"><label>Data de término</label><input class="input" name="militar_fim"/></div></div></div></div></div></div>
+<!-- PAGE 7 -->
+<div class="page" data-page="7"><div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2.1 0 4.6-1.2 6.3-2.7a1.1 1.1 0 0 1 1.4 0C14.4 3.8 16.9 5 19 5a1 1 0 0 1 1 1v7Z"></path><path d="m9 12 2 2 4-4"></path></svg></div><div><h3>Segurança e imigração</h3><small>Cada resposta “Sim” abre seu próprio campo de detalhes logo abaixo.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div>
+<div class="security-q"><div class="security-top"><p>Você já foi preso ou condenado por algum delito ou crime, mesmo que tenha sido objeto de perdão, anistia ou ação semelhante?</p><div class="segment security-toggle"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="security-detail"><label>Detalhes</label><textarea name="seguranca_prisao" placeholder="Explique com datas, local e contexto"></textarea></div></div>
+<div class="security-q"><div class="security-top"><p>Você já esteve envolvido ou pretende se envolver em lavagem de dinheiro?</p><div class="segment security-toggle"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="security-detail"><label>Detalhes</label><textarea name="seguranca_lavagem"></textarea></div></div>
+<div class="security-q"><div class="security-top"><p>Você já violou ou se envolveu em uma conspiração para violar alguma lei relacionada a substâncias controladas?</p><div class="segment security-toggle"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="security-detail"><label>Detalhes</label><textarea name="seguranca_substancias"></textarea></div></div>
+<div class="security-q"><div class="security-top"><p>Você é ou já foi usuário ou viciado em drogas?</p><div class="segment security-toggle"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="security-detail"><label>Detalhes</label><textarea name="seguranca_drogas"></textarea></div></div>
+<div class="security-q"><div class="security-top"><p>Você já esteve presente ilegalmente, ultrapassou o tempo concedido ou violou de outra forma os termos de um visto dos EUA?</p><div class="segment security-toggle"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="security-detail"><label>Detalhes</label><textarea name="seguranca_presenca_ilegal"></textarea></div></div>
+<div class="security-q"><div class="security-top"><p>Você já foi alvo de uma audiência de remoção ou deportação?</p><div class="segment security-toggle"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="security-detail"><label>Detalhes</label><textarea name="seguranca_audiencia"></textarea></div></div>
+<div class="security-q"><div class="security-top"><p>Você não compareceu a uma audiência sobre remoção ou inadmissibilidade nos últimos cinco anos?</p><div class="segment security-toggle"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="security-detail"><label>Detalhes</label><textarea name="seguranca_nao_compareceu"></textarea></div></div>
+<div class="security-q"><div class="security-top"><p>Você já foi removido ou deportado de algum país?</p><div class="segment security-toggle"><button class="seg" data-value="nao">Não</button><button class="seg" data-value="sim">Sim</button></div></div><div class="security-detail"><label>Detalhes</label><textarea name="seguranca_deportado"></textarea></div></div>
+</div><div class="section"><div class="section-title"><div class="iconbox"><svg fill="none" stroke="currentColor" stroke-width="1.8" viewbox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"></path><path d="m3.5 6 .7.7 1.5-1.5M3.5 12l.7.7 1.5-1.5M3.5 18l.7.7 1.5-1.5"></path></svg></div><div><h3>Revisão antes do envio</h3><small>Uma última conferência antes de enviar para a equipe da Via Air.</small></div>
+      <div class="mini-america" aria-hidden="true">
+        <span class="mini-flag">
+          <svg viewBox="0 0 38 26" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="38" height="26" fill="#fff"/>
+            <rect y="0" width="38" height="2" fill="#c73a3a"/><rect y="4" width="38" height="2" fill="#c73a3a"/><rect y="8" width="38" height="2" fill="#c73a3a"/><rect y="12" width="38" height="2" fill="#c73a3a"/><rect y="16" width="38" height="2" fill="#c73a3a"/><rect y="20" width="38" height="2" fill="#c73a3a"/><rect y="24" width="38" height="2" fill="#c73a3a"/>
+            <rect width="16" height="14" fill="#274b8f"/>
+          </svg>
+        </span>
+        U.S. FORM
+      </div></div><div class="review-box"><div class="review-title">Dados pessoais <button data-jump="0">Editar</button></div><div class="review-lines"><span><b>Nome:</b> <span data-review="nome_completo">não preenchido</span></span><span><b>CPF:</b> <span data-review="cpf">não preenchido</span></span><span><b>E-mail:</b> <span data-review="email">não preenchido</span></span><span><b>Estado civil:</b> <span data-review="estado_civil">não preenchido</span></span></div></div><div class="review-box"><div class="review-title">Passaporte e viagem <button data-jump="1">Editar</button></div><div class="review-lines"><span><b>Passaporte:</b> <span data-review="passaporte_numero">não preenchido</span></span><span><b>Destino:</b> <span data-review="viagem_destino">não preenchido</span></span><span><b>Data prevista:</b> <span data-review="viagem_data">não preenchido</span></span><span><b>Duração:</b> <span data-review="viagem_duracao">não preenchido</span></span></div></div><div class="review-box"><div class="review-title">Demais informações <button data-jump="4">Editar</button></div><div class="review-lines"><span><b>Família:</b> revisar</span><span><b>Ocupação:</b> revisar</span><span><b>Formação:</b> revisar</span><span><b>Segurança:</b> revisar</span></div></div></div></div>
+</div><div class="card-foot"><button class="nav-btn" id="backBtn"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg><span>Voltar</span></button><div class="foot-note">As respostas são salvas neste navegador durante o preenchimento.</div><button class="nav-btn primary" id="nextBtn"><span>Continuar</span><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button></div></section></div>
+</main>
+<script>
+const pages=[
+ {t:'Dados pessoais',s:'Identificação e contatos',d:'Identificação, nacionalidades, contatos e redes sociais.'},
+ {t:'Passaporte e viagem',s:'Documento e roteiro',d:'Passaporte atual, histórico de perda ou roubo e planejamento da viagem.'},
+ {t:'Pagamento e acompanhantes',s:'Custeio e companhia',d:'Quem pagará a viagem, acompanhantes e grupo/organização.'},
+ {t:'Informações sobre os EUA',s:'Histórico e contato',d:'ESTA, recusas, petições e contato nos Estados Unidos.'},
+ {t:'Familiares',s:'Pais, parentes e cônjuge',d:'Pais, parentes imediatos e não imediatos e informações de cônjuge.'},
+ {t:'Ocupação',s:'Atual e anteriores',d:'Atividade profissional atual e histórico profissional.'},
+ {t:'Formação e histórico',s:'Estudos, idiomas e viagens',d:'Formação, idiomas, países visitados e serviço militar.'},
+ {t:'Segurança e revisão',s:'Conferência final',d:'Perguntas de segurança e imigração, com detalhes condicionais.'}
+];
+let current=0;const steps=document.getElementById('steps'),mobile=document.getElementById('mobileSteps');
+pages.forEach((p,i)=>{const el=document.createElement('div');el.className='step'+(i===0?' active':'');el.dataset.i=i;el.innerHTML=`<div class="num">${i+1}</div><div><div class="step-title">${p.t}</div><div class="step-sub">${p.s}</div></div>`;steps.appendChild(el);const m=document.createElement('button');m.className='mobile-pill'+(i===0?' active':'');m.textContent=`${i+1}. ${p.t}`;m.dataset.i=i;mobile.appendChild(m)});
+function go(i){current=Math.max(0,Math.min(pages.length-1,i));document.querySelectorAll('.page').forEach((e,n)=>e.classList.toggle('active',n===current));document.querySelectorAll('.step').forEach((e,n)=>{e.classList.toggle('active',n===current);e.classList.toggle('done',n<current)});document.querySelectorAll('.mobile-pill').forEach((e,n)=>e.classList.toggle('active',n===current));document.getElementById('pageTitle').textContent=pages[current].t;document.getElementById('pageDesc').textContent=pages[current].d;document.getElementById('stageChip').textContent='ETAPA '+String(current+1).padStart(2,'0');const pct=Math.round((current+1)/pages.length*100);document.getElementById('progressBar').style.width=pct+'%';document.getElementById('progressPct').textContent=pct+'% concluído';document.getElementById('progressTitle').textContent=`Etapa ${current+1} de ${pages.length} · ${pages[current].t}`;document.getElementById('backBtn').disabled=current===0;const next=document.getElementById('nextBtn');next.innerHTML=current===pages.length-1?'<span>Enviar para conferência</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>':'<span>Continuar</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';document.getElementById('mobileKicker').textContent=`ETAPA ${current+1} DE ${pages.length}`;document.getElementById('mobileTitle').textContent=pages[current].t;document.getElementById('mobileProgressBar').style.width=pct+'%';document.getElementById('mobileProgressLabel').textContent=`Etapa ${current+1} de ${pages.length}`;document.getElementById('mobileProgressPct').textContent=pct+'%';mobileNav?.classList.remove('open');updateReview();window.scrollTo({top:175,behavior:'smooth'})}
+steps.onclick=e=>{const x=e.target.closest('.step');if(x)go(+x.dataset.i)};mobile.onclick=e=>{const x=e.target.closest('.mobile-pill');if(x)go(+x.dataset.i)};document.getElementById('backBtn').onclick=()=>go(current-1);document.getElementById('nextBtn').onclick=()=>current<pages.length-1?go(current+1):alert('Preview: formulário pronto para ser enviado à equipe Via Air para conferência.');document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>go(+b.dataset.jump));
+function setConditional(target,show){const panel=document.getElementById(target);if(panel)panel.classList.toggle('show',show)}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('.toggle-group .seg,.inline-parent-toggle .seg');if(b){e.preventDefault();const group=b.closest('.segment');group.querySelectorAll('.seg').forEach(x=>x.classList.remove('active'));b.classList.add('active');setConditional(group.dataset.target,b.dataset.value==='sim');saveState();return}
+ const sec=e.target.closest('.security-toggle .seg');if(sec){e.preventDefault();const group=sec.closest('.segment');group.querySelectorAll('.seg').forEach(x=>x.classList.remove('active'));sec.classList.add('active');sec.closest('.security-q').classList.toggle('yes',sec.dataset.value==='sim');saveState();return}
+ const sw=e.target.closest('.switch');if(sw){e.preventDefault();sw.classList.toggle('on');sw.closest('.social-card').classList.toggle('enabled',sw.classList.contains('on'));saveState();return}
+ const pay=e.target.closest('.payer-group .seg');if(pay){e.preventDefault();const group=pay.closest('.payer-group');group.querySelectorAll('.seg').forEach(x=>x.classList.remove('active'));pay.classList.add('active');setConditional('payerPerson',pay.dataset.value==='person');saveState();return}
+ const add=e.target.closest('[data-add]');if(add){e.preventDefault();const key=add.dataset.add;const rep=document.querySelector(`[data-repeater="${key}"]`);if(!rep)return;const max=+(add.dataset.max||999);if(rep.children.length>=max){alert(`Máximo de ${max} registros nesta seção.`);return}const clone=rep.children[0].cloneNode(true);clone.querySelectorAll('input,textarea,select').forEach(el=>{if(el.tagName==='SELECT')el.selectedIndex=0;else el.value=''});if(rep.children.length>=1&&!clone.querySelector(':scope > .remove-btn')){const rm=document.createElement('button');rm.className='remove-btn';rm.type='button';rm.textContent='Remover';rm.dataset.remove='1';clone.appendChild(rm)}rep.appendChild(clone);saveState();return}
+ const rm=e.target.closest('[data-remove]');if(rm){e.preventDefault();rm.closest('.repeat-item').remove();saveState();return}
+});
+const edu=document.getElementById('educationLevel');edu.addEventListener('change',()=>{const v=edu.value;setConditional('eduSuperior',v==='superior');setConditional('eduMedio',v==='superior'||v==='medio');setConditional('eduFundamental',v==='fundamental');saveState()});
+function updateReview(){document.querySelectorAll('[data-review]').forEach(el=>{const name=el.dataset.review;const f=document.querySelector(`[name="${name}"]`);el.textContent=f&&f.value?f.value:'não preenchido'})}
+function serialize(){const data={fields:{},toggles:{},socials:{},security:[],education:edu.value,current};document.querySelectorAll('input,textarea,select').forEach((el,idx)=>{if(el.name)data.fields[el.name+'#'+idx]=el.value});document.querySelectorAll('.toggle-group,.inline-parent-toggle').forEach((g,idx)=>{const a=g.querySelector('.seg.active');if(a)data.toggles[idx]=a.dataset.value});document.querySelectorAll('.payer-group').forEach((g,idx)=>{const a=g.querySelector('.seg.active');if(a)data.toggles['payer'+idx]=a.dataset.value});document.querySelectorAll('.switch').forEach((s,idx)=>data.socials[idx]=s.classList.contains('on'));document.querySelectorAll('.security-q').forEach((q,idx)=>{const a=q.querySelector('.seg.active');data.security[idx]=a?a.dataset.value:null});return data}
+let saveTimer;function saveState(){clearTimeout(saveTimer);document.getElementById('saveText').textContent='Salvando…';saveTimer=setTimeout(()=>{try{localStorage.setItem('viaair-ds160-demo',JSON.stringify(serialize()));document.getElementById('saveText').textContent='Rascunho salvo automaticamente'}catch(e){document.getElementById('saveText').textContent='Rascunho local'}updateReview()},250)}
+document.addEventListener('input',saveState);document.addEventListener('change',saveState);document.getElementById('saveExit').onclick=()=>{saveState();alert('Preview: rascunho salvo neste navegador.')};
+function restore(){try{const raw=localStorage.getItem('viaair-ds160-demo');if(!raw)return;const data=JSON.parse(raw);document.querySelectorAll('input,textarea,select').forEach((el,idx)=>{const k=el.name+'#'+idx;if(el.name&&data.fields&&k in data.fields)el.value=data.fields[k]});if(data.education){edu.value=data.education;edu.dispatchEvent(new Event('change'))}if(data.socials)document.querySelectorAll('.switch').forEach((s,idx)=>{if(data.socials[idx]){s.classList.add('on');s.closest('.social-card').classList.add('enabled')}});if(Array.isArray(data.security))document.querySelectorAll('.security-q').forEach((q,idx)=>{const v=data.security[idx];if(v){const b=q.querySelector(`.seg[data-value="${v}"]`);if(b){b.classList.add('active');q.classList.toggle('yes',v==='sim')}}});if(data.toggles){document.querySelectorAll('.toggle-group,.inline-parent-toggle').forEach((g,idx)=>{const v=data.toggles[idx];if(v){const b=g.querySelector(`.seg[data-value="${v}"]`);if(b){b.classList.add('active');setConditional(g.dataset.target,v==='sim')}}});document.querySelectorAll('.payer-group').forEach((g,idx)=>{const v=data.toggles['payer'+idx];if(v){const b=g.querySelector(`.seg[data-value="${v}"]`);if(b){b.classList.add('active');setConditional('payerPerson',v==='person')}}})}if(Number.isInteger(data.current))current=data.current}catch(e){console.warn(e)}}
+
+const mobileNav=document.getElementById('mobileNav');
+const mobileMenuBtn=document.getElementById('mobileMenuBtn');
+mobileMenuBtn?.addEventListener('click',()=>mobileNav.classList.toggle('open'));
+
+restore();go(current);
+</script>
+
+<script>
+(function(){
+  function syncVisaPass(){
+    var active = document.querySelector('.page.active');
+    if(!active) return;
+    var pages = Array.from(document.querySelectorAll('.page'));
+    var idx = Math.max(0,pages.indexOf(active));
+    var el = document.getElementById('vpStepValue');
+    if(el) el.textContent = String(idx+1).padStart(2,'0') + ' / ' + String(pages.length).padStart(2,'0');
+  }
+  document.addEventListener('click', function(){ setTimeout(syncVisaPass, 80); });
+  document.addEventListener('change', function(){ setTimeout(syncVisaPass, 30); });
+  window.addEventListener('load', syncVisaPass);
+  setTimeout(syncVisaPass, 250);
+})();
+</script>
+
+</body></html>

@@ -8796,6 +8796,68 @@ export type Database = {
         }
         Relationships: []
       }
+      visa_requests: {
+        Row: {
+          applicant_cpf: string | null
+          applicant_email: string | null
+          applicant_name: string | null
+          applicant_phone: string | null
+          created_at: string
+          created_by: string | null
+          form_data: Json
+          id: string
+          notes: string | null
+          order_id: string | null
+          protocolo: string
+          status: string
+          submitted_at: string | null
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_cpf?: string | null
+          applicant_email?: string | null
+          applicant_name?: string | null
+          applicant_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          form_data?: Json
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          protocolo?: string
+          status?: string
+          submitted_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_cpf?: string | null
+          applicant_email?: string | null
+          applicant_name?: string | null
+          applicant_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          form_data?: Json
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          protocolo?: string
+          status?: string
+          submitted_at?: string | null
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visa_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_agent_presence: {
         Row: {
           conversation_id: string | null
@@ -10867,6 +10929,7 @@ export type Database = {
       generate_order_number: { Args: never; Returns: string }
       gerar_numero_protocolo: { Args: never; Returns: string }
       gerar_protocolo_passaporte: { Args: never; Returns: string }
+      gerar_protocolo_visto: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
