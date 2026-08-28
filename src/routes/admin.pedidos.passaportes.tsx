@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatBRL } from "@/lib/format";
+import { BlocoCampos, CampoItem } from "@/components/admin/CamposFormulario";
 import {
   createPassportRequest,
   listPassportRequests,
@@ -219,9 +220,12 @@ function Card({
             <BlocoInfinitePay requestId={row.id} />
 
 
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">Pagamento</h4>
-              <dl className="mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+            <section className="min-w-0 rounded-xl border border-border/60 bg-background/40 p-4">
+              <h4 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-orange">
+                <span className="h-3 w-1 rounded-full bg-brand-orange" />
+                Pagamento
+              </h4>
+              <dl className="mt-3 grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 <Item rotulo="Situação" valor={row.paymentStatus === "paid" ? "Pago" : "Pendente"} />
                 <Item
                   rotulo="Forma"
@@ -257,7 +261,7 @@ function Card({
                   Abrir comprovante/cobrança
                 </a>
               )}
-            </div>
+            </section>
           </div>
         )}
       </div>
@@ -310,30 +314,14 @@ const rotular = (k: string) =>
   ROTULOS[k] ?? k.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 
 function Bloco({ titulo, dados }: { titulo: string; dados: Record<string, string> }) {
-  const entradas = Object.entries(dados ?? {}).filter(([, v]) => v != null && String(v).trim() !== "");
-  return (
-    <div>
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">{titulo}</h4>
-      {entradas.length === 0 ? (
-        <p className="mt-1 text-xs text-muted-foreground">Ainda não preenchido pelo cliente.</p>
-      ) : (
-        <dl className="mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-2">
-          {entradas.map(([k, v]) => (
-            <Item key={k} rotulo={rotular(k)} valor={v} />
-          ))}
-        </dl>
-      )}
-    </div>
-  );
+  const entradas = Object.entries(dados ?? {})
+    .filter(([, v]) => v != null && String(v).trim() !== "")
+    .map(([k, v]) => [rotular(k), String(v)] as [string, string]);
+  return <BlocoCampos titulo={titulo} entradas={entradas} />;
 }
 
 function Item({ rotulo, valor }: { rotulo: string; valor: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{rotulo}</dt>
-      <dd className="break-words text-sm">{valor}</dd>
-    </div>
-  );
+  return <CampoItem rotulo={rotulo} valor={valor} />;
 }
 
 /** Cobranças de cartão (InfinitePay) desta solicitação de passaporte. */
@@ -358,7 +346,8 @@ function BlocoInfinitePay({ requestId }: { requestId: string }) {
 
   return (
     <div>
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">
+      <h4 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-orange">
+        <span className="h-3 w-1 rounded-full bg-brand-orange" />
         Cobranças no cartão (InfinitePay)
       </h4>
       {rows === null ? (
@@ -369,7 +358,7 @@ function BlocoInfinitePay({ requestId }: { requestId: string }) {
         <div className="mt-2 space-y-2">
           {rows.map((p) => (
             <div key={p.id} className="rounded-lg border bg-muted/20 p-3">
-              <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+              <dl className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 <Item rotulo="Situação" valor={p.status} />
                 <Item
                   rotulo="Valor"
