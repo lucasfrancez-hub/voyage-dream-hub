@@ -94,8 +94,8 @@ function PassaportePage() {
 
   const [metodo, setMetodo] = useState<"PIX" | "CREDIT_CARD">("PIX");
   const [parcelas, setParcelas] = useState(1);
-  const [cartao, setCartao] = useState<Campos>({});
   const [declarou, setDeclarou] = useState(false);
+
 
   useEffect(() => {
     let alive = true;
