@@ -146,11 +146,6 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
               skip_protocolo: true,
             });
 
-            await supabaseAdmin
-              .from("wa_protocolos")
-              .update({ inactivity_warned_at: new Date().toISOString() })
-              .eq("id", proto.id);
-
             warned.push(proto.numero);
           }
         }
