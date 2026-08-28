@@ -384,7 +384,11 @@ async function processPayload(payload: WhatsAppPayload) {
             mimeType: media.mimeType,
             filename: `audio-${msg.audio.id}.${extFromMime(media.mimeType)}`,
           });
-          const texto = transcript ? `🎤 [áudio transcrito] ${transcript}` : "🎤 [áudio recebido]";
+          // Sem transcrição NÃO existe conteúdo: proibido deixar a IA "interpretar"
+          // um rótulo de áudio. Mandamos uma instrução explícita de reenvio.
+          const texto = transcript
+            ? `🎤 [áudio transcrito] ${transcript}`
+            : "🎤 [sistema · transcricao_falhou] Não foi possível transcrever este áudio. Peça ao cliente, de forma natural, que reenvie o áudio ou escreva a mensagem. NÃO tente adivinhar o conteúdo e não avance nenhuma etapa do atendimento com base nele.";
           content = stored
             ? `[[media:audio|${stored.url}|${stored.filename}]]\n${texto}`
             : texto;
