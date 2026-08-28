@@ -139,7 +139,14 @@ export async function ensureActiveProtocolo(conversationId: string): Promise<WaP
     ai_paused?: boolean | null;
   } | null;
   const retomarIa = c?.ai_paused === true && c?.mode !== "human" && !c?.assigned_to;
-  const camposIa = retomarIa ? { ai_paused: false } : {};
+  // Orientação do supervisor pertence AO PROTOCOLO em que foi dada. Se o protocolo
+  // encerrou antes de a IA consumi-la, ela não pode contaminar o próximo atendimento.
+  const camposIa = {
+    ...(retomarIa ? { ai_paused: false } : {}),
+    ai_instruction: null,
+    ai_instruction_at: null,
+    ai_instruction_by: null,
+  };
 
   // Tenta reabrir um protocolo recém-encerrado POR INATIVIDADE (continuação do mesmo assunto).
   // Encerramento MANUAL é ponto final: qualquer mensagem posterior gera protocolo novo (novo lead).
