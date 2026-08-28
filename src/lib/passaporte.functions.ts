@@ -184,6 +184,10 @@ export type PassportAdminRow = PassportPublic & {
   applicantPhone: string | null;
   pfProtocoloAt: string | null;
   pfNotes: string | null;
+  applicantCpf: string | null;
+  paidAt: string | null;
+  submittedAt: string | null;
+  asaasPaymentId: string | null;
 };
 
 const mapAdmin = (row: Record<string, any>): PassportAdminRow => ({
@@ -193,6 +197,10 @@ const mapAdmin = (row: Record<string, any>): PassportAdminRow => ({
   applicantPhone: row.applicant_phone ?? null,
   pfProtocoloAt: row.pf_protocolo_at ?? null,
   pfNotes: row.pf_notes ?? null,
+  applicantCpf: row.applicant_cpf ?? null,
+  paidAt: row.paid_at ?? null,
+  submittedAt: row.submitted_at ?? null,
+  asaasPaymentId: row.asaas_payment_id ?? null,
 });
 
 export const listPassportRequests = createServerFn({ method: "GET" })

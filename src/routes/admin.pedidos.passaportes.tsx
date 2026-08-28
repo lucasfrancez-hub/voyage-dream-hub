@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Copy, Loader2, Plus, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Loader2, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -146,6 +146,7 @@ function Card({
   onSavePf: (row: PassportAdminRow, pf: string) => Promise<void>;
 }) {
   const [pf, setPf] = useState(row.pfProtocolo ?? "");
+  const [aberto, setAberto] = useState(false);
   return (
     <div className="rounded-xl border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -196,6 +197,137 @@ function Card({
           </Button>
         </div>
       </div>
+
+      <div className="mt-3 border-t pt-3">
+        <button
+          type="button"
+          onClick={() => setAberto((v) => !v)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-primary"
+        >
+          {aberto ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {aberto ? "Ocultar dados do formulário" : "Ver dados do formulário e pagamento"}
+        </button>
+
+        {aberto && (
+          <div className="mt-3 space-y-4">
+            <Bloco titulo="Dados pessoais" dados={row.dadosPessoais} />
+            <Bloco titulo="Documentos" dados={row.documentos} />
+            <Bloco titulo="Dados complementares" dados={row.complementares} />
+
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">Pagamento</h4>
+              <dl className="mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                <Item rotulo="Situação" valor={row.paymentStatus === "paid" ? "Pago" : "Pendente"} />
+                <Item
+                  rotulo="Forma"
+                  valor={
+                    row.paymentMethod === "PIX"
+                      ? "Pix"
+                      : row.paymentMethod === "CREDIT_CARD"
+                        ? `Cartão de crédito${row.installments ? ` — ${row.installments}x` : ""}`
+                        : "—"
+                  }
+                />
+                <Item rotulo="Valor" valor={row.amount ? formatBRL(row.amount) : "—"} />
+                <Item
+                  rotulo="Pago em"
+                  valor={row.paidAt ? new Date(row.paidAt).toLocaleString("pt-BR") : "—"}
+                />
+                <Item
+                  rotulo="Enviado em"
+                  valor={row.submittedAt ? new Date(row.submittedAt).toLocaleString("pt-BR") : "—"}
+                />
+                <Item rotulo="ID da cobrança" valor={row.asaasPaymentId ?? "—"} />
+                <Item rotulo="CPF do titular" valor={row.applicantCpf ?? "—"} />
+                <Item rotulo="E-mail" valor={row.applicantEmail ?? "—"} />
+                <Item rotulo="Telefone" valor={row.applicantPhone ?? "—"} />
+              </dl>
+              {row.invoiceUrl && (
+                <a
+                  href={row.invoiceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-block text-xs font-medium text-primary underline"
+                >
+                  Abrir comprovante/cobrança
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
+const ROTULOS: Record<string, string> = {
+  nomeCompleto: "Nome completo",
+  nascimento: "Data de nascimento",
+  sexo: "Sexo",
+  nacionalidade: "Nacionalidade",
+  estadoCivil: "Estado civil",
+  naturalidadeUf: "UF de nascimento",
+  naturalidadeCidade: "Cidade de nascimento",
+  mae: "Nome da mãe",
+  pai: "Nome do pai",
+  docNumero: "Documento — número",
+  docEmissao: "Documento — emissão",
+  docOrgao: "Documento — órgão emissor",
+  docUf: "Documento — UF",
+  cpf: "CPF",
+  cpfResponsavel: "CPF do responsável",
+  certidaoMatricula: "Certidão — matrícula",
+  certidaoTipo: "Certidão — tipo",
+  certidaoNumero: "Certidão — número",
+  certidaoLivro: "Certidão — livro",
+  certidaoFolha: "Certidão — folha",
+  certidaoCartorio: "Certidão — cartório",
+  certidaoUf: "Certidão — UF",
+  certidaoCidade: "Certidão — cidade",
+  passaporteSituacao: "Passaporte anterior — situação",
+  passaporteSerie: "Passaporte anterior — série",
+  passaporteNumero: "Passaporte anterior — número",
+  profissao: "Profissão",
+  email: "E-mail",
+  pais: "País",
+  cep: "CEP",
+  uf: "UF",
+  cidade: "Cidade",
+  logradouro: "Logradouro",
+  numero: "Número",
+  complemento: "Complemento",
+  bairro: "Distrito/Bairro",
+  ddd: "DDD",
+  telefone: "Telefone",
+};
+
+const rotular = (k: string) =>
+  ROTULOS[k] ?? k.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
+
+function Bloco({ titulo, dados }: { titulo: string; dados: Record<string, string> }) {
+  const entradas = Object.entries(dados ?? {}).filter(([, v]) => v != null && String(v).trim() !== "");
+  return (
+    <div>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-primary">{titulo}</h4>
+      {entradas.length === 0 ? (
+        <p className="mt-1 text-xs text-muted-foreground">Ainda não preenchido pelo cliente.</p>
+      ) : (
+        <dl className="mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+          {entradas.map(([k, v]) => (
+            <Item key={k} rotulo={rotular(k)} valor={v} />
+          ))}
+        </dl>
+      )}
+    </div>
+  );
+}
+
+function Item({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">{rotulo}</dt>
+      <dd className="break-words text-sm">{valor}</dd>
+    </div>
+  );
+}
+
