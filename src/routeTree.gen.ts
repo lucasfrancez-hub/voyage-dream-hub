@@ -109,6 +109,7 @@ import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
 import { Route as PassaporteTokenRouteImport } from './routes/passaporte.$token'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
 import { Route as ReservaTokenRouteImport } from './routes/reserva.$token'
+import { Route as VistoAmericanoTokenRouteImport } from './routes/visto-americano.$token'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
 import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
 import { Route as AdminCobrancaCartaoIndexRouteImport } from './routes/admin.cobranca-cartao.index'
@@ -699,6 +700,11 @@ const ReservaTokenRoute = ReservaTokenRouteImport.update({
   path: '/reserva/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VistoAmericanoTokenRoute = VistoAmericanoTokenRouteImport.update({
+  id: '/visto-americano/$token',
+  path: '/visto-americano/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WSlugRoute = WSlugRouteImport.update({
   id: '/w/$slug',
   path: '/w/$slug',
@@ -934,9 +940,9 @@ const PassaporteTokenRetornoRoute = PassaporteTokenRetornoRouteImport.update({
   getParentRoute: () => PassaporteTokenRoute,
 } as any)
 const VistoAmericanoTokenFormRoute = VistoAmericanoTokenFormRouteImport.update({
-  id: '/visto-americano/$token/form',
-  path: '/visto-americano/$token/form',
-  getParentRoute: () => rootRouteImport,
+  id: '/form',
+  path: '/form',
+  getParentRoute: () => VistoAmericanoTokenRoute,
 } as any)
 const AdminBilhetesIdEticketRoute = AdminBilhetesIdEticketRouteImport.update({
   id: '/bilhetes_/$id/eticket',
@@ -1287,6 +1293,7 @@ export interface FileRoutesByFullPath {
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
+  '/visto-americano/$token': typeof VistoAmericanoTokenRouteWithChildren
   '/w/$slug': typeof WSlugRoute
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
@@ -1475,6 +1482,7 @@ export interface FileRoutesByTo {
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
+  '/visto-americano/$token': typeof VistoAmericanoTokenRouteWithChildren
   '/w/$slug': typeof WSlugRoute
   '/editair': typeof EditairIndexRoute
   '/pacotes': typeof PacotesIndexRoute
@@ -1667,6 +1675,7 @@ export interface FileRoutesById {
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
+  '/visto-americano/$token': typeof VistoAmericanoTokenRouteWithChildren
   '/w/$slug': typeof WSlugRoute
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
@@ -1860,6 +1869,7 @@ export interface FileRouteTypes {
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
+    | '/visto-americano/$token'
     | '/w/$slug'
     | '/editair/'
     | '/pacotes/'
@@ -2048,6 +2058,7 @@ export interface FileRouteTypes {
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
+    | '/visto-americano/$token'
     | '/w/$slug'
     | '/editair'
     | '/pacotes'
@@ -2239,6 +2250,7 @@ export interface FileRouteTypes {
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
+    | '/visto-americano/$token'
     | '/w/$slug'
     | '/editair/'
     | '/pacotes/'
@@ -2364,6 +2376,7 @@ export interface RootRouteChildren {
   PassaporteTokenRoute: typeof PassaporteTokenRouteWithChildren
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   ReservaTokenRoute: typeof ReservaTokenRoute
+  VistoAmericanoTokenRoute: typeof VistoAmericanoTokenRouteWithChildren
   WSlugRoute: typeof WSlugRoute
   ApiAuthCodeWaitRoute: typeof ApiAuthCodeWaitRoute
   ApiChatCamilaRoute: typeof ApiChatCamilaRoute
@@ -2389,7 +2402,6 @@ export interface RootRouteChildren {
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   MultitrechoCotacaoTokenRoute: typeof MultitrechoCotacaoTokenRoute
   PagarReservaCodigoRoute: typeof PagarReservaCodigoRoute
-  VistoAmericanoTokenFormRoute: typeof VistoAmericanoTokenFormRoute
   CruzeirosUiPreviewIndexRoute: typeof CruzeirosUiPreviewIndexRoute
   ApiPublicAdminManifestTokenRoute: typeof ApiPublicAdminManifestTokenRoute
   ApiPublicAgendaManifestTokenRoute: typeof ApiPublicAgendaManifestTokenRoute
@@ -3134,6 +3146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReservaTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/visto-americano/$token': {
+      id: '/visto-americano/$token'
+      path: '/visto-americano/$token'
+      fullPath: '/visto-americano/$token'
+      preLoaderRoute: typeof VistoAmericanoTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/w/$slug': {
       id: '/w/$slug'
       path: '/w/$slug'
@@ -3451,10 +3470,10 @@ declare module '@tanstack/react-router' {
     }
     '/visto-americano/$token/form': {
       id: '/visto-americano/$token/form'
-      path: '/visto-americano/$token/form'
+      path: '/form'
       fullPath: '/visto-americano/$token/form'
       preLoaderRoute: typeof VistoAmericanoTokenFormRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof VistoAmericanoTokenRoute
     }
     '/admin/bilhetes_/$id/eticket': {
       id: '/admin/bilhetes_/$id/eticket'
@@ -4007,6 +4026,17 @@ const PassaporteTokenRouteWithChildren = PassaporteTokenRoute._addFileChildren(
   PassaporteTokenRouteChildren,
 )
 
+interface VistoAmericanoTokenRouteChildren {
+  VistoAmericanoTokenFormRoute: typeof VistoAmericanoTokenFormRoute
+}
+
+const VistoAmericanoTokenRouteChildren: VistoAmericanoTokenRouteChildren = {
+  VistoAmericanoTokenFormRoute: VistoAmericanoTokenFormRoute,
+}
+
+const VistoAmericanoTokenRouteWithChildren =
+  VistoAmericanoTokenRoute._addFileChildren(VistoAmericanoTokenRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -4039,6 +4069,7 @@ const rootRouteChildren: RootRouteChildren = {
   PassaporteTokenRoute: PassaporteTokenRouteWithChildren,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   ReservaTokenRoute: ReservaTokenRoute,
+  VistoAmericanoTokenRoute: VistoAmericanoTokenRouteWithChildren,
   WSlugRoute: WSlugRoute,
   ApiAuthCodeWaitRoute: ApiAuthCodeWaitRoute,
   ApiChatCamilaRoute: ApiChatCamilaRoute,
@@ -4065,7 +4096,6 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   MultitrechoCotacaoTokenRoute: MultitrechoCotacaoTokenRoute,
   PagarReservaCodigoRoute: PagarReservaCodigoRoute,
-  VistoAmericanoTokenFormRoute: VistoAmericanoTokenFormRoute,
   CruzeirosUiPreviewIndexRoute: CruzeirosUiPreviewIndexRoute,
   ApiPublicAdminManifestTokenRoute: ApiPublicAdminManifestTokenRoute,
   ApiPublicAgendaManifestTokenRoute: ApiPublicAgendaManifestTokenRoute,
