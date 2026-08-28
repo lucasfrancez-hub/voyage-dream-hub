@@ -152,6 +152,7 @@ import { Route as MultitrechoCotacaoTokenRouteImport } from './routes/multitrech
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as PagarReservaCodigoRouteImport } from './routes/pagar_.reserva.$codigo'
+import { Route as PassaporteTokenRetornoRouteImport } from './routes/passaporte.$token.retorno'
 import { Route as AdminBilhetesIdEticketRouteImport } from './routes/admin.bilhetes_.$id.eticket'
 import { Route as AdminCruzeirosPreviaIdRouteImport } from './routes/admin.cruzeiros.previa.$id'
 import { Route as AdminPedidosIdPlanoViagemRouteImport } from './routes/admin.pedidos_.$id.plano-viagem'
@@ -919,6 +920,11 @@ const PagarReservaCodigoRoute = PagarReservaCodigoRouteImport.update({
   path: '/pagar/reserva/$codigo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PassaporteTokenRetornoRoute = PassaporteTokenRetornoRouteImport.update({
+  id: '/retorno',
+  path: '/retorno',
+  getParentRoute: () => PassaporteTokenRoute,
+} as any)
 const AdminBilhetesIdEticketRoute = AdminBilhetesIdEticketRouteImport.update({
   id: '/bilhetes_/$id/eticket',
   path: '/bilhetes/$id/eticket',
@@ -1260,7 +1266,7 @@ export interface FileRoutesByFullPath {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
-  '/passaporte/$token': typeof PassaporteTokenRoute
+  '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
@@ -1301,6 +1307,7 @@ export interface FileRoutesByFullPath {
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pagar/reserva/$codigo': typeof PagarReservaCodigoRoute
+  '/passaporte/$token/retorno': typeof PassaporteTokenRetornoRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/motor-pacote/': typeof AdminMotorPacoteIndexRoute
@@ -1444,7 +1451,7 @@ export interface FileRoutesByTo {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
-  '/passaporte/$token': typeof PassaporteTokenRoute
+  '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
@@ -1485,6 +1492,7 @@ export interface FileRoutesByTo {
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pagar/reserva/$codigo': typeof PagarReservaCodigoRoute
+  '/passaporte/$token/retorno': typeof PassaporteTokenRetornoRoute
   '/admin/cobranca-cartao': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros': typeof AdminCruzeirosIndexRoute
   '/admin/motor-pacote': typeof AdminMotorPacoteIndexRoute
@@ -1632,7 +1640,7 @@ export interface FileRoutesById {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
-  '/passaporte/$token': typeof PassaporteTokenRoute
+  '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
@@ -1673,6 +1681,7 @@ export interface FileRoutesById {
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pagar_/reserva/$codigo': typeof PagarReservaCodigoRoute
+  '/passaporte/$token/retorno': typeof PassaporteTokenRetornoRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/motor-pacote/': typeof AdminMotorPacoteIndexRoute
@@ -1862,6 +1871,7 @@ export interface FileRouteTypes {
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/pagar/reserva/$codigo'
+    | '/passaporte/$token/retorno'
     | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
     | '/admin/motor-pacote/'
@@ -2046,6 +2056,7 @@ export interface FileRouteTypes {
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/pagar/reserva/$codigo'
+    | '/passaporte/$token/retorno'
     | '/admin/cobranca-cartao'
     | '/admin/cruzeiros'
     | '/admin/motor-pacote'
@@ -2233,6 +2244,7 @@ export interface FileRouteTypes {
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/pagar_/reserva/$codigo'
+    | '/passaporte/$token/retorno'
     | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
     | '/admin/motor-pacote/'
@@ -2313,7 +2325,7 @@ export interface RootRouteChildren {
   EmbedPassagensBaratasRoute: typeof EmbedPassagensBaratasRoute
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
-  PassaporteTokenRoute: typeof PassaporteTokenRoute
+  PassaporteTokenRoute: typeof PassaporteTokenRouteWithChildren
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   ReservaTokenRoute: typeof ReservaTokenRoute
   WSlugRoute: typeof WSlugRoute
@@ -3385,6 +3397,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PagarReservaCodigoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/passaporte/$token/retorno': {
+      id: '/passaporte/$token/retorno'
+      path: '/retorno'
+      fullPath: '/passaporte/$token/retorno'
+      preLoaderRoute: typeof PassaporteTokenRetornoRouteImport
+      parentRoute: typeof PassaporteTokenRoute
+    }
     '/admin/bilhetes_/$id/eticket': {
       id: '/admin/bilhetes_/$id/eticket'
       path: '/bilhetes/$id/eticket'
@@ -3915,6 +3934,18 @@ const PacotesRouteChildren: PacotesRouteChildren = {
 const PacotesRouteWithChildren =
   PacotesRoute._addFileChildren(PacotesRouteChildren)
 
+interface PassaporteTokenRouteChildren {
+  PassaporteTokenRetornoRoute: typeof PassaporteTokenRetornoRoute
+}
+
+const PassaporteTokenRouteChildren: PassaporteTokenRouteChildren = {
+  PassaporteTokenRetornoRoute: PassaporteTokenRetornoRoute,
+}
+
+const PassaporteTokenRouteWithChildren = PassaporteTokenRoute._addFileChildren(
+  PassaporteTokenRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -3944,7 +3975,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmbedPassagensBaratasRoute: EmbedPassagensBaratasRoute,
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
-  PassaporteTokenRoute: PassaporteTokenRoute,
+  PassaporteTokenRoute: PassaporteTokenRouteWithChildren,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   ReservaTokenRoute: ReservaTokenRoute,
   WSlugRoute: WSlugRoute,
