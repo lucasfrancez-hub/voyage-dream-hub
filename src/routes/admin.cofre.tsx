@@ -204,38 +204,50 @@ function CofrePage() {
 
     const pedidos: UnifiedItem[] = ((ordersQuery.data as CofreOrder[] | undefined) ?? [])
       .filter((o: CofreOrder) => {
-        const pm = (o.paymentMethod ?? "").toLowerCase();
-        if (pm === "pix" || pm === "whatsapp") return false;
-        // Só entram no cofre: links gerados pelo "link seguro" convencional
-        // (payment_link / payment_link_simple / payment_link_boleto) OU
-        // checkouts de pacote pronto (package_id preenchido pelo cliente).
-        // Pedidos criados manualmente no admin (snapshot.manual === true) ficam de fora.
+        // Entram no cofre TODOS os checkouts preenchidos pelo cliente,
+        // qualquer que seja a forma de pagamento (cartão, boleto, Pix...):
+        // links seguros (payment_link*), pacotes prontos e orçamentos públicos.
+        // Ficam de fora apenas pedidos criados manualmente no admin.
+        if (o.isManual) return false;
         const isLinkOrder = (o.snapshotKind ?? "").startsWith("payment_link");
-        const isPackageCheckout = !!o.packageId && !o.isManual && !o.snapshotKind;
-        return isLinkOrder || isPackageCheckout;
+        const isPackageCheckout = !!o.packageId && !o.snapshotKind;
+        const isQuoteCheckout = !!(o.quotePublicId || o.quoteUrl) && !o.snapshotKind;
+        return isLinkOrder || isPackageCheckout || isQuoteCheckout;
       })
       .map((o: CofreOrder) => {
         const isLinkOrder = (o.snapshotKind ?? "").startsWith("payment_link");
+        const isQuoteCheckout = !isLinkOrder && !!(o.quotePublicId || o.quoteUrl);
         const desc = isLinkOrder
           ? (o.linkDescription || "Link de pagamento")
           : o.packageTitle
-            ? `Pacote ${o.packageTitle}`
-            : "Pedido de pacote";
+            ? isQuoteCheckout
+              ? o.packageTitle
+              : `Pacote ${o.packageTitle}`
+            : isQuoteCheckout
+              ? "Orçamento"
+              : "Pedido de pacote";
         const pm = (o.paymentMethod ?? "").toLowerCase();
         const linkKind: LinkKind = pm.startsWith("boleto") ? "boleto" : "card";
         const instMatch = pm.match(/(\d+)x/);
         const installments = instMatch ? Number(instMatch[1]) : 1;
         const firstAmount = o.firstAmount && o.firstAmount > 0 ? o.firstAmount : undefined;
 
+        // Checkout de orçamento público: guardamos o link real do checkout.
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        const quoteCheckoutUrl =
+          o.quoteUrl || (o.quotePublicId ? `${origin}/reserva/${o.quotePublicId}` : "");
 
-        const url = paymentLinkUrl({
-          description: desc,
-          total: o.totalPrice,
-          installments,
-          firstAmount,
-          orderRef: o.id.slice(0, 8),
-          customerName: o.fullName,
-        });
+        const url = quoteCheckoutUrl
+          ? quoteCheckoutUrl
+          : paymentLinkUrl({
+              description: desc,
+              total: o.totalPrice,
+              installments,
+              firstAmount,
+              orderRef: o.id.slice(0, 8),
+              customerName: o.fullName,
+            });
+
         const auth = (o.cardCapture?.authorization ?? {}) as {
           supplier?: string;
           trip_locator?: string;

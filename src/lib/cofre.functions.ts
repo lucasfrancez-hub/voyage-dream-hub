@@ -64,6 +64,8 @@ export type CofreOrder = {
   firstAmount: number | null;
   snapshotKind: string | null;
   isManual: boolean;
+  quotePublicId: string | null;
+  quoteUrl: string | null;
   boletoCapture: BoletoCapture | null;
   passengers: SnapshotPassenger[];
 
@@ -85,7 +87,7 @@ export const listCofreOrders = createServerFn({ method: "GET" })
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "id, created_at, status, full_name, email, phone, cpf, birth_date, adults, children, total_price, payment_method, package_id, package_snapshot, notes",
+        "id, created_at, status, full_name, email, phone, cpf, birth_date, adults, children, total_price, payment_method, package_id, package_snapshot, notes, order_number",
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -190,13 +192,15 @@ export const listCofreOrders = createServerFn({ method: "GET" })
         cardCapture: card,
         linkDescription: (snap.description as string) ?? null,
         linkReference: (snap.reference as string) ?? null,
-        orderNumber: (snap.order_number as string) ?? null,
+        orderNumber: (snap.order_number as string) ?? (o as { order_number?: string | null }).order_number ?? null,
         firstAmount:
           typeof snap.first_amount === "number" && snap.first_amount > 0
             ? (snap.first_amount as number)
             : null,
         snapshotKind: (snap.kind as string) ?? null,
         isManual: snap.manual === true,
+        quotePublicId: (snap.quote_public_id as string) ?? null,
+        quoteUrl: (snap.quote_url as string) ?? null,
         boletoCapture,
         passengers,
 
