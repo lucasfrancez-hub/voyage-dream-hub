@@ -779,6 +779,7 @@ function PedidosNav({ pathname }: { pathname: string }) {
             { to: "/admin/pedidos/terceiros", label: "Pedidos de terceiro" },
             { to: "/admin/pedidos/leads", label: "Leads" },
             { to: "/admin/pedidos/passaportes", label: "Passaportes" },
+            { to: "/admin/pedidos/vistos", label: "Visto americano" },
             { to: "/admin/reservas", label: "Reservas" },
             { to: "/admin/bilhetes", label: "Bilhetes" },
           ],
