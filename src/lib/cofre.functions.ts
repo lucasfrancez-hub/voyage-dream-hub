@@ -192,7 +192,7 @@ export const listCofreOrders = createServerFn({ method: "GET" })
         cardCapture: card,
         linkDescription: (snap.description as string) ?? null,
         linkReference: (snap.reference as string) ?? null,
-        orderNumber: (snap.order_number as string) ?? null,
+        orderNumber: (snap.order_number as string) ?? (o as { order_number?: string | null }).order_number ?? null,
         firstAmount:
           typeof snap.first_amount === "number" && snap.first_amount > 0
             ? (snap.first_amount as number)
