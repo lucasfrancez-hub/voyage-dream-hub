@@ -538,35 +538,32 @@ function somarTaxasDoPacote(pkg: any): number | null {
   return r > 0 ? r : null;
 }
 
-function mapOption(pkg: any, index: number): { option: NormalizedOption; pax: { adults: number; children: number } } {
+function mapOption(pkg: any, index: number): { option: NormalizedOption; pax: Pax } {
   const option = emptyOption(index + 1);
   option.label = cleanText(pkg?.package?.name) ?? `Opção ${index + 1}`;
   option.destination = cleanText(pkg?.package?.destination);
   option.sourceReference = pkg?.id != null ? String(pkg.id) : null;
 
-  let adults = 0;
-  let children = 0;
+  let pax = paxZero();
   const notes = new Set<string>();
 
   for (const bh of (pkg?.bookingHotels ?? []) as any[]) {
-    const { hotel, pax } = mapHotel(bh);
+    const { hotel, pax: p } = mapHotel(bh);
     option.hotels.push(hotel);
-    adults = Math.max(adults, pax.adults);
-    children = Math.max(children, pax.children);
+    pax = maxPax(pax, p);
     const t = cleanText(bh?.textDoc);
     if (t) notes.add(t);
   }
 
   for (const bf of (pkg?.bookingFlights ?? []) as any[]) {
-    const { flights, pax, total } = mapFlight(bf);
+    const { flights, pax: p, total } = mapFlight(bf);
     // O valor do aéreo normalmente vem no nível da reserva (bf.fares), não por
     // trecho: sem isto o total da opção sai só com a hospedagem.
     if (total != null && !flights.some((f) => typeof f.total === "number") && flights[0]) {
       flights[0].total = total;
     }
     option.flights.push(...flights);
-    adults = Math.max(adults, pax.adults);
-    children = Math.max(children, pax.children);
+    pax = maxPax(pax, p);
   }
 
   for (const g of GENERIC_MAP) {
@@ -612,7 +609,7 @@ function mapOption(pkg: any, index: number): { option: NormalizedOption; pax: { 
   option.currency = "BRL";
   option.notes = notes.size ? [...notes] : null;
 
-  return { option, pax: { adults, children } };
+  return { option, pax };
 }
 
 // ---------------------------------------------------------------- entrada
@@ -650,8 +647,7 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
   quote.sourceId = String(ref.bookingId);
 
   const partialErrors: string[] = [];
-  let adults = 0;
-  let children = 0;
+  let paxTotal = paxZero();
 
   packages.forEach((pkg, i) => {
     log(`option ${i + 1} parsing`);
@@ -661,8 +657,7 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
         partialErrors.push(`Option ${i + 1} parse failed: NO_PRODUCTS_FOUND`);
         return;
       }
-      adults = Math.max(adults, pax.adults);
-      children = Math.max(children, pax.children);
+      paxTotal = maxPax(paxTotal, pax);
       quote.options.push(option);
     } catch (e) {
       partialErrors.push(`Option ${i + 1} parse failed: ${(e as Error).message}`);
@@ -714,7 +709,7 @@ export async function importInfotravelQuote(url: string, html?: string): Promise
 
   // Circuitos e grupos fechados podem omitir passageiros mesmo quando seus
   // produtos, voos e valores estão completos; não descarte esses pacotes.
-  quote.passengers = { adults, children, infants: 0 };
+  quote.passengers = { adults: paxTotal.adults, children: paxTotal.children, infants: paxTotal.infants };
 
   quote.client = {
     name: cleanText(booking?.contact?.name),
