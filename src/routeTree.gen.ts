@@ -135,6 +135,7 @@ import { Route as ApiPublicFrt2faInboxRouteImport } from './routes/api/public/fr
 import { Route as ApiPublicFrtLabRouteImport } from './routes/api/public/frt-lab'
 import { Route as ApiPublicHotelCardRouteImport } from './routes/api/public/hotel-card'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
+import { Route as ApiPublicInfinitepayPassaporteWebhookRouteImport } from './routes/api/public/infinitepay-passaporte-webhook'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
 import { Route as ApiPublicItauPixWebhookRouteImport } from './routes/api/public/itau-pix-webhook'
 import { Route as ApiPublicMotorBuscaRouteImport } from './routes/api/public/motor-busca'
@@ -151,6 +152,7 @@ import { Route as MultitrechoCotacaoTokenRouteImport } from './routes/multitrech
 import { Route as PacotesSlugIndexRouteImport } from './routes/pacotes.$slug.index'
 import { Route as PacotesSlugCheckoutRouteImport } from './routes/pacotes.$slug.checkout'
 import { Route as PagarReservaCodigoRouteImport } from './routes/pagar_.reserva.$codigo'
+import { Route as PassaporteTokenRetornoRouteImport } from './routes/passaporte.$token.retorno'
 import { Route as AdminBilhetesIdEticketRouteImport } from './routes/admin.bilhetes_.$id.eticket'
 import { Route as AdminCruzeirosPreviaIdRouteImport } from './routes/admin.cruzeiros.previa.$id'
 import { Route as AdminPedidosIdPlanoViagemRouteImport } from './routes/admin.pedidos_.$id.plano-viagem'
@@ -828,6 +830,12 @@ const ApiPublicImportAereoRoute = ApiPublicImportAereoRouteImport.update({
   path: '/api/public/import-aereo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicInfinitepayPassaporteWebhookRoute =
+  ApiPublicInfinitepayPassaporteWebhookRouteImport.update({
+    id: '/api/public/infinitepay-passaporte-webhook',
+    path: '/api/public/infinitepay-passaporte-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInstagramWebhookRoute =
   ApiPublicInstagramWebhookRouteImport.update({
     id: '/api/public/instagram-webhook',
@@ -911,6 +919,11 @@ const PagarReservaCodigoRoute = PagarReservaCodigoRouteImport.update({
   id: '/pagar_/reserva/$codigo',
   path: '/pagar/reserva/$codigo',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PassaporteTokenRetornoRoute = PassaporteTokenRetornoRouteImport.update({
+  id: '/retorno',
+  path: '/retorno',
+  getParentRoute: () => PassaporteTokenRoute,
 } as any)
 const AdminBilhetesIdEticketRoute = AdminBilhetesIdEticketRouteImport.update({
   id: '/bilhetes_/$id/eticket',
@@ -1253,7 +1266,7 @@ export interface FileRoutesByFullPath {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
-  '/passaporte/$token': typeof PassaporteTokenRoute
+  '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
@@ -1279,6 +1292,7 @@ export interface FileRoutesByFullPath {
   '/api/public/frt-lab': typeof ApiPublicFrtLabRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/infinitepay-passaporte-webhook': typeof ApiPublicInfinitepayPassaporteWebhookRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
@@ -1293,6 +1307,7 @@ export interface FileRoutesByFullPath {
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pagar/reserva/$codigo': typeof PagarReservaCodigoRoute
+  '/passaporte/$token/retorno': typeof PassaporteTokenRetornoRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/motor-pacote/': typeof AdminMotorPacoteIndexRoute
@@ -1436,7 +1451,7 @@ export interface FileRoutesByTo {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
-  '/passaporte/$token': typeof PassaporteTokenRoute
+  '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
@@ -1462,6 +1477,7 @@ export interface FileRoutesByTo {
   '/api/public/frt-lab': typeof ApiPublicFrtLabRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/infinitepay-passaporte-webhook': typeof ApiPublicInfinitepayPassaporteWebhookRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
@@ -1476,6 +1492,7 @@ export interface FileRoutesByTo {
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pagar/reserva/$codigo': typeof PagarReservaCodigoRoute
+  '/passaporte/$token/retorno': typeof PassaporteTokenRetornoRoute
   '/admin/cobranca-cartao': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros': typeof AdminCruzeirosIndexRoute
   '/admin/motor-pacote': typeof AdminMotorPacoteIndexRoute
@@ -1623,7 +1640,7 @@ export interface FileRoutesById {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
-  '/passaporte/$token': typeof PassaporteTokenRoute
+  '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
   '/w/$slug': typeof WSlugRoute
@@ -1649,6 +1666,7 @@ export interface FileRoutesById {
   '/api/public/frt-lab': typeof ApiPublicFrtLabRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
+  '/api/public/infinitepay-passaporte-webhook': typeof ApiPublicInfinitepayPassaporteWebhookRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
@@ -1663,6 +1681,7 @@ export interface FileRoutesById {
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
   '/pacotes/$slug/checkout': typeof PacotesSlugCheckoutRoute
   '/pagar_/reserva/$codigo': typeof PagarReservaCodigoRoute
+  '/passaporte/$token/retorno': typeof PassaporteTokenRetornoRoute
   '/admin/cobranca-cartao/': typeof AdminCobrancaCartaoIndexRoute
   '/admin/cruzeiros/': typeof AdminCruzeirosIndexRoute
   '/admin/motor-pacote/': typeof AdminMotorPacoteIndexRoute
@@ -1837,6 +1856,7 @@ export interface FileRouteTypes {
     | '/api/public/frt-lab'
     | '/api/public/hotel-card'
     | '/api/public/import-aereo'
+    | '/api/public/infinitepay-passaporte-webhook'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
     | '/api/public/motor-busca'
@@ -1851,6 +1871,7 @@ export interface FileRouteTypes {
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/pagar/reserva/$codigo'
+    | '/passaporte/$token/retorno'
     | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
     | '/admin/motor-pacote/'
@@ -2020,6 +2041,7 @@ export interface FileRouteTypes {
     | '/api/public/frt-lab'
     | '/api/public/hotel-card'
     | '/api/public/import-aereo'
+    | '/api/public/infinitepay-passaporte-webhook'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
     | '/api/public/motor-busca'
@@ -2034,6 +2056,7 @@ export interface FileRouteTypes {
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/pagar/reserva/$codigo'
+    | '/passaporte/$token/retorno'
     | '/admin/cobranca-cartao'
     | '/admin/cruzeiros'
     | '/admin/motor-pacote'
@@ -2206,6 +2229,7 @@ export interface FileRouteTypes {
     | '/api/public/frt-lab'
     | '/api/public/hotel-card'
     | '/api/public/import-aereo'
+    | '/api/public/infinitepay-passaporte-webhook'
     | '/api/public/instagram-webhook'
     | '/api/public/itau-pix-webhook'
     | '/api/public/motor-busca'
@@ -2220,6 +2244,7 @@ export interface FileRouteTypes {
     | '/multitrecho/cotacao/$token'
     | '/pacotes/$slug/checkout'
     | '/pagar_/reserva/$codigo'
+    | '/passaporte/$token/retorno'
     | '/admin/cobranca-cartao/'
     | '/admin/cruzeiros/'
     | '/admin/motor-pacote/'
@@ -2300,7 +2325,7 @@ export interface RootRouteChildren {
   EmbedPassagensBaratasRoute: typeof EmbedPassagensBaratasRoute
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
-  PassaporteTokenRoute: typeof PassaporteTokenRoute
+  PassaporteTokenRoute: typeof PassaporteTokenRouteWithChildren
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   ReservaTokenRoute: typeof ReservaTokenRoute
   WSlugRoute: typeof WSlugRoute
@@ -2315,6 +2340,7 @@ export interface RootRouteChildren {
   ApiPublicFrtLabRoute: typeof ApiPublicFrtLabRoute
   ApiPublicHotelCardRoute: typeof ApiPublicHotelCardRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
+  ApiPublicInfinitepayPassaporteWebhookRoute: typeof ApiPublicInfinitepayPassaporteWebhookRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
   ApiPublicItauPixWebhookRoute: typeof ApiPublicItauPixWebhookRoute
   ApiPublicMotorBuscaRoute: typeof ApiPublicMotorBuscaRoute
@@ -3252,6 +3278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicImportAereoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/infinitepay-passaporte-webhook': {
+      id: '/api/public/infinitepay-passaporte-webhook'
+      path: '/api/public/infinitepay-passaporte-webhook'
+      fullPath: '/api/public/infinitepay-passaporte-webhook'
+      preLoaderRoute: typeof ApiPublicInfinitepayPassaporteWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/instagram-webhook': {
       id: '/api/public/instagram-webhook'
       path: '/api/public/instagram-webhook'
@@ -3363,6 +3396,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/pagar/reserva/$codigo'
       preLoaderRoute: typeof PagarReservaCodigoRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/passaporte/$token/retorno': {
+      id: '/passaporte/$token/retorno'
+      path: '/retorno'
+      fullPath: '/passaporte/$token/retorno'
+      preLoaderRoute: typeof PassaporteTokenRetornoRouteImport
+      parentRoute: typeof PassaporteTokenRoute
     }
     '/admin/bilhetes_/$id/eticket': {
       id: '/admin/bilhetes_/$id/eticket'
@@ -3894,6 +3934,18 @@ const PacotesRouteChildren: PacotesRouteChildren = {
 const PacotesRouteWithChildren =
   PacotesRoute._addFileChildren(PacotesRouteChildren)
 
+interface PassaporteTokenRouteChildren {
+  PassaporteTokenRetornoRoute: typeof PassaporteTokenRetornoRoute
+}
+
+const PassaporteTokenRouteChildren: PassaporteTokenRouteChildren = {
+  PassaporteTokenRetornoRoute: PassaporteTokenRetornoRoute,
+}
+
+const PassaporteTokenRouteWithChildren = PassaporteTokenRoute._addFileChildren(
+  PassaporteTokenRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -3923,7 +3975,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmbedPassagensBaratasRoute: EmbedPassagensBaratasRoute,
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
-  PassaporteTokenRoute: PassaporteTokenRoute,
+  PassaporteTokenRoute: PassaporteTokenRouteWithChildren,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   ReservaTokenRoute: ReservaTokenRoute,
   WSlugRoute: WSlugRoute,
@@ -3938,6 +3990,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicFrtLabRoute: ApiPublicFrtLabRoute,
   ApiPublicHotelCardRoute: ApiPublicHotelCardRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
+  ApiPublicInfinitepayPassaporteWebhookRoute:
+    ApiPublicInfinitepayPassaporteWebhookRoute,
   ApiPublicInstagramWebhookRoute: ApiPublicInstagramWebhookRoute,
   ApiPublicItauPixWebhookRoute: ApiPublicItauPixWebhookRoute,
   ApiPublicMotorBuscaRoute: ApiPublicMotorBuscaRoute,

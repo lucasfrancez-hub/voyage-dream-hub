@@ -6911,6 +6911,109 @@ export type Database = {
         }
         Relationships: []
       }
+      passport_payment_logs: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          order_nsu: string | null
+          passport_payment_id: string | null
+          payload: Json
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: string
+          order_nsu?: string | null
+          passport_payment_id?: string | null
+          payload?: Json
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          order_nsu?: string | null
+          passport_payment_id?: string | null
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passport_payment_logs_passport_payment_id_fkey"
+            columns: ["passport_payment_id"]
+            isOneToOne: false
+            referencedRelation: "passport_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      passport_payments: {
+        Row: {
+          amount: number
+          capture_method: string | null
+          checkout_url: string | null
+          created_at: string
+          id: string
+          installments: number | null
+          invoice_slug: string | null
+          notes: string | null
+          order_nsu: string
+          paid_amount: number | null
+          paid_at: string | null
+          passport_request_id: string
+          provider: string
+          receipt_url: string | null
+          status: string
+          transaction_nsu: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          capture_method?: string | null
+          checkout_url?: string | null
+          created_at?: string
+          id?: string
+          installments?: number | null
+          invoice_slug?: string | null
+          notes?: string | null
+          order_nsu: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          passport_request_id: string
+          provider?: string
+          receipt_url?: string | null
+          status?: string
+          transaction_nsu?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          capture_method?: string | null
+          checkout_url?: string | null
+          created_at?: string
+          id?: string
+          installments?: number | null
+          invoice_slug?: string | null
+          notes?: string | null
+          order_nsu?: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          passport_request_id?: string
+          provider?: string
+          receipt_url?: string | null
+          status?: string
+          transaction_nsu?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passport_payments_passport_request_id_fkey"
+            columns: ["passport_request_id"]
+            isOneToOne: false
+            referencedRelation: "passport_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       passport_requests: {
         Row: {
           amount: number | null

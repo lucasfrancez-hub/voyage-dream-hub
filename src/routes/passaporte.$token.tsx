@@ -19,6 +19,8 @@ import {
   savePassportStep,
   submitPassportPayment,
 } from "@/lib/passaporte.functions";
+import { criarCheckoutPassaporte } from "@/lib/passaporte-infinitepay.functions";
+
 import type { PassportPublic } from "@/lib/passaporte.server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +82,8 @@ function PassaportePage() {
   const getFn = useServerFn(getPassportRequest);
   const saveFn = useServerFn(savePassportStep);
   const payFn = useServerFn(submitPassportPayment);
+  const checkoutFn = useServerFn(criarCheckoutPassaporte);
+
 
   const [loading, setLoading] = useState(true);
   const [req, setReq] = useState<PassportPublic | null>(null);
@@ -92,8 +96,8 @@ function PassaportePage() {
 
   const [metodo, setMetodo] = useState<"PIX" | "CREDIT_CARD">("PIX");
   const [parcelas, setParcelas] = useState(1);
-  const [cartao, setCartao] = useState<Campos>({});
   const [declarou, setDeclarou] = useState(false);
+
 
   useEffect(() => {
     let alive = true;
@@ -147,11 +151,21 @@ function PassaportePage() {
     if (!req) return;
     setSaving(true);
     try {
+      if (metodo === "CREDIT_CARD") {
+        // Cartão: checkout seguro InfinitePay (nenhum dado de cartão trafega pelo portal).
+        await saveFn({ data: { token, dadosPessoais: pessoais, documentos, complementares } });
+        const { checkoutUrl } = (await checkoutFn({ data: { token } })) as {
+          checkoutUrl: string;
+        };
+        window.location.href = checkoutUrl;
+        return;
+      }
+
       const updated = (await payFn({
         data: {
           token,
           metodo,
-          parcelas: metodo === "CREDIT_CARD" ? parcelas : 1,
+          parcelas: 1,
           nome: (pessoais.nomeCompleto || "").trim(),
           cpf: (documentos.cpf || "").replace(/\D/g, ""),
           email: (complementares.email || "").trim(),
@@ -163,11 +177,6 @@ function PassaportePage() {
           bairro: complementares.bairro || null,
           cidade: complementares.cidade || null,
           estado: (complementares.uf || "").slice(0, 2) || null,
-          cartaoTitular: cartao.titular || null,
-          cartaoNumero: cartao.numero || null,
-          cartaoMes: cartao.mes || null,
-          cartaoAno: cartao.ano || null,
-          cartaoCvv: cartao.cvv || null,
         },
       })) as PassportPublic;
       setReq(updated);
@@ -179,6 +188,7 @@ function PassaportePage() {
       setSaving(false);
     }
   }
+
 
   if (loading) {
     return (
@@ -250,8 +260,6 @@ function PassaportePage() {
                   setMetodo={setMetodo}
                   parcelas={parcelas}
                   setParcelas={setParcelas}
-                  cartao={cartao}
-                  setCartao={setCartao}
                   total={total}
                   valorParcela={valorParcela}
                 />
@@ -276,7 +284,7 @@ function PassaportePage() {
                 ) : (
                   <Button disabled={saving} onClick={() => void finalizar()}>
                     {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {metodo === "PIX" ? "Gerar Pix" : "Pagar no cartão"}
+                    {metodo === "PIX" ? "Gerar Pix" : "Ir para o pagamento seguro"}
                   </Button>
                 )}
               </div>
@@ -576,8 +584,6 @@ function EtapaPagamento({
   setMetodo,
   parcelas,
   setParcelas,
-  cartao,
-  setCartao,
   total,
   valorParcela,
 }: {
@@ -585,8 +591,6 @@ function EtapaPagamento({
   setMetodo: (m: "PIX" | "CREDIT_CARD") => void;
   parcelas: number;
   setParcelas: (p: number) => void;
-  cartao: Campos;
-  setCartao: React.Dispatch<React.SetStateAction<Campos>>;
   total: number;
   valorParcela: number;
 }) {
@@ -628,9 +632,11 @@ function EtapaPagamento({
       </div>
 
       {metodo === "CREDIT_CARD" ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">Parcelas</Label>
+        <div className="mt-6 space-y-4">
+          <div>
+            <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Simulação de parcelas
+            </Label>
             <select
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={parcelas}
@@ -643,11 +649,18 @@ function EtapaPagamento({
               ))}
             </select>
           </div>
-          <Campo label="Nome impresso no cartão" required wide value={cartao.titular ?? ""} onChange={upd(setCartao, "titular")} />
-          <Campo label="Número do cartão" required wide value={cartao.numero ?? ""} onChange={upd(setCartao, "numero")} />
-          <Campo label="Mês (MM)" required value={cartao.mes ?? ""} onChange={upd(setCartao, "mes")} />
-          <Campo label="Ano (AAAA)" required value={cartao.ano ?? ""} onChange={upd(setCartao, "ano")} />
-          <Campo label="CVV" required value={cartao.cvv ?? ""} onChange={upd(setCartao, "cvv")} />
+          <div className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div className="text-sm">
+              <p className="font-medium">Pagamento em ambiente seguro</p>
+              <p className="mt-1 text-muted-foreground">
+                Ao continuar, você será direcionado para a tela de pagamento protegida onde escolhe
+                o parcelamento (até {MAX_PARCELAS}x) e informa os dados do cartão. Nenhum dado do
+                cartão é digitado ou armazenado neste site. Após a aprovação, você volta
+                automaticamente para acompanhar sua solicitação.
+              </p>
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -665,6 +678,7 @@ function EtapaPagamento({
     </div>
   );
 }
+
 
 function Confirmacao({ req }: { req: PassportPublic }) {
   const pago = req.paymentStatus === "paid";
