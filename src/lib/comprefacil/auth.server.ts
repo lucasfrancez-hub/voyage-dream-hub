@@ -283,6 +283,7 @@ export async function sessaoCompreFacil(): Promise<Sessao> {
       const salva = await lerSessaoSalva();
       if (salva) {
         sessao = salva;
+        if (salva.expiraEm < Date.now() + FOLGA_RENOVACAO_MS) renovarEmSegundoPlano();
         return salva;
       }
       // 2) só então faz login (e eventual 2FA)
