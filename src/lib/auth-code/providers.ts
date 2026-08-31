@@ -63,6 +63,8 @@ export const PROVEDORES_CODIGO: ProvedorCodigo[] = [
     nome: "PassHub",
     dominios: ["passhub.com.br", "emissor-gerencia.passhub.com.br"],
     pistas: ["passhub"],
+    // Número que a PassHub usa para enviar o token por WhatsApp/SMS.
+    remetentes: ["5511999347612", "551199347612", "11999347612"],
     assuntos: ["codigo", "verificacao", "seguranca"],
     tamanhos: [6],
   },
