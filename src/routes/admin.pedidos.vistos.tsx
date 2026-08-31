@@ -67,8 +67,7 @@ function VistosAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const linkDe = (token: string) =>
-    `${typeof window !== "undefined" ? window.location.origin : ""}/visto-americano/${token}`;
+  const linkDe = (token: string) => `${publicOrigin()}/visto-americano/${token}`;
 
   async function novo() {
     setCreating(true);
