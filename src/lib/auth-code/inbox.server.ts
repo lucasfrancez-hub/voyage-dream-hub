@@ -53,10 +53,22 @@ export async function registrarCodigoMensagem(input: {
 }): Promise<{ ok: boolean; provider: string | null; motivo?: string }> {
   const texto = (input.texto ?? "").slice(0, 4000);
   const provedorInformado = input.provider ? acharProvedor(input.provider) : null;
-  const provedor = provedorInformado ?? adivinharProvedor(texto) ?? acharProvedor("generico");
+  const provedor =
+    provedorInformado ??
+    provedorPorRemetente(input.sender) ??
+    adivinharProvedor(texto) ??
+    acharProvedor("generico");
 
   let codigo = (input.code ?? "").trim().toUpperCase() || null;
   if (!codigo) {
+    // WhatsApp esconde as "senhas descartáveis" fora do aparelho principal:
+    // o texto chega sem o código. Avisa em log para a equipe digitar manual.
+    if (senhaDescartavelOculta(texto)) {
+      console.warn(
+        `[2FA] senha descartável oculta pelo WhatsApp (${provedor.id}) — só aparece no celular principal`,
+      );
+      return { ok: false, provider: provedor.id, motivo: "codigo_oculto_whatsapp" };
+    }
     if (!pareceAutenticacao(texto)) return { ok: false, provider: null, motivo: "sem_indicio_2fa" };
     codigo = extrairCodigo(texto, provedor);
   }
