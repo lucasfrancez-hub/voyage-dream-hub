@@ -199,7 +199,9 @@ async function lerSessaoSalva(): Promise<Sessao | null> {
 
     if (!data?.token) return null;
     const expiraEm = new Date(data.expira_em as string).getTime();
-    if (!Number.isFinite(expiraEm) || expiraEm <= Date.now()) return null;
+    // Token quase vencido é tratado como inexistente: melhor relogar agora do
+    // que estourar no meio de uma busca do cliente.
+    if (!Number.isFinite(expiraEm) || expiraEm <= Date.now() + FOLGA_USO_MS) return null;
     return {
       token: data.token as string,
       expiraEm,
