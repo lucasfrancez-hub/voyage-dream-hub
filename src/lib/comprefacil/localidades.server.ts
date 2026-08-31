@@ -60,6 +60,18 @@ export function semAcento(v: string): string {
     .trim();
 }
 
+/** Resultado pronto por termo: digitação repetida responde na hora. */
+const cacheSugestoes = new Map<string, { em: number; itens: SugestaoCF[] }>();
+const TTL_SUGESTOES = 10 * 60 * 1000;
+
+/** Não deixa uma fonte lenta (Overpass, portal fora do ar) travar a lista. */
+function comLimite<T>(p: Promise<T>, ms: number, padrao: T): Promise<T> {
+  return Promise.race([
+    p.catch(() => padrao),
+    new Promise<T>((r) => setTimeout(() => r(padrao), ms)),
+  ]);
+}
+
 /**
  * Monta as sugestões de origem/destino juntando o catálogo já importado com a
  * lista oficial de aeroportos (cada aeroporto vira uma opção com o IATA certo).
@@ -70,7 +82,20 @@ export async function montarSugestoesCF(
   termo: string,
 ): Promise<SugestaoCF[]> {
   const alvo = semAcento(termo);
+  const chaveCache = `${campo}|${alvo}`;
+  const pronto = cacheSugestoes.get(chaveCache);
+  if (pronto && Date.now() - pronto.em < TTL_SUGESTOES) return pronto.itens;
+
   const porNome = new Map<string, SugestaoCF>();
+
+  // Todas as fontes remotas disparam juntas (antes eram sequenciais: era daí
+  // a demora do autopreencher).
+  const { buscarDestinosCF, buscarSugestoesFrt, iataMaisProximo, iataPeloAutocompleteFrt } =
+    await import("./destinos.server");
+  const pOficiais = comLimite(cidadesOficiaisCF(), 6_000, [] as CidadeOficialCF[]);
+  const pFrt = comLimite(buscarSugestoesFrt(termo), 5_000, [] as Awaited<ReturnType<typeof buscarSugestoesFrt>>);
+  const pDestinos = comLimite(buscarDestinosCF(termo, 20), 5_000, [] as Awaited<ReturnType<typeof buscarDestinosCF>>);
+
 
   for (const l of linhas ?? []) {
     const nome = campo === "cidade" ? l.cidade : l.cidade_saida;
@@ -90,10 +115,12 @@ export async function montarSugestoesCF(
     }
   }
 
+  const [oficiais, opcoesFrt, destinos] = await Promise.all([pOficiais, pFrt, pDestinos]);
+
   const saida: SugestaoCF[] = [];
   const nomesComAeroporto = new Set<string>();
-  try {
-    const oficiais = await cidadesOficiaisCF();
+  {
+
 
     // A operadora repete o mesmo IATA em cidades diferentes (ex.: "Miami
     // (Orlando)" com o código MIA dentro de Orlando). O dono do código é a
@@ -124,20 +151,12 @@ export async function montarSugestoesCF(
       nomesComAeroporto.add(chave);
       saida.push({ nome: c.nome, cidadeId: c.id, iata: c.iata, total: porNome.get(chave)?.total ?? 0 });
     }
-  } catch (e) {
-    console.error("[comprefacil] cidades oficiais indisponíveis:", e instanceof Error ? e.message : e);
   }
 
   // A lista da própria FRT é a fonte principal para o que o usuário digitou.
   // Isso evita perder capitais atendidas (Recife, Fortaleza, Maceió etc.) quando
   // o catálogo de aeroportos da CompreFácil estiver parcial ou indisponível.
-  try {
-    const { buscarDestinosCF, buscarSugestoesFrt } = await import("./destinos.server");
-    const [opcoesFrt, destinos, oficiais] = await Promise.all([
-      buscarSugestoesFrt(termo),
-      buscarDestinosCF(termo, 20),
-      cidadesOficiaisCF(),
-    ]);
+  {
     const destinoPorNome = new Map(destinos.map((d) => [semAcento(d.nome), d]));
     const oficialPorIata = new Map(oficiais.filter((c) => c.iata).map((c) => [c.iata as string, c]));
     const existentes = new Set(saida.map((s) => `${semAcento(s.nome)}-${s.iata ?? "s"}`));
@@ -158,8 +177,6 @@ export async function montarSugestoesCF(
       nomesComAeroporto.add(nomeChave);
       existentes.add(chave);
     }
-  } catch (e) {
-    console.error("[comprefacil] sugestões FRT indisponíveis:", e instanceof Error ? e.message : e);
   }
 
 
@@ -168,10 +185,6 @@ export async function montarSugestoesCF(
   // Destinos que não são aeroporto (Porto de Galinhas, Búzios, Gramado…):
   // a hospedagem usa a cidade certa e o voo vai pelo aeroporto mais próximo.
   try {
-    const { buscarDestinosCF, iataMaisProximo, iataPeloAutocompleteFrt } = await import(
-      "./destinos.server"
-    );
-    const oficiais = await cidadesOficiaisCF();
     const iataPorCidade = new Map<number, string>();
     const permitidos = new Set<string>();
     for (const c of oficiais) {
@@ -181,31 +194,39 @@ export async function montarSugestoesCF(
     }
 
     const jaTem = new Set(saida.map((s) => `${s.cidadeId ?? "s"}-${semAcento(s.nome)}`));
-    const destinos = await buscarDestinosCF(termo, 8);
-    let consultasProximidade = 0;
-    for (const d of destinos) {
+    const pendentes: typeof destinos = [];
+    for (const d of destinos.slice(0, 8)) {
       const chave = `${d.cidadeId}-${semAcento(d.nome)}`;
-      const nomeChave = semAcento(d.nome);
-      if (jaTem.has(chave) || nomesComAeroporto.has(nomeChave)) continue;
+      if (jaTem.has(chave) || nomesComAeroporto.has(semAcento(d.nome))) continue;
       jaTem.add(chave);
+      pendentes.push(d);
+    }
 
-      let iata = iataPorCidade.get(d.cidadeId) ?? null;
-      let via = false;
-      if (!iata && consultasProximidade < 4) {
-        consultasProximidade++;
-        // 1º o autopreencher da própria FRT (mesma resposta do portal);
-        // só se ela não responder caímos no aeroporto mais próximo por mapa.
-        iata = await iataPeloAutocompleteFrt(d.nome);
-        if (!iata && d.lat != null && d.lng != null) {
-          iata = await iataMaisProximo(d.lat, d.lng, permitidos);
+    // As descobertas de aeroporto rodam em paralelo e com prazo curto: uma
+    // cidade lenta não segura mais a lista inteira.
+    const resolvidos = await Promise.all(
+      pendentes.map(async (d, i) => {
+        let iata = iataPorCidade.get(d.cidadeId) ?? null;
+        let via = false;
+        if (!iata && i < 4) {
+          // 1º o autopreencher da própria FRT (mesma resposta do portal);
+          // só se ela não responder caímos no aeroporto mais próximo por mapa.
+          iata = await comLimite(iataPeloAutocompleteFrt(d.nome), 3_000, null);
+          if (!iata && d.lat != null && d.lng != null) {
+            iata = await comLimite(iataMaisProximo(d.lat, d.lng, permitidos), 3_000, null);
+          }
+          via = !!iata;
         }
-        via = !!iata;
-      }
+        return { d, iata, via };
+      }),
+    );
+
+    for (const { d, iata, via } of resolvidos) {
       saida.push({
         nome: d.nome,
         cidadeId: d.cidadeId,
         iata,
-        total: porNome.get(nomeChave)?.total ?? 0,
+        total: porNome.get(semAcento(d.nome))?.total ?? 0,
         viaAeroporto: via,
         regiao: [d.estado, d.pais].filter(Boolean).join(", ") || null,
       });
@@ -216,7 +237,7 @@ export async function montarSugestoesCF(
 
 
   const codigo = alvo.length === 3 ? alvo.toUpperCase() : null;
-  return saida
+  const resultado = saida
     .sort((a, b) => {
       const ca = codigo && a.iata === codigo ? 0 : 1;
       const cb = codigo && b.iata === codigo ? 0 : 1;
@@ -227,4 +248,10 @@ export async function montarSugestoesCF(
       return ca - cb || ea - eb || pa - pb || b.total - a.total || a.nome.localeCompare(b.nome, "pt-BR");
     })
     .slice(0, 12);
+
+  if (resultado.length) {
+    cacheSugestoes.set(chaveCache, { em: Date.now(), itens: resultado });
+    if (cacheSugestoes.size > 500) cacheSugestoes.delete(cacheSugestoes.keys().next().value as string);
+  }
+  return resultado;
 }
