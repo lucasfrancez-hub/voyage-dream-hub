@@ -15,6 +15,11 @@ export type ProvedorCodigo = {
   dominios: string[];
   /** Palavras que costumam aparecer no assunto/corpo do e-mail do fornecedor. */
   pistas: string[];
+  /**
+   * Números (WhatsApp/SMS) usados pelo fornecedor para enviar o código.
+   * Só os dígitos importam — a comparação ignora +, espaços e o 9 extra.
+   */
+  remetentes?: string[];
   /** Assuntos esperados (comparação por trecho, sem acento e sem caixa). */
   assuntos?: string[];
   /** Tamanhos prováveis do código. */
