@@ -41,6 +41,20 @@ export function adivinharProvedor(texto: string): ProvedorCodigo | null {
 }
 
 /**
+ * Detecta o aviso do próprio WhatsApp de "senha descartável": o código fica
+ * visível só no aparelho principal e não chega em aparelhos conectados.
+ */
+export function senhaDescartavelOculta(texto: string): boolean {
+  const t = normalizarTexto(texto);
+  return (
+    t.includes("senha descartavel") ||
+    t.includes("one-time password") ||
+    (t.includes("dispositivo principal") && t.includes("senha"))
+  );
+}
+
+
+/**
  * Guarda um código recebido por mensagem. Devolve `false` quando a mensagem
  * não parece de autenticação (nesse caso nada é gravado).
  */
