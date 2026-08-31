@@ -115,10 +115,12 @@ export async function montarSugestoesCF(
     }
   }
 
+  const [oficiais, opcoesFrt, destinos] = await Promise.all([pOficiais, pFrt, pDestinos]);
+
   const saida: SugestaoCF[] = [];
   const nomesComAeroporto = new Set<string>();
-  try {
-    const oficiais = await cidadesOficiaisCF();
+  {
+
 
     // A operadora repete o mesmo IATA em cidades diferentes (ex.: "Miami
     // (Orlando)" com o código MIA dentro de Orlando). O dono do código é a
