@@ -27,6 +27,7 @@ import { fetchPublicQuote } from "@/lib/public-quote.functions";
 import { getPublicQuote } from "@/lib/quote.functions";
 import { materializarPedidoDaReserva } from "@/lib/orders/materialize.functions";
 import { buildPublicQuoteFromOrder } from "@/lib/public-quote/from-order";
+import { publicOrigin } from "@/lib/public-url";
 import type { PublicQuote } from "@/lib/public-quote/types";
 import viaAirLogo from "@/assets/viaair-logo.png.asset.json";
 
@@ -221,7 +222,7 @@ function ReservaCheckout() {
           quote_public_id: quote.publicId,
           quote_token: token,
           quote_type: quote.type,
-          quote_url: `/orcamento/${token}`,
+          quote_url: `${publicOrigin()}/orcamento/${token}`,
           title: quote.title,
           destination: quote.destination ?? null,
           origin: quote.origin ?? null,
