@@ -54,6 +54,7 @@ import {
   type CofreOrder,
 } from "@/lib/cofre.functions";
 import { paymentMethodLabel, statusLabel } from "@/lib/order-labels";
+import { publicOrigin } from "@/lib/public-url";
 import { generateAuthorizationPDF, type AuthorizationData, type LivenessData } from "@/lib/authorization-pdf";
 
 import { detectBrand } from "@/components/CardForm";
@@ -233,9 +234,15 @@ function CofrePage() {
         const firstAmount = o.firstAmount && o.firstAmount > 0 ? o.firstAmount : undefined;
 
         // Checkout de orçamento público: guardamos o link real do checkout.
-        const origin = typeof window !== "undefined" ? window.location.origin : "";
-        const quoteCheckoutUrl =
-          o.quoteUrl || (o.quotePublicId ? `${origin}/reserva/${o.quotePublicId}` : "");
+        // Sempre absoluto no domínio público — links antigos podem ter sido
+        // gravados como caminho relativo ("/orcamento/…") e quebrariam no WhatsApp.
+        const origin = publicOrigin();
+        const absolutizar = (u: string) => (u.startsWith("/") ? `${origin}${u}` : u);
+        const quoteCheckoutUrl = o.quoteUrl
+          ? absolutizar(o.quoteUrl)
+          : o.quotePublicId
+            ? `${origin}/reserva/${o.quotePublicId}`
+            : "";
 
         const url = quoteCheckoutUrl
           ? quoteCheckoutUrl
