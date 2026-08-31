@@ -10,7 +10,13 @@
  *  - o valor NUNCA aparece em log (só a máscara);
  *  - cada código só é entregue uma vez (marca `consumed_at`).
  */
-import { acharProvedor, normalizarTexto, PROVEDORES_CODIGO, type ProvedorCodigo } from "./providers";
+import {
+  acharProvedor,
+  normalizarTexto,
+  provedorPorRemetente,
+  PROVEDORES_CODIGO,
+  type ProvedorCodigo,
+} from "./providers";
 import { extrairCodigo, mascararCodigo, pareceAutenticacao } from "./extract";
 
 /** Tudo com mais de 30 minutos é descartado. */
@@ -35,6 +41,20 @@ export function adivinharProvedor(texto: string): ProvedorCodigo | null {
 }
 
 /**
+ * Detecta o aviso do próprio WhatsApp de "senha descartável": o código fica
+ * visível só no aparelho principal e não chega em aparelhos conectados.
+ */
+export function senhaDescartavelOculta(texto: string): boolean {
+  const t = normalizarTexto(texto);
+  return (
+    t.includes("senha descartavel") ||
+    t.includes("one-time password") ||
+    (t.includes("dispositivo principal") && t.includes("senha"))
+  );
+}
+
+
+/**
  * Guarda um código recebido por mensagem. Devolve `false` quando a mensagem
  * não parece de autenticação (nesse caso nada é gravado).
  */
@@ -47,10 +67,22 @@ export async function registrarCodigoMensagem(input: {
 }): Promise<{ ok: boolean; provider: string | null; motivo?: string }> {
   const texto = (input.texto ?? "").slice(0, 4000);
   const provedorInformado = input.provider ? acharProvedor(input.provider) : null;
-  const provedor = provedorInformado ?? adivinharProvedor(texto) ?? acharProvedor("generico");
+  const provedor =
+    provedorInformado ??
+    provedorPorRemetente(input.sender) ??
+    adivinharProvedor(texto) ??
+    acharProvedor("generico");
 
   let codigo = (input.code ?? "").trim().toUpperCase() || null;
   if (!codigo) {
+    // WhatsApp esconde as "senhas descartáveis" fora do aparelho principal:
+    // o texto chega sem o código. Avisa em log para a equipe digitar manual.
+    if (senhaDescartavelOculta(texto)) {
+      console.warn(
+        `[2FA] senha descartável oculta pelo WhatsApp (${provedor.id}) — só aparece no celular principal`,
+      );
+      return { ok: false, provider: provedor.id, motivo: "codigo_oculto_whatsapp" };
+    }
     if (!pareceAutenticacao(texto)) return { ok: false, provider: null, motivo: "sem_indicio_2fa" };
     codigo = extrairCodigo(texto, provedor);
   }

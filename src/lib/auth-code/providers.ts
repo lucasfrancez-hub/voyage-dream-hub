@@ -15,6 +15,11 @@ export type ProvedorCodigo = {
   dominios: string[];
   /** Palavras que costumam aparecer no assunto/corpo do e-mail do fornecedor. */
   pistas: string[];
+  /**
+   * Números (WhatsApp/SMS) usados pelo fornecedor para enviar o código.
+   * Só os dígitos importam — a comparação ignora +, espaços e o 9 extra.
+   */
+  remetentes?: string[];
   /** Assuntos esperados (comparação por trecho, sem acento e sem caixa). */
   assuntos?: string[];
   /** Tamanhos prováveis do código. */
@@ -58,6 +63,8 @@ export const PROVEDORES_CODIGO: ProvedorCodigo[] = [
     nome: "PassHub",
     dominios: ["passhub.com.br", "emissor-gerencia.passhub.com.br"],
     pistas: ["passhub"],
+    // Número que a PassHub usa para enviar o token por WhatsApp/SMS.
+    remetentes: ["5511999347612", "551199347612", "11999347612"],
     assuntos: ["codigo", "verificacao", "seguranca"],
     tamanhos: [6],
   },
@@ -109,6 +116,23 @@ export function normalizarTexto(v: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+/** Só os dígitos, sem DDI/9 extra, para comparar telefones de jeitos diferentes. */
+export function digitosTelefone(v: string | null | undefined): string {
+  const d = (v ?? "").replace(/\D/g, "");
+  return d.length > 8 ? d.slice(-8) : d;
+}
+
+/** Descobre o fornecedor pelo número que enviou a mensagem. */
+export function provedorPorRemetente(sender: string | null | undefined): ProvedorCodigo | null {
+  const alvo = digitosTelefone(sender);
+  if (alvo.length < 8) return null;
+  return (
+    PROVEDORES_CODIGO.find((p) =>
+      (p.remetentes ?? []).some((r) => digitosTelefone(r) === alvo),
+    ) ?? null
+  );
 }
 
 export function acharProvedor(id: string | null | undefined): ProvedorCodigo {
