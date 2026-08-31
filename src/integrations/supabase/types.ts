@@ -6308,6 +6308,42 @@ export type Database = {
           },
         ]
       }
+      otp_inbox: {
+        Row: {
+          code: string
+          consumed_at: string | null
+          consumed_by: string | null
+          hint: string | null
+          id: string
+          provider: string | null
+          received_at: string
+          sender: string | null
+          source: string
+        }
+        Insert: {
+          code: string
+          consumed_at?: string | null
+          consumed_by?: string | null
+          hint?: string | null
+          id?: string
+          provider?: string | null
+          received_at?: string
+          sender?: string | null
+          source: string
+        }
+        Update: {
+          code?: string
+          consumed_at?: string | null
+          consumed_by?: string | null
+          hint?: string | null
+          id?: string
+          provider?: string | null
+          received_at?: string
+          sender?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       package_ai_copy: {
         Row: {
           channel: string

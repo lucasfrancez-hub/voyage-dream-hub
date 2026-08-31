@@ -365,6 +365,18 @@ async function processPayload(payload: WhatsAppPayload) {
 
         if (msg.type === "text" && msg.text?.body) {
           content = msg.text.body;
+          // Se for um token de acesso (2FA) de fornecedor, guarda na caixa de
+          // códigos para as automações usarem. Nunca registra o valor em log.
+          try {
+            const { registrarCodigoMensagem } = await import("@/lib/auth-code/inbox.server");
+            await registrarCodigoMensagem({
+              source: "whatsapp",
+              texto: content,
+              sender: msg.from,
+            });
+          } catch (e) {
+            console.warn("[wa-webhook] falha ao checar código 2FA", e);
+          }
         } else if (msg.type === "interactive" && msg.interactive?.button_reply) {
           buttonReplyId = msg.interactive.button_reply.id;
           content = msg.interactive.button_reply.title;
