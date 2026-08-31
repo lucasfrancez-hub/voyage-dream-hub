@@ -118,6 +118,23 @@ export function normalizarTexto(v: string): string {
     .toLowerCase();
 }
 
+/** Só os dígitos, sem DDI/9 extra, para comparar telefones de jeitos diferentes. */
+export function digitosTelefone(v: string | null | undefined): string {
+  const d = (v ?? "").replace(/\D/g, "");
+  return d.length > 8 ? d.slice(-8) : d;
+}
+
+/** Descobre o fornecedor pelo número que enviou a mensagem. */
+export function provedorPorRemetente(sender: string | null | undefined): ProvedorCodigo | null {
+  const alvo = digitosTelefone(sender);
+  if (alvo.length < 8) return null;
+  return (
+    PROVEDORES_CODIGO.find((p) =>
+      (p.remetentes ?? []).some((r) => digitosTelefone(r) === alvo),
+    ) ?? null
+  );
+}
+
 export function acharProvedor(id: string | null | undefined): ProvedorCodigo {
   const alvo = normalizarTexto(id ?? "generico").trim();
   return (
