@@ -7,6 +7,7 @@ import { Loader2, MailCheck, RefreshCw, ShieldCheck, AlertTriangle } from "lucid
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -20,6 +21,7 @@ import {
   listarProvedoresCodigo,
   testarRecebimentoCodigo,
 } from "@/lib/auth-code/auth-code.functions";
+import { registrarCodigoManual } from "@/lib/auth-code/otp-manual.functions";
 
 export const Route = createFileRoute("/admin/codigos-auth")({
   head: () => ({
@@ -59,7 +61,9 @@ function CodigosAuthPage() {
   const diagFn = useServerFn(diagnosticoCodigosAuth);
   const provFn = useServerFn(listarProvedoresCodigo);
   const testarFn = useServerFn(testarRecebimentoCodigo);
+  const manualFn = useServerFn(registrarCodigoManual);
   const [provider, setProvider] = useState("generico");
+  const [codigoManual, setCodigoManual] = useState("");
 
   const diag = useQuery({
     queryKey: ["codigos-auth", "diagnostico"],
@@ -78,6 +82,17 @@ function CodigosAuthPage() {
       if (r.ok) toast.success("Código de autenticação identificado com sucesso.");
       else toast.error(r.erro);
       diag.refetch();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const manual = useMutation({
+    mutationFn: () => manualFn({ data: { provider, codigo: codigoManual } }),
+    onSuccess: (r) => {
+      if (r.ok) {
+        toast.success("Código enviado para a automação.");
+        setCodigoManual("");
+      } else toast.error("Não foi possível registrar esse código.");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -206,6 +221,38 @@ function CodigosAuthPage() {
             Testar recebimento de código
           </Button>
         </div>
+
+        <Separator className="my-5" />
+
+        <div className="space-y-1.5">
+          <Label>Recebi o código no celular</Label>
+          <p className="text-sm text-muted-foreground">
+            Quando o fornecedor mandar o token por SMS ou WhatsApp em um aparelho da equipe,
+            digite aqui: o robô que estiver esperando usa esse código na hora.
+          </p>
+          <div className="flex flex-wrap items-end gap-3 pt-1">
+            <Input
+              value={codigoManual}
+              onChange={(e) => setCodigoManual(e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 10))}
+              placeholder="Ex.: 483920"
+              className="w-40 text-center tracking-[0.3em]"
+              inputMode="numeric"
+            />
+            <Button
+              variant="secondary"
+              disabled={codigoManual.length < 4 || manual.isPending}
+              onClick={() => manual.mutate()}
+            >
+              {manual.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-4 w-4" />
+              )}
+              Enviar código para o robô
+            </Button>
+          </div>
+        </div>
+
 
         {teste.isPending ? (
           <p className="mt-4 text-sm text-muted-foreground">

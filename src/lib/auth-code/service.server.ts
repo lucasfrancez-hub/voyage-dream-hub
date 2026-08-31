@@ -153,8 +153,34 @@ export async function aguardarCodigo(input: {
   try {
     const usados = await idsJaUsados(input.requestedAt);
     usados.delete("");
+    const { buscarCodigoInbox } = await import("./inbox.server");
     while (Date.now() < limite) {
-      const mensagens = await mensagensRecentes(inicio);
+      // 1) código chegado por WhatsApp/SMS/manual
+      const porMensagem = await buscarCodigoInbox(provedor, inicio);
+      if (porMensagem) {
+        await marcar(id, {
+          status: "codigo_utilizado",
+          sender: (porMensagem.sender ?? porMensagem.source).slice(0, 200),
+          subject: `Código por ${porMensagem.source}`,
+          received_at: porMensagem.receivedAt,
+          code_mask: mascararCodigo(porMensagem.code),
+          code_used_at: new Date().toISOString(),
+        });
+        console.log(`[2FA] Código OTP (${porMensagem.source}) usado na tentativa ${ident(id)}`);
+        return {
+          success: true,
+          authAttemptId: id,
+          messageId: porMensagem.id,
+          receivedAt: porMensagem.receivedAt,
+          sender: porMensagem.sender ?? porMensagem.source,
+          subject: `Código por ${porMensagem.source}`,
+          code: porMensagem.code,
+          codeMask: mascararCodigo(porMensagem.code),
+        };
+      }
+
+      // 2) código chegado por e-mail
+      const mensagens = await mensagensRecentes(inicio).catch(() => []);
       const achado = escolherMensagem(mensagens, provedor, inicio, usados);
       if (achado) {
         const recebidoEm = new Date(achado.mensagem.recebidoEm).toISOString();
