@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BlocoCampos, humanizar } from "@/components/admin/CamposFormulario";
+import { publicOrigin } from "@/lib/public-url";
 import {
   createVisaRequest,
   listVisaRequests,
@@ -67,8 +68,7 @@ function VistosAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const linkDe = (token: string) =>
-    `${typeof window !== "undefined" ? window.location.origin : ""}/visto-americano/${token}`;
+  const linkDe = (token: string) => `${publicOrigin()}/visto-americano/${token}`;
 
   async function novo() {
     setCreating(true);
