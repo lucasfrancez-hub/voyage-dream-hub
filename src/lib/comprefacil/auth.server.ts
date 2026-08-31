@@ -244,8 +244,39 @@ export async function limparSessaoCompreFacil(): Promise<void> {
   }
 }
 
+/** Folga mínima de uso: com menos que isso o token é considerado vencido. */
+const FOLGA_USO_MS = 10 * 60 * 1000;
+/** Abaixo disso o robô já refaz o login em segundo plano, sem travar a busca. */
+const FOLGA_RENOVACAO_MS = 120 * 60 * 1000;
+
+let renovandoEmSegundoPlano = false;
+
+/**
+ * Robô de sessão: quando o token está perto de vencer, refaz o login em
+ * segundo plano. A busca em andamento continua usando o token atual (que ainda
+ * é válido), então o cliente nunca espera pelo 2FA.
+ */
+function renovarEmSegundoPlano(): void {
+  if (renovandoEmSegundoPlano || bloqueadoAte > Date.now()) return;
+  renovandoEmSegundoPlano = true;
+  void (async () => {
+    try {
+      const nova = await autenticar();
+      sessao = nova;
+      await salvarSessao(nova);
+    } catch (e) {
+      console.error("[comprefacil] renovação antecipada falhou:", e instanceof Error ? e.message : e);
+    } finally {
+      renovandoEmSegundoPlano = false;
+    }
+  })();
+}
+
 export async function sessaoCompreFacil(): Promise<Sessao> {
-  if (sessao && sessao.expiraEm > Date.now()) return sessao;
+  if (sessao && sessao.expiraEm > Date.now() + FOLGA_USO_MS) {
+    if (sessao.expiraEm < Date.now() + FOLGA_RENOVACAO_MS) renovarEmSegundoPlano();
+    return sessao;
+  }
   if (!emAndamento) {
     emAndamento = (async () => {
       // 1) sessão persistida (sobrevive a deploys e reinícios do servidor)
