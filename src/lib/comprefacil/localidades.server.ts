@@ -151,20 +151,12 @@ export async function montarSugestoesCF(
       nomesComAeroporto.add(chave);
       saida.push({ nome: c.nome, cidadeId: c.id, iata: c.iata, total: porNome.get(chave)?.total ?? 0 });
     }
-  } catch (e) {
-    console.error("[comprefacil] cidades oficiais indisponíveis:", e instanceof Error ? e.message : e);
   }
 
   // A lista da própria FRT é a fonte principal para o que o usuário digitou.
   // Isso evita perder capitais atendidas (Recife, Fortaleza, Maceió etc.) quando
   // o catálogo de aeroportos da CompreFácil estiver parcial ou indisponível.
-  try {
-    const { buscarDestinosCF, buscarSugestoesFrt } = await import("./destinos.server");
-    const [opcoesFrt, destinos, oficiais] = await Promise.all([
-      buscarSugestoesFrt(termo),
-      buscarDestinosCF(termo, 20),
-      cidadesOficiaisCF(),
-    ]);
+  {
     const destinoPorNome = new Map(destinos.map((d) => [semAcento(d.nome), d]));
     const oficialPorIata = new Map(oficiais.filter((c) => c.iata).map((c) => [c.iata as string, c]));
     const existentes = new Set(saida.map((s) => `${semAcento(s.nome)}-${s.iata ?? "s"}`));
