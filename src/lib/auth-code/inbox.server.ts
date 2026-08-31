@@ -10,7 +10,13 @@
  *  - o valor NUNCA aparece em log (só a máscara);
  *  - cada código só é entregue uma vez (marca `consumed_at`).
  */
-import { acharProvedor, normalizarTexto, PROVEDORES_CODIGO, type ProvedorCodigo } from "./providers";
+import {
+  acharProvedor,
+  normalizarTexto,
+  provedorPorRemetente,
+  PROVEDORES_CODIGO,
+  type ProvedorCodigo,
+} from "./providers";
 import { extrairCodigo, mascararCodigo, pareceAutenticacao } from "./extract";
 
 /** Tudo com mais de 30 minutos é descartado. */
