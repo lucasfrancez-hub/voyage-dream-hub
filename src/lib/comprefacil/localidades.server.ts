@@ -60,6 +60,18 @@ export function semAcento(v: string): string {
     .trim();
 }
 
+/** Resultado pronto por termo: digitação repetida responde na hora. */
+const cacheSugestoes = new Map<string, { em: number; itens: SugestaoCF[] }>();
+const TTL_SUGESTOES = 10 * 60 * 1000;
+
+/** Não deixa uma fonte lenta (Overpass, portal fora do ar) travar a lista. */
+function comLimite<T>(p: Promise<T>, ms: number, padrao: T): Promise<T> {
+  return Promise.race([
+    p.catch(() => padrao),
+    new Promise<T>((r) => setTimeout(() => r(padrao), ms)),
+  ]);
+}
+
 /**
  * Monta as sugestões de origem/destino juntando o catálogo já importado com a
  * lista oficial de aeroportos (cada aeroporto vira uma opção com o IATA certo).
@@ -70,7 +82,20 @@ export async function montarSugestoesCF(
   termo: string,
 ): Promise<SugestaoCF[]> {
   const alvo = semAcento(termo);
+  const chaveCache = `${campo}|${alvo}`;
+  const pronto = cacheSugestoes.get(chaveCache);
+  if (pronto && Date.now() - pronto.em < TTL_SUGESTOES) return pronto.itens;
+
   const porNome = new Map<string, SugestaoCF>();
+
+  // Todas as fontes remotas disparam juntas (antes eram sequenciais: era daí
+  // a demora do autopreencher).
+  const { buscarDestinosCF, buscarSugestoesFrt, iataMaisProximo, iataPeloAutocompleteFrt } =
+    await import("./destinos.server");
+  const pOficiais = comLimite(cidadesOficiaisCF(), 6_000, [] as CidadeOficialCF[]);
+  const pFrt = comLimite(buscarSugestoesFrt(termo), 5_000, [] as Awaited<ReturnType<typeof buscarSugestoesFrt>>);
+  const pDestinos = comLimite(buscarDestinosCF(termo, 20), 5_000, [] as Awaited<ReturnType<typeof buscarDestinosCF>>);
+
 
   for (const l of linhas ?? []) {
     const nome = campo === "cidade" ? l.cidade : l.cidade_saida;
