@@ -49,9 +49,10 @@ export async function passhubBuscarVoos(input: PassHubBuscaInput): Promise<Json>
     return passhubRequest<Json>(`${passhubBases.multi}/api/v1/search`, {
       body: {
         ...base,
+        // A API multitrecho usa origin/destination (o /api-voo usa iata_from/iata_to).
         routes: input.trechos.map((t) => ({
-          iata_from: up(t.origem),
-          iata_to: up(t.destino),
+          origin: up(t.origem),
+          destination: up(t.destino),
           date: t.data,
         })),
       },
