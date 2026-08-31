@@ -15,6 +15,7 @@ import {
   type PassportAdminRow,
 } from "@/lib/passaporte.functions";
 import { listarPagamentosPassaporte } from "@/lib/passaporte-infinitepay.functions";
+import { publicOrigin } from "@/lib/public-url";
 import type { PassportPaymentRow } from "@/lib/passaporte-pagamento.types";
 
 
@@ -59,8 +60,7 @@ function PassaportesAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const linkDe = (token: string) =>
-    `${typeof window !== "undefined" ? window.location.origin : ""}/passaporte/${token}`;
+  const linkDe = (token: string) => `${publicOrigin()}/passaporte/${token}`;
 
   async function novo() {
     setCreating(true);
