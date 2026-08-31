@@ -177,8 +177,6 @@ export async function montarSugestoesCF(
       nomesComAeroporto.add(nomeChave);
       existentes.add(chave);
     }
-  } catch (e) {
-    console.error("[comprefacil] sugestões FRT indisponíveis:", e instanceof Error ? e.message : e);
   }
 
 
@@ -187,10 +185,6 @@ export async function montarSugestoesCF(
   // Destinos que não são aeroporto (Porto de Galinhas, Búzios, Gramado…):
   // a hospedagem usa a cidade certa e o voo vai pelo aeroporto mais próximo.
   try {
-    const { buscarDestinosCF, iataMaisProximo, iataPeloAutocompleteFrt } = await import(
-      "./destinos.server"
-    );
-    const oficiais = await cidadesOficiaisCF();
     const iataPorCidade = new Map<number, string>();
     const permitidos = new Set<string>();
     for (const c of oficiais) {
@@ -200,31 +194,39 @@ export async function montarSugestoesCF(
     }
 
     const jaTem = new Set(saida.map((s) => `${s.cidadeId ?? "s"}-${semAcento(s.nome)}`));
-    const destinos = await buscarDestinosCF(termo, 8);
-    let consultasProximidade = 0;
-    for (const d of destinos) {
+    const pendentes: typeof destinos = [];
+    for (const d of destinos.slice(0, 8)) {
       const chave = `${d.cidadeId}-${semAcento(d.nome)}`;
-      const nomeChave = semAcento(d.nome);
-      if (jaTem.has(chave) || nomesComAeroporto.has(nomeChave)) continue;
+      if (jaTem.has(chave) || nomesComAeroporto.has(semAcento(d.nome))) continue;
       jaTem.add(chave);
+      pendentes.push(d);
+    }
 
-      let iata = iataPorCidade.get(d.cidadeId) ?? null;
-      let via = false;
-      if (!iata && consultasProximidade < 4) {
-        consultasProximidade++;
-        // 1º o autopreencher da própria FRT (mesma resposta do portal);
-        // só se ela não responder caímos no aeroporto mais próximo por mapa.
-        iata = await iataPeloAutocompleteFrt(d.nome);
-        if (!iata && d.lat != null && d.lng != null) {
-          iata = await iataMaisProximo(d.lat, d.lng, permitidos);
+    // As descobertas de aeroporto rodam em paralelo e com prazo curto: uma
+    // cidade lenta não segura mais a lista inteira.
+    const resolvidos = await Promise.all(
+      pendentes.map(async (d, i) => {
+        let iata = iataPorCidade.get(d.cidadeId) ?? null;
+        let via = false;
+        if (!iata && i < 4) {
+          // 1º o autopreencher da própria FRT (mesma resposta do portal);
+          // só se ela não responder caímos no aeroporto mais próximo por mapa.
+          iata = await comLimite(iataPeloAutocompleteFrt(d.nome), 3_000, null);
+          if (!iata && d.lat != null && d.lng != null) {
+            iata = await comLimite(iataMaisProximo(d.lat, d.lng, permitidos), 3_000, null);
+          }
+          via = !!iata;
         }
-        via = !!iata;
-      }
+        return { d, iata, via };
+      }),
+    );
+
+    for (const { d, iata, via } of resolvidos) {
       saida.push({
         nome: d.nome,
         cidadeId: d.cidadeId,
         iata,
-        total: porNome.get(nomeChave)?.total ?? 0,
+        total: porNome.get(semAcento(d.nome))?.total ?? 0,
         viaAeroporto: via,
         regiao: [d.estado, d.pais].filter(Boolean).join(", ") || null,
       });
@@ -235,7 +237,7 @@ export async function montarSugestoesCF(
 
 
   const codigo = alvo.length === 3 ? alvo.toUpperCase() : null;
-  return saida
+  const resultado = saida
     .sort((a, b) => {
       const ca = codigo && a.iata === codigo ? 0 : 1;
       const cb = codigo && b.iata === codigo ? 0 : 1;
