@@ -248,4 +248,10 @@ export async function montarSugestoesCF(
       return ca - cb || ea - eb || pa - pb || b.total - a.total || a.nome.localeCompare(b.nome, "pt-BR");
     })
     .slice(0, 12);
+
+  if (resultado.length) {
+    cacheSugestoes.set(chaveCache, { em: Date.now(), itens: resultado });
+    if (cacheSugestoes.size > 500) cacheSugestoes.delete(cacheSugestoes.keys().next().value as string);
+  }
+  return resultado;
 }
