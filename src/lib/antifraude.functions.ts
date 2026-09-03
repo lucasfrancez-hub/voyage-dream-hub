@@ -127,7 +127,7 @@ export const consultarAntifraude = createServerFn({ method: "POST" })
       const tail = digits.slice(-9);
       const { data: conversas } = await supabaseAdmin
         .from("wa_conversations")
-        .select("id, wa_phone, contact_name, last_message_at, risk_score, risk_level, transferred_to_human")
+        .select("id, wa_phone, display_name, last_message_at, fraud_risk_score, fraud_risk_level, fraud_transfer_required")
         .ilike("wa_phone", `%${tail}%`)
         .order("last_message_at", { ascending: false })
         .limit(5);
@@ -135,29 +135,29 @@ export const consultarAntifraude = createServerFn({ method: "POST" })
         resultado.conversas.push({
           conversationId: c.id,
           telefone: c.wa_phone,
-          nome: c.contact_name,
+          nome: c.display_name,
           ultimaMensagemEm: c.last_message_at,
-          riskScore: c.risk_score,
-          riskLevel: c.risk_level,
-          transferedToHuman: Boolean(c.transferred_to_human),
+          riskScore: c.fraud_risk_score,
+          riskLevel: c.fraud_risk_level,
+          transferedToHuman: Boolean(c.fraud_transfer_required),
         });
       }
     } else if (data.tipo === "nome") {
       const { data: conversas } = await supabaseAdmin
         .from("wa_conversations")
-        .select("id, wa_phone, contact_name, last_message_at, risk_score, risk_level, transferred_to_human")
-        .ilike("contact_name", `%${data.valor}%`)
+        .select("id, wa_phone, display_name, last_message_at, fraud_risk_score, fraud_risk_level, fraud_transfer_required")
+        .ilike("display_name", `%${data.valor}%`)
         .order("last_message_at", { ascending: false })
         .limit(5);
       for (const c of conversas ?? []) {
         resultado.conversas.push({
           conversationId: c.id,
           telefone: c.wa_phone,
-          nome: c.contact_name,
+          nome: c.display_name,
           ultimaMensagemEm: c.last_message_at,
-          riskScore: c.risk_score,
-          riskLevel: c.risk_level,
-          transferedToHuman: Boolean(c.transferred_to_human),
+          riskScore: c.fraud_risk_score,
+          riskLevel: c.fraud_risk_level,
+          transferedToHuman: Boolean(c.fraud_transfer_required),
         });
       }
     }
