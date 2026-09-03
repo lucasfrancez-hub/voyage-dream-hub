@@ -287,7 +287,7 @@ function AntifraudePage() {
                   })}
                 </div>
                 <Link
-                  to="/admin/chat"
+                  to="/chat"
                   className="block w-full py-3 text-center text-[10px] font-bold tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all border-t border-border/40"
                 >
                   ABRIR CHAT COMPLETO
