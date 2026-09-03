@@ -31,10 +31,10 @@ const TIPOS: { id: Tipo; label: string; icon: typeof User; placeholder: string }
 function nivelRisco(score: number | null, nivel: string | null) {
   const n = (nivel ?? "").toUpperCase();
   if (n.includes("CRIT") || n.includes("ALTO") || n.includes("HIGH") || (score ?? 0) >= 70)
-    return { label: nivel || "ALTO", cor: "text-red-500", barra: "stroke-red-500", selo: "bg-red-500/10 text-red-400 border-red-500/20" };
-  if (n.includes("MOD") || n.includes("MED") || (score ?? 0) >= 40)
-    return { label: nivel || "MODERADO", cor: "text-amber-500", barra: "stroke-amber-500", selo: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
-  return { label: nivel || "BAIXO", cor: "text-emerald-500", barra: "stroke-emerald-500", selo: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" };
+    return { label: n || "ALTO", cor: "text-red-500", barra: "stroke-red-500", selo: "bg-red-500/10 text-red-400 border-red-500/20" };
+  if (n.includes("MOD") || n.includes("MED") || n.includes("ATEN") || (score ?? 0) >= 40)
+    return { label: n || "MODERADO", cor: "text-amber-500", barra: "stroke-amber-500", selo: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+  return { label: n || "BAIXO", cor: "text-emerald-500", barra: "stroke-emerald-500", selo: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" };
 }
 
 function AntifraudePage() {
