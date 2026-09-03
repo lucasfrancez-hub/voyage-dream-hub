@@ -30,6 +30,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as VoarRouteImport } from './routes/voar'
+import { Route as AdminAntifraudeRouteImport } from './routes/admin.antifraude'
 import { Route as AdminAppCelularRouteImport } from './routes/admin.app-celular'
 import { Route as AdminArteModelosRouteImport } from './routes/admin.arte-modelos'
 import { Route as AdminBilhetesRouteImport } from './routes/admin.bilhetes'
@@ -305,6 +306,11 @@ const VoarRoute = VoarRouteImport.update({
   id: '/voar',
   path: '/voar',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAntifraudeRoute = AdminAntifraudeRouteImport.update({
+  id: '/antifraude',
+  path: '/antifraude',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminAppCelularRoute = AdminAppCelularRouteImport.update({
   id: '/app-celular',
@@ -1222,6 +1228,7 @@ export interface FileRoutesByFullPath {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
+  '/admin/antifraude': typeof AdminAntifraudeRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
   '/admin/bilhetes': typeof AdminBilhetesRoute
@@ -1413,6 +1420,7 @@ export interface FileRoutesByTo {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
+  '/admin/antifraude': typeof AdminAntifraudeRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
   '/admin/bilhetes': typeof AdminBilhetesRoute
@@ -1606,6 +1614,7 @@ export interface FileRoutesById {
   '/termos-de-uso': typeof TermosDeUsoRoute
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
+  '/admin/antifraude': typeof AdminAntifraudeRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
   '/admin/bilhetes': typeof AdminBilhetesRoute
@@ -1801,6 +1810,7 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/validacao'
     | '/voar'
+    | '/admin/antifraude'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
     | '/admin/bilhetes'
@@ -1992,6 +2002,7 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/validacao'
     | '/voar'
+    | '/admin/antifraude'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
     | '/admin/bilhetes'
@@ -2184,6 +2195,7 @@ export interface FileRouteTypes {
     | '/termos-de-uso'
     | '/validacao'
     | '/voar'
+    | '/admin/antifraude'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
     | '/admin/bilhetes'
@@ -2605,6 +2617,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/voar'
       preLoaderRoute: typeof VoarRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/antifraude': {
+      id: '/admin/antifraude'
+      path: '/antifraude'
+      fullPath: '/admin/antifraude'
+      preLoaderRoute: typeof AdminAntifraudeRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/app-celular': {
       id: '/admin/app-celular'
@@ -3825,6 +3844,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminAntifraudeRoute: typeof AdminAntifraudeRoute
   AdminAppCelularRoute: typeof AdminAppCelularRoute
   AdminArteModelosRoute: typeof AdminArteModelosRoute
   AdminBilhetesRoute: typeof AdminBilhetesRoute
@@ -3895,6 +3915,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAntifraudeRoute: AdminAntifraudeRoute,
   AdminAppCelularRoute: AdminAppCelularRoute,
   AdminArteModelosRoute: AdminArteModelosRoute,
   AdminBilhetesRoute: AdminBilhetesRoute,
