@@ -687,6 +687,10 @@ function CartaoNav({ pathname }: { pathname: string }) {
           ],
         },
         {
+          label: "Segurança",
+          items: [{ to: "/admin/antifraude", label: "Antifraude" }],
+        },
+        {
           label: "Ferramentas",
           items: [
             { to: "/admin/cofre", label: "Cofre" },
