@@ -107,7 +107,7 @@ export const consultarAntifraude = createServerFn({ method: "POST" })
     if (pessoaIds.length > 0) {
       const { data: pedidos } = await supabaseAdmin
         .from("orders")
-        .select("id, order_number, status, total_amount, created_at")
+        .select("id, order_number, status, total_price, created_at")
         .in("person_id", pessoaIds)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -116,7 +116,7 @@ export const consultarAntifraude = createServerFn({ method: "POST" })
           id: o.id,
           numero: o.order_number,
           status: o.status,
-          total: o.total_amount,
+          total: o.total_price,
           criadoEm: o.created_at,
         });
       }
