@@ -289,10 +289,12 @@ async function processPayload(payload: IGPayload) {
       if (!isFromMe && espelho && iaAtiva) {
         try {
           const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
+          // NÃO passar trigger_message_id aqui: o runAgent compara com o id
+          // interno (UUID) de wa_messages, e o mid do Instagram nunca bate —
+          // com ele, todo run era cancelado como "stale" e a IA não respondia.
           await runAgent({
             wa_phone: espelho.waPhone,
             profile_name: contatoNome ?? contatoUser ?? null,
-            trigger_message_id: msg.message.mid ?? undefined,
           });
         } catch (e) {
           console.error("[instagram] IA falhou:", (e as Error).message);
