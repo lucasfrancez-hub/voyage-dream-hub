@@ -18,3 +18,11 @@ export function igImg(
   if (ref?.mediaId) p.set("m", ref.mediaId);
   return `/api/public/ig-img?${p.toString()}`;
 }
+
+function safeHost(url: string) {
+  try {
+    return new URL(url, "https://x.invalid").hostname;
+  } catch {
+    return "";
+  }
+}
