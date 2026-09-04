@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -441,7 +441,6 @@ function BilhetesPage() {
   const listar = useServerFn(passhubReservas);
   const listarBilhetes = useServerFn(passhubBilhetesLista);
   const listarPedidos = useServerFn(pedidosReservasAereas);
-  const navigate = useNavigate();
   const { q: qUrl } = Route.useSearch();
   const [busca, setBusca] = useState(qUrl ?? "");
   const [fonte, setFonte] = useState<FonteReserva>(qUrl ? "todas" : "consolidadora");
