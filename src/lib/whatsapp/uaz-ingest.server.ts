@@ -78,8 +78,20 @@ export async function ingestUazMessage(
 
   if (!saved) return "duplicada";
 
+  // Resposta enviada pelo celular (fora do chatbot): entra na conversa como
+  // atendimento humano, assume o comando e cancela qualquer resposta da IA
+  // que estivesse agendada — evita IA e humano falando ao mesmo tempo.
+  if (direction === "outbound" && !opts.historico) {
+    await supabaseAdmin
+      .from("wa_conversations")
+      .update({ mode: "human", ai_debounce_until: null })
+      .eq("id", conv.id);
+    return "salva";
+  }
+
   // Janela de silêncio: histórico e mensagens de hoje NÃO acionam a IA.
   if (direction === "outbound" || opts.historico) return "salva";
+
   if (await deveIgnorarParaIA(msg.timestampMs)) {
     console.log(
       JSON.stringify({ event: "ai_silenciada", conversation_id: conv.id, wa_message_id: msg.id }),
