@@ -8,6 +8,10 @@ export function igImg(
 ): string | undefined {
   const temRef = Boolean(ref?.conversationId || ref?.mediaId);
   if (!url && !temRef) return undefined;
+  // URLs que não são da Meta não precisam (nem podem) passar pelo proxy.
+  if (url && !temRef && !/(^|\.)(cdninstagram\.com|fbcdn\.net|instagram\.com)$/i.test(safeHost(url))) {
+    return url;
+  }
   const p = new URLSearchParams();
   if (url) p.set("u", url);
   if (ref?.conversationId) p.set("c", ref.conversationId);
