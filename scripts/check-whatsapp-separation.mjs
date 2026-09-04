@@ -2,9 +2,9 @@
 /**
  * Guarda de arquitetura WhatsApp (VIA AIR).
  *
- * Regra: a UazAPI é EXCLUSIVA do broadcast. Todo o fluxo do chatbot
- * (webhook, respostas, mídias, cards, transferências, status) usa
- * exclusivamente a Meta WhatsApp Cloud API.
+ * Regra: o broadcast fala com a UazAPI só pelo módulo de broadcast; o chatbot
+ * fala com a UazAPI só pelos módulos de canal (uaz-channel/uaz-ingest e seus
+ * webhooks). Nenhum outro arquivo pode chamar a UazAPI direto.
  *
  * Falha o processo se:
  *  - algum arquivo fora da allowlist de broadcast referenciar UazAPI/UAZAPI_*;
@@ -20,6 +20,11 @@ const SRC = join(ROOT, "src");
 // Únicos lugares autorizados a falar com a UazAPI (broadcast / disparo em massa).
 const UAZ_ALLOWLIST = [
   "src/lib/broadcast/sync.server.ts",
+  // Canal do chatbot via UazAPI (envio, recebimento e sincronização de histórico).
+  "src/lib/whatsapp/uaz-channel.server.ts",
+  "src/lib/whatsapp/uaz-ingest.server.ts",
+  "src/routes/api/public/uazapi-webhook.ts",
+  "src/routes/api/public/hooks/uaz-sync-history.ts",
   "scripts/check-whatsapp-separation.mjs",
 ];
 
@@ -89,8 +94,8 @@ for (const file of walk(SRC)) {
 if (errors.length) {
   console.error("\n❌ Separação WhatsApp violada:\n");
   for (const e of errors) console.error(" - " + e);
-  console.error("\nUazAPI = somente broadcast. Chatbot = somente Meta Cloud API.\n");
+  console.error("\nUazAPI só nos módulos autorizados (broadcast e canal do chatbot).\n");
   process.exit(1);
 }
 
-console.log("✅ Separação WhatsApp ok: UazAPI só no broadcast, chatbot 100% Meta Cloud API.");
+console.log("✅ Separação WhatsApp ok: UazAPI restrita ao broadcast e ao canal do chatbot.");
