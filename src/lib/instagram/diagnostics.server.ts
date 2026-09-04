@@ -72,7 +72,7 @@ async function probe(url: string, token?: string): Promise<ProbeResult> {
   try {
     const response = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      redirect: "error",
+      redirect: "manual",
     });
     const raw = await response.text();
     const body = parseMetaResponse(raw);

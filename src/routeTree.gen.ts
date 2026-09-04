@@ -137,6 +137,7 @@ import { Route as ApiPublicFlightCardRouteImport } from './routes/api/public/fli
 import { Route as ApiPublicFrt2faInboxRouteImport } from './routes/api/public/frt-2fa-inbox'
 import { Route as ApiPublicFrtLabRouteImport } from './routes/api/public/frt-lab'
 import { Route as ApiPublicHotelCardRouteImport } from './routes/api/public/hotel-card'
+import { Route as ApiPublicIgImgRouteImport } from './routes/api/public/ig-img'
 import { Route as ApiPublicImportAereoRouteImport } from './routes/api/public/import-aereo'
 import { Route as ApiPublicInfinitepayPassaporteWebhookRouteImport } from './routes/api/public/infinitepay-passaporte-webhook'
 import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/public/instagram-webhook'
@@ -846,6 +847,11 @@ const ApiPublicHotelCardRoute = ApiPublicHotelCardRouteImport.update({
   path: '/api/public/hotel-card',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIgImgRoute = ApiPublicIgImgRouteImport.update({
+  id: '/api/public/ig-img',
+  path: '/api/public/ig-img',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicImportAereoRoute = ApiPublicImportAereoRouteImport.update({
   id: '/api/public/import-aereo',
   path: '/api/public/import-aereo',
@@ -1330,6 +1336,7 @@ export interface FileRoutesByFullPath {
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
   '/api/public/frt-lab': typeof ApiPublicFrtLabRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
+  '/api/public/ig-img': typeof ApiPublicIgImgRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/infinitepay-passaporte-webhook': typeof ApiPublicInfinitepayPassaporteWebhookRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
@@ -1521,6 +1528,7 @@ export interface FileRoutesByTo {
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
   '/api/public/frt-lab': typeof ApiPublicFrtLabRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
+  '/api/public/ig-img': typeof ApiPublicIgImgRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/infinitepay-passaporte-webhook': typeof ApiPublicInfinitepayPassaporteWebhookRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
@@ -1716,6 +1724,7 @@ export interface FileRoutesById {
   '/api/public/frt-2fa-inbox': typeof ApiPublicFrt2faInboxRoute
   '/api/public/frt-lab': typeof ApiPublicFrtLabRoute
   '/api/public/hotel-card': typeof ApiPublicHotelCardRoute
+  '/api/public/ig-img': typeof ApiPublicIgImgRoute
   '/api/public/import-aereo': typeof ApiPublicImportAereoRoute
   '/api/public/infinitepay-passaporte-webhook': typeof ApiPublicInfinitepayPassaporteWebhookRoute
   '/api/public/instagram-webhook': typeof ApiPublicInstagramWebhookRoute
@@ -1912,6 +1921,7 @@ export interface FileRouteTypes {
     | '/api/public/frt-2fa-inbox'
     | '/api/public/frt-lab'
     | '/api/public/hotel-card'
+    | '/api/public/ig-img'
     | '/api/public/import-aereo'
     | '/api/public/infinitepay-passaporte-webhook'
     | '/api/public/instagram-webhook'
@@ -2103,6 +2113,7 @@ export interface FileRouteTypes {
     | '/api/public/frt-2fa-inbox'
     | '/api/public/frt-lab'
     | '/api/public/hotel-card'
+    | '/api/public/ig-img'
     | '/api/public/import-aereo'
     | '/api/public/infinitepay-passaporte-webhook'
     | '/api/public/instagram-webhook'
@@ -2297,6 +2308,7 @@ export interface FileRouteTypes {
     | '/api/public/frt-2fa-inbox'
     | '/api/public/frt-lab'
     | '/api/public/hotel-card'
+    | '/api/public/ig-img'
     | '/api/public/import-aereo'
     | '/api/public/infinitepay-passaporte-webhook'
     | '/api/public/instagram-webhook'
@@ -2412,6 +2424,7 @@ export interface RootRouteChildren {
   ApiPublicFrt2faInboxRoute: typeof ApiPublicFrt2faInboxRoute
   ApiPublicFrtLabRoute: typeof ApiPublicFrtLabRoute
   ApiPublicHotelCardRoute: typeof ApiPublicHotelCardRoute
+  ApiPublicIgImgRoute: typeof ApiPublicIgImgRoute
   ApiPublicImportAereoRoute: typeof ApiPublicImportAereoRoute
   ApiPublicInfinitepayPassaporteWebhookRoute: typeof ApiPublicInfinitepayPassaporteWebhookRoute
   ApiPublicInstagramWebhookRoute: typeof ApiPublicInstagramWebhookRoute
@@ -3367,6 +3380,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHotelCardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ig-img': {
+      id: '/api/public/ig-img'
+      path: '/api/public/ig-img'
+      fullPath: '/api/public/ig-img'
+      preLoaderRoute: typeof ApiPublicIgImgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/import-aereo': {
       id: '/api/public/import-aereo'
       path: '/api/public/import-aereo'
@@ -4122,6 +4142,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicFrt2faInboxRoute: ApiPublicFrt2faInboxRoute,
   ApiPublicFrtLabRoute: ApiPublicFrtLabRoute,
   ApiPublicHotelCardRoute: ApiPublicHotelCardRoute,
+  ApiPublicIgImgRoute: ApiPublicIgImgRoute,
   ApiPublicImportAereoRoute: ApiPublicImportAereoRoute,
   ApiPublicInfinitepayPassaporteWebhookRoute:
     ApiPublicInfinitepayPassaporteWebhookRoute,
