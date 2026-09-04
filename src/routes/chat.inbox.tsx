@@ -2926,9 +2926,9 @@ function InstagramMediaThreadList({
 function anexoDoComentario(c: { text?: string | null; metadata?: unknown }): string | null {
   const meta = (c.metadata ?? {}) as Record<string, unknown>;
   const direto = (meta.attachment_url ?? meta.media_url ?? meta.image_url) as string | undefined;
-  if (typeof direto === "string" && /^https?:\/\//.test(direto)) return direto;
+  if (typeof direto === "string" && /^https?:\/\//.test(direto)) return igImg(direto) ?? direto;
   const naMensagem = (c.text ?? "").match(/https?:\/\/\S+\.(?:jpe?g|png|gif|webp)(?:\?\S*)?/i);
-  return naMensagem?.[0] ?? null;
+  return naMensagem?.[0] ? (igImg(naMensagem[0]) ?? naMensagem[0]) : null;
 }
 
 type ComentarioBase = {
