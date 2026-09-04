@@ -25,7 +25,11 @@ const UAZ_ALLOWLIST = [
   "src/lib/whatsapp/uaz-ingest.server.ts",
   "src/routes/api/public/uazapi-webhook.ts",
   "src/routes/api/public/hooks/uaz-sync-history.ts",
+  // Roteador de envio: escolhe entre Meta e UazAPI (só importa o módulo de canal).
+  "src/lib/whatsapp/send.server.ts",
   "scripts/check-whatsapp-separation.mjs",
+  // Arquivo gerado pelo roteador.
+  "src/routeTree.gen.ts",
 ];
 
 // Módulos que pertencem ao fluxo do chatbot / atendimento individual.
