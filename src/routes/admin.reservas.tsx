@@ -11,7 +11,7 @@ import { BlocoBilhete } from "@/components/passhub/BlocoBilhete";
 
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
 import { BadgeFonte, FiltroFonte, type FonteReserva } from "@/components/passhub/FiltroFonte";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -452,7 +452,7 @@ function DetalheReserva({
 function ReservasPage() {
   const listar = useServerFn(passhubReservas);
   const listarPedidos = useServerFn(pedidosReservasAereas);
-  const navigate = useNavigate();
+  
   const { q: qUrl } = Route.useSearch();
   const [busca, setBusca] = useState(qUrl ?? "");
   const [fonte, setFonte] = useState<FonteReserva>(qUrl ? "todas" : "consolidadora");
