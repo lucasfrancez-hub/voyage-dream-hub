@@ -4,9 +4,9 @@
  */
 export function igImg(
   url: string | null | undefined,
-  ref?: { conversationId?: string | null; mediaId?: string | null },
+  ref?: { conversationId?: string | null; mediaId?: string | null; igId?: string | null },
 ): string | undefined {
-  const temRef = Boolean(ref?.conversationId || ref?.mediaId);
+  const temRef = Boolean(ref?.conversationId || ref?.mediaId || ref?.igId);
   if (!url && !temRef) return undefined;
   // URLs que não são da Meta não precisam (nem podem) passar pelo proxy.
   if (url && !temRef && !/(^|\.)(cdninstagram\.com|fbcdn\.net|instagram\.com)$/i.test(safeHost(url))) {
@@ -16,6 +16,7 @@ export function igImg(
   if (url) p.set("u", url);
   if (ref?.conversationId) p.set("c", ref.conversationId);
   if (ref?.mediaId) p.set("m", ref.mediaId);
+  if (ref?.igId) p.set("p", ref.igId);
   return `/api/public/ig-img?${p.toString()}`;
 }
 

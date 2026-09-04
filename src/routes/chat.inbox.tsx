@@ -3475,7 +3475,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
               >
                 {!meu &&
                   (c.from_profile_pic ? (
-                    <img src={igImg(c.from_profile_pic)} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                    <img src={igImg(c.from_profile_pic, { igId: c.from_ig_id })} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
                   ) : (
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-[11px] font-semibold text-white">
                       {inicial}

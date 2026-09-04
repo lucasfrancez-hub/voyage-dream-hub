@@ -46,8 +46,24 @@ async function tokenPadrao() {
 }
 
 /** Busca uma URL nova (perfil ou mídia) e persiste no banco. */
-async function renovar(params: { conversationId?: string | null; mediaId?: string | null }) {
+async function renovar(params: {
+  conversationId?: string | null;
+  mediaId?: string | null;
+  igId?: string | null;
+}) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Comentário: só temos o IG id do autor — achamos a conversa dele.
+  if (!params.conversationId && params.igId) {
+    const { data } = await supabaseAdmin
+      .from("instagram_conversations")
+      .select("id")
+      .eq("contact_ig_id", params.igId)
+      .order("last_message_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    params = { ...params, conversationId: data?.id ?? null };
+  }
 
   if (params.conversationId) {
     const { data: conv } = await supabaseAdmin
@@ -101,6 +117,7 @@ export const Route = createFileRoute("/api/public/ig-img")({
         const original = url.searchParams.get("u");
         const conversationId = url.searchParams.get("c");
         const mediaId = url.searchParams.get("m");
+        const igId = url.searchParams.get("p");
 
         const entregar = (res: Response) =>
           new Response(res.body, {
@@ -117,7 +134,7 @@ export const Route = createFileRoute("/api/public/ig-img")({
             if (direto) return entregar(direto);
           }
 
-          const nova = await renovar({ conversationId, mediaId });
+          const nova = await renovar({ conversationId, mediaId, igId });
           if (nova && hostPermitido(nova)) {
             const res = await baixar(nova);
             if (res) return entregar(res);
