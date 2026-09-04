@@ -75,15 +75,33 @@ async function findPersonByPhone(waPhone: string): Promise<{ id: string; name: s
 }
 
 /**
+ * Variantes brasileiras do mesmo número (com e sem o 9º dígito do celular).
+ * O WhatsApp entrega o jid ora com, ora sem o 9 — sem isso a mesma pessoa
+ * viraria duas conversas (e as mensagens enviadas pelo celular "sumiriam").
+ */
+export function phoneVariants(waPhone: string): string[] {
+  const d = digits(waPhone);
+  const out = new Set<string>([d]);
+  if (d.startsWith("55")) {
+    const rest = d.slice(2);
+    if (rest.length === 11 && rest[2] === "9") out.add("55" + rest.slice(0, 2) + rest.slice(3));
+    if (rest.length === 10) out.add("55" + rest.slice(0, 2) + "9" + rest.slice(2));
+  }
+  return [...out];
+}
+
+/**
  * Busca a conversa por número; cria se não existir. Tenta vincular a `people`.
  */
 export async function getOrCreateConversation(waPhone: string, profileName?: string | null): Promise<WaConversation> {
+  const variantes = phoneVariants(waPhone);
   const existing = await supabaseAdmin
     .from("wa_conversations")
     .select("*")
-    .eq("wa_phone", waPhone)
-    .maybeSingle();
-  if (existing.data) return existing.data as WaConversation;
+    .in("wa_phone", variantes)
+    .order("last_message_at", { ascending: false })
+    .limit(1);
+  if (existing.data?.[0]) return existing.data[0] as WaConversation;
 
   const person = await findPersonByPhone(waPhone);
   const insert = await supabaseAdmin
