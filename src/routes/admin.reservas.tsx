@@ -552,6 +552,16 @@ function ReservasPage() {
             />
           ) : null}
         </JanelaDetalhe>
+        <JanelaDetalhe
+          aberto={!!pedidoAberto}
+          onFechar={() => setPedidoAberto(null)}
+          titulo="Reserva do pedido"
+        >
+          {pedidoAberto ? (
+            <DetalhePedidoAereo orderId={pedidoAberto} onVoltar={() => setPedidoAberto(null)} />
+          ) : null}
+        </JanelaDetalhe>
+
         {
           <>
 
