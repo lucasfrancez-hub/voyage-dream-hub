@@ -50,6 +50,8 @@ import {
   updateCofreOrder,
   deleteCofreOrder,
   getBoletoDocumentUrl,
+  revealCofreCardSecrets,
+
 
   type CofreOrder,
 } from "@/lib/cofre.functions";
@@ -709,11 +711,36 @@ function DetailsModal({
   onClose: () => void;
 }) {
   const o = item.order!;
-  const card = o.cardCapture;
+  const cardBase = o.cardCapture;
   const [showCard, setShowCard] = useState(false);
   const [showCvv, setShowCvv] = useState(false);
+  const [revealing, setRevealing] = useState(false);
+  const [secrets, setSecrets] = useState<{ number: string | null; cvv: string | null } | null>(null);
   const st = statusLabel(o.status);
   const pm = paymentMethodLabel(o.paymentMethod);
+
+  const card = cardBase
+    ? {
+        ...cardBase,
+        full_number: secrets?.number ?? cardBase.full_number,
+        cvv: secrets?.cvv ?? cardBase.cvv,
+      }
+    : null;
+
+  async function revelarCartao() {
+    if (revealing) return;
+    setRevealing(true);
+    try {
+      const res = await revealCofreCardSecrets({ data: { orderId: o.id } });
+      setSecrets(res);
+      setShowCard(true);
+      if (res.cvv) setShowCvv(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível revelar o cartão");
+    } finally {
+      setRevealing(false);
+    }
+  }
 
   const maskedNumber = card?.full_number
     ? showCard
@@ -900,7 +927,17 @@ function DetailsModal({
               title="Cartão de crédito"
               icon={CreditCard}
               action={
-                <div className="flex gap-1.5">
+                <div className="flex items-center gap-1.5">
+                  {!secrets && card.has_secrets && (
+                    <button
+                      type="button"
+                      onClick={revelarCartao}
+                      disabled={revealing}
+                      className="rounded-lg border border-brand-orange/40 bg-brand-orange/10 px-2.5 py-1 text-xs font-medium text-brand-orange hover:bg-brand-orange/20 disabled:opacity-60"
+                    >
+                      {revealing ? "Abrindo…" : "Revelar dados"}
+                    </button>
+                  )}
                   {card.full_number && (
                     <IconToggle
                       active={showCard}

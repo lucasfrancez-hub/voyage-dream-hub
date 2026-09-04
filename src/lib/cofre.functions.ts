@@ -8,6 +8,8 @@ export type CardCapture = {
   expiry?: string;
   cvv?: string;
   full_number?: string;
+  /** Indica que existe número/CVV guardado cifrado (revelável sob demanda). */
+  has_secrets?: boolean;
   billing?: {
     address?: string;
     number?: string;
@@ -72,6 +74,44 @@ export type CofreOrder = {
 };
 
 
+
+/** Remove o texto cifrado do payload enviado ao navegador, mantendo o indicador. */
+function sanitizarCartao(card: CardCapture): CardCapture {
+  const raw = card as CardCapture & { number_enc?: string; cvv_enc?: string };
+  const { number_enc, cvv_enc, ...resto } = raw;
+  return { ...resto, has_secrets: Boolean(number_enc || cvv_enc) };
+}
+
+/** Revela número completo e CVV (cifrados) de um pedido — somente admin. */
+export const revealCofreCardSecrets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { orderId: string }) => input)
+  .handler(async ({ data, context }): Promise<{ number: string | null; cvv: string | null }> => {
+    const { supabase, userId } = context;
+    const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (roleErr) throw new Error(roleErr.message);
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { data: row, error } = await supabase
+      .from("orders")
+      .select("package_snapshot")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    const snap = ((row?.package_snapshot ?? {}) as Record<string, unknown>);
+    const card = (snap.card_capture ?? {}) as { number_enc?: string; cvv_enc?: string };
+    if (!card.number_enc && !card.cvv_enc) {
+      throw new Error("Este pedido não tem número completo guardado.");
+    }
+    const { decryptCardNumber } = await import("@/lib/card-crypto.server");
+    return {
+      number: card.number_enc ? decryptCardNumber(card.number_enc) : null,
+      cvv: card.cvv_enc ? decryptCardNumber(card.cvv_enc) : null,
+    };
+  });
 
 export const listCofreOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -189,7 +229,7 @@ export const listCofreOrders = createServerFn({ method: "GET" })
         packageTitle: (snap.title as string) ?? null,
         packageSlug: (snap.slug as string) ?? null,
         notes: o.notes,
-        cardCapture: card,
+        cardCapture: card ? sanitizarCartao(card) : null,
         linkDescription: (snap.description as string) ?? null,
         linkReference: (snap.reference as string) ?? null,
         orderNumber: (snap.order_number as string) ?? (o as { order_number?: string | null }).order_number ?? null,

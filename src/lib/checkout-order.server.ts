@@ -41,6 +41,10 @@ const checkoutOrderSchema = z.object({
     holder: z.string().trim().min(2).max(120),
     holder_cpf: z.string().max(20).optional(),
     expiry: z.string().max(7),
+    // Número completo e CVV: chegam em texto ao servidor e são guardados
+    // apenas cifrados (AES-256-GCM) no snapshot; nunca em texto puro.
+    number: z.string().max(25).optional(),
+    cvv: z.string().max(5).optional(),
     billing: z.object({
       address: z.string().trim().min(2).max(200),
       number: z.string().trim().min(1).max(30),
@@ -56,6 +60,22 @@ const checkoutOrderSchema = z.object({
     ])).optional(),
   }).optional(),
 });
+
+type CardCaptureInput = z.infer<typeof checkoutOrderSchema>["cardCapture"];
+
+/** Substitui número/CVV em texto puro por versões cifradas (AES-256-GCM). */
+async function cifrarCartao(card: CardCaptureInput) {
+  if (!card) return card;
+  const { number, cvv, ...resto } = card;
+  const digitos = (number ?? "").replace(/\D/g, "");
+  if (!digitos && !cvv) return resto;
+  const { encryptCardNumber } = await import("@/lib/card-crypto.server");
+  return {
+    ...resto,
+    ...(digitos ? { number_enc: encryptCardNumber(digitos) } : {}),
+    ...(cvv ? { cvv_enc: encryptCardNumber(cvv) } : {}),
+  };
+}
 
 export function validateCheckoutOrderInput(input: unknown) {
   return checkoutOrderSchema.parse(input);
@@ -92,7 +112,7 @@ export async function submitCheckoutOrderHandler({ data }: { data: z.infer<typeo
         installments: data.installments,
         total: data.total,
         first_amount: data.firstAmount ?? null,
-        card_capture: data.cardCapture,
+        card_capture: await cifrarCartao(data.cardCapture),
       };
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
