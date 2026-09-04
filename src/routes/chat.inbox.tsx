@@ -1626,7 +1626,7 @@ function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void
 
 function ContactDetails({ conv, onChange, avatarUrl = null }: { conv: Conv; onChange: () => void; avatarUrl?: string | null }) {
   const [fotoAberta, setFotoAberta] = useState(false);
-  const foto = avatarUrl ?? (conv as { contact_profile_pic?: string | null }).contact_profile_pic ?? null;
+  const foto = igImg(avatarUrl ?? (conv as { contact_profile_pic?: string | null }).contact_profile_pic ?? null) ?? null;
   const toggleFn = useServerFn(toggleConversationMode);
   const stageFn = useServerFn(setFunnelStage);
   const assignFn = useServerFn(assignConversation);
@@ -2449,7 +2449,7 @@ function InstagramConversationView({
           <ArrowLeft className="h-4 w-4 text-slate-500" />
         </button>
         {profile?.contact_profile_pic ? (
-          <img src={profile.contact_profile_pic} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+          <img src={igImg(profile.contact_profile_pic, { conversationId: profile.id })} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
         ) : (
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-white">
             <Instagram className="h-4 w-4" />
@@ -2806,7 +2806,7 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
           )}
         >
           {c.contact_profile_pic ? (
-            <img src={c.contact_profile_pic} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+            <img src={igImg(c.contact_profile_pic, { conversationId: c.id })} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
           ) : (
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-sm font-semibold text-white">
               {(c.contact_name ?? c.contact_username ?? "?").replace(/^@/, "").charAt(0).toUpperCase()}
@@ -2885,7 +2885,7 @@ function InstagramMediaThreadList({
             )}
           >
             {t.media_thumbnail ? (
-              <img src={t.media_thumbnail} alt="Publicação" className="h-11 w-11 shrink-0 rounded-md object-cover" />
+              <img src={igImg(t.media_thumbnail, { mediaId: t.media_id })} alt="Publicação" className="h-11 w-11 shrink-0 rounded-md object-cover" />
             ) : (
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
                 <Instagram className="h-4 w-4" />
@@ -3211,7 +3211,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
           aria-label="Abrir publicação"
         >
           {thread?.media_thumbnail ? (
-            <img src={thread.media_thumbnail} alt="Publicação" className="h-full w-full object-cover" />
+            <img src={igImg(thread?.media_thumbnail, { mediaId: thread?.media_id })} alt="Publicação" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
               <Instagram className="h-4 w-4" />
@@ -3419,17 +3419,17 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
             </div>
           ) : midia?.media_url && (midia.media_type ?? "").toUpperCase().includes("VIDEO") ? (
             <video
-              src={midia.media_url}
-              poster={midia.thumbnail ?? thread?.media_thumbnail ?? undefined}
+              src={igImg(midia.media_url)}
+              poster={igImg(midia.thumbnail ?? thread?.media_thumbnail)}
               controls
               autoPlay
               playsInline
               className="max-h-[70vh] w-full rounded-lg bg-black"
             />
           ) : midia?.media_url ? (
-            <img src={midia.media_url} alt="Publicação" className="max-h-[70vh] w-full rounded-lg object-contain" />
+            <img src={igImg(midia.media_url)} alt="Publicação" className="max-h-[70vh] w-full rounded-lg object-contain" />
           ) : thread?.media_thumbnail ? (
-            <img src={thread.media_thumbnail} alt="Publicação" className="w-full rounded-lg" />
+            <img src={igImg(thread.media_thumbnail, { mediaId: thread.media_id })} alt="Publicação" className="w-full rounded-lg" />
           ) : (
             <p className="text-xs text-slate-500">Publicação indisponível.</p>
           )}
@@ -3474,7 +3474,7 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
               >
                 {!meu &&
                   (c.from_profile_pic ? (
-                    <img src={c.from_profile_pic} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                    <img src={igImg(c.from_profile_pic)} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
                   ) : (
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-[11px] font-semibold text-white">
                       {inicial}
@@ -3836,7 +3836,7 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
       )}
     >
       {conv.contact_profile_pic ? (
-        <img src={conv.contact_profile_pic} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+        <img src={igImg(conv.contact_profile_pic, { conversationId: conv.id })} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
       ) : (
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-orange-500 text-sm font-semibold text-white">
           {String(nome).replace(/^@/, "").charAt(0).toUpperCase()}
@@ -3942,7 +3942,7 @@ function IgThreadRow({ thread, active, onClick }: { thread: any; active: boolean
       )}
     >
       {thread.media_thumbnail ? (
-        <img src={thread.media_thumbnail} alt="Publicação" className="h-9 w-9 shrink-0 rounded-md object-cover" />
+        <img src={igImg(thread.media_thumbnail, { mediaId: thread.media_id })} alt="Publicação" className="h-9 w-9 shrink-0 rounded-md object-cover" />
       ) : (
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 text-white">
           <Heart className="h-4 w-4" />
