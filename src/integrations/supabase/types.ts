@@ -8918,21 +8918,27 @@ export type Database = {
       wa_ai_switch: {
         Row: {
           ai_enabled: boolean
+          ai_silence_until: string | null
           id: string
           updated_at: string
           updated_by: string | null
+          wa_provider: string
         }
         Insert: {
           ai_enabled?: boolean
+          ai_silence_until?: string | null
           id?: string
           updated_at?: string
           updated_by?: string | null
+          wa_provider?: string
         }
         Update: {
           ai_enabled?: boolean
+          ai_silence_until?: string | null
           id?: string
           updated_at?: string
           updated_by?: string | null
+          wa_provider?: string
         }
         Relationships: []
       }
@@ -10603,6 +10609,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wa_history_sync: {
+        Row: {
+          chat_id: string
+          created_at: string
+          id: string
+          imported: number
+          last_synced_at: string
+          wa_phone: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          id?: string
+          imported?: number
+          last_synced_at?: string
+          wa_phone: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          id?: string
+          imported?: number
+          last_synced_at?: string
+          wa_phone?: string
+        }
+        Relationships: []
       }
       wa_messages: {
         Row: {
