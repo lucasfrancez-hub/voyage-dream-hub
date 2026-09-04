@@ -11,7 +11,7 @@ import { BlocoBilhete } from "@/components/passhub/BlocoBilhete";
 
 import { nomeProprio } from "@/components/passhub/ComprovanteReserva";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
 import { BadgeFonte, FiltroFonte, type FonteReserva } from "@/components/passhub/FiltroFonte";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -46,6 +46,8 @@ import { confirm } from "@/lib/confirm";
 import type { PassHubReservaLista, PassHubReservaPax } from "@/lib/passhub/types";
 import { abrirDocumento } from "@/lib/docs/abrir";
 import { JanelaDetalhe } from "@/components/passhub/JanelaDetalhe";
+import { DetalhePedidoAereo } from "@/components/passhub/DetalhePedidoAereo";
+
 
 export const Route = createFileRoute("/admin/reservas")({
   component: ReservasPage,
@@ -450,11 +452,13 @@ function DetalheReserva({
 function ReservasPage() {
   const listar = useServerFn(passhubReservas);
   const listarPedidos = useServerFn(pedidosReservasAereas);
-  const navigate = useNavigate();
+  
   const { q: qUrl } = Route.useSearch();
   const [busca, setBusca] = useState(qUrl ?? "");
   const [fonte, setFonte] = useState<FonteReserva>(qUrl ? "todas" : "consolidadora");
   const [aberta, setAberta] = useState<PassHubReservaLista | null>(null);
+  const [pedidoAberto, setPedidoAberto] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (qUrl) {
@@ -552,6 +556,16 @@ function ReservasPage() {
             />
           ) : null}
         </JanelaDetalhe>
+        <JanelaDetalhe
+          aberto={!!pedidoAberto}
+          onFechar={() => setPedidoAberto(null)}
+          titulo="Reserva do pedido"
+        >
+          {pedidoAberto ? (
+            <DetalhePedidoAereo orderId={pedidoAberto} onVoltar={() => setPedidoAberto(null)} />
+          ) : null}
+        </JanelaDetalhe>
+
         {
           <>
 
@@ -671,10 +685,9 @@ function ReservasPage() {
                   {filtradasPedidos.map((r) => (
                     <tr
                       key={r.orderId}
-                      onClick={() =>
-                        navigate({ to: "/admin/pedidos/$id", params: { id: r.orderId } })
-                      }
+                      onClick={() => setPedidoAberto(r.orderId)}
                     >
+
                       <td>
                         <BadgeFonte tipo="pedidos" />
                       </td>
