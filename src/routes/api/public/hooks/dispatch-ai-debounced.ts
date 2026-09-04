@@ -15,6 +15,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { runAgent } = await import("@/lib/whatsapp/agent-runner.server");
         const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
+        const { isAiSilenced } = await import("@/lib/whatsapp/ai-silence.server");
 
         // Interruptor global: IAs desligadas → nenhum disparo automático.
         if (await isAiGloballyOff()) {
@@ -22,6 +23,14 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             headers: { "content-type": "application/json" },
           });
         }
+
+        // Janela de silêncio (migração/sincronização): registra tudo, responde nada.
+        if (await isAiSilenced()) {
+          return new Response(JSON.stringify({ ok: true, skipped: "ai_silenciada" }), {
+            headers: { "content-type": "application/json" },
+          });
+        }
+
 
 
         const nowIso = new Date().toISOString();
