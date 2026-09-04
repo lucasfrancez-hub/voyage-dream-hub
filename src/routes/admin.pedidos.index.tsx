@@ -695,10 +695,6 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
       toast.error("Preencha o nome completo");
       return;
     }
-    if (!form.cpf.trim() && !form.cnpj.trim()) {
-      toast.error("Informe CPF ou CNPJ");
-      return;
-    }
     mut.mutate();
   };
 
@@ -778,7 +774,7 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Nome completo *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
             <div>
-              <Label>CPF / CNPJ *</Label>
+              <Label>CPF / CNPJ (opcional)</Label>
               <Input
                 value={form.cpf || form.cnpj}
                 onChange={(e) => {
