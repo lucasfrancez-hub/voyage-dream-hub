@@ -691,11 +691,13 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
   });
 
   const submit = () => {
-    if (!form.full_name.trim()) {
+    const nome = form.full_name.trim() || personQuery.trim();
+    if (!nome) {
       toast.error("Preencha o nome completo");
       return;
     }
-    mut.mutate();
+    if (!form.full_name.trim()) setForm((f) => ({ ...f, full_name: nome }));
+    mut.mutate(nome);
   };
 
 
