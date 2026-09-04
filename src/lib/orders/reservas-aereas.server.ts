@@ -41,7 +41,6 @@ export async function listarReservasAereasDePedidos(): Promise<ReservaAereaPedid
       ),
     );
     const localizador = s(o.airline_locator).toUpperCase() || locadores[0] || "";
-    if (!localizador) continue;
 
     const partidas = dets
       .map((d) => s(d.depart_at) || s(d.departure))
@@ -59,6 +58,9 @@ export async function listarReservasAereasDePedidos(): Promise<ReservaAereaPedid
         return s(Object.values(map).map(s).find(Boolean)) || s(p.ticket_number);
       })
       .filter(Boolean);
+
+    // Entra na lista se tiver localizador OU número de bilhete lançado no pedido.
+    if (!localizador && !bilhetes.length) continue;
 
     linhas.push({
       orderId: o.id,
