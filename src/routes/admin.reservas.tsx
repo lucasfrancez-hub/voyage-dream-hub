@@ -46,6 +46,8 @@ import { confirm } from "@/lib/confirm";
 import type { PassHubReservaLista, PassHubReservaPax } from "@/lib/passhub/types";
 import { abrirDocumento } from "@/lib/docs/abrir";
 import { JanelaDetalhe } from "@/components/passhub/JanelaDetalhe";
+import { DetalhePedidoAereo } from "@/components/passhub/DetalhePedidoAereo";
+
 
 export const Route = createFileRoute("/admin/reservas")({
   component: ReservasPage,
@@ -455,6 +457,8 @@ function ReservasPage() {
   const [busca, setBusca] = useState(qUrl ?? "");
   const [fonte, setFonte] = useState<FonteReserva>(qUrl ? "todas" : "consolidadora");
   const [aberta, setAberta] = useState<PassHubReservaLista | null>(null);
+  const [pedidoAberto, setPedidoAberto] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (qUrl) {
