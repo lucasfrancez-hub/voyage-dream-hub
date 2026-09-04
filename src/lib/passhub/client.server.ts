@@ -86,7 +86,9 @@ async function concluirMfa(login: LoginPassHub, email: string): Promise<string> 
   if (!mfaToken) throw new PassHubError("PassHub exigiu verificação, mas não iniciou o desafio", 502);
 
   const canais = Array.isArray(login.canais) ? login.canais : [];
-  const canal = canais.includes("whatsapp") ? "whatsapp" : canais.includes("sms") ? "sms" : null;
+  // SMS primeiro: o WhatsApp mascara "senha descartável" no celular principal
+  // e não entrega o código aos aparelhos conectados (UazAPI não consegue ler).
+  const canal = canais.includes("sms") ? "sms" : canais.includes("whatsapp") ? "whatsapp" : null;
   if (!canal) throw new PassHubError("A PassHub não ofereceu um canal para enviar o código", 502);
 
   // Abrimos a tentativa antes do envio para não perder códigos que cheguem rápido.
