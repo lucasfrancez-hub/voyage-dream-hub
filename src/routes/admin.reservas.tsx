@@ -685,10 +685,9 @@ function ReservasPage() {
                   {filtradasPedidos.map((r) => (
                     <tr
                       key={r.orderId}
-                      onClick={() =>
-                        navigate({ to: "/admin/pedidos/$id", params: { id: r.orderId } })
-                      }
+                      onClick={() => setPedidoAberto(r.orderId)}
                     >
+
                       <td>
                         <BadgeFonte tipo="pedidos" />
                       </td>
