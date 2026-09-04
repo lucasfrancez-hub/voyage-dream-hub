@@ -659,8 +659,10 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
 
 
   const mut = useMutation({
-    mutationFn: async () => create({ data: {
-      full_name: form.full_name,
+    mutationFn: async (nomeOverride?: string) => {
+      const nome = (nomeOverride ?? form.full_name).trim();
+      return create({ data: {
+      full_name: nome,
       email: form.email,
       phone: form.phone,
       cpf: form.cpf,
