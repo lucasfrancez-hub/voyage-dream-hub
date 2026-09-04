@@ -147,6 +147,7 @@ import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/pub
 import { Route as ApiPublicOtpInboxRouteImport } from './routes/api/public/otp-inbox'
 import { Route as ApiPublicPromoCardRouteImport } from './routes/api/public/promo-card'
 import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/public/test-flight-alert'
+import { Route as ApiPublicUazapiWebhookRouteImport } from './routes/api/public/uazapi-webhook'
 import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
 import { Route as ChatAppTokenRouteImport } from './routes/chat.app.$token'
@@ -193,6 +194,7 @@ import { Route as ApiPublicHooksMetaAdsSyncRouteImport } from './routes/api/publ
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
 import { Route as ApiPublicHooksSocialScheduleDispatchRouteImport } from './routes/api/public/hooks/social-schedule-dispatch'
 import { Route as ApiPublicHooksSyncCalendarsRouteImport } from './routes/api/public/hooks/sync-calendars'
+import { Route as ApiPublicHooksUazSyncHistoryRouteImport } from './routes/api/public/hooks/uaz-sync-history'
 import { Route as ApiPublicPackageHotelPhotoSplatRouteImport } from './routes/api/public/package-hotel-photo.$'
 import { Route as ApiPublicV1CruiseImportRouteImport } from './routes/api/public/v1/cruise-import'
 import { Route as ApiPublicV1ExtensionPairRouteImport } from './routes/api/public/v1/extension-pair'
@@ -901,6 +903,11 @@ const ApiPublicTestFlightAlertRoute =
     path: '/api/public/test-flight-alert',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicUazapiWebhookRoute = ApiPublicUazapiWebhookRouteImport.update({
+  id: '/api/public/uazapi-webhook',
+  path: '/api/public/uazapi-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWaDiagRoute = ApiPublicWaDiagRouteImport.update({
   id: '/api/public/wa-diag',
   path: '/api/public/wa-diag',
@@ -1162,6 +1169,12 @@ const ApiPublicHooksSyncCalendarsRoute =
     path: '/api/public/hooks/sync-calendars',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksUazSyncHistoryRoute =
+  ApiPublicHooksUazSyncHistoryRouteImport.update({
+    id: '/api/public/hooks/uaz-sync-history',
+    path: '/api/public/hooks/uaz-sync-history',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPackageHotelPhotoSplatRoute =
   ApiPublicPackageHotelPhotoSplatRouteImport.update({
     id: '/api/public/package-hotel-photo/$',
@@ -1346,6 +1359,7 @@ export interface FileRoutesByFullPath {
   '/api/public/otp-inbox': typeof ApiPublicOtpInboxRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
+  '/api/public/uazapi-webhook': typeof ApiPublicUazapiWebhookRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
@@ -1397,6 +1411,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
+  '/api/public/hooks/uaz-sync-history': typeof ApiPublicHooksUazSyncHistoryRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
@@ -1538,6 +1553,7 @@ export interface FileRoutesByTo {
   '/api/public/otp-inbox': typeof ApiPublicOtpInboxRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
+  '/api/public/uazapi-webhook': typeof ApiPublicUazapiWebhookRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
@@ -1589,6 +1605,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
+  '/api/public/hooks/uaz-sync-history': typeof ApiPublicHooksUazSyncHistoryRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
@@ -1734,6 +1751,7 @@ export interface FileRoutesById {
   '/api/public/otp-inbox': typeof ApiPublicOtpInboxRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
+  '/api/public/uazapi-webhook': typeof ApiPublicUazapiWebhookRoute
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
@@ -1785,6 +1803,7 @@ export interface FileRoutesById {
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
+  '/api/public/hooks/uaz-sync-history': typeof ApiPublicHooksUazSyncHistoryRoute
   '/api/public/package-hotel-photo/$': typeof ApiPublicPackageHotelPhotoSplatRoute
   '/api/public/v1/cruise-import': typeof ApiPublicV1CruiseImportRoute
   '/api/public/v1/extension-pair': typeof ApiPublicV1ExtensionPairRoute
@@ -1931,6 +1950,7 @@ export interface FileRouteTypes {
     | '/api/public/otp-inbox'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
+    | '/api/public/uazapi-webhook'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
@@ -1982,6 +2002,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
+    | '/api/public/hooks/uaz-sync-history'
     | '/api/public/package-hotel-photo/$'
     | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
@@ -2123,6 +2144,7 @@ export interface FileRouteTypes {
     | '/api/public/otp-inbox'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
+    | '/api/public/uazapi-webhook'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
@@ -2174,6 +2196,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
+    | '/api/public/hooks/uaz-sync-history'
     | '/api/public/package-hotel-photo/$'
     | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
@@ -2318,6 +2341,7 @@ export interface FileRouteTypes {
     | '/api/public/otp-inbox'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
+    | '/api/public/uazapi-webhook'
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
@@ -2369,6 +2393,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
+    | '/api/public/hooks/uaz-sync-history'
     | '/api/public/package-hotel-photo/$'
     | '/api/public/v1/cruise-import'
     | '/api/public/v1/extension-pair'
@@ -2434,6 +2459,7 @@ export interface RootRouteChildren {
   ApiPublicOtpInboxRoute: typeof ApiPublicOtpInboxRoute
   ApiPublicPromoCardRoute: typeof ApiPublicPromoCardRoute
   ApiPublicTestFlightAlertRoute: typeof ApiPublicTestFlightAlertRoute
+  ApiPublicUazapiWebhookRoute: typeof ApiPublicUazapiWebhookRoute
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   DocTipoIdRoute: typeof DocTipoIdRoute
@@ -2471,6 +2497,7 @@ export interface RootRouteChildren {
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
   ApiPublicHooksSocialScheduleDispatchRoute: typeof ApiPublicHooksSocialScheduleDispatchRoute
   ApiPublicHooksSyncCalendarsRoute: typeof ApiPublicHooksSyncCalendarsRoute
+  ApiPublicHooksUazSyncHistoryRoute: typeof ApiPublicHooksUazSyncHistoryRoute
   ApiPublicPackageHotelPhotoSplatRoute: typeof ApiPublicPackageHotelPhotoSplatRoute
   ApiPublicV1CruiseImportRoute: typeof ApiPublicV1CruiseImportRoute
   ApiPublicV1ExtensionPairRoute: typeof ApiPublicV1ExtensionPairRoute
@@ -3450,6 +3477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTestFlightAlertRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/uazapi-webhook': {
+      id: '/api/public/uazapi-webhook'
+      path: '/api/public/uazapi-webhook'
+      fullPath: '/api/public/uazapi-webhook'
+      preLoaderRoute: typeof ApiPublicUazapiWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/wa-diag': {
       id: '/api/public/wa-diag'
       path: '/api/public/wa-diag'
@@ -3770,6 +3804,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/sync-calendars'
       fullPath: '/api/public/hooks/sync-calendars'
       preLoaderRoute: typeof ApiPublicHooksSyncCalendarsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/uaz-sync-history': {
+      id: '/api/public/hooks/uaz-sync-history'
+      path: '/api/public/hooks/uaz-sync-history'
+      fullPath: '/api/public/hooks/uaz-sync-history'
+      preLoaderRoute: typeof ApiPublicHooksUazSyncHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/package-hotel-photo/$': {
@@ -4153,6 +4194,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicOtpInboxRoute: ApiPublicOtpInboxRoute,
   ApiPublicPromoCardRoute: ApiPublicPromoCardRoute,
   ApiPublicTestFlightAlertRoute: ApiPublicTestFlightAlertRoute,
+  ApiPublicUazapiWebhookRoute: ApiPublicUazapiWebhookRoute,
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   DocTipoIdRoute: DocTipoIdRoute,
@@ -4198,6 +4240,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksSocialScheduleDispatchRoute:
     ApiPublicHooksSocialScheduleDispatchRoute,
   ApiPublicHooksSyncCalendarsRoute: ApiPublicHooksSyncCalendarsRoute,
+  ApiPublicHooksUazSyncHistoryRoute: ApiPublicHooksUazSyncHistoryRoute,
   ApiPublicPackageHotelPhotoSplatRoute: ApiPublicPackageHotelPhotoSplatRoute,
   ApiPublicV1CruiseImportRoute: ApiPublicV1CruiseImportRoute,
   ApiPublicV1ExtensionPairRoute: ApiPublicV1ExtensionPairRoute,

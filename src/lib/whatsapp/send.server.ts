@@ -1,17 +1,22 @@
 /**
  * chatbotWhatsAppService — envio do chatbot/atendimento individual da VIA AIR.
- * Canal ÚNICO: Meta WhatsApp Cloud API (texto, imagem, áudio, documento, cards,
- * contingência, reenvio em falha e status). Chat, alertas e automações usam isto.
- *
- * ⛔ PROIBIDO importar ou chamar a UazAPI (`@/lib/broadcast/sync.server`) aqui
- * ou em qualquer módulo do chatbot — UazAPI é exclusiva de broadcast.
- * Guarda automática: `npm run check:whatsapp`.
+ * Canais suportados: Meta WhatsApp Cloud API e UazAPI (canal do chatbot,
+ * selecionado em `wa_ai_switch.wa_provider`). O broadcast segue em
+ * `@/lib/broadcast/sync.server` e continua separado deste fluxo.
  * SERVER-ONLY — nunca importar de rotas/componentes.
  */
 
 import { removerMarcadorMidia, stripMarkdownForWhatsApp } from "./text-utils.server";
+import {
+  isUazChannel,
+  uazSendText,
+  uazSendMediaUrl,
+  uazSendMediaBytes,
+  uazPresence,
+} from "./uaz-channel.server";
 
 const GRAPH_VERSION = "v21.0";
+
 
 
 function normalizePhone(raw: string): string {
@@ -81,6 +86,9 @@ async function metaSendText(
 ): Promise<{ id: string | null; error?: string }> {
   const viaInstagram = await igSendText(to, body);
   if (viaInstagram) return viaInstagram;
+  if (await isUazChannel()) return uazSendText(to, body, replyId ?? null);
+
+  if (viaInstagram) return viaInstagram;
 
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -136,12 +144,20 @@ async function metaSendMedia(
 ): Promise<{ id: string | null; error?: string }> {
   {
     const tipo = (extra as { type?: string }).type;
-    const link = (extra as Record<string, { link?: string } | undefined>)[tipo ?? ""]?.link;
+    const parte = (extra as Record<string, { link?: string; caption?: string; filename?: string } | undefined>)[tipo ?? ""];
+    const link = parte?.link;
     if (link && (tipo === "image" || tipo === "audio" || tipo === "video" || tipo === "document")) {
       const viaInstagram = await igSendMediaUrl(to, link, tipo === "document" ? "file" : tipo);
       if (viaInstagram) return viaInstagram;
+      if (await isUazChannel()) {
+        return uazSendMediaUrl(to, tipo, link, parte?.caption ?? null, parte?.filename ?? null);
+      }
+    }
+    if (!link && (await isUazChannel())) {
+      return { id: null, error: "Canal UazAPI exige URL pública da mídia" };
     }
   }
+
 
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -183,9 +199,13 @@ async function metaUploadMedia(
   filename: string,
   mimeType: string,
 ): Promise<{ id: string | null; error?: string }> {
+  // No canal UazAPI não existe media ID da Meta: os chamadores caem no envio
+  // por link/bytes direto pela UazAPI.
+  if (await isUazChannel()) return { id: null, error: "canal_uaz_sem_upload_meta" };
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId) return { id: null, error: "WhatsApp credentials missing" };
+
 
   const form = new FormData();
   form.append("messaging_product", "whatsapp");
@@ -293,10 +313,14 @@ export async function sendWhatsAppTypingIndicator(
   inbound_wa_message_id: string,
   to?: string,
 ): Promise<void> {
-  void to;
+  if (await isUazChannel()) {
+    if (to) await uazPresence(to, "composing", 4000);
+    return;
+  }
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId || !inbound_wa_message_id) return;
+
   const url = `https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/messages`;
   const payload = {
     messaging_product: "whatsapp",
@@ -565,10 +589,14 @@ export async function sendWhatsAppAudioBytes(
   filename: string,
   mimeType: string,
 ): Promise<{ id: string | null; error?: string }> {
+  if (await isUazChannel()) {
+    return uazSendMediaBytes(to, "audio", bytes, mimeType, filename);
+  }
   const uploaded = await metaUploadMedia(bytes, filename, mimeType);
   if (!uploaded.id) return uploaded;
   return metaSendMedia(to, { type: "audio", audio: { id: uploaded.id } });
 }
+
 
 /**
  * Envia mídia numa conversa espelhada do Instagram (`ig:<id>`) usando a URL
