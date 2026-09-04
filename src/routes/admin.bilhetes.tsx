@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -34,6 +34,7 @@ import { pedidosReservasAereas } from "@/lib/orders/reservas-aereas.functions";
 import { BadgeFonte, FiltroFonte, type FonteReserva } from "@/components/passhub/FiltroFonte";
 import { abrirDocumento } from "@/lib/docs/abrir";
 import { JanelaDetalhe } from "@/components/passhub/JanelaDetalhe";
+import { DetalhePedidoAereo } from "@/components/passhub/DetalhePedidoAereo";
 
 export const Route = createFileRoute("/admin/bilhetes")({
   component: BilhetesPage,
@@ -440,11 +441,11 @@ function BilhetesPage() {
   const listar = useServerFn(passhubReservas);
   const listarBilhetes = useServerFn(passhubBilhetesLista);
   const listarPedidos = useServerFn(pedidosReservasAereas);
-  const navigate = useNavigate();
   const { q: qUrl } = Route.useSearch();
   const [busca, setBusca] = useState(qUrl ?? "");
   const [fonte, setFonte] = useState<FonteReserva>(qUrl ? "todas" : "consolidadora");
   const [aberto, setAberto] = useState<PassHubReservaLista | null>(null);
+  const [pedidoAberto, setPedidoAberto] = useState<string | null>(null);
 
   useEffect(() => {
     if (qUrl) {
@@ -484,7 +485,9 @@ function BilhetesPage() {
   });
   // Dos pedidos, só entram aqui os que já têm número de bilhete.
   const todosPedidos = useMemo(
-    () => (pedidosQuery.data?.ok ? pedidosQuery.data.reservas : []).filter((r) => r.bilhetes.length),
+    () => (pedidosQuery.data?.ok ? pedidosQuery.data.reservas : []).filter(
+      (r) => r.bilhetes.length || r.localizador,
+    ),
     [pedidosQuery.data],
   );
 
@@ -542,6 +545,15 @@ function BilhetesPage() {
       <div className="cons-shell space-y-4">
         <JanelaDetalhe aberto={!!aberto} onFechar={() => setAberto(null)} titulo="Bilhete">
           {aberto ? <DetalheBilhete r={aberto} onVoltar={() => setAberto(null)} /> : null}
+        </JanelaDetalhe>
+        <JanelaDetalhe
+          aberto={!!pedidoAberto}
+          onFechar={() => setPedidoAberto(null)}
+          titulo="Bilhete do pedido"
+        >
+          {pedidoAberto ? (
+            <DetalhePedidoAereo orderId={pedidoAberto} onVoltar={() => setPedidoAberto(null)} />
+          ) : null}
         </JanelaDetalhe>
         {
           <>
@@ -680,7 +692,7 @@ function BilhetesPage() {
                   {bilhetesPedidos.map((r) => (
                     <tr
                       key={r.orderId}
-                      onClick={() => navigate({ to: "/admin/pedidos/$id", params: { id: r.orderId } })}
+                      onClick={() => setPedidoAberto(r.orderId)}
                     >
                       <td>
                         <BadgeFonte tipo="pedidos" />
@@ -693,7 +705,9 @@ function BilhetesPage() {
                       </td>
                       <td className="font-mono">{r.localizadorCompanhia || "—"}</td>
                       <td>
-                        <span className="font-mono text-[13px] font-black">{r.bilhetes[0]}</span>
+                        <span className="font-mono text-[13px] font-black">
+                          {r.bilhetes[0] ?? "—"}
+                        </span>
                         {r.bilhetes.length > 1 ? (
                           <span className="ml-1 text-[11px] cons-muted">
                             +{r.bilhetes.length - 1}
