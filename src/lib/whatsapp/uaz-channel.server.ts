@@ -222,7 +222,7 @@ const MEDIA_MAP: Record<string, UazNormalized["type"]> = {
 };
 
 /** Converte a mensagem crua da UazAPI no formato interno do chatbot. */
-export function normalizeUazMessage(raw: unknown): UazNormalized | null {
+export function normalizeUazMessage(raw: unknown, phoneHint?: string | null): UazNormalized | null {
   if (!raw || typeof raw !== "object") return null;
   const m = raw as Record<string, unknown>;
   const id = pick<string>(m, "id", "messageid", "messageId", "key_id");
@@ -237,8 +237,14 @@ export function normalizeUazMessage(raw: unknown): UazNormalized | null {
     : rawType.includes("text") || rawType.includes("conversation") ? "text"
     : "other");
 
-  const text =
-    pick<string>(m, "text", "content", "body", "caption", "conversation") ?? "";
+  let text = pick<string>(m, "text", "body", "caption", "conversation") ?? "";
+  if (typeof text !== "string" || !text) {
+    const conteudo = m.content;
+    if (typeof conteudo === "string") text = conteudo;
+    else if (conteudo && typeof conteudo === "object") {
+      text = (pick<string>(conteudo, "text", "caption", "conversation") ?? "") as string;
+    }
+  }
   const mediaUrl = pick<string>(m, "file", "fileURL", "mediaUrl", "url", "downloadUrl") ?? null;
   const ts = Number(pick<number | string>(m, "messageTimestamp", "timestamp", "t", "messageTimestampMs") ?? 0);
   const timestampMs = !Number.isFinite(ts) || ts <= 0 ? Date.now() : ts > 1e12 ? ts : ts * 1000;
@@ -246,7 +252,7 @@ export function normalizeUazMessage(raw: unknown): UazNormalized | null {
   return {
     id,
     chatid,
-    phone: phoneFromChatId(chatid),
+    phone: phoneHint ?? phoneFromChatId(chatid),
     fromMe: Boolean(pick(m, "fromMe", "fromme", "isFromMe")),
     senderName: pick<string>(m, "senderName", "pushName", "notifyName", "name") ?? null,
     type,
@@ -279,18 +285,22 @@ export async function uazDownloadMedia(
 }
 
 /** Lista as conversas individuais da instância (para sincronizar histórico). */
-export async function uazListChats(limit = 200): Promise<Array<{ chatid: string; name: string | null }>> {
-  const out: Array<{ chatid: string; name: string | null }> = [];
+export async function uazListChats(
+  limit = 200,
+): Promise<Array<{ chatid: string; phone: string | null; name: string | null }>> {
+  const out: Array<{ chatid: string; phone: string | null; name: string | null }> = [];
   for (const path of ["/chat/find", "/chats"]) {
     try {
-      const raw = await uazRequest(path, { limit, operator: "AND", sort: "-messageTimestamp" });
+      const raw = await uazRequest(path, { limit });
       const list = Array.isArray(raw)
         ? raw
         : ((pick<unknown[]>(raw, "chats", "data", "response", "list") ?? []) as unknown[]);
       for (const c of list) {
-        const chatid = pick<string>(c, "id", "chatid", "wa_chatid", "jid");
-        if (!chatid || !phoneFromChatId(chatid)) continue;
-        out.push({ chatid, name: pick<string>(c, "name", "wa_name", "wa_contactName", "pushName") ?? null });
+        const chatid = pick<string>(c, "wa_chatid", "chatid", "jid", "id");
+        const phone = pick<string>(c, "phone") ?? phoneFromChatId(chatid ?? "");
+        // Só conversas individuais: grupos, canais e status ficam de fora.
+        if (!chatid || !phone || chatid.includes("@g.us") || chatid.includes("@newsletter")) continue;
+        out.push({ chatid, phone, name: pick<string>(c, "name", "wa_name", "wa_contactName", "pushName") ?? null });
       }
       if (out.length) break;
     } catch (err) {
@@ -301,14 +311,20 @@ export async function uazListChats(limit = 200): Promise<Array<{ chatid: string;
 }
 
 /** Mensagens de uma conversa (histórico). */
-export async function uazListMessages(chatid: string, limit = 50): Promise<UazNormalized[]> {
+export async function uazListMessages(
+  chatid: string,
+  limit = 50,
+  phoneHint?: string | null,
+): Promise<UazNormalized[]> {
   for (const path of ["/message/find", "/messages"]) {
     try {
-      const raw = await uazRequest(path, { chatid, limit, sort: "-messageTimestamp" });
+      const raw = await uazRequest(path, { chatid, limit });
       const list = Array.isArray(raw)
         ? raw
         : ((pick<unknown[]>(raw, "messages", "data", "response", "list") ?? []) as unknown[]);
-      const norm = list.map(normalizeUazMessage).filter((m): m is UazNormalized => Boolean(m));
+      const norm = list
+        .map((item) => normalizeUazMessage(item, phoneHint ?? null))
+        .filter((m): m is UazNormalized => Boolean(m));
       if (norm.length) return norm;
     } catch (err) {
       console.warn("[whatsapp/uaz messages]", path, err instanceof Error ? err.message : err);
