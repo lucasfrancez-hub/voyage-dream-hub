@@ -35,6 +35,99 @@ function credenciais() {
   return { email, senha };
 }
 
+type LoginPassHub = {
+  token?: string;
+  access_token?: string;
+  mfa_token?: string;
+  canais?: string[];
+  telefone_mascarado?: string | null;
+};
+
+async function postAuth(path: string, body: Record<string, unknown>): Promise<{
+  ok: boolean;
+  status: number;
+  json: Record<string, unknown>;
+  texto: string;
+}> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`${AUTH_BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const texto = await res.text();
+    let json: Record<string, unknown> = {};
+    try {
+      json = texto ? (JSON.parse(texto) as Record<string, unknown>) : {};
+    } catch {
+      /* resposta de erro pode não ser JSON */
+    }
+    return { ok: res.ok, status: res.status, json, texto };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function tokenDaResposta(json: Record<string, unknown>): string | null {
+  const token = json["token"] ?? json["access_token"];
+  return typeof token === "string" && token ? token : null;
+}
+
+/**
+ * Completa o MFA adotado pela PassHub em setembro/2026. O código é enviado
+ * para o celular cadastrado e pode entrar pela caixa automática ou pela tela
+ * Códigos de autenticação, sem nunca aparecer nos logs.
+ */
+async function concluirMfa(login: LoginPassHub, email: string): Promise<string> {
+  const mfaToken = login.mfa_token;
+  if (!mfaToken) throw new PassHubError("PassHub exigiu verificação, mas não iniciou o desafio", 502);
+
+  const canais = Array.isArray(login.canais) ? login.canais : [];
+  const canal = canais.includes("whatsapp") ? "whatsapp" : canais.includes("sms") ? "sms" : null;
+  if (!canal) throw new PassHubError("A PassHub não ofereceu um canal para enviar o código", 502);
+
+  // Abrimos a tentativa antes do envio para não perder códigos que cheguem rápido.
+  const { iniciarTentativa, aguardarCodigo } = await import("@/lib/auth-code/service.server");
+  const tentativa = await iniciarTentativa({ provider: "passhub", loginHint: email });
+  const envio = await postAuth("/auth/mfa/enviar", { mfa_token: mfaToken, canal });
+  if (!envio.ok) {
+    const motivo = typeof envio.json["message"] === "string" ? envio.json["message"] : "envio recusado";
+    throw new PassHubError(`PassHub não enviou o código (${motivo})`, envio.status);
+  }
+
+  const espera = await aguardarCodigo({
+    authAttemptId: tentativa.authAttemptId,
+    provider: "passhub",
+    requestedAt: tentativa.requestedAt,
+    timeoutMs: 180_000,
+  });
+  if (!espera.success) {
+    throw new PassHubError(
+      "Código da PassHub não recebido. Digite-o em Códigos de autenticação e tente novamente.",
+      408,
+    );
+  }
+
+  const verificacao = await postAuth("/auth/mfa/verificar", {
+    mfa_token: mfaToken,
+    codigo: espera.code,
+  });
+  const token = tokenDaResposta(verificacao.json);
+  if (!verificacao.ok || !token) {
+    const motivo =
+      typeof verificacao.json["message"] === "string"
+        ? verificacao.json["message"]
+        : typeof verificacao.json["code"] === "string"
+          ? verificacao.json["code"]
+          : "código recusado";
+    throw new PassHubError(`Verificação PassHub falhou (${motivo})`, verificacao.status);
+  }
+  return token;
+}
+
 /* --------------------------------- token --------------------------------- */
 
 type TokenCache = { token: string; expiraEm: number };
@@ -60,27 +153,15 @@ export async function passhubToken(): Promise<string> {
 
   inflight = (async () => {
     const { email, senha } = credenciais();
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    try {
-      const res = await fetch(`${AUTH_BASE}/auth/login-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ email, password: senha }),
-        signal: controller.signal,
-      });
-      const texto = await res.text();
-      if (!res.ok) {
-        throw new PassHubError(`Login PassHub falhou (${res.status})`, res.status, texto.slice(0, 400));
-      }
-      const json = JSON.parse(texto) as { token?: string; access_token?: string };
-      const token = json.token ?? json.access_token;
-      if (!token) throw new PassHubError("PassHub não retornou token", 502);
-      cache = { token, expiraEm: expiraDoJwt(token) };
-      return token;
-    } finally {
-      clearTimeout(timer);
+    const login = await postAuth("/auth/login", { email, password: senha });
+    if (!login.ok) {
+      throw new PassHubError(`Login PassHub falhou (${login.status})`, login.status, login.texto.slice(0, 400));
     }
+    const resposta = login.json as LoginPassHub;
+    const tokenDireto = tokenDaResposta(login.json);
+    const token = tokenDireto ?? (await concluirMfa(resposta, email));
+    cache = { token, expiraEm: expiraDoJwt(token) };
+    return token;
   })().finally(() => {
     inflight = null;
   });
