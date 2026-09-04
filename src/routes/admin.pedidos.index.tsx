@@ -659,8 +659,10 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
 
 
   const mut = useMutation({
-    mutationFn: async () => create({ data: {
-      full_name: form.full_name,
+    mutationFn: async (nomeOverride?: string) => {
+      const nome = (nomeOverride ?? form.full_name).trim();
+      return create({ data: {
+      full_name: nome,
       email: form.email,
       phone: form.phone,
       cpf: form.cpf,
@@ -671,7 +673,7 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
       children: form.children,
       person_id: form.person_id || null,
       birth_date: form.birth_date || null,
-      payer_full_name: form.full_name || null,
+      payer_full_name: nome || null,
       payer_cpf: form.cpf || null,
       payer_cnpj: form.cnpj || null,
       payer_ie_rg: form.rg || null,
@@ -681,7 +683,8 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
       payer_zip: form.zip || null,
       payer_address: form.address || null,
       payer_number: form.number || null,
-    } }),
+    } });
+    },
     onSuccess: (r) => {
       toast.success(`Pedido ${r.order_number} criado`);
       onOpenChange(false);
@@ -691,11 +694,13 @@ function NewOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
   });
 
   const submit = () => {
-    if (!form.full_name.trim()) {
+    const nome = form.full_name.trim() || personQuery.trim();
+    if (!nome) {
       toast.error("Preencha o nome completo");
       return;
     }
-    mut.mutate();
+    if (!form.full_name.trim()) setForm((f) => ({ ...f, full_name: nome }));
+    mut.mutate(nome);
   };
 
 
