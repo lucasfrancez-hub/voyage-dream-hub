@@ -3,6 +3,7 @@
  * (mesmo componente usado no plano de viagem da PassHub).
  */
 import type { OrderDetail, OrderItem, OrderPassenger } from "@/lib/orders.functions";
+import { findAirline } from "@/lib/airlines";
 import type {
   ComprovanteReservaDados,
   ComprovantePax,
@@ -36,10 +37,33 @@ function tituloGrupo(indice: number, total: number, temVolta: boolean): string {
   return `TRECHO ${indice + 1}`;
 }
 
-function paraVoo(it: OrderItem): ComprovanteVoo {
+/** Mesma resolução usada na tela do pedido: prefixo do voo, IATA e nome. */
+function companhiaDe(d: Det): string {
+  const numero = s(d.flight_number).toUpperCase();
+  const prefixo = numero.match(/^([A-Z0-9]{2})\s*\d/)?.[1] ?? "";
+  const iata = s(d.airline_iata).toUpperCase();
+  const nome = s(d.airline) || s(d.carrier) || s(d.marketing_carrier);
+  const hit = findAirline(prefixo) ?? findAirline(iata) ?? findAirline(nome);
+  return hit?.name ?? nome ?? "";
+}
+
+function paraVoo(it: OrderItem, snap: Det | null): ComprovanteVoo {
   const d = det(it);
+  // Padrão igual ao da tela de pedidos: mochila e bagagem de mão inclusas,
+  // exceto quando desmarcadas; despachada é opt-in e pode vir do pacote.
+  let despachada = boolOrNull(d.checked_bag) ?? false;
+  let despachadaQtd = Number(d.checked_bag_qty ?? d.checked_bags ?? 0) || undefined;
+  if (!despachada && snap) {
+    const dir = s(d.direction) === "return" ? "return_flight" : "outbound_flight";
+    const src = snap[dir];
+    if (src && typeof src === "object") {
+      const sd = src as Det;
+      despachada = boolOrNull(sd.checked_bag) ?? false;
+      despachadaQtd = despachadaQtd ?? (Number(sd.checked_bag_qty ?? sd.checked_bags ?? 0) || undefined);
+    }
+  }
   return {
-    companhia: s(d.airline) || s(d.carrier) || s(d.supplier_name),
+    companhia: companhiaDe(d) || s(d.supplier_name),
     numeroVoo: s(d.flight_number),
     origem: (s(d.from_iata) || s(d.origin)).toUpperCase(),
     destino: (s(d.to_iata) || s(d.destination)).toUpperCase(),
@@ -50,9 +74,9 @@ function paraVoo(it: OrderItem): ComprovanteVoo {
     familiaTarifaria: s(d.fare_class) || s(d.fare_family),
     bagagem: {
       itemPessoal: boolOrNull(d.personal_item) ?? true,
-      mao: boolOrNull(d.carry_on),
-      despachada: boolOrNull(d.checked_bag),
-      despachadaQtd: Number(d.checked_bag_qty ?? d.checked_bags ?? 0) || undefined,
+      mao: boolOrNull(d.carry_on) ?? true,
+      despachada,
+      despachadaQtd,
     },
   };
 }
@@ -142,10 +166,15 @@ export function pedidoParaComprovante(
     porSentido.get(chave)!.push(it);
   }
 
+  const snapPacote =
+    detail.order.packageSnapshot && typeof detail.order.packageSnapshot === "object"
+      ? (detail.order.packageSnapshot as Det)
+      : null;
+
   const temVolta = voosItens.some((it) => s(det(it).direction) === "return");
   const grupos = ordem.map((chave, i) => ({
     titulo: tituloGrupo(i, ordem.length, temVolta),
-    voos: (porSentido.get(chave) ?? []).map(paraVoo),
+    voos: (porSentido.get(chave) ?? []).map((it) => paraVoo(it, snapPacote)),
   }));
 
   const locadores = Array.from(
@@ -175,7 +204,7 @@ export function pedidoParaComprovante(
     emitido,
     localizador: s(order.airlineLocator) || locadores[0] || order.orderNumber,
     localizadorCompanhia: s(det(primeiro ?? ({} as OrderItem)).carrier_locator) || undefined,
-    companhia: primeiro ? s(det(primeiro).airline) : "",
+    companhia: primeiro ? companhiaDe(det(primeiro)) : "",
     criadaEm: order.createdAt,
     consultor: order.sellerName ?? undefined,
     origem: primeiro ? (s(det(primeiro).from_iata) || s(det(primeiro).origin)).toUpperCase() : "",
