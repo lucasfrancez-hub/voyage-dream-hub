@@ -2640,6 +2640,18 @@ function InstagramConversationView({
   const [text, setText] = useState("");
   const [midiaAberta, setMidiaAberta] = useState<string | null>(null);
 
+  // Arrastar da borda esquerda fecha a DM (igual WhatsApp). Se houver mídia
+  // ampliada aberta, o gesto fecha só ela primeiro.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if (midiaAberta) { e.preventDefault(); setMidiaAberta(null); return; }
+      e.preventDefault();
+      onBack();
+    };
+    window.addEventListener("app:swipe-back", handler as EventListener);
+    return () => window.removeEventListener("app:swipe-back", handler as EventListener);
+  }, [onBack, midiaAberta]);
+
   // Garante espelho em wa_conversations para DMs antigas que ainda não
   // foram sincronizadas via webhook (preciso para instruir a IA e resposta).
   const ensureMirrorFn = useServerFn(ensureInstagramMirror);
@@ -3346,6 +3358,20 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
   const [sending, setSending] = useState(false);
   const [verMidia, setVerMidia] = useState(false);
   const [postAberto, setPostAberto] = useState(false);
+
+  // Arrastar da borda esquerda volta pra lista de publicações (igual WhatsApp).
+  // Se a mídia ou o post estiver aberto, o gesto fecha só ele primeiro.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if (verMidia) { e.preventDefault(); setVerMidia(false); return; }
+      if (postAberto) { e.preventDefault(); setPostAberto(false); return; }
+      e.preventDefault();
+      onBack();
+    };
+    window.addEventListener("app:swipe-back", handler as EventListener);
+    return () => window.removeEventListener("app:swipe-back", handler as EventListener);
+  }, [onBack, verMidia, postAberto]);
+
 
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
