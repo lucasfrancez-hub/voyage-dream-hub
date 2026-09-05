@@ -5,6 +5,7 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { enviarPush } from "@/lib/whatsapp/webpush.server";
+import { messagePreview } from "@/lib/chat/preview";
 
 type Args = {
   conversationId: string;
