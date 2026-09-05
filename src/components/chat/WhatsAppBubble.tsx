@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward, SmilePlus, Copy, ChevronDown } from "lucide-react";
+import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward, SmilePlus, Copy, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
@@ -227,7 +227,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
         <button
           onClick={onReply}
           title="Responder"
-          className="hidden h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white opacity-0 transition-opacity hover:bg-black/30 group-hover:opacity-100 group-hover:flex"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/20 text-white opacity-40 transition-opacity hover:bg-black/30 hover:opacity-100"
         >
           <CornerUpLeft className="h-3.5 w-3.5" />
         </button>
@@ -255,12 +255,12 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
               setMenuAberto(true);
             }}
             className={cn(
-              "absolute top-0.5 z-20 flex h-5 w-5 items-center justify-center rounded-full opacity-60 transition hover:opacity-100",
+              "absolute top-0.5 z-20 flex h-5 w-5 items-center justify-center rounded-full opacity-40 transition hover:opacity-100",
               isOut ? "right-0.5" : "right-0.5",
             )}
             style={{ color: bubbleFg }}
           >
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronUp className="h-3 w-3" />
           </button>
         )}
         {menuAberto && (
@@ -509,7 +509,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
         <button
           onClick={onReply}
           title="Responder"
-          className="hidden h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white opacity-0 transition-opacity hover:bg-black/30 group-hover:opacity-100 group-hover:flex"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/20 text-white opacity-40 transition-opacity hover:bg-black/30 hover:opacity-100"
         >
           <CornerUpLeft className="h-3.5 w-3.5" />
         </button>
