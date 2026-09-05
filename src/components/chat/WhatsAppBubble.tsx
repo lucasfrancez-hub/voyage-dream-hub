@@ -104,6 +104,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const replySender = firstName(reply?.sender ?? null);
   const replySnippet = safeText(reply?.snippet).trim();
   const [lightbox, setLightbox] = useState<{ url: string; filename: string } | null>(null);
+  const [verLeitura, setVerLeitura] = useState(false);
   return (
     <div className={cn("group flex w-full items-center gap-1", isOut ? "justify-end" : "justify-start")}>
       {isOut && onReply && !deleted && (
