@@ -370,7 +370,45 @@ export function normalizeUazMessage(raw: unknown, phoneHint?: string | null): Ua
     timestampMs,
     replyId: citada.id,
     replySnippet: citada.snippet,
+    reaction: extrairReacao(m, rawType, citada.id),
   };
+}
+
+/**
+ * Detecta reações (emoji) nos vários formatos que a UazAPI usa: campo
+ * `reaction`, `reactionMessage` do WhatsApp cru, ou messageType "reaction"
+ * com o emoji no texto e o alvo no contexto/quoted.
+ */
+function extrairReacao(
+  m: Record<string, unknown>,
+  rawType: string,
+  quotedId: string | null,
+): { emoji: string; targetId: string } | null {
+  const fontes: unknown[] = [
+    m.reaction,
+    m.reactionMessage,
+    (m.message as Record<string, unknown> | undefined)?.reactionMessage,
+    (m.content as Record<string, unknown> | undefined)?.reactionMessage,
+  ];
+  for (const f of fontes) {
+    if (!f || typeof f !== "object") continue;
+    const o = f as Record<string, unknown>;
+    const emoji = String(pick<string>(o, "text", "emoji", "reaction") ?? "");
+    const key = o.key && typeof o.key === "object" ? (o.key as Record<string, unknown>) : null;
+    const alvo =
+      pick<string>(o, "messageId", "messageid", "id", "stanzaId", "targetId") ??
+      (key ? pick<string>(key, "id", "ID") : undefined) ??
+      quotedId ??
+      undefined;
+    if (alvo) return { emoji, targetId: String(alvo) };
+  }
+
+  if (rawType.includes("reaction")) {
+    const emoji = String(pick<string>(m, "text", "body", "emoji", "content") ?? "");
+    const alvo = pick<string>(m, "reactedMessageId", "quotedMessageId", "targetId") ?? quotedId;
+    if (alvo) return { emoji, targetId: String(alvo) };
+  }
+  return null;
 }
 
 /**
