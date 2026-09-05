@@ -2961,7 +2961,7 @@ function InstagramConversationView({
                       </div>
                     ) : null;
                   }
-                  if (tipo.includes("audio")) return <audio controls src={url} className="max-w-[240px]" />;
+                  if (tipo.includes("audio")) return <AudioMessage src={url} isOut={m.direction === "outbound"} />;
                   if (tipo.includes("video") && !ehShare) return <video controls src={url} className="max-h-60 max-w-[240px] rounded-lg" />;
                   if (ehStory || ehShare) {
                     const ehLink = /^https?:\/\//.test(url) && !/lookaside|cdninstagram|fbcdn/.test(url);
