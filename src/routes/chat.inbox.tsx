@@ -1392,7 +1392,13 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             </div>
           ))
         )}
+        {pendentes.map((p) => (
+          <div key={p.id} className="mb-1 opacity-70">
+            <WhatsAppBubble side="out" content={p.content} timestamp={p.createdAt} status="sending" />
+          </div>
+        ))}
       </div>
+
 
       {/* Composer */}
       <div
