@@ -1660,6 +1660,18 @@ function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void
 function ContactDetails({ conv, onChange, avatarUrl = null }: { conv: Conv; onChange: () => void; avatarUrl?: string | null }) {
   const [fotoAberta, setFotoAberta] = useState(false);
   const foto = igImg(avatarUrl ?? (conv as { contact_profile_pic?: string | null }).contact_profile_pic ?? null) ?? null;
+  // Nome do contato editável — o nome importado nem sempre vem certo.
+  const renameFn = useServerFn(renameConversation);
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [nomeDraft, setNomeDraft] = useState(conv.display_name ?? "");
+  useEffect(() => { setNomeDraft(conv.display_name ?? ""); }, [conv.id, conv.display_name]);
+  const renameMut = useMutation({
+    mutationFn: async (nome: string) =>
+      renameFn({ data: { conversation_id: conv.id, display_name: nome.trim() || null } }),
+    onSuccess: () => { setEditandoNome(false); onChange(); toast.success("Nome atualizado"); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Não deu pra salvar o nome"),
+  });
+
   const toggleFn = useServerFn(toggleConversationMode);
   const stageFn = useServerFn(setFunnelStage);
   const assignFn = useServerFn(assignConversation);
