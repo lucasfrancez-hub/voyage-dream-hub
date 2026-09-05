@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward, SmilePlus, Copy } from "lucide-react";
+import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward, SmilePlus, Copy, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
@@ -235,7 +235,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
 
       <div
         className={cn(
-          "relative max-w-[70%] rounded-lg px-3 py-2 shadow-sm",
+          "relative max-w-[70%] rounded-lg py-2 pl-3 pr-6 shadow-sm",
           isOut ? "bg-[var(--chat-bubble-out)]" : "bg-[var(--chat-bubble-in)]",
         )}
         style={{ color: bubbleFg }}
