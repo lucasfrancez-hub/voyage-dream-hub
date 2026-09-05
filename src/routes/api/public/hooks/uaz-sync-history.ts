@@ -34,6 +34,7 @@ async function rodar(request: Request): Promise<Response> {
   const limiteMsgs = auto ? 60 : Math.min(Number(url.searchParams.get("mensagens") ?? 40) || 40, 200);
   // Filtros opcionais: um número específico (?phone=55...) e/ou só mensagens
   // a partir de um instante (?desde=ISO ou epoch em ms).
+  const soHorarios = !auto && url.searchParams.get("horarios") === "1";
   const filtroPhone = auto ? "" : (url.searchParams.get("phone") ?? "").replace(/\D/g, "");
   const desdeRaw = url.searchParams.get("desde");
   const desdeMs = auto
@@ -75,25 +76,38 @@ async function rodar(request: Request): Promise<Response> {
     try {
       const mensagens = await uazListMessages(chat.chatid, limiteMsgs, chat.phone);
       let count = 0;
-      for (const m of mensagens
+      const lista = mensagens
         .filter((m) => !desdeMs || m.timestampMs >= desdeMs)
-        .sort((a, b) => a.timestampMs - b.timestampMs)) {
-        const r = await ingestUazMessage({ ...m, senderName: m.senderName ?? chat.name }, { historico: true });
-        if (r === "salva") count += 1;
-        // Conserta o horário de mensagens já importadas antes (entraram com a
-        // hora do import e bagunçavam a ordem da conversa).
-        if (r === "duplicada") {
-          const real = new Date(m.timestampMs).toISOString();
-          const { data: atual } = await supabaseAdmin
+        .sort((a, b) => a.timestampMs - b.timestampMs);
+
+      // Modo conserto: não reimporta nada, só acerta o horário real das
+      // mensagens que já estão no chat (as antigas entraram com a hora do
+      // import e bagunçavam a ordem da conversa).
+      if (soHorarios) {
+        const ids = lista.map((m) => m.id);
+        for (let i = 0; i < ids.length; i += 100) {
+          const fatia = ids.slice(i, i + 100);
+          const { data: existentes } = await supabaseAdmin
             .from("wa_messages")
-            .select("id, created_at")
-            .eq("wa_message_id", m.id)
-            .maybeSingle();
-          if (atual && Math.abs(new Date(atual.created_at as string).getTime() - m.timestampMs) > 60_000) {
-            await supabaseAdmin.from("wa_messages").update({ created_at: real }).eq("id", atual.id as string);
+            .select("id, wa_message_id, created_at")
+            .in("wa_message_id", fatia);
+          for (const row of existentes ?? []) {
+            const orig = lista.find((m) => m.id === row.wa_message_id);
+            if (!orig) continue;
+            if (Math.abs(new Date(row.created_at as string).getTime() - orig.timestampMs) <= 60_000) continue;
+            await supabaseAdmin
+              .from("wa_messages")
+              .update({ created_at: new Date(orig.timestampMs).toISOString() })
+              .eq("id", row.id as string);
             corrigidas += 1;
           }
         }
+        continue;
+      }
+
+      for (const m of lista) {
+        const r = await ingestUazMessage({ ...m, senderName: m.senderName ?? chat.name }, { historico: true });
+        if (r === "salva") count += 1;
       }
 
       importadas += count;
