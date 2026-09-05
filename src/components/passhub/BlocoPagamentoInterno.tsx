@@ -121,6 +121,11 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
     expiraEm: string;
   } | null>(null);
   const [previa, setPrevia] = useState<PreviaPix | null>(null);
+  // Pagamento interno no cartão: código do checkout usado só nos bastidores
+  // (o link não é exibido nem enviado ao cliente).
+  const [codigoCartao, setCodigoCartao] = useState("");
+  const [cartaoAberto, setCartaoAberto] = useState(false);
+
 
 
   const pagamentos = useQuery({
