@@ -87,6 +87,8 @@ interface Props {
   /** Handler pra reenviar um balão que não foi entregue */
   onResend?: () => void;
   resending?: boolean;
+  /** Salvar uma figurinha recebida na coleção do time */
+  onSaveSticker?: (url: string, filename: string) => void;
   /** Horário em que o WhatsApp confirmou a entrega */
   deliveredAt?: string | null;
   /** Horário em que o cliente leu */
