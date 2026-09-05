@@ -101,7 +101,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt, onSaveSticker }: Props) {
   const reciboTitulo = [
     status === "sent" || status === "delivered" || status === "read" ? `Enviada ${formatTime(timestamp)}` : null,
     deliveredAt ? `Entregue ${formatTime(deliveredAt)}` : status === "delivered" || status === "read" ? "Entregue" : null,
