@@ -301,23 +301,20 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
       <section className="flex flex-col gap-3">
         <button
           type="button"
-          className="flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-600 py-4 font-bold text-white shadow-lg transition hover:bg-emerald-700 disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-3 rounded-lg bg-emerald-500 px-4 py-4 font-bold text-white shadow-lg shadow-emerald-500/10 transition-colors hover:bg-emerald-600 disabled:opacity-60"
           onClick={() => abrirPrevia.mutate()}
           disabled={abrirPrevia.isPending || pagarAgora.isPending}
         >
           {abrirPrevia.isPending || pagarAgora.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            <Zap className="h-4 w-4" />
+            <Zap className="h-5 w-5" />
           )}
           Pagar reserva agora
-          <span className="rounded border border-emerald-400/30 bg-emerald-500/30 px-2 py-0.5 text-[10px] uppercase tracking-tighter">
+          <span className="rounded bg-black/20 px-2 py-0.5 text-[10px] uppercase tracking-tighter">
             Saldo ASAAS
           </span>
         </button>
-        <p className="text-center text-[11px] cons-muted">
-          Pagamento instantâneo no Pix, debitando o nosso saldo na hora.
-        </p>
       </section>
 
       {/* ---------------- 3. Cartão de crédito (auxiliar) ---------------- */}
