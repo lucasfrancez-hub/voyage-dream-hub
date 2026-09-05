@@ -187,7 +187,12 @@ export async function passhubReservarOferta(input: ReservarInput): Promise<PassH
       ddi: (p.ddi ?? "55").replace(/\D/g, ""),
       ddd: (p.ddd ?? "").replace(/\D/g, ""),
     })),
-    provider: (input.provedor || "CVC").toUpperCase(),
+    provider: (
+      input.provedor ||
+      (await import("./provider-registry.server")).provedorDoToken(tokens[0] ?? "") ||
+      "CVC"
+    ).toUpperCase(),
+
   };
 
   /** Contato da reserva: a PassHub também espera o bloco no nível raiz. */
