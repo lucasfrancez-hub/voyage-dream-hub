@@ -261,8 +261,12 @@ export function normalizeUazMessage(raw: unknown, phoneHint?: string | null): Ua
     type,
     text: typeof text === "string" ? text : "",
     mediaUrl: typeof mediaUrl === "string" ? mediaUrl : null,
-    mimeType: pick<string>(m, "mimetype", "mimeType") ?? null,
-    filename: pick<string>(m, "fileName", "filename", "docName") ?? null,
+    mimeType:
+      pick<string>(m, "mimetype", "mimeType") ??
+      (conteudoObj ? (pick<string>(conteudoObj, "mimetype", "mimeType") ?? null) : null),
+    filename:
+      pick<string>(m, "fileName", "filename", "docName") ??
+      (conteudoObj ? (pick<string>(conteudoObj, "fileName", "filename", "title") ?? null) : null),
     timestampMs,
     replyId: pick<string>(m, "quotedMessageId", "replyid", "quotedId") ?? null,
   };
