@@ -68,6 +68,7 @@ async function rodar(request: Request): Promise<Response> {
     ? todos.filter((c) => (c.phone ?? c.chatid).replace(/\D/g, "").includes(filtroPhone))
     : todos;
   let importadas = 0;
+  let corrigidas = 0;
 
   for (const chat of chats) {
 
@@ -106,5 +107,5 @@ async function rodar(request: Request): Promise<Response> {
     }
   }
 
-  return Response.json({ chats: chats.length, mensagens_importadas: importadas });
+  return Response.json({ chats: chats.length, mensagens_importadas: importadas, horarios_corrigidos: corrigidas });
 }
