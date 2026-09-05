@@ -413,7 +413,7 @@ function DetalheReserva({
               <b>{brl(r.taxas)}</b>
             </div>
             <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">
-              <span className="cons-muted">Líquido consolidadora</span>
+              <span className="cons-muted">Valor total</span>
               <b>{brl(r.preco)}</b>
             </div>
             <div className="flex justify-between border-b border-dotted border-white/10 py-2 text-[13px]">

@@ -390,7 +390,7 @@ function DetalheBilhete({ r, onVoltar }: { r: PassHubReservaLista; onVoltar: () 
                   <b className="font-medium text-white/85">{brl(r.taxas)}</b>
                 </div>
                 <div className="flex justify-between text-white/55">
-                  <span>Líquido consolidadora</span>
+                  <span>Valor total</span>
                   <b className="font-medium text-white/85">{brl(r.preco)}</b>
                 </div>
                 <div className="flex justify-between text-white/55">
