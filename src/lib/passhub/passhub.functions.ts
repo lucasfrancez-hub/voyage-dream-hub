@@ -26,6 +26,24 @@ export const passhubStatus = createServerFn({ method: "POST" })
     return passhubPing();
   });
 
+/** Estado da sessão guardada (sem expor o token). */
+export const passhubSessaoInfo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { passhubSessaoStatus } = await import("./client.server");
+    return passhubSessaoStatus();
+  });
+
+/** Força novo login (descarta a sessão atual e refaz a verificação). */
+export const passhubReconectar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { passhubInvalidarToken, passhubPing } = await import("./client.server");
+    await passhubInvalidarToken();
+    return passhubPing();
+  });
+
+
 /** Busca aérea (ida, ida e volta e multitrecho) na PassHub. */
 export const passhubBuscar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
