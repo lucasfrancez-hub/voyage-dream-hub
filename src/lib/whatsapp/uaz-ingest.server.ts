@@ -66,6 +66,14 @@ export async function ingestUazMessage(
     }
   }
 
+  // Mídia que não pôde ser baixada não pode sumir: registra um aviso claro.
+  if (!content && msg.type !== "text") {
+    content =
+      msg.type === "audio"
+        ? "🎤 [sistema · midia_indisponivel] Chegou um áudio, mas não foi possível baixá-lo. Peça ao cliente, de forma natural, que reenvie ou escreva a mensagem."
+        : "📎 [sistema · midia_indisponivel] Chegou um arquivo que não foi possível baixar. Peça ao cliente que reenvie.";
+  }
+
   if (!content) return "ignorada";
 
   const saved = await saveMessage({
