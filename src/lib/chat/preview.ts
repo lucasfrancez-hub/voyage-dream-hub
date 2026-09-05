@@ -4,7 +4,9 @@
  * apenas "Imagem recebida", "Áudio enviado", etc.
  */
 
-const MEDIA_RE = /\[\[media:(audio|image|video|document|sticker)\|[^\]]*\]\]/i;
+// Aceita também o marcador CORTADO (prévias antigas gravadas com corte de
+// 200 caracteres perdiam o "]]" final e apareciam cruas na lista).
+const MEDIA_RE = /\[\[media:(audio|image|video|document|sticker)\|(?:[^\]]*\]\]|[\s\S]*)/i;
 
 type Dir = "inbound" | "outbound" | null | undefined;
 
