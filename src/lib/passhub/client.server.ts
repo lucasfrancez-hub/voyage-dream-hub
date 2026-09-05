@@ -283,7 +283,7 @@ export async function passhubRequest<T>(
 
   let res = await executar(await passhubToken());
   if (res.status === 401 || res.status === 403) {
-    passhubInvalidarToken();
+    await passhubInvalidarToken();
     res = await executar(await passhubToken());
   }
 
