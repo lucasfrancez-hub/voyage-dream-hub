@@ -214,7 +214,8 @@ async function processarAtualizacaoStatus(p: Record<string, unknown>) {
   for (const bruta of brutas) {
     if (!bruta || typeof bruta !== "object") continue;
     const o = bruta as Record<string, unknown>;
-    const waId = String(o.id ?? o.messageid ?? o.messageId ?? o.key ?? "").trim();
+    const keyObj = o.key && typeof o.key === "object" ? (o.key as Record<string, unknown>) : null;
+    const waId = String(o.id ?? o.messageid ?? o.messageId ?? keyObj?.id ?? "").trim();
     const status = mapearStatus(o.status ?? o.ack ?? o.messageStatus);
     if (!waId || !status) continue;
 
