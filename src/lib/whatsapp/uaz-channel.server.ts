@@ -311,7 +311,8 @@ export function normalizeUazMessage(raw: unknown, phoneHint?: string | null): Ua
       pick<string>(m, "fileName", "filename", "docName") ??
       (conteudoObj ? (pick<string>(conteudoObj, "fileName", "filename", "title") ?? null) : null),
     timestampMs,
-    replyId: pick<string>(m, "quotedMessageId", "replyid", "quotedId") ?? null,
+    replyId: citada.id,
+    replySnippet: citada.snippet,
   };
 }
 
