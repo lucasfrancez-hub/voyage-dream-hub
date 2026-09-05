@@ -99,15 +99,76 @@ export async function mirrorInstagramMessage(input: MirrorInput) {
   }
 
   const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
+
+  // MÍDIA DO INSTAGRAM: o link da Meta expira em poucas horas. Baixamos o
+  // arquivo, guardamos no nosso bucket e gravamos o marcador [[media:…]] pra
+  // que o áudio toque no chat (não só a transcrição), e a foto/vídeo abram.
+  let content = input.text ?? (input.attachmentUrl ? "[mídia do Instagram]" : "[mensagem]");
+  let transcricao: string | null = null;
+  const kind =
+    input.messageType === "audio" || input.messageType === "image" || input.messageType === "video"
+      ? input.messageType
+      : null;
+
+  if (input.attachmentUrl && kind) {
+    try {
+      const { storeInboundMedia, transcribeAudio, extFromMime } = await import("@/lib/whatsapp/media.server");
+      const resp = await fetch(input.attachmentUrl);
+      const blob = resp.ok ? await resp.blob() : null;
+      if (blob && blob.size > 0) {
+        // O Instagram entrega voz como video/mp4; para nós é áudio.
+        const mimeBruto = blob.type || (kind === "video" ? "video/mp4" : kind === "image" ? "image/jpeg" : "audio/mp4");
+        const mime = kind === "audio" ? "audio/mp4" : mimeBruto;
+
+        const stored = await storeInboundMedia({
+          conversationId: conversationId!,
+          blob,
+          mimeType: mime,
+          filename: `ig-${kind}-${input.igMessageId ?? Date.now()}.${extFromMime(mime)}`,
+        });
+        let texto = input.text?.trim() || (kind === "audio" ? "🎤 [áudio recebido]" : kind === "video" ? "🎬 [vídeo recebido]" : "🖼️ [imagem recebida]");
+        if (kind === "audio") {
+          transcricao = await transcribeAudio(blob, mime);
+          texto = transcricao
+            ? `🎤 [áudio transcrito] ${transcricao}`
+            : "🎤 [sistema · transcricao_falhou] Não foi possível transcrever este áudio. Peça ao cliente, de forma natural, que reenvie o áudio ou escreva a mensagem.";
+        } else if (kind === "image") {
+          try {
+            const { analyzeImage, isAnalyzableImage, buildAnalysisBlock } = await import(
+              "@/lib/whatsapp/image-vision.server"
+            );
+            if (isAnalyzableImage(mime)) {
+              const analysis = await analyzeImage({
+                blob,
+                mimeType: mime,
+                caption: input.text ?? "",
+                conversationId: conversationId!,
+              });
+              texto = `${texto}\n${buildAnalysisBlock(analysis)}`;
+            }
+          } catch (err) {
+            console.error("[instagram/bridge] análise de imagem falhou:", err);
+          }
+        }
+        if (stored) content = `[[media:${kind}|${stored.url}|${stored.filename}]]\n${texto}`;
+        else content = texto;
+      }
+    } catch (err) {
+      console.error("[instagram/bridge] mídia não pôde ser baixada:", err);
+    }
+  }
+
   await saveMessage({
     conversation_id: conversationId!,
     direction: input.direction,
     sender: input.direction === "inbound" ? "customer" : "human",
-    content: input.text ?? (input.attachmentUrl ? "[mídia do Instagram]" : "[mensagem]"),
+    content,
     wa_message_id: input.igMessageId ?? null,
     message_type: input.messageType ?? "text",
+    transcricao,
     skip_protocolo: input.skipProtocolo ?? false,
   });
 
   return { conversationId: conversationId!, waPhone };
 }
+
