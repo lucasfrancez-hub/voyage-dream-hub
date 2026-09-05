@@ -423,3 +423,60 @@ export async function uazInstanceStatus(): Promise<{ connected: boolean; detail:
     return { connected: false, detail: err instanceof Error ? err.message : String(err) };
   }
 }
+
+// ================== Foto de perfil ==================
+
+/**
+ * Busca a foto de perfil do contato no WhatsApp via UazAPI.
+ * Retorna a URL pública da imagem (pps.whatsapp.net) ou null quando o
+ * contato não tem foto / privacidade bloqueia / endpoint indisponível.
+ */
+export async function uazFetchProfilePic(phone: string): Promise<string | null> {
+  if (!uazConfigured()) return null;
+  const number = uazNumber(phone);
+  const attempts: Array<[string, Record<string, unknown>]> = [
+    ["/contact/profile-picture", { number }],
+    ["/chat/details", { number, preview: false }],
+  ];
+  for (const [path, body] of attempts) {
+    try {
+      const res = await fetch(`${uazBase()}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", token: uazToken() },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(8_000),
+      });
+      const ct = res.headers.get("content-type") ?? "";
+      if (!res.ok || !ct.includes("json")) continue;
+      const data = (await res.json()) as unknown;
+      const url = pickProfilePicUrl(data);
+      if (url) return url;
+    } catch {
+      /* tenta o próximo endpoint */
+    }
+  }
+  return null;
+}
+
+function pickProfilePicUrl(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const o = data as Record<string, unknown>;
+  const direct = pick<string>(
+    o,
+    "profilePictureURL",
+    "profilePictureUrl",
+    "profilePicUrl",
+    "profile_pic_url",
+    "picture",
+    "image",
+    "imgUrl",
+    "url",
+    "eurl",
+  );
+  if (typeof direct === "string" && /^https?:\/\//.test(direct)) return direct;
+  for (const k of ["chat", "contact", "data", "result"]) {
+    const nested = pickProfilePicUrl(o[k]);
+    if (nested) return nested;
+  }
+  return null;
+}
