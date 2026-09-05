@@ -235,22 +235,15 @@ export function PagamentoCartaoPasshub({ codigo, valorTotal = 0 }: { codigo: str
       const res = await parcelasFn({ data: { codigo, deviceId: deviceId(), transactionId: tx } });
       setProcessando(false);
       if (!res.ok) return toast.error(res.erro);
-      const baseValor = res.valorOriginal || valorTotal || 0;
-      if (!res.parcelas.length) {
-        // Sem tabela de parcelas: segue à vista com o total da reserva
-        setParcelas([
-          { parcelas: 1, valorParcela: baseValor, total: baseValor, rotulo: "À vista" },
-        ]);
-      } else {
-        // Se a consolidadora não mandou valores, calcula pelo total da reserva
-        setParcelas(
-          res.parcelas.map((p) => {
-            const total = p.total || baseValor;
-            const valorParcela = p.valorParcela || (total ? total / p.parcelas : 0);
-            return { ...p, total, valorParcela };
-          }),
+      // Os valores vêm SEMPRE da consolidadora (PassHub). Se vier zerado ou sem
+      // tabela, mostramos o erro em vez de calcular pelo total da reserva —
+      // assim qualquer falha de integração fica visível.
+      if (!res.parcelas.length || !res.parcelas.some((p) => p.total > 0)) {
+        return toast.error(
+          "A consolidadora não retornou o parcelamento desta reserva. Verifique no portal e tente novamente.",
         );
       }
+      setParcelas(res.parcelas);
       setParcelaSel(1);
       setEtapa("parcelas");
     };
