@@ -249,7 +249,7 @@ export const passhubLinkPagamento = createServerFn({ method: "POST" })
     z
       .object({
         id: z.number().int().positive().optional(),
-        localizador: z.string().min(4).max(12).optional(),
+        localizador: z.string().min(4).max(20).optional(),
       })
       .refine((v) => !!v.id || !!v.localizador, "Informe a reserva")
       .parse(input),
@@ -300,7 +300,7 @@ export const passhubPixReserva = createServerFn({ method: "POST" })
       .object({
         link: z.string().url().optional(),
         id: z.number().int().positive().optional(),
-        localizador: z.string().min(4).max(12).optional(),
+        localizador: z.string().min(4).max(20).optional(),
       })
       .refine((v) => !!v.link || !!v.id || !!v.localizador, "Informe a reserva")
       .parse(input),
@@ -613,7 +613,7 @@ export const passhubBilheteNumeros = createServerFn({ method: "POST" })
     z
       .object({
         id: z.number().int().positive(),
-        localizador: z.string().max(12).nullable().optional(),
+        localizador: z.string().max(20).nullable().optional(),
         forcar: z.boolean().optional(),
       })
       .parse(input),
