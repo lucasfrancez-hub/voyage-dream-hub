@@ -1329,7 +1329,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           grouped.map((g) => (
             <div key={g.date}>
               <DateDivider label={g.label} />
-              {g.messages.map((m) => {
+              {g.messages.map((m, idx) => {
                 const senderLabel =
                   m.direction === "inbound"
                     ? (conv.display_name ?? conv.wa_phone)
@@ -1340,6 +1340,15 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                     : isAiSender(m.sender)
                       ? agentLabel(m.agent_slug ?? m.sender ?? conv.agent_slug)
                     : undefined;
+                // Estilo WhatsApp: o nome aparece só no 1º balão de uma sequência
+                // do mesmo remetente; reaparece quando o outro lado responde.
+                const prev = idx > 0 ? g.messages[idx - 1] : null;
+                const mesmaSequencia =
+                  prev &&
+                  prev.direction === m.direction &&
+                  (prev.sender ?? null) === (m.sender ?? null) &&
+                  (prev.agent_slug ?? null) === (m.agent_slug ?? null);
+                const labelVisivel = mesmaSequencia ? undefined : senderLabel;
                 return (
                   <div key={m.id} className="mb-1">
                     <WhatsAppBubble
