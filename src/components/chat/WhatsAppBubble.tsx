@@ -185,6 +185,28 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
               {text && (
                 <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{text}</div>
               )}
+              {leitura && (
+                <div className="mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setVerLeitura((v) => !v)}
+                    className="flex items-center gap-1 rounded-full border border-black/10 bg-black/5 px-2 py-[2px] text-[10px] font-medium opacity-70 hover:opacity-100"
+                    style={{ color: bubbleFg }}
+                    title={media?.kind === "audio" ? "Ver transcrição do áudio" : "Ver leitura da imagem"}
+                  >
+                    <ScanText className="h-3 w-3" />
+                    {verLeitura ? "ocultar leitura" : media?.kind === "audio" ? "ver transcrição" : "ver leitura"}
+                  </button>
+                  {verLeitura && (
+                    <div
+                      className="mt-1 whitespace-pre-wrap break-words rounded-md bg-black/5 px-2 py-1 text-[12px] leading-relaxed opacity-90"
+                      style={{ color: bubbleFg }}
+                    >
+                      {leitura}
+                    </div>
+                  )}
+                </div>
+              )}
               {deleted && (
                 <div className="mt-1 text-[11px] font-medium text-red-500">
                   {revokedBy === "business"
