@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star } from "lucide-react";
+import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
@@ -89,6 +89,9 @@ interface Props {
   resending?: boolean;
   /** Salvar uma figurinha recebida na coleção do time */
   onSaveSticker?: (url: string, filename: string) => void;
+  /** Apagar para todos no WhatsApp (mantém o registro aqui) */
+  onDeleteForEveryone?: () => void;
+  deleting?: boolean;
   /** Horário em que o WhatsApp confirmou a entrega */
   deliveredAt?: string | null;
   /** Horário em que o cliente leu */
@@ -101,7 +104,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt, onSaveSticker }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt, onSaveSticker, onDeleteForEveryone, deleting }: Props) {
   const reciboTitulo = [
     status === "sent" || status === "delivered" || status === "read" ? `Enviada ${formatTime(timestamp)}` : null,
     deliveredAt ? `Entregue ${formatTime(deliveredAt)}` : status === "delivered" || status === "read" ? "Entregue" : null,
@@ -117,6 +120,16 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const [verLeitura, setVerLeitura] = useState(false);
   return (
     <div className={cn("group flex w-full items-center gap-1", isOut ? "justify-end" : "justify-start")}>
+      {isOut && onDeleteForEveryone && !deleted && (
+        <button
+          onClick={onDeleteForEveryone}
+          disabled={deleting}
+          title="Apagar para todos no WhatsApp (fica salvo aqui)"
+          className="hidden h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white opacity-0 transition-opacity hover:bg-red-500 disabled:opacity-40 group-hover:opacity-100 group-hover:flex"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
       {isOut && onReply && !deleted && (
         <button
           onClick={onReply}
@@ -126,6 +139,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           <CornerUpLeft className="h-3.5 w-3.5" />
         </button>
       )}
+
       <div
         className={cn(
           "relative max-w-[70%] rounded-lg px-3 py-2 shadow-sm",

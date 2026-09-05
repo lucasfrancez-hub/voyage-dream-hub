@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { messagePreview } from "@/lib/chat/preview";
-import { listStickers, sendHumanSticker, toggleSavedSticker } from "@/lib/chat/queries.functions";
+import { listStickers, sendHumanSticker, toggleSavedSticker, deleteMessageForEveryone } from "@/lib/chat/queries.functions";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead, renameConversation } from "@/lib/chat/queries.functions";
 import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused, setInstagramCommentAiInstruction, ensureInstagramMirror } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
@@ -987,6 +987,15 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   });
 
   const toggleStickerFn = useServerFn(toggleSavedSticker);
+  const apagarMsgFn = useServerFn(deleteMessageForEveryone);
+  const apagarMsgMut = useMutation({
+    mutationFn: (id: string) => apagarMsgFn({ data: { message_id: id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
+      toast.success("Apagada no WhatsApp — o registro continua aqui");
+    },
+    onError: (e) => toast.error(`Não deu pra apagar: ${(e as Error).message}`),
+  });
   const salvarStickerMut = useMutation({
     mutationFn: (input: { url: string; filename: string; remover?: boolean }) =>
       toggleStickerFn({ data: input }),
@@ -1458,6 +1467,22 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                       }
                       resending={resendingId === m.id}
                       onSaveSticker={(url, filename) => salvarStickerMut.mutate({ url, filename })}
+                      deleting={apagarMsgMut.isPending}
+                      onDeleteForEveryone={
+                        m.direction === "outbound" && m.wa_message_id && !(m as { is_revoked?: boolean | null }).is_revoked
+                          ? () =>
+                              confirmThen(
+                                {
+                                  title: "Apagar para todos?",
+                                  description:
+                                    "A mensagem some do WhatsApp do cliente, mas continua guardada aqui marcada como apagada.",
+                                  confirmText: "Apagar para todos",
+                                  destructive: true,
+                                },
+                                () => apagarMsgMut.mutate(m.id),
+                              )
+                          : undefined
+                      }
                     />
 
                   </div>

@@ -846,9 +846,51 @@ export const toggleSavedSticker = createServerFn({ method: "POST" })
     return { salvo: true };
   });
 
+/** Apaga a mensagem para todos no WhatsApp, mas mantém o registro aqui. */
+export const deleteMessageForEveryone = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ message_id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: msg, error } = await context.supabase
+      .from("wa_messages")
+      .select("id, wa_message_id, direction, conversation_id, is_revoked")
+      .eq("id", data.message_id)
+      .single();
+    if (error || !msg) throw new Error("Mensagem não encontrada");
+    if (msg.direction !== "outbound") throw new Error("Só dá para apagar para todos as mensagens enviadas por nós");
+    if (!msg.wa_message_id) throw new Error("Esta mensagem não tem registro no WhatsApp");
+
+    const { data: conv } = await context.supabase
+      .from("wa_conversations")
+      .select("wa_phone")
+      .eq("id", msg.conversation_id)
+      .maybeSingle();
+
+    const { uazDeleteForEveryone, uazNumber } = await import("@/lib/whatsapp/uaz-channel.server");
+    const res = await uazDeleteForEveryone(
+      msg.wa_message_id,
+      conv?.wa_phone ? uazNumber(conv.wa_phone) : null,
+    );
+    if (!res.ok) throw new Error(res.error ?? "O WhatsApp não confirmou a exclusão");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin
+      .from("wa_messages")
+      .update({
+        is_revoked: true,
+        revoked_at: new Date().toISOString(),
+        revoked_by: "business",
+      })
+      .eq("id", msg.id);
+
+    return { ok: true };
+  });
 
 /** Envia figurinha (reutilizada da gaveta ou uma imagem enviada pelo atendente). */
 export const sendHumanSticker = createServerFn({ method: "POST" })
+
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
     z.object({

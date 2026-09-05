@@ -186,6 +186,33 @@ export async function uazMarkRead(chatid: string): Promise<void> {
   }
 }
 
+/**
+ * Apaga a mensagem para todos no WhatsApp (revoke). Guardamos o conteúdo aqui
+ * no sistema mesmo assim — apenas marcamos como apagada.
+ */
+export async function uazDeleteForEveryone(
+  messageId: string,
+  chatid?: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const tentativas: Array<[string, Record<string, unknown>]> = [
+    ["/message/delete", { id: messageId, ...(chatid ? { number: chatid } : {}) }],
+    ["/message/revoke", { id: messageId, ...(chatid ? { number: chatid } : {}) }],
+  ];
+  let ultimo = "";
+  for (const [path, body] of tentativas) {
+    try {
+      await uazRequest(path, body);
+      return { ok: true };
+    } catch (err) {
+      ultimo = err instanceof Error ? err.message : String(err);
+    }
+  }
+  console.error("[whatsapp/uaz delete] falhou:", ultimo);
+  return { ok: false, error: ultimo || "Não foi possível apagar no WhatsApp" };
+}
+
+
+
 // ================== Recebimento / histórico ==================
 
 export type UazNormalized = {
