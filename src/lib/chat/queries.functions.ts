@@ -744,6 +744,96 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Figurinhas já usadas/recebidas no nosso WhatsApp — vira a "gaveta" de stickers. */
+export const listStickers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("wa_messages")
+      .select("content, created_at")
+      .like("content", "[[media:sticker|%")
+      .order("created_at", { ascending: false })
+      .limit(300);
+    const vistos = new Set<string>();
+    const stickers: { url: string; filename: string }[] = [];
+    for (const row of data ?? []) {
+      const m = String(row.content).match(/^\[\[media:sticker\|([^|]+)\|([^\]]+)\]\]/);
+      if (!m) continue;
+      const url = m[1]!;
+      if (vistos.has(url)) continue;
+      vistos.add(url);
+      stickers.push({ url, filename: m[2]! });
+      if (stickers.length >= 60) break;
+    }
+    return stickers;
+  });
+
+/** Envia figurinha (reutilizada da gaveta ou uma imagem enviada pelo atendente). */
+export const sendHumanSticker = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      url: z.string().url().optional(),
+      filename: z.string().min(1).max(240).optional(),
+      mime_type: z.string().min(1).max(120).optional(),
+      data_base64: z.string().min(1).optional(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: conv, error: cErr } = await context.supabase
+      .from("wa_conversations")
+      .select("id, wa_phone")
+      .eq("id", data.conversation_id)
+      .single();
+    if (cErr || !conv) throw new Error("Conversa não encontrada");
+    if (conv.wa_phone.startsWith("ig:")) throw new Error("Figurinhas só no WhatsApp");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { uazSendMediaUrl } = await import("@/lib/whatsapp/uaz-channel.server");
+    const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
+
+    let url = data.url ?? null;
+    let filename = data.filename ?? "figurinha.webp";
+    if (!url) {
+      if (!data.data_base64) throw new Error("Escolha uma figurinha");
+      const safeName = filename.replace(/[^a-zA-Z0-9._-]+/g, "_");
+      const path = `${conv.id}/${Date.now()}-${safeName}`;
+      const bytes = Uint8Array.from(atob(data.data_base64), (c) => c.charCodeAt(0));
+      const { error: upErr } = await supabaseAdmin.storage
+        .from("chat-media")
+        .upload(path, bytes, { contentType: data.mime_type ?? "image/webp", upsert: false });
+      if (upErr) throw new Error(`Upload falhou: ${upErr.message}`);
+      const { data: signed, error: sErr } = await supabaseAdmin.storage
+        .from("chat-media")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (sErr || !signed?.signedUrl) throw new Error("Não foi possível preparar a figurinha");
+      url = signed.signedUrl;
+      filename = safeName;
+    }
+
+    const res = await uazSendMediaUrl(conv.wa_phone, "sticker", url, null, filename);
+    if (res.error || !res.id) throw new Error(res.error ?? "O WhatsApp não confirmou o envio da figurinha");
+
+    const { data: profile } = await context.supabase
+      .from("profiles").select("full_name").eq("id", context.userId).maybeSingle();
+    const senderName = profile?.full_name?.trim() || null;
+
+    await saveMessage({
+      conversation_id: conv.id,
+      direction: "outbound",
+      sender: "human",
+      content: `[[media:sticker|${url}|${filename}]]`,
+      sender_user_id: context.userId,
+      agent_name: senderName,
+      wa_message_id: res.id,
+      message_type: "sticker",
+    });
+    await clearAwaitingHumanTag(conv.id);
+    return { ok: true };
+  });
+
 async function clearAwaitingHumanTag(conversationId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: cur } = await supabaseAdmin
