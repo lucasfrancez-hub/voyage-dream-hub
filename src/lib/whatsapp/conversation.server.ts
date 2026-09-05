@@ -366,6 +366,11 @@ export async function saveMessage(input: {
       product_type: input.product_type ?? (input.quote_id ? "flight" : null),
       transcricao: input.transcricao ?? null,
       resumo: input.resumo ?? null,
+      // Mensagem enviada com sucesso ao WhatsApp já nasce com 1 risquinho (enviada);
+      // os acks da UazAPI sobem para entregue (2 risquinhos) e lida (azul).
+      ...(input.direction === "outbound" && input.wa_message_id
+        ? { delivery_status: "sent", delivery_status_at: new Date().toISOString() }
+        : {}),
       ...(input.created_at ? { created_at: input.created_at } : {}),
     })
     .select("*")
