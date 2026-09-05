@@ -704,8 +704,8 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
     // Marcador embutido pra UI renderizar o preview
     const marker = `[[media:${data.kind}|${signed.signedUrl}|${data.filename}]]`;
 
-    // Áudio enviado pela VIA AIR também é transcrito e resumido: assim, quando o
-    // cliente responder ao áudio, a IA sabe exatamente o que foi dito nele.
+    // Áudio enviado pela VIA AIR é transcrito só nos bastidores (a IA usa o
+    // conteúdo), mas a transcrição NÃO aparece no balão para o atendente.
     let transcricao: string | null = null;
     if (data.kind === "audio") {
       try {
@@ -720,8 +720,9 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
     }
 
     const content = data.kind === "audio"
-      ? `${marker}${deliveredAs === "document" ? "\n🎤 [áudio enviado como arquivo]" : "\n🎤 [áudio enviado]"}${transcricao ? `\n${transcricao}` : ""}`
+      ? `${marker}${deliveredAs === "document" ? "\n🎤 [áudio enviado como arquivo]" : "\n🎤 [áudio enviado]"}`
       : data.caption ? `${marker}\n${data.caption}` : marker;
+
 
     await saveMessage({
       conversation_id: conv.id,
@@ -1112,6 +1113,27 @@ export const markConversationRead = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Renomeia o contato da conversa (nome que aparece no inbox). */
+export const renameConversation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      display_name: z.string().max(120).nullable(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const nome = data.display_name?.trim() || null;
+    const { error } = await context.supabase
+      .from("wa_conversations")
+      .update({ display_name: nome })
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true, display_name: nome };
+  });
+
+
 
 
 

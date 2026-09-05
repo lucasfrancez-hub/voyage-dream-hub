@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText } from "lucide-react";
+import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
@@ -66,7 +66,7 @@ interface Props {
   content: unknown;
   timestamp: string; // ISO
   senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
-  status?: "sent" | "delivered" | "read" | "failed";
+  status?: "sending" | "sent" | "delivered" | "read" | "failed";
   deleted?: boolean;
   /** Quem apagou a mensagem no WhatsApp */
   revokedBy?: "customer" | "business" | null;
@@ -229,7 +229,10 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
             </span>
           )}
           {isOut && status && (
-            status === "failed" ? (
+            status === "sending" ? (
+              <Clock className="h-3 w-3 opacity-70" aria-label="Enviando" />
+            ) : status === "failed" ? (
+
               <span className="flex items-center gap-1 font-medium text-red-500">
                 <span className="flex items-center gap-0.5" title="Não entregue">
                   <AlertCircle className="h-3 w-3" /> não entregue

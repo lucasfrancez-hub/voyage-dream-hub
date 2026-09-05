@@ -8,7 +8,7 @@ import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as I
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead } from "@/lib/chat/queries.functions";
+import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead, renameConversation } from "@/lib/chat/queries.functions";
 import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused, setInstagramCommentAiInstruction, ensureInstagramMirror } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { confirmThen } from "@/lib/confirm";
@@ -909,6 +909,11 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const pauseAiFn = useServerFn(setAiPaused);
   
   const [input, setInput] = useState("");
+  // Mensagens "em trânsito": aparecem no balão na hora, enquanto o envio
+  // termina em segundo plano (nada trava a caixa de texto).
+  const [pendentes, setPendentes] = useState<{ id: string; content: string; createdAt: string }[]>([]);
+  const removerPendente = (id: string) =>
+    setPendentes((p) => p.filter((x) => x.id !== id));
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<{ wa_id: string; snippet: string; sender: string | null } | null>(null);
   const wallpaper = useWallpaper();
@@ -916,7 +921,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const fileRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<{ file: File; previewUrl: string | null; kind: "image" | "document" } | null>(null);
   const mediaMut = useMutation({
-    mutationFn: async ({ file, caption, kind }: { file: File; caption: string; kind: "image" | "document" | "audio" }) => {
+    mutationFn: async ({ file, caption, kind }: { file: File; caption: string; kind: "image" | "document" | "audio"; tempId?: string }) => {
       const buf = new Uint8Array(await file.arrayBuffer());
       let binary = "";
       for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
@@ -931,12 +936,12 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       }});
     },
     onSuccess: () => {
-      setPendingFile((p) => { if (p?.previewUrl) URL.revokeObjectURL(p.previewUrl); return null; });
-      setInput("");
       qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
     },
     onError: (e) => toast.error(`Falha ao enviar: ${(e as Error).message}`),
+    onSettled: (_d, _e, vars) => { if (vars?.tempId) removerPendente(vars.tempId); },
   });
+
 
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -1055,17 +1060,34 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   };
 
   const submit = () => {
+    const novoPendente = (content: string) => {
+      const id = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      setPendentes((p) => [...p, { id, content, createdAt: new Date().toISOString() }]);
+      return id;
+    };
     if (audioDraft) {
-
       const file = audioDraft.file;
-      discardDraft();
-      mediaMut.mutate({ file, caption: "", kind: "audio" });
+      const url = audioDraft.url;
+      setAudioDraft(null); // mantém a URL viva pro balão tocar enquanto envia
+      const tempId = novoPendente(`[[media:audio|${url}|${file.name}]]\n🎤 [áudio enviado]`);
+      mediaMut.mutate({ file, caption: "", kind: "audio", tempId });
     } else if (pendingFile) {
-      mediaMut.mutate({ file: pendingFile.file, caption: input.trim(), kind: pendingFile.kind });
-    } else if (input.trim() && !sendMut.isPending) {
-      sendMut.mutate(input.trim());
+      const { file, previewUrl, kind } = pendingFile;
+      const legenda = input.trim();
+      setPendingFile(null);
+      setInput("");
+      const marcador = previewUrl ? `[[media:${kind}|${previewUrl}|${file.name}]]` : `📎 ${file.name}`;
+      const tempId = novoPendente(legenda ? `${marcador}\n${legenda}` : marcador);
+      mediaMut.mutate({ file, caption: legenda, kind, tempId });
+    } else if (input.trim()) {
+      const texto = input.trim();
+      setInput("");
+      setReplyTo(null);
+      const tempId = novoPendente(texto);
+      sendMut.mutate({ content: texto, tempId, reply: replyTo });
     }
   };
+
 
 
 
@@ -1116,22 +1138,25 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   });
 
   const sendMut = useMutation({
-
-    mutationFn: async (content: string) => sendFn({ data: {
+    mutationFn: async ({ content, reply }: {
+      content: string;
+      tempId?: string;
+      reply?: { wa_id: string; snippet: string; sender: string | null } | null;
+    }) => sendFn({ data: {
       conversation_id: conv.id,
       content,
-      reply_to_wa_id: replyTo?.wa_id ?? null,
-      reply_to_snippet: replyTo?.snippet ?? null,
-      reply_to_sender: replyTo?.sender ?? null,
+      reply_to_wa_id: reply?.wa_id ?? null,
+      reply_to_snippet: reply?.snippet ?? null,
+      reply_to_sender: reply?.sender ?? null,
     } }),
     onSuccess: () => {
-      setInput("");
-      setReplyTo(null);
       qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
       onRefetch();
     },
     onError: (e) => toast.error(`Falha ao enviar: ${(e as Error).message}`),
+    onSettled: (_d, _e, vars) => { if (vars?.tempId) removerPendente(vars.tempId); },
   });
+
 
   const toggleMut = useMutation({
     mutationFn: async (mode: "ai" | "human") => toggleFn({ data: { conversation_id: conv.id, mode } }),
@@ -1367,7 +1392,13 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             </div>
           ))
         )}
+        {pendentes.map((p) => (
+          <div key={p.id} className="mb-1 opacity-70">
+            <WhatsAppBubble side="out" content={p.content} timestamp={p.createdAt} status="sending" />
+          </div>
+        ))}
       </div>
+
 
       {/* Composer */}
       <div
@@ -1503,7 +1534,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             <button
               onClick={() => (recording ? stopRecording(false) : startRecording())}
               title={recording ? "Concluir gravação" : "Gravar áudio"}
-              disabled={mediaMut.isPending}
+              disabled={false}
               className={cn(
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors disabled:opacity-40",
                 recording
@@ -1511,17 +1542,18 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                   : "border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900",
               )}
             >
-              {mediaMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </button>
           )}
 
           <button
             onClick={submit}
-            disabled={(!input.trim() && !pendingFile && !audioDraft) || sendMut.isPending || mediaMut.isPending}
+            disabled={!input.trim() && !pendingFile && !audioDraft}
             className="flex h-10 w-10 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
-            {(sendMut.isPending || mediaMut.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            <Send className="h-4 w-4" />
           </button>
+
         </div>
       </div>
     </div>
@@ -1628,6 +1660,18 @@ function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void
 function ContactDetails({ conv, onChange, avatarUrl = null }: { conv: Conv; onChange: () => void; avatarUrl?: string | null }) {
   const [fotoAberta, setFotoAberta] = useState(false);
   const foto = igImg(avatarUrl ?? (conv as { contact_profile_pic?: string | null }).contact_profile_pic ?? null) ?? null;
+  // Nome do contato editável — o nome importado nem sempre vem certo.
+  const renameFn = useServerFn(renameConversation);
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [nomeDraft, setNomeDraft] = useState(conv.display_name ?? "");
+  useEffect(() => { setNomeDraft(conv.display_name ?? ""); }, [conv.id, conv.display_name]);
+  const renameMut = useMutation({
+    mutationFn: async (nome: string) =>
+      renameFn({ data: { conversation_id: conv.id, display_name: nome.trim() || null } }),
+    onSuccess: () => { setEditandoNome(false); onChange(); toast.success("Nome atualizado"); },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Não deu pra salvar o nome"),
+  });
+
   const toggleFn = useServerFn(toggleConversationMode);
   const stageFn = useServerFn(setFunnelStage);
   const assignFn = useServerFn(assignConversation);
@@ -1792,7 +1836,47 @@ function ContactDetails({ conv, onChange, avatarUrl = null }: { conv: Conv; onCh
               )}
             </DialogContent>
           </Dialog>
-          <div className="truncate text-sm font-semibold text-slate-900">{conv.display_name ?? "Sem cadastro"}</div>
+          {editandoNome ? (
+            <div className="flex items-center gap-1">
+              <input
+                value={nomeDraft}
+                onChange={(e) => setNomeDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") renameMut.mutate(nomeDraft);
+                  if (e.key === "Escape") { setNomeDraft(conv.display_name ?? ""); setEditandoNome(false); }
+                }}
+                autoFocus
+                placeholder="Nome do cliente"
+                className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm focus:border-[#F26B1F]/50 focus:outline-none"
+              />
+              <button
+                onClick={() => renameMut.mutate(nomeDraft)}
+                disabled={renameMut.isPending}
+                title="Salvar nome"
+                className="flex h-7 w-7 items-center justify-center rounded-md bg-[#F26B1F] text-white disabled:opacity-50"
+              >
+                {renameMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              </button>
+              <button
+                onClick={() => { setNomeDraft(conv.display_name ?? ""); setEditandoNome(false); }}
+                title="Cancelar"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditandoNome(true)}
+              title="Editar nome do contato"
+              className="mx-auto flex max-w-full items-center gap-1 rounded-md px-1 py-0.5 hover:bg-slate-100"
+            >
+              <span className="truncate text-sm font-semibold text-slate-900">{conv.display_name ?? "Sem cadastro"}</span>
+              <Save className="h-3 w-3 shrink-0 text-slate-400" />
+            </button>
+          )}
+
           <div className="text-[11px] text-slate-500">{conv.wa_phone}</div>
 
 
