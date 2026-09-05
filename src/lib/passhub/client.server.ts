@@ -90,15 +90,23 @@ async function concluirMfa(login: LoginPassHub, email: string): Promise<string> 
   // e não entrega o código aos aparelhos conectados (UazAPI não consegue ler).
   const canal = canais.includes("sms") ? "sms" : canais.includes("whatsapp") ? "whatsapp" : null;
   if (!canal) throw new PassHubError("A PassHub não ofereceu um canal para enviar o código", 502);
+  console.log(`[passhub] verificação em duas etapas detectada — canal escolhido: ${canal}`);
 
   // Abrimos a tentativa antes do envio para não perder códigos que cheguem rápido.
   const { iniciarTentativa, aguardarCodigo } = await import("@/lib/auth-code/service.server");
   const tentativa = await iniciarTentativa({ provider: "passhub", loginHint: email });
   const envio = await postAuth("/auth/mfa/enviar", { mfa_token: mfaToken, canal });
   if (!envio.ok) {
-    const motivo = typeof envio.json["message"] === "string" ? envio.json["message"] : "envio recusado";
+    const motivo =
+      typeof envio.json["message"] === "string"
+        ? envio.json["message"]
+        : typeof envio.json["code"] === "string"
+          ? (envio.json["code"] as string)
+          : "envio recusado";
+    console.warn(`[passhub] envio do código recusado (${envio.status}): ${motivo}`);
     throw new PassHubError(`PassHub não enviou o código (${motivo})`, envio.status);
   }
+  console.log(`[passhub] código solicitado por ${canal}; aguardando chegada na caixa de códigos`);
 
   const espera = await aguardarCodigo({
     authAttemptId: tentativa.authAttemptId,
@@ -107,11 +115,13 @@ async function concluirMfa(login: LoginPassHub, email: string): Promise<string> 
     timeoutMs: 180_000,
   });
   if (!espera.success) {
+    console.warn("[passhub] código não chegou dentro do tempo limite");
     throw new PassHubError(
       "Código da PassHub não recebido. Digite-o em Códigos de autenticação e tente novamente.",
       408,
     );
   }
+  console.log("[passhub] código recebido — preenchendo verificação");
 
   const verificacao = await postAuth("/auth/mfa/verificar", {
     mfa_token: mfaToken,
@@ -125,8 +135,10 @@ async function concluirMfa(login: LoginPassHub, email: string): Promise<string> 
         : typeof verificacao.json["code"] === "string"
           ? verificacao.json["code"]
           : "código recusado";
+    console.warn(`[passhub] verificação recusada (${verificacao.status}): ${motivo}`);
     throw new PassHubError(`Verificação PassHub falhou (${motivo})`, verificacao.status);
   }
+  console.log("[passhub] verificação concluída com sucesso");
   return token;
 }
 
@@ -135,6 +147,8 @@ async function concluirMfa(login: LoginPassHub, email: string): Promise<string> 
 type TokenCache = { token: string; expiraEm: number };
 let cache: TokenCache | null = null;
 let inflight: Promise<string> | null = null;
+
+const SESSAO_ID = "default";
 
 /** Expiração real do JWT (com folga de 2 min); fallback de 30 min. */
 function expiraDoJwt(token: string): number {
@@ -149,12 +163,73 @@ function expiraDoJwt(token: string): number {
   return Date.now() + 30 * 60_000;
 }
 
+async function db() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
+}
+
+/**
+ * Sessão guardada no banco: o servidor roda sem estado, então sem isso cada
+ * processo novo pediria um código de verificação. O token nunca vai ao log.
+ */
+async function sessaoSalva(): Promise<TokenCache | null> {
+  try {
+    const { data } = await (await db())
+      .from("passhub_sessions")
+      .select("token, expires_at")
+      .eq("id", SESSAO_ID)
+      .maybeSingle();
+    const linha = data as { token?: string; expires_at?: string } | null;
+    if (!linha?.token || !linha.expires_at) return null;
+    const expiraEm = new Date(linha.expires_at).getTime();
+    if (!Number.isFinite(expiraEm) || Date.now() >= expiraEm) return null;
+    return { token: linha.token, expiraEm };
+  } catch (e) {
+    console.warn(`[passhub] não foi possível ler a sessão salva: ${e instanceof Error ? e.message : e}`);
+    return null;
+  }
+}
+
+async function salvarSessao(sessao: TokenCache): Promise<void> {
+  try {
+    await (await db()).from("passhub_sessions").upsert(
+      {
+        id: SESSAO_ID,
+        token: sessao.token,
+        expires_at: new Date(sessao.expiraEm).toISOString(),
+        updated_at: new Date().toISOString(),
+      } as never,
+      { onConflict: "id" },
+    );
+    const minutos = Math.round((sessao.expiraEm - Date.now()) / 60000);
+    console.log(`[passhub] sessão salva e reaproveitável por ~${minutos} min`);
+  } catch (e) {
+    console.warn(`[passhub] falha ao salvar a sessão: ${e instanceof Error ? e.message : e}`);
+  }
+}
+
+async function apagarSessao(): Promise<void> {
+  try {
+    await (await db()).from("passhub_sessions").delete().eq("id", SESSAO_ID);
+  } catch {
+    /* sessão local já foi limpa */
+  }
+}
+
 export async function passhubToken(): Promise<string> {
   if (cache && Date.now() < cache.expiraEm) return cache.token;
   if (inflight) return inflight;
 
   inflight = (async () => {
+    const salva = await sessaoSalva();
+    if (salva) {
+      cache = salva;
+      console.log("[passhub] sessão válida reaproveitada (sem novo login)");
+      return salva.token;
+    }
+
     const { email, senha } = credenciais();
+    console.log("[passhub] iniciando login com e-mail e senha");
     const login = await postAuth("/auth/login", { email, password: senha });
     if (!login.ok) {
       throw new PassHubError(`Login PassHub falhou (${login.status})`, login.status, login.texto.slice(0, 400));
@@ -162,7 +237,10 @@ export async function passhubToken(): Promise<string> {
     const resposta = login.json as LoginPassHub;
     const tokenDireto = tokenDaResposta(login.json);
     const token = tokenDireto ?? (await concluirMfa(resposta, email));
-    cache = { token, expiraEm: expiraDoJwt(token) };
+    const sessao = { token, expiraEm: expiraDoJwt(token) };
+    cache = sessao;
+    await salvarSessao(sessao);
+    console.log("[passhub] login concluído");
     return token;
   })().finally(() => {
     inflight = null;
@@ -171,9 +249,11 @@ export async function passhubToken(): Promise<string> {
   return inflight;
 }
 
-export function passhubInvalidarToken(): void {
+export async function passhubInvalidarToken(): Promise<void> {
   cache = null;
+  await apagarSessao();
 }
+
 
 /* ------------------------------- requisição ------------------------------- */
 
@@ -203,7 +283,7 @@ export async function passhubRequest<T>(
 
   let res = await executar(await passhubToken());
   if (res.status === 401 || res.status === 403) {
-    passhubInvalidarToken();
+    await passhubInvalidarToken();
     res = await executar(await passhubToken());
   }
 

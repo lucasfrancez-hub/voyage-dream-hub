@@ -57,7 +57,7 @@ export async function passhubPdfReserva(id: number): Promise<Buffer> {
 
   let res = await buscar(await passhubToken());
   if (res.status === 401 || res.status === 403) {
-    passhubInvalidarToken();
+    await passhubInvalidarToken();
     res = await buscar(await passhubToken());
   }
   if (!res.ok) {
