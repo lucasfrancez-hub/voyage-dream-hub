@@ -395,6 +395,10 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           </span>
         </button>
 
+        <Validacao3DSCartao reservaId={String(r.idPassagem)} />
+
+
+
         {linkCliente ? (
           <div className="grid grid-cols-2 gap-2">
             <button
