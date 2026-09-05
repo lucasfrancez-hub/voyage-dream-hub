@@ -166,10 +166,37 @@ export const passhubReservar = createServerFn({ method: "POST" })
       return { ok: true as const, reserva };
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao reservar";
-      console.error("[passhub] reservar falhou:", msg);
-      return { ok: false as const, erro: msg };
+      // A PassHub devolve o motivo real dentro do corpo do erro. Sem isso, a
+      // tela só mostrava "respondeu 500" e ninguém sabia o que corrigir.
+      const detalhe = (e as { detalhe?: unknown } | null)?.detalhe;
+      const textoDetalhe = typeof detalhe === "string" ? detalhe : detalhe ? JSON.stringify(detalhe) : "";
+      console.error("[passhub] reservar falhou:", msg, textoDetalhe);
+      let amigavel = msg;
+      const d = textoDetalhe.toLowerCase();
+      if (/expir|token|inválid|invalid|not found/.test(d) || /respondeu 5\d\d/.test(msg)) {
+        amigavel = `${msg} — ${motivoLegivel(textoDetalhe) || "a tarifa pode ter expirado; tarife novamente e reserve em seguida."}`;
+      } else if (textoDetalhe) {
+        amigavel = `${msg} — ${motivoLegivel(textoDetalhe)}`;
+      }
+      return { ok: false as const, erro: amigavel, detalhe: textoDetalhe.slice(0, 800) };
     }
   });
+
+/** Extrai a mensagem legível de um corpo de erro da PassHub (JSON ou texto). */
+function motivoLegivel(texto: string): string {
+  if (!texto) return "";
+  try {
+    const j = JSON.parse(texto) as Record<string, unknown>;
+    for (const k of ["message", "mensagem", "detail", "error", "erro", "description"]) {
+      const v = j[k];
+      if (typeof v === "string" && v.trim()) return v.trim();
+      if (v && typeof v === "object") return JSON.stringify(v).slice(0, 300);
+    }
+    return JSON.stringify(j).slice(0, 300);
+  } catch {
+    return texto.replace(/\s+/g, " ").trim().slice(0, 300);
+  }
+}
 
 /** Lista todas as reservas da agência na PassHub (painel + motor interno). */
 export const passhubReservas = createServerFn({ method: "POST" })
