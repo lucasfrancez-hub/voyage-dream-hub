@@ -15,6 +15,7 @@ import {
   passhubCartaoEmitirPublico,
   passhubCartaoParcelasPublico,
 } from "@/lib/passhub/passhub.functions";
+import { BrandLogo, CARD_BRANDS } from "@/components/CardForm";
 
 declare global {
   interface Window {
