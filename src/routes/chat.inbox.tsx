@@ -18,6 +18,7 @@ import { confirmThen } from "@/lib/confirm";
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
 import { ForwardMessageDialog } from "@/components/chat/ForwardMessageDialog";
+import { AudioMessage } from "@/components/chat/AudioMessage";
 import { AiInstructionBar } from "@/components/chat/AiInstructionBar";
 import { FraudRiskBadge } from "@/components/chat/FraudRiskBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
