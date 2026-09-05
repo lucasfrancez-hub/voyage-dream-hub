@@ -61,7 +61,10 @@ export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHub
   const bruto = await passhubRequest<unknown>(`${passhubBases.nexus}/api/v1/tarifar`, {
     body,
     headers: correlationId(),
+    // A companhia oscila: repetimos sozinhos antes de mostrar erro na tela.
+    retentativas: 2,
   });
+
   const r = rec(bruto);
 
   const pricedTokens = lista(r["pricedRateTokens"]);
