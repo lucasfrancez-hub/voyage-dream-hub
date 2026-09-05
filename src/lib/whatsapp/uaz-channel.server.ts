@@ -245,7 +245,10 @@ export function normalizeUazMessage(raw: unknown, phoneHint?: string | null): Ua
       text = (pick<string>(conteudo, "text", "caption", "conversation") ?? "") as string;
     }
   }
-  const mediaUrl = pick<string>(m, "file", "fileURL", "mediaUrl", "url", "downloadUrl") ?? null;
+  const conteudoObj = m.content && typeof m.content === "object" ? (m.content as Record<string, unknown>) : null;
+  const mediaUrl =
+    pick<string>(m, "file", "fileURL", "mediaUrl", "url", "downloadUrl") ??
+    (conteudoObj ? (pick<string>(conteudoObj, "URL", "url", "fileURL") ?? null) : null);
   const ts = Number(pick<number | string>(m, "messageTimestamp", "timestamp", "t", "messageTimestampMs") ?? 0);
   const timestampMs = !Number.isFinite(ts) || ts <= 0 ? Date.now() : ts > 1e12 ? ts : ts * 1000;
 
@@ -258,11 +261,35 @@ export function normalizeUazMessage(raw: unknown, phoneHint?: string | null): Ua
     type,
     text: typeof text === "string" ? text : "",
     mediaUrl: typeof mediaUrl === "string" ? mediaUrl : null,
-    mimeType: pick<string>(m, "mimetype", "mimeType") ?? null,
-    filename: pick<string>(m, "fileName", "filename", "docName") ?? null,
+    mimeType:
+      pick<string>(m, "mimetype", "mimeType") ??
+      (conteudoObj ? (pick<string>(conteudoObj, "mimetype", "mimeType") ?? null) : null),
+    filename:
+      pick<string>(m, "fileName", "filename", "docName") ??
+      (conteudoObj ? (pick<string>(conteudoObj, "fileName", "filename", "title") ?? null) : null),
     timestampMs,
     replyId: pick<string>(m, "quotedMessageId", "replyid", "quotedId") ?? null,
   };
+}
+
+/**
+ * Pede à UazAPI que baixe e descriptografe a mídia da mensagem, devolvendo
+ * uma URL já utilizável. Necessário porque o webhook entrega apenas a URL
+ * criptografada (.enc) do WhatsApp.
+ */
+export async function uazResolveMedia(
+  messageId: string,
+): Promise<{ url: string; mimeType: string | null } | null> {
+  try {
+    const res = (await uazRequest("/message/download", { id: messageId })) as
+      | { fileURL?: string; mimetype?: string }
+      | null;
+    if (!res?.fileURL) return null;
+    return { url: res.fileURL, mimeType: res.mimetype ?? null };
+  } catch (err) {
+    console.warn("[whatsapp/uaz media] resolve falhou:", err instanceof Error ? err.message : err);
+    return null;
+  }
 }
 
 /** Baixa uma mídia da UazAPI (URL própria da instância ou pública). */
