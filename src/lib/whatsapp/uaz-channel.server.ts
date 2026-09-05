@@ -201,6 +201,8 @@ export type UazNormalized = {
   filename: string | null;
   timestampMs: number;
   replyId: string | null;
+  /** Prévia textual da mensagem citada, quando a UazAPI a envia. */
+  replySnippet: string | null;
 };
 
 const MEDIA_MAP: Record<string, UazNormalized["type"]> = {
