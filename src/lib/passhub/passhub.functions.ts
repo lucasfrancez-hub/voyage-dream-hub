@@ -132,12 +132,19 @@ export const passhubTarifarOferta = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { passhubTarifarOferta: tarifar } = await import("./book.server");
+    const { passhubMotivo } = await import("./client.server");
     try {
       return { ok: true as const, tarifacao: await tarifar(data) };
     } catch (e) {
-      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao tarifar" };
+      const msg = e instanceof Error ? e.message : "Falha ao tarifar";
+      const motivo = passhubMotivo(e);
+      console.error(
+        `[passhub] tarifar falhou: ${msg} | provedor=${data.provedor} tokens=${data.rateTokens.length} | ${motivo}`,
+      );
+      return { ok: false as const, erro: motivo ? `${msg} — ${motivo}` : msg, detalhe: motivo };
     }
   });
+
 
 /** Cria a reserva na PassHub e devolve o localizador. */
 export const passhubReservar = createServerFn({ method: "POST" })
