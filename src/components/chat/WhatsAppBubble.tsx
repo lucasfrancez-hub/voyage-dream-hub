@@ -382,6 +382,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
 
 
         </div>
+        {chipsReacoes}
       </div>
       {!isOut && onReply && !deleted && (
         <button
