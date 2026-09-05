@@ -387,16 +387,19 @@ export async function saveMessage(input: {
 
   // Toca last_activity_at do protocolo
   if (protocoloId) {
+    const activityAt = input.created_at ?? new Date().toISOString();
     await supabaseAdmin
       .from("wa_protocolos")
       // Qualquer mensagem real reinicia integralmente o relógio de 48 horas.
       // Sem limpar o aviso, um protocolo podia ser encerrado 1h após um aviso
       // antigo mesmo tendo recebido mensagens novas nesse intervalo.
       .update({
-        last_activity_at: input.created_at ?? new Date().toISOString(),
+        last_activity_at: activityAt,
         inactivity_warned_at: null,
       })
-      .eq("id", protocoloId);
+      .eq("id", protocoloId)
+      // Uma importação histórica nunca pode voltar o relógio de inatividade.
+      .lte("last_activity_at", activityAt);
   }
 
   // Atualiza metadados da conversa. Na importação de histórico a mensagem pode
