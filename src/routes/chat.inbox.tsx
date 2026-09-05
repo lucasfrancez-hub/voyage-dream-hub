@@ -927,8 +927,20 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const removerPendente = (id: string) =>
     setPendentes((p) => p.filter((x) => x.id !== id));
   const [detailsOpen, setDetailsOpen] = useState(false);
+  // Foto do contato ampliada ao tocar no avatar do cabeçalho.
+  const [fotoAberta, setFotoAberta] = useState(false);
   const [replyTo, setReplyTo] = useState<{ wa_id: string; snippet: string; sender: string | null } | null>(null);
   const wallpaper = useWallpaper();
+  // Arrastar da borda esquerda pra direita fecha a conversa (igual iOS/WhatsApp).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if (fotoAberta) { e.preventDefault(); setFotoAberta(false); return; }
+      if (detailsOpen) { e.preventDefault(); setDetailsOpen(false); return; }
+      if (onBack) { e.preventDefault(); onBack(); }
+    };
+    window.addEventListener("app:swipe-back", handler as EventListener);
+    return () => window.removeEventListener("app:swipe-back", handler as EventListener);
+  }, [onBack, detailsOpen, fotoAberta]);
   const sendMediaFn = useServerFn(sendHumanMedia);
   const fileRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<{ file: File; previewUrl: string | null; kind: "image" | "document" } | null>(null);
@@ -1305,7 +1317,15 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-xs font-semibold text-white">
+        <button
+          type="button"
+          onClick={() => {
+            if ((conv as { profile_pic_url?: string | null }).profile_pic_url) setFotoAberta(true);
+            else setDetailsOpen(true);
+          }}
+          aria-label="Ver foto do contato"
+          className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-xs font-semibold text-white transition active:scale-95"
+        >
           {(conv as { profile_pic_url?: string | null }).profile_pic_url ? (
             <img
               src={(conv as { profile_pic_url?: string | null }).profile_pic_url!}
@@ -1316,18 +1336,14 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           ) : (
             (conv.display_name ?? conv.wa_phone).slice(0, 2).toUpperCase()
           )}
-        </div>
+        </button>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <div className="truncate text-sm font-semibold text-slate-900">{conv.display_name ?? conv.wa_phone}</div>
-            {conv.protocolo_numero && (
-              <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
-                #{conv.protocolo_numero}
-              </span>
-            )}
-          </div>
+          <div className="truncate text-sm font-semibold text-slate-900">{conv.display_name ?? conv.wa_phone}</div>
           <div className="truncate text-[11px] text-slate-500">
+            {conv.protocolo_numero && (
+              <span className="mr-1 font-mono text-slate-600">#{conv.protocolo_numero} ·</span>
+            )}
             {conv.wa_phone} · {conv.mode === "ai" ? `IA (${conv.agent_slug ?? "auto"})` : conv.mode === "human" ? "Humano" : "Arquivada"}
             {conv.mode === "ai" && aiPaused && (
               <> · <span className="font-semibold text-amber-600">IA pausada</span></>
@@ -1379,12 +1395,40 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
 
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
         <SheetContent side="right" className="w-full max-w-md overflow-y-auto p-0 sm:max-w-md">
-          <SheetHeader className="border-b border-slate-200 px-4 py-3">
-            <SheetTitle className="text-sm text-slate-900">Detalhes do contato</SheetTitle>
+          <SheetHeader
+            className="sticky top-0 z-10 border-b border-slate-200 bg-background/95 px-4 pb-3 backdrop-blur"
+            style={{ paddingTop: "max(0.75rem, calc(env(safe-area-inset-top, 0px) + 0.75rem))" }}
+          >
+            <SheetTitle className="pr-12 text-sm text-slate-900">Detalhes do contato</SheetTitle>
           </SheetHeader>
           <ContactDetails conv={conv} onChange={onRefetch} />
         </SheetContent>
       </Sheet>
+
+      {fotoAberta && (conv as { profile_pic_url?: string | null }).profile_pic_url && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-6"
+          onClick={() => setFotoAberta(false)}
+          role="dialog"
+          aria-label="Foto do contato"
+        >
+          <button
+            type="button"
+            onClick={() => setFotoAberta(false)}
+            aria-label="Fechar foto"
+            className="absolute right-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white"
+            style={{ top: "max(1rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))" }}
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={(conv as { profile_pic_url?: string | null }).profile_pic_url!}
+            alt={conv.display_name ?? conv.wa_phone}
+            className="max-h-[80vh] max-w-full rounded-2xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {window24 && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
