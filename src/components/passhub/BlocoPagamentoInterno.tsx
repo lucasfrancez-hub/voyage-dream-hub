@@ -355,27 +355,20 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
 
         <button
           type="button"
-          className="w-full rounded-xl border border-brand-orange/40 bg-gradient-to-br from-brand-orange/20 to-brand-orange/5 p-4 text-left transition hover:border-brand-orange/70 hover:from-brand-orange/25 disabled:opacity-60"
+          className="group flex w-full items-center gap-4 rounded-xl border border-brand-orange/30 bg-transparent px-5 py-4 text-left transition-all hover:border-brand-orange hover:bg-brand-orange/5 disabled:opacity-60"
           onClick={() => abrirCartao.mutate()}
           disabled={abrirCartao.isPending}
         >
-          <div className="flex items-center gap-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-orange/25 text-brand-orange">
-              {abrirCartao.isPending ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
-              ) : (
-                <CreditCard className="h-6 w-6" />
-              )}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-white">
-                Pagar com cartão de crédito
-              </span>
-              <span className="block text-xs cons-muted">
-                Abre a tela segura para digitar os dados e escolher as parcelas.
-              </span>
-            </span>
-          </div>
+          <span className="flex h-10 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-orange/10 text-brand-orange transition-colors group-hover:bg-brand-orange/20">
+            {abrirCartao.isPending ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : (
+              <CreditCard className="h-6 w-6" />
+            )}
+          </span>
+          <span className="text-base font-semibold text-white">
+            Pagar com cartão de crédito
+          </span>
         </button>
 
         {linkCliente ? (
