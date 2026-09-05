@@ -351,7 +351,6 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
   }
 
   const parcelaEscolhida = parcelas.find((p) => p.parcelas === parcelaSel);
-  const bandeiras = ["Visa", "Mastercard", "Amex", "Elo", "Hipercard"];
 
   return (
     <div className="w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
