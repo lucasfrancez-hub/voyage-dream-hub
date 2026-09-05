@@ -366,6 +366,7 @@ export async function saveMessage(input: {
       product_type: input.product_type ?? (input.quote_id ? "flight" : null),
       transcricao: input.transcricao ?? null,
       resumo: input.resumo ?? null,
+      ...(input.created_at ? { created_at: input.created_at } : {}),
     })
     .select("*")
     .single();
