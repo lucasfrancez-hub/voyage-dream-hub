@@ -30,7 +30,6 @@ import {
   passhubLinkPagamento,
   passhubPagamentosReserva,
   passhubPagarAgora,
-  passhubPixReserva,
   passhubPreviaPagamento,
   passhubRepassarPagamento,
 } from "@/lib/passhub/passhub.functions";
