@@ -167,6 +167,8 @@ export async function mirrorInstagramMessage(input: MirrorInput) {
     message_type: input.messageType ?? "text",
     transcricao,
     skip_protocolo: input.skipProtocolo ?? false,
+    // Preserva o horário real da mensagem no Instagram (não a hora do import).
+    created_at: when,
   });
 
   return { conversationId: conversationId!, waPhone };
