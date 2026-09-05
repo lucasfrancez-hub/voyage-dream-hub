@@ -401,18 +401,11 @@ export const passhubCartao3dsPublico = createServerFn({ method: "POST" })
 
 /** Emite o pagamento no cartão (após o 3DS quando houver desafio). */
 export const passhubCartaoEmitirPublico = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
-    titularSchema.extend({ reservaId: z.string().min(1).max(120).optional() }).parse(input),
-  )
+  .inputValidator((input: unknown) => titularSchema.parse(input))
   .handler(async ({ data }) => {
     try {
-      // Trava de backend: com reserva informada, só emite com 3DS válido.
-      if (data.reservaId) {
-        const { garantirValidacao3DS } = await import("@/lib/stripe/tres-ds.server");
-        await garantirValidacao3DS(data.reservaId);
-      }
       const { passhubCartaoEmitir } = await import("./cartao.server");
-      const { codigo, deviceId, reservaId: _reservaId, ...titular } = data;
+      const { codigo, deviceId, ...titular } = data;
       return { ok: true as const, resultado: await passhubCartaoEmitir(codigo, titular, deviceId) };
     } catch (e) {
       return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao pagar" };

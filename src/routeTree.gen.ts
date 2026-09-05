@@ -80,6 +80,7 @@ import { Route as AdminReservasPreviewRouteImport } from './routes/admin.reserva
 import { Route as AdminSabreRouteImport } from './routes/admin.sabre'
 import { Route as AdminSegurancaRouteImport } from './routes/admin.seguranca'
 import { Route as AdminSegurosRouteImport } from './routes/admin.seguros'
+import { Route as AdminStripeRouteImport } from './routes/admin.stripe'
 import { Route as AdminTesteCheckoutOwnerRouteImport } from './routes/admin.teste-checkout-owner'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminVoosTesteRouteImport } from './routes/admin.voos-teste'
@@ -559,6 +560,11 @@ const AdminSegurancaRoute = AdminSegurancaRouteImport.update({
 const AdminSegurosRoute = AdminSegurosRouteImport.update({
   id: '/seguros',
   path: '/seguros',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminStripeRoute = AdminStripeRouteImport.update({
+  id: '/stripe',
+  path: '/stripe',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminTesteCheckoutOwnerRoute = AdminTesteCheckoutOwnerRouteImport.update({
@@ -1303,6 +1309,7 @@ export interface FileRoutesByFullPath {
   '/admin/sabre': typeof AdminSabreRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
+  '/admin/stripe': typeof AdminStripeRoute
   '/admin/teste-checkout-owner': typeof AdminTesteCheckoutOwnerRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
@@ -1498,6 +1505,7 @@ export interface FileRoutesByTo {
   '/admin/sabre': typeof AdminSabreRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
+  '/admin/stripe': typeof AdminStripeRoute
   '/admin/teste-checkout-owner': typeof AdminTesteCheckoutOwnerRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
@@ -1697,6 +1705,7 @@ export interface FileRoutesById {
   '/admin/sabre': typeof AdminSabreRoute
   '/admin/seguranca': typeof AdminSegurancaRoute
   '/admin/seguros': typeof AdminSegurosRoute
+  '/admin/stripe': typeof AdminStripeRoute
   '/admin/teste-checkout-owner': typeof AdminTesteCheckoutOwnerRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/voos-teste': typeof AdminVoosTesteRoute
@@ -1897,6 +1906,7 @@ export interface FileRouteTypes {
     | '/admin/sabre'
     | '/admin/seguranca'
     | '/admin/seguros'
+    | '/admin/stripe'
     | '/admin/teste-checkout-owner'
     | '/admin/usuarios'
     | '/admin/voos-teste'
@@ -2092,6 +2102,7 @@ export interface FileRouteTypes {
     | '/admin/sabre'
     | '/admin/seguranca'
     | '/admin/seguros'
+    | '/admin/stripe'
     | '/admin/teste-checkout-owner'
     | '/admin/usuarios'
     | '/admin/voos-teste'
@@ -2290,6 +2301,7 @@ export interface FileRouteTypes {
     | '/admin/sabre'
     | '/admin/seguranca'
     | '/admin/seguros'
+    | '/admin/stripe'
     | '/admin/teste-checkout-owner'
     | '/admin/usuarios'
     | '/admin/voos-teste'
@@ -3019,6 +3031,13 @@ declare module '@tanstack/react-router' {
       path: '/seguros'
       fullPath: '/admin/seguros'
       preLoaderRoute: typeof AdminSegurosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/stripe': {
+      id: '/admin/stripe'
+      path: '/stripe'
+      fullPath: '/admin/stripe'
+      preLoaderRoute: typeof AdminStripeRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/teste-checkout-owner': {
@@ -3974,6 +3993,7 @@ interface AdminRouteChildren {
   AdminSabreRoute: typeof AdminSabreRoute
   AdminSegurancaRoute: typeof AdminSegurancaRoute
   AdminSegurosRoute: typeof AdminSegurosRoute
+  AdminStripeRoute: typeof AdminStripeRoute
   AdminTesteCheckoutOwnerRoute: typeof AdminTesteCheckoutOwnerRoute
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminVoosTesteRoute: typeof AdminVoosTesteRoute
@@ -4045,6 +4065,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSabreRoute: AdminSabreRoute,
   AdminSegurancaRoute: AdminSegurancaRoute,
   AdminSegurosRoute: AdminSegurosRoute,
+  AdminStripeRoute: AdminStripeRoute,
   AdminTesteCheckoutOwnerRoute: AdminTesteCheckoutOwnerRoute,
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminVoosTesteRoute: AdminVoosTesteRoute,

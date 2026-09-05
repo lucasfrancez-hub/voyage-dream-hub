@@ -40,7 +40,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PagamentoCartaoPasshub } from "@/components/passhub/PagamentoCartaoPasshub";
-import { Validacao3DSCartao } from "@/components/passhub/Validacao3DSCartao";
+
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 
 type PreviaPix = {
@@ -395,10 +395,6 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
             Pagar com cartão de crédito
           </span>
         </button>
-
-        <Validacao3DSCartao reservaId={String(r.idPassagem)} />
-
-
 
         {linkCliente ? (
           <div className="grid grid-cols-2 gap-2">
