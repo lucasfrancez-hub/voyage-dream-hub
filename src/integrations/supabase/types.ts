@@ -9718,6 +9718,8 @@ export type Database = {
           mode: string
           person_id: string | null
           priority: string
+          profile_pic_fetched_at: string | null
+          profile_pic_url: string | null
           protocolo_ativo_id: string | null
           tags: string[]
           ultima_companhia_referenciada: string | null
@@ -9781,6 +9783,8 @@ export type Database = {
           mode?: string
           person_id?: string | null
           priority?: string
+          profile_pic_fetched_at?: string | null
+          profile_pic_url?: string | null
           protocolo_ativo_id?: string | null
           tags?: string[]
           ultima_companhia_referenciada?: string | null
@@ -9844,6 +9848,8 @@ export type Database = {
           mode?: string
           person_id?: string | null
           priority?: string
+          profile_pic_fetched_at?: string | null
+          profile_pic_url?: string | null
           protocolo_ativo_id?: string | null
           tags?: string[]
           ultima_companhia_referenciada?: string | null
