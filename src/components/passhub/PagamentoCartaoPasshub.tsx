@@ -83,6 +83,8 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
   const sfRef = useRef<SecureFieldsInstance | null>(null);
   const [pronto, setPronto] = useState(false);
   const [erroCampos, setErroCampos] = useState("");
+  const [bandeira, setBandeira] = useState("");
+  const [numeroMasc, setNumeroMasc] = useState("");
 
   const [nome, setNome] = useState("");
   const [validade, setValidade] = useState("");
@@ -120,6 +122,23 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
           },
         );
         sf.on("ready", () => vivo && setPronto(true));
+        // Espelha bandeira e dígitos no cartão ilustrado (sem expor o número).
+        sf.on("change", (data?: unknown) => {
+          if (!vivo) return;
+          const campos = (data as { fields?: Record<string, { paymentMethod?: string[]; length?: number }> })
+            ?.fields;
+          const num = campos?.["cardNumber"];
+          const marca = num?.paymentMethod?.[0];
+          const mapa: Record<string, string> = {
+            VIS: "Visa", ECA: "Mastercard", AMX: "Amex", DIN: "Diners",
+            DIS: "Discover", JCB: "JCB", ELO: "Elo", HIP: "Hipercard",
+          };
+          setBandeira(marca ? (mapa[marca] ?? marca) : "");
+          const n = num?.length ?? 0;
+          setNumeroMasc(
+            n ? Array.from({ length: Math.min(n, 16) }, () => "•").join("").replace(/(.{4})/g, "$1 ").trim() : "",
+          );
+        });
       } catch {
         if (vivo && tentativas++ < 3) setTimeout(montar, 1500);
         else if (vivo) setErroCampos("Campos do cartão não carregaram. Recarregue a página.");
