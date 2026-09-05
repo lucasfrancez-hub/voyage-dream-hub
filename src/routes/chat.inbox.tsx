@@ -1010,6 +1010,13 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     },
     onError: (e) => toast.error(`Não deu pra apagar: ${(e as Error).message}`),
   });
+  const reagirFn = useServerFn(reactToMessage);
+  const reagirMut = useMutation({
+    mutationFn: (input: { id: string; emoji: string }) =>
+      reagirFn({ data: { message_id: input.id, emoji: input.emoji } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] }),
+    onError: (e) => toast.error(`Não deu pra reagir: ${(e as Error).message}`),
+  });
   const salvarStickerMut = useMutation({
     mutationFn: (input: { url: string; filename: string; remover?: boolean }) =>
       toggleStickerFn({ data: input }),
