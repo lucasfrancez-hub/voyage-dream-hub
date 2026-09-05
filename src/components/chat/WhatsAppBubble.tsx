@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward, SmilePlus } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward, SmilePlus, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
