@@ -578,17 +578,18 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
         </div>
 
       {etapa === "desafio" ? (
-        <div className="space-y-3">
-          <p className="text-center text-xs font-medium text-muted-foreground">
-            Autenticação do seu banco — confirme no aplicativo ou com o código enviado.
-          </p>
-          <div ref={desafioRef} className="min-h-[450px] w-full overflow-hidden rounded-xl bg-white" />
-          {processando ? (
-            <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Aguardando confirmação do banco…
-            </p>
-          ) : null}
-        </div>
+        <Desafio3DSPasshub
+          challengeRef={desafioRef}
+          bankName={bandeira || "Seu banco"}
+          cardLast4={numeroMasc.slice(-4) || "••••"}
+          valor={parcelaEscolhida?.total ?? 0}
+          parcelas={parcelaEscolhida?.parcelas ?? 1}
+          processing={processando}
+          onCancel={() => {
+            setEtapa("parcelas");
+            toast.error("Autenticação cancelada. Tente outro cartão ou método.");
+          }}
+        />
       ) : null}
       </div>
     </div>
