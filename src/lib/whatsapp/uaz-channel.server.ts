@@ -294,6 +294,7 @@ export function normalizeUazMessage(raw: unknown, phoneHint?: string | null): Ua
     (conteudoObj ? (pick<string>(conteudoObj, "URL", "url", "fileURL") ?? null) : null);
   const ts = Number(pick<number | string>(m, "messageTimestamp", "timestamp", "t", "messageTimestampMs") ?? 0);
   const timestampMs = !Number.isFinite(ts) || ts <= 0 ? Date.now() : ts > 1e12 ? ts : ts * 1000;
+  const citada = extrairCitada(m);
 
   return {
     id,
