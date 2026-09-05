@@ -413,11 +413,29 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
         ) : null}
       </Etapa>
 
-      {/* ---------------- 3. Link do checkout (auxiliar) ---------------- */}
+      {/* ---------------- 3. Cartão de crédito + link (auxiliar) ---------------- */}
       <section className="border-t border-white/5 pt-4">
         <span className="text-[10px] font-bold uppercase tracking-widest cons-muted">
-          Recurso auxiliar · checkout da consolidadora
+          Recurso auxiliar · cartão de crédito
         </span>
+        <button
+          type="button"
+          className="cons-btn mt-2 w-full justify-center py-3 text-sm font-bold"
+          onClick={() => abrirCartao.mutate()}
+          disabled={abrirCartao.isPending}
+        >
+          {abrirCartao.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <CreditCard className="h-4 w-4" />
+          )}
+          Pagar com cartão de crédito
+        </button>
+        <p className="mt-1 text-[11px] cons-muted">
+          Digita o cartão aqui dentro e paga na hora, com parcelas e confirmação do banco na
+          tela. Nenhum link é gerado para o cliente.
+        </p>
+
         {link ? (
           <div className="mt-2 space-y-2">
             <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 p-2">
