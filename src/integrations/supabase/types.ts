@@ -10952,6 +10952,30 @@ export type Database = {
           },
         ]
       }
+      wa_stickers_salvos: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          saved_by: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          filename?: string
+          id?: string
+          saved_by?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          saved_by?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       wa_webhook_events: {
         Row: {
           conversation_id: string | null
