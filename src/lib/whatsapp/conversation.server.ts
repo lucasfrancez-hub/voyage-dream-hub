@@ -273,6 +273,12 @@ export async function saveMessage(input: {
   transcricao?: string | null;
   /** Resumo curto da mensagem (usado quando o cliente responde a um áudio). */
   resumo?: string | null;
+  /**
+   * Horário REAL da mensagem no WhatsApp (ISO). Obrigatório na importação de
+   * histórico: sem isso tudo entra com a hora do import e a conversa aparece
+   * fora de ordem.
+   */
+  created_at?: string | null;
 }): Promise<WaMessage | null> {
   // Dedupe manual quando temos wa_message_id
   if (input.wa_message_id) {
