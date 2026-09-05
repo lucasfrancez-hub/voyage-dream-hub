@@ -17,6 +17,7 @@ import { confirmThen } from "@/lib/confirm";
 
 import { FUNNEL_STAGES } from "@/lib/chat/funnel-stages";
 import { WhatsAppBubble, DateDivider } from "@/components/chat/WhatsAppBubble";
+import { ForwardMessageDialog } from "@/components/chat/ForwardMessageDialog";
 import { AiInstructionBar } from "@/components/chat/AiInstructionBar";
 import { FraudRiskBadge } from "@/components/chat/FraudRiskBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -986,6 +987,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     onError: (e) => toast.error(`Falha ao enviar figurinha: ${(e as Error).message}`),
   });
 
+  const [encaminhando, setEncaminhando] = useState<string | null>(null);
   const toggleStickerFn = useServerFn(toggleSavedSticker);
   const apagarMsgFn = useServerFn(deleteMessageForEveryone);
   const apagarMsgMut = useMutation({
@@ -1467,6 +1469,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                       }
                       resending={resendingId === m.id}
                       onSaveSticker={(url, filename) => salvarStickerMut.mutate({ url, filename })}
+                      onForward={m.deleted_at ? undefined : () => setEncaminhando(m.id)}
                       deleting={apagarMsgMut.isPending}
                       onDeleteForEveryone={
                         m.direction === "outbound" && m.wa_message_id && !(m as { is_revoked?: boolean | null }).is_revoked
@@ -1490,6 +1493,13 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
               })}
             </div>
           ))
+        )}
+        {encaminhando && (
+          <ForwardMessageDialog
+            messageId={encaminhando}
+            fromConversationId={conv.id}
+            onClose={() => setEncaminhando(null)}
+          />
         )}
         {pendentes.map((p) => (
           <div key={p.id} className="mb-1 opacity-70">
