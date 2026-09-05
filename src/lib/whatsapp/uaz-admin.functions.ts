@@ -14,14 +14,14 @@ export const uazDiagnosticarWebhook = createServerFn({ method: "GET" })
     if (!base || !token) return { ok: false as const, erro: "Credenciais UazAPI ausentes" };
 
     const tentativas = ["/webhook", "/instance/webhook", "/instance/info", "/instance/status"];
-    const resultados: Record<string, unknown> = {};
+    const resultados: Array<{ path: string; status?: number; corpo?: string; erro?: string }> = [];
     for (const path of tentativas) {
       try {
         const res = await fetch(`${base}${path}`, { headers: { token } });
         const texto = await res.text();
-        resultados[path] = { status: res.status, corpo: texto.slice(0, 3000) };
+        resultados.push({ path, status: res.status, corpo: texto.slice(0, 3000) });
       } catch (e) {
-        resultados[path] = { erro: e instanceof Error ? e.message : String(e) };
+        resultados.push({ path, erro: e instanceof Error ? e.message : String(e) });
       }
     }
     return { ok: true as const, resultados };
