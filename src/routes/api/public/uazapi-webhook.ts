@@ -60,7 +60,8 @@ async function processarEvento(payload: unknown) {
   }
 
 
-  if (tipoEvento && !tipoEvento.includes("message")) return; // presença, conexão, etc.
+  // Reações (emoji) chegam como evento próprio em algumas versões.
+  if (tipoEvento && !tipoEvento.includes("message") && !tipoEvento.includes("reaction")) return; // presença, conexão, etc.
 
   // Alguns payloads de ACK chegam sem EventType claro: mensagem com "status" e sem texto/mídia.
   if (!tipoEvento && pareceAtualizacaoStatus(p)) {
