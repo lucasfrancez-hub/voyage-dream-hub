@@ -18,23 +18,50 @@ export const Route = createFileRoute("/api/public/hooks/uaz-sync-history")({
   },
 });
 
+const LOCK_ID = "__auto_lock";
+const AUTO_INTERVALO_MS = 5 * 60_000;
+
 async function rodar(request: Request): Promise<Response> {
   const esperado = process.env.UAZAPI_WEBHOOK_TOKEN;
   const url = new URL(request.url);
   const recebido = url.searchParams.get("token") ?? request.headers.get("x-uaz-token") ?? "";
-  if (!esperado || recebido !== esperado) return new Response("Invalid token", { status: 401 });
+  // Modo "rede de segurança": chamado pelo cron a cada poucos minutos, sem
+  // token, mas com janela fixa (últimas 12h) e trava de 5 min contra abuso.
+  const auto = url.searchParams.get("auto") === "1";
+  if (!auto && (!esperado || recebido !== esperado)) return new Response("Invalid token", { status: 401 });
 
-  const limiteChats = Math.min(Number(url.searchParams.get("chats") ?? 100) || 100, 500);
-  const limiteMsgs = Math.min(Number(url.searchParams.get("mensagens") ?? 40) || 40, 200);
+  const limiteChats = auto ? 200 : Math.min(Number(url.searchParams.get("chats") ?? 100) || 100, 500);
+  const limiteMsgs = auto ? 60 : Math.min(Number(url.searchParams.get("mensagens") ?? 40) || 40, 200);
   // Filtros opcionais: um número específico (?phone=55...) e/ou só mensagens
   // a partir de um instante (?desde=ISO ou epoch em ms).
-  const filtroPhone = (url.searchParams.get("phone") ?? "").replace(/\D/g, "");
+  const filtroPhone = auto ? "" : (url.searchParams.get("phone") ?? "").replace(/\D/g, "");
   const desdeRaw = url.searchParams.get("desde");
-  const desdeMs = desdeRaw ? (Number(desdeRaw) || Date.parse(desdeRaw) || 0) : 0;
+  const desdeMs = auto
+    ? Date.now() - 12 * 3600_000
+    : desdeRaw
+      ? Number(desdeRaw) || Date.parse(desdeRaw) || 0
+      : 0;
 
   const { uazListChats, uazListMessages } = await import("@/lib/whatsapp/uaz-channel.server");
   const { ingestUazMessage } = await import("@/lib/whatsapp/uaz-ingest.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  if (auto) {
+    const { data: lock } = await supabaseAdmin
+      .from("wa_history_sync")
+      .select("last_synced_at")
+      .eq("chat_id", LOCK_ID)
+      .maybeSingle();
+    const ultimo = lock?.last_synced_at ? new Date(lock.last_synced_at as string).getTime() : 0;
+    if (Date.now() - ultimo < AUTO_INTERVALO_MS) return Response.json({ pulado: true });
+    await supabaseAdmin
+      .from("wa_history_sync")
+      .upsert(
+        { chat_id: LOCK_ID, wa_phone: LOCK_ID, imported: 0, last_synced_at: new Date().toISOString() },
+        { onConflict: "chat_id" },
+      );
+  }
+
 
   const todos = await uazListChats(limiteChats);
   const chats = filtroPhone
