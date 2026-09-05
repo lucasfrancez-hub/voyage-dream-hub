@@ -85,6 +85,8 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
   const [erroCampos, setErroCampos] = useState("");
   const [bandeira, setBandeira] = useState("");
   const [numeroMasc, setNumeroMasc] = useState("");
+  const [numeroCompleto, setNumeroCompleto] = useState(false);
+  const [cvvCompleto, setCvvCompleto] = useState(false);
 
   const [nome, setNome] = useState("");
   const [validade, setValidade] = useState("");
@@ -125,9 +127,12 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
         // Espelha bandeira e dígitos no cartão ilustrado (sem expor o número).
         sf.on("change", (data?: unknown) => {
           if (!vivo) return;
-          const campos = (data as { fields?: Record<string, { paymentMethod?: string[]; length?: number }> })
+          const campos = (data as {
+            fields?: Record<string, { paymentMethod?: string[]; length?: number; valid?: boolean }>;
+          })
             ?.fields;
           const num = campos?.["cardNumber"];
+          const cvv = campos?.["cvv"];
           const marca = num?.paymentMethod?.[0];
           const mapa: Record<string, string> = {
             VIS: "Visa", ECA: "Mastercard", AMX: "Amex", DIN: "Diners",
@@ -138,6 +143,8 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
           setNumeroMasc(
             n ? Array.from({ length: Math.min(n, 16) }, () => "•").join("").replace(/(.{4})/g, "$1 ").trim() : "",
           );
+          setNumeroCompleto(num?.valid === true || n >= 13);
+          setCvvCompleto(cvv?.valid === true || (cvv?.length ?? 0) >= 3);
         });
       } catch {
         if (vivo && tentativas++ < 3) setTimeout(montar, 1500);
@@ -160,10 +167,21 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
     return m ? { mes: m[1], ano: m[2] } : null;
   };
 
+  const formularioCompleto =
+    pronto &&
+    numeroCompleto &&
+    cvvCompleto &&
+    nome.trim().length >= 3 &&
+    validadePartes() !== null &&
+    cpf.replace(/\D/g, "").length === 11;
+
   const verParcelas = () => {
     if (!sfRef.current || !pronto) return;
+    if (!numeroCompleto) return toast.error("Preencha o número completo do cartão.");
+    if (!cvvCompleto) return toast.error("Preencha o CVV do cartão.");
     if (nome.trim().length < 3) return toast.error("Informe o nome impresso no cartão.");
     if (!validadePartes()) return toast.error("Validade inválida — use MM/AA.");
+    if (cpf.replace(/\D/g, "").length !== 11) return toast.error("Informe o CPF completo do titular.");
     setErroCampos("");
     setProcessando(true);
 
@@ -415,7 +433,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
             <button
               type="button"
               onClick={verParcelas}
-              disabled={!pronto || processando}
+              disabled={!formularioCompleto || processando}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display font-semibold text-primary-foreground shadow-lg transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
             >
               {processando ? (
@@ -423,7 +441,11 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
               ) : (
                 <CreditCard className="h-4 w-4" />
               )}
-              {pronto ? "Ver parcelas" : "Carregando campos seguros…"}
+              {!pronto
+                ? "Carregando campos seguros…"
+                : formularioCompleto
+                  ? "Ver parcelas"
+                  : "Preencha todos os dados"}
             </button>
           </div>
         ) : null}
