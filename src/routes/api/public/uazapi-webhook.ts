@@ -77,6 +77,10 @@ async function processarEvento(payload: unknown) {
         ? (p.data as unknown[])
         : [p];
 
+  // Alguns provedores mandam o "apagar para todos" dentro do evento normal de
+  // mensagem (protocolMessage / REVOKE). Tratamos antes de tentar ingerir.
+  if (await processarRevogacao(p)) return;
+
   const { normalizeUazMessage } = await import("@/lib/whatsapp/uaz-channel.server");
   const { ingestUazMessage } = await import("@/lib/whatsapp/uaz-ingest.server");
 

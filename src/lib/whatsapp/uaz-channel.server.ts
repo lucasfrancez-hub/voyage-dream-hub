@@ -462,8 +462,9 @@ export async function uazFetchProfilePic(phone: string): Promise<string | null> 
   if (!uazConfigured()) return null;
   const number = uazNumber(phone);
   const attempts: Array<[string, Record<string, unknown>]> = [
-    ["/contact/profile-picture", { number }],
+    // /chat/details é o endpoint que a UazAPI realmente expõe (o outro dá 405).
     ["/chat/details", { number, preview: false }],
+    ["/contact/profile-picture", { number }],
   ];
   for (const [path, body] of attempts) {
     try {
