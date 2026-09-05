@@ -757,6 +757,21 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {/* ---------------- Pagamento interno no cartão ---------------- */}
+      <Dialog open={cartaoAberto} onOpenChange={setCartaoAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pagar reserva no cartão</DialogTitle>
+            <DialogDescription>
+              Reserva {r.localizador || r.idPassagem} — os dados do cartão são digitados em
+              campos seguros e não passam pelo nosso sistema. Se o banco pedir, a confirmação
+              aparece aqui mesmo.
+            </DialogDescription>
+          </DialogHeader>
+          {codigoCartao ? <PagamentoCartaoPasshub codigo={codigoCartao} /> : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
