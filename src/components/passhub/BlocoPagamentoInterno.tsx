@@ -60,6 +60,19 @@ type PreviaPix = {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 
+const dataHoraBrasilia = (valor: string) => {
+  const data = new Date(valor);
+  if (Number.isNaN(data.getTime())) return "Horário indisponível";
+  return data.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 
 const rotuloStatus: Record<string, { texto: string; cor: string }> = {
   aguardando: { texto: "Aguardando pagamento", cor: "cons-status-pay" },
@@ -102,6 +115,15 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   });
 
   const lista = pagamentos.data?.ok ? pagamentos.data.pagamentos : [];
+  const statusReserva = (r.status || "").toUpperCase();
+  const limiteEmissaoMs = r.limiteEmissao ? new Date(r.limiteEmissao).getTime() : Number.NaN;
+  const expirada =
+    statusReserva === "EXPIRED" ||
+    (statusReserva !== "ISSUED" &&
+      statusReserva !== "CANCELED" &&
+      statusReserva !== "CANCELLED" &&
+      Number.isFinite(limiteEmissaoMs) &&
+      limiteEmissaoMs <= Date.now());
   const numero = (v: string) => Number(v.replace(/\./g, "").replace(",", ".")) || 0;
   // Piso do Pix VIA AIR: total da reserva (líquido + comissão da consolidadora).
   const base = r.totalVenda || r.preco;
@@ -218,6 +240,8 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
 
   return (
     <div className="space-y-6">
+      {!expirada ? (
+        <>
       {/* ---------------- 1. Cobrar o cliente ---------------- */}
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
@@ -402,6 +426,16 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
         ) : null}
       </section>
 
+        </>
+      ) : (
+        <section className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">
+          <p className="font-display text-sm font-semibold text-foreground">Reserva expirada</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            As formas de pagamento foram encerradas em {dataHoraBrasilia(r.limiteEmissao)}.
+          </p>
+        </section>
+      )}
+
 
       {/* ---------------- Histórico ---------------- */}
       <section className="space-y-3 border-t border-white/5 pt-4">
@@ -419,6 +453,20 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
             Atualizar
           </button>
         </div>
+
+        {expirada ? (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="cons-status cons-status-pay">Reserva expirada</span>
+              <span className="text-[11px] cons-muted">
+                {dataHoraBrasilia(r.limiteEmissao)} · Horário de Brasília
+              </span>
+            </div>
+            <p className="text-[12px] text-muted-foreground">
+              Todas as formas de pagamento foram encerradas automaticamente.
+            </p>
+          </div>
+        ) : null}
 
         {lista.length ? (
           lista.map((p) => {
@@ -540,7 +588,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
       </section>
 
       {/* ---------------- Conferência do Pix antes de pagar ---------------- */}
-      <Dialog open={!!previa} onOpenChange={(o) => (!o ? setPrevia(null) : null)}>
+      <Dialog open={!expirada && !!previa} onOpenChange={(o) => (!o ? setPrevia(null) : null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Conferir o Pix da consolidadora</DialogTitle>
@@ -655,7 +703,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
       </Dialog>
 
       {/* ---------------- Pagamento interno no cartão ---------------- */}
-      <Dialog open={cartaoAberto} onOpenChange={setCartaoAberto}>
+      <Dialog open={!expirada && cartaoAberto} onOpenChange={setCartaoAberto}>
         <DialogContent
           overlayClassName="z-[110] bg-background/85 backdrop-blur-md"
           className="z-[120] max-h-[92vh] max-w-md overflow-y-auto border-border bg-card p-0 font-sans shadow-2xl sm:rounded-3xl"
