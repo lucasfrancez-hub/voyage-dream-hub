@@ -1768,7 +1768,13 @@ function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void
 
 function ContactDetails({ conv, onChange, avatarUrl = null }: { conv: Conv; onChange: () => void; avatarUrl?: string | null }) {
   const [fotoAberta, setFotoAberta] = useState(false);
-  const foto = igImg(avatarUrl ?? (conv as { contact_profile_pic?: string | null }).contact_profile_pic ?? null) ?? null;
+  const foto =
+    igImg(
+      avatarUrl ??
+        (conv as { contact_profile_pic?: string | null }).contact_profile_pic ??
+        (conv as { profile_pic_url?: string | null }).profile_pic_url ??
+        null,
+    ) ?? null;
   // Nome do contato editável — o nome importado nem sempre vem certo.
   const renameFn = useServerFn(renameConversation);
   const [editandoNome, setEditandoNome] = useState(false);
