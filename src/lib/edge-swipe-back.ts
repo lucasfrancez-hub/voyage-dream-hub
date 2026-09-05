@@ -2,13 +2,18 @@
  * Gesto de voltar arrastando da borda esquerda para a direita (igual iOS/WhatsApp).
  *
  * A tela atual acompanha o dedo: conforme arrasta, ela desliza pra direita
- * revelando um fundo escuro atrás (como se a tela anterior estivesse ali).
- * Soltou antes da metade → volta suave pro lugar. Passou do limiar → desliza
- * até o fim e só então dispara o "voltar".
+ * revelando A TELA ANTERIOR por trás (uma foto estática da página de onde o
+ * usuário veio, capturada a cada navegação interna). Soltou antes da metade →
+ * volta suave pro lugar. Passou do limiar → desliza até o fim e só então
+ * dispara o "voltar".
+ *
+ * Se não existe tela anterior (histórico vazio) e nenhuma camada aberta trata
+ * o gesto, o arrasto nem começa.
  *
  * Telas com "voltar" próprio (como a conversa do chat) escutam o evento
  * cancelável `app:swipe-back`, chamam preventDefault() e fecham só a camada
- * delas. Se ninguém tratar, o app volta uma página no histórico.
+ * delas. Para o gesto poder começar mesmo sem histórico, elas também escutam
+ * `app:swipe-back-query` e chamam preventDefault() quando consumiriam o gesto.
  */
 export function instalarGestoVoltar(): () => void {
   if (typeof window === "undefined") return () => {};
@@ -18,6 +23,7 @@ export function instalarGestoVoltar(): () => void {
   const ENGATE = 8; // px horizontais pra considerar que o gesto começou
 
   let alvo: HTMLElement | null = null;
+  let fundo: HTMLElement | null = null;
   let x0 = 0;
   let y0 = 0;
   let dx = 0;
@@ -32,6 +38,46 @@ export function instalarGestoVoltar(): () => void {
     (document.body.firstElementChild as HTMLElement | null) ??
     document.body;
 
+  // --- Foto da tela anterior -------------------------------------------------
+  // A cada navegação interna (pushState/replaceState), guardamos um clone
+  // estático da página atual ANTES da troca. Ao arrastar, esse clone aparece
+  // por trás, dando a sensação de que a tela anterior está logo ali.
+  let fotoAnterior: HTMLElement | null = null;
+
+  const capturarTelaAtual = () => {
+    const raiz = encontrarAlvo();
+    if (!raiz) return;
+    const clone = raiz.cloneNode(true) as HTMLElement;
+    clone.removeAttribute("id");
+    clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+    clone.setAttribute("aria-hidden", "true");
+    fotoAnterior = clone;
+  };
+
+  const montarFundo = (): HTMLElement | null => {
+    if (!fotoAnterior) return null;
+    const wrap = document.createElement("div");
+    wrap.style.cssText =
+      "position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:#000;";
+    const conteudo = fotoAnterior.cloneNode(true) as HTMLElement;
+    conteudo.style.cssText +=
+      ";position:absolute;inset:0;transform:none!important;pointer-events:none;";
+    wrap.appendChild(conteudo);
+    // leve escurecida pra dar profundidade, como no iOS
+    const sombra = document.createElement("div");
+    sombra.style.cssText = "position:absolute;inset:0;background:rgba(0,0,0,0.18);";
+    wrap.appendChild(sombra);
+    document.body.appendChild(wrap);
+    return wrap;
+  };
+
+  const removerFundo = () => {
+    if (fundo) {
+      fundo.remove();
+      fundo = null;
+    }
+  };
+
   const aplicar = (deslocamento: number, comTransicao: boolean) => {
     if (!alvo) return;
     const w = window.innerWidth || 1;
@@ -44,10 +90,14 @@ export function instalarGestoVoltar(): () => void {
     alvo.style.boxShadow =
       deslocamento > 2 ? "-18px 0 42px rgba(0,0,0,0.4)" : "none";
     alvo.style.overflow = deslocamento > 2 ? "hidden" : "";
-    document.body.style.backgroundColor = `rgba(0,0,0,${0.25 + progresso * 0.45})`;
+    // Sem foto da tela anterior, cai no escurecimento antigo como último recurso.
+    if (!fundo) {
+      document.body.style.backgroundColor = `rgba(0,0,0,${0.25 + progresso * 0.45})`;
+    }
   };
 
   const limpar = () => {
+    removerFundo();
     if (!alvo) return;
     alvo.style.transition = "";
     alvo.style.transform = "";
@@ -56,6 +106,15 @@ export function instalarGestoVoltar(): () => void {
     alvo.style.overflow = "";
     alvo.style.willChange = "";
     document.body.style.backgroundColor = "";
+  };
+
+  // Só permite o gesto quando existe pra onde voltar: ou alguma camada aberta
+  // (drawer, conversa, foto ampliada) consome o gesto, ou há histórico.
+  const temPraOndeVoltar = (): boolean => {
+    const consulta = new CustomEvent("app:swipe-back-query", { cancelable: true });
+    const ninguemTratou = window.dispatchEvent(consulta);
+    if (!ninguemTratou) return true;
+    return window.history.length > 1;
   };
 
   const voltar = () => {
@@ -68,6 +127,7 @@ export function instalarGestoVoltar(): () => void {
     if (animando || e.touches.length !== 1) return;
     const t = e.touches[0];
     if (t.clientX > BORDA) return;
+    if (!temPraOndeVoltar()) return;
     x0 = t.clientX;
     y0 = t.clientY;
     dx = 0;
@@ -89,7 +149,13 @@ export function instalarGestoVoltar(): () => void {
       if (deltaX > ENGATE && Math.abs(deltaX) > Math.abs(deltaY)) {
         decidido = true;
         alvo = encontrarAlvo();
-        if (alvo) alvo.style.willChange = "transform";
+        if (alvo) {
+          alvo.style.willChange = "transform";
+          // tela atual precisa ficar acima da foto da anterior
+          alvo.style.position = alvo.style.position || "relative";
+          alvo.style.zIndex = "1";
+        }
+        fundo = montarFundo();
       } else {
         return;
       }
@@ -109,6 +175,7 @@ export function instalarGestoVoltar(): () => void {
     arrastando = false;
     if (!decidido || !alvo) {
       decidido = false;
+      removerFundo();
       return;
     }
     decidido = false;
@@ -123,6 +190,10 @@ export function instalarGestoVoltar(): () => void {
         window.setTimeout(() => {
           limpar();
           animando = false;
+          if (alvo) {
+            alvo.style.position = "";
+            alvo.style.zIndex = "";
+          }
           alvo = null;
         }, 120);
       }, 230);
@@ -132,11 +203,27 @@ export function instalarGestoVoltar(): () => void {
       window.setTimeout(() => {
         limpar();
         animando = false;
+        if (alvo) {
+          alvo.style.position = "";
+          alvo.style.zIndex = "";
+        }
         alvo = null;
       }, 240);
     }
     dx = 0;
   };
+
+  // Intercepta navegações internas pra fotografar a tela antes da troca.
+  const pushOriginal = window.history.pushState.bind(window.history);
+  const replaceOriginal = window.history.replaceState.bind(window.history);
+  window.history.pushState = ((...args: Parameters<History["pushState"]>) => {
+    capturarTelaAtual();
+    return pushOriginal(...args);
+  }) as History["pushState"];
+  window.history.replaceState = ((...args: Parameters<History["replaceState"]>) => {
+    capturarTelaAtual();
+    return replaceOriginal(...args);
+  }) as History["replaceState"];
 
   window.addEventListener("touchstart", inicio, { passive: true });
   window.addEventListener("touchmove", mover, { passive: true });
@@ -148,6 +235,8 @@ export function instalarGestoVoltar(): () => void {
     window.removeEventListener("touchmove", mover);
     window.removeEventListener("touchend", fim);
     window.removeEventListener("touchcancel", fim);
+    window.history.pushState = pushOriginal;
+    window.history.replaceState = replaceOriginal;
     limpar();
   };
 }

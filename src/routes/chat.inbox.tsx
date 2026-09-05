@@ -939,8 +939,16 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       if (detailsOpen) { e.preventDefault(); setDetailsOpen(false); return; }
       if (onBack) { e.preventDefault(); onBack(); }
     };
+    // Avisa ao gesto global que esta tela consome o "voltar" (mesmo sem histórico).
+    const query = (e: Event) => {
+      if (fotoAberta || detailsOpen || onBack) e.preventDefault();
+    };
     window.addEventListener("app:swipe-back", handler as EventListener);
-    return () => window.removeEventListener("app:swipe-back", handler as EventListener);
+    window.addEventListener("app:swipe-back-query", query as EventListener);
+    return () => {
+      window.removeEventListener("app:swipe-back", handler as EventListener);
+      window.removeEventListener("app:swipe-back-query", query as EventListener);
+    };
   }, [onBack, detailsOpen, fotoAberta]);
   const sendMediaFn = useServerFn(sendHumanMedia);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -2649,8 +2657,13 @@ function InstagramConversationView({
       e.preventDefault();
       onBack();
     };
+    const query = (e: Event) => e.preventDefault();
     window.addEventListener("app:swipe-back", handler as EventListener);
-    return () => window.removeEventListener("app:swipe-back", handler as EventListener);
+    window.addEventListener("app:swipe-back-query", query as EventListener);
+    return () => {
+      window.removeEventListener("app:swipe-back", handler as EventListener);
+      window.removeEventListener("app:swipe-back-query", query as EventListener);
+    };
   }, [onBack, midiaAberta]);
 
   // Garante espelho em wa_conversations para DMs antigas que ainda não
@@ -3369,8 +3382,13 @@ function InstagramCommentThreadView({ mediaId, onBack }: { mediaId: string; onBa
       e.preventDefault();
       onBack();
     };
+    const query = (e: Event) => e.preventDefault();
     window.addEventListener("app:swipe-back", handler as EventListener);
-    return () => window.removeEventListener("app:swipe-back", handler as EventListener);
+    window.addEventListener("app:swipe-back-query", query as EventListener);
+    return () => {
+      window.removeEventListener("app:swipe-back", handler as EventListener);
+      window.removeEventListener("app:swipe-back-query", query as EventListener);
+    };
   }, [onBack, verMidia, postAberto]);
 
 
