@@ -986,6 +986,18 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     onError: (e) => toast.error(`Falha ao enviar figurinha: ${(e as Error).message}`),
   });
 
+  const toggleStickerFn = useServerFn(toggleSavedSticker);
+  const salvarStickerMut = useMutation({
+    mutationFn: (input: { url: string; filename: string; remover?: boolean }) =>
+      toggleStickerFn({ data: input }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["chat", "stickers"] });
+      toast.success(r?.salvo ? "Figurinha salva nas suas" : "Figurinha removida");
+    },
+    onError: (e) => toast.error(`Não deu pra salvar: ${(e as Error).message}`),
+  });
+
+
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = "";
