@@ -34,6 +34,7 @@ async function rodar(request: Request): Promise<Response> {
   const limiteMsgs = auto ? 60 : Math.min(Number(url.searchParams.get("mensagens") ?? 40) || 40, 200);
   // Filtros opcionais: um número específico (?phone=55...) e/ou só mensagens
   // a partir de um instante (?desde=ISO ou epoch em ms).
+  const soHorarios = !auto && url.searchParams.get("horarios") === "1";
   const filtroPhone = auto ? "" : (url.searchParams.get("phone") ?? "").replace(/\D/g, "");
   const desdeRaw = url.searchParams.get("desde");
   const desdeMs = auto
