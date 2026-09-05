@@ -45,7 +45,21 @@ async function processarEvento(payload: unknown) {
   const p = payload as Record<string, unknown>;
 
   const tipoEvento = String(p.EventType ?? p.event ?? p.type ?? "").toLowerCase();
+
+  // Eventos de ACK (messages.update): atualizam enviado/entregue/lido das mensagens.
+  if (tipoEvento.includes("update") || tipoEvento.includes("ack") || tipoEvento.includes("status")) {
+    await processarAtualizacaoStatus(p);
+    return;
+  }
+
   if (tipoEvento && !tipoEvento.includes("message")) return; // presença, conexão, etc.
+
+  // Alguns payloads de ACK chegam sem EventType claro: mensagem com "status" e sem texto/mídia.
+  if (!tipoEvento && pareceAtualizacaoStatus(p)) {
+    await processarAtualizacaoStatus(p);
+    return;
+  }
+
 
   const brutas: unknown[] = Array.isArray(p.messages)
     ? (p.messages as unknown[])
