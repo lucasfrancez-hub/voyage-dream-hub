@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle, RotateCw } from "lucide-react";
+import { Check, CheckCheck, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
@@ -26,6 +26,39 @@ function parseMedia(content: unknown): { media: Media | null; text: string } {
   const m = normalized.match(/^\[\[media:(image|document|audio|video)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
   if (!m) return { media: null, text: normalized };
   return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text: (m[4] ?? "").trim() };
+}
+
+/**
+ * A leitura automática (transcrição de áudio e leitura de imagem) serve pra IA,
+ * não pra poluir a conversa do atendente. Aqui ela é separada do texto do
+ * cliente e só aparece quando o atendente clica em "ver leitura".
+ */
+const LABELS_AUTO = ["🖼️ [imagem recebida]", "🎬 [vídeo recebido]", "📎 [documento recebido]"];
+
+function separarLeituraAuto(text: string): { visivel: string; leitura: string } {
+  if (!text) return { visivel: "", leitura: "" };
+
+  const [antes, ...resto] = text.split("[[analise-imagem]]");
+  const leitura: string[] = [];
+  if (resto.length) leitura.push(resto.join("[[analise-imagem]]").trim());
+
+  const visiveis: string[] = [];
+  for (const linha of antes.split("\n")) {
+    const t = linha.trim();
+    if (!t) continue;
+    if (t.startsWith("🎤 [áudio transcrito]")) {
+      leitura.unshift(t.replace("🎤 [áudio transcrito]", "").trim());
+      continue;
+    }
+    if (t.startsWith("🎤 [sistema ·") || t.startsWith("📎 [sistema ·")) {
+      leitura.unshift(t);
+      continue;
+    }
+    if (LABELS_AUTO.includes(t)) continue;
+    visiveis.push(linha);
+  }
+
+  return { visivel: visiveis.join("\n").trim(), leitura: leitura.filter(Boolean).join("\n\n").trim() };
 }
 
 interface Props {
@@ -71,6 +104,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const replySender = firstName(reply?.sender ?? null);
   const replySnippet = safeText(reply?.snippet).trim();
   const [lightbox, setLightbox] = useState<{ url: string; filename: string } | null>(null);
+  const [verLeitura, setVerLeitura] = useState(false);
   return (
     <div className={cn("group flex w-full items-center gap-1", isOut ? "justify-end" : "justify-start")}>
       {isOut && onReply && !deleted && (
@@ -115,7 +149,8 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           </div>
         )}
         {(() => {
-          const { media, text } = parseMedia(content);
+          const { media, text: bruto } = parseMedia(content);
+          const { visivel: text, leitura } = separarLeituraAuto(bruto);
           return (
             <>
               {media?.kind === "image" && (
@@ -150,6 +185,28 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
               )}
               {text && (
                 <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{text}</div>
+              )}
+              {leitura && (
+                <div className="mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setVerLeitura((v) => !v)}
+                    className="flex items-center gap-1 rounded-full border border-black/10 bg-black/5 px-2 py-[2px] text-[10px] font-medium opacity-70 hover:opacity-100"
+                    style={{ color: bubbleFg }}
+                    title={media?.kind === "audio" ? "Ver transcrição do áudio" : "Ver leitura da imagem"}
+                  >
+                    <ScanText className="h-3 w-3" />
+                    {verLeitura ? "ocultar leitura" : media?.kind === "audio" ? "ver transcrição" : "ver leitura"}
+                  </button>
+                  {verLeitura && (
+                    <div
+                      className="mt-1 whitespace-pre-wrap break-words rounded-md bg-black/5 px-2 py-1 text-[12px] leading-relaxed opacity-90"
+                      style={{ color: bubbleFg }}
+                    >
+                      {leitura}
+                    </div>
+                  )}
+                </div>
               )}
               {deleted && (
                 <div className="mt-1 text-[11px] font-medium text-red-500">
