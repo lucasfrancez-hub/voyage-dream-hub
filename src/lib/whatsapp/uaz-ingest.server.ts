@@ -20,7 +20,7 @@ export async function ingestUazMessage(
 
   const { getOrCreateConversation, saveMessage } = await import("./conversation.server");
   const { transcribeAudio, storeInboundMedia, extFromMime } = await import("./media.server");
-  const { uazDownloadMedia } = await import("./uaz-channel.server");
+  const { uazDownloadMedia, uazResolveMedia } = await import("./uaz-channel.server");
   const { deveIgnorarParaIA } = await import("./ai-silence.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -34,10 +34,13 @@ export async function ingestUazMessage(
   let transcricao: string | null = null;
   let tipo = msg.type === "sticker" ? "image" : msg.type;
 
-  if (msg.type !== "text" && msg.mediaUrl) {
-    const media = await uazDownloadMedia(msg.mediaUrl);
+  if (msg.type !== "text" && msg.type !== "other") {
+    // O webhook entrega a URL criptografada do WhatsApp; a UazAPI descriptografa.
+    const resolvida = await uazResolveMedia(msg.id);
+    const url = resolvida?.url ?? msg.mediaUrl;
+    const media = url ? await uazDownloadMedia(url) : null;
     if (media) {
-      const mime = msg.mimeType ?? media.mimeType;
+      const mime = resolvida?.mimeType ?? media.mimeType ?? msg.mimeType ?? "application/octet-stream";
       const filename = msg.filename ?? `${msg.type}-${msg.id}.${extFromMime(mime)}`;
       const stored = await storeInboundMedia({
         conversationId: conv.id,
