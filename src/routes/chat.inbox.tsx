@@ -1459,15 +1459,18 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                     : isAiSender(m.sender)
                       ? agentLabel(m.agent_slug ?? m.sender ?? conv.agent_slug)
                     : undefined;
-                // Estilo WhatsApp: o nome aparece só no 1º balão de uma sequência
-                // do mesmo remetente; reaparece quando o outro lado responde.
+                // Regra VIA AIR: nas mensagens NOSSAS (outbound), o nome do
+                // atendente/agente aparece em TODOS os balões enquanto o cliente
+                // não responder — igual ao WhatsApp. Nas mensagens do cliente,
+                // o nome aparece só no 1º balão de cada sequência.
                 const prev = idx > 0 ? g.messages[idx - 1] : null;
                 const mesmaSequencia =
                   prev &&
                   prev.direction === m.direction &&
                   (prev.sender ?? null) === (m.sender ?? null) &&
                   (prev.agent_slug ?? null) === (m.agent_slug ?? null);
-                const labelVisivel = mesmaSequencia ? undefined : senderLabel;
+                const labelVisivel =
+                  m.direction === "outbound" ? senderLabel : mesmaSequencia ? undefined : senderLabel;
                 return (
                   <div key={m.id} className="mb-1">
                     <WhatsAppBubble
