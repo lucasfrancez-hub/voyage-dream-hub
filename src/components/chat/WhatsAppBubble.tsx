@@ -120,6 +120,16 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const [verLeitura, setVerLeitura] = useState(false);
   return (
     <div className={cn("group flex w-full items-center gap-1", isOut ? "justify-end" : "justify-start")}>
+      {isOut && onDeleteForEveryone && !deleted && (
+        <button
+          onClick={onDeleteForEveryone}
+          disabled={deleting}
+          title="Apagar para todos no WhatsApp (fica salvo aqui)"
+          className="hidden h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white opacity-0 transition-opacity hover:bg-red-500 disabled:opacity-40 group-hover:opacity-100 group-hover:flex"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
       {isOut && onReply && !deleted && (
         <button
           onClick={onReply}
@@ -129,6 +139,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           <CornerUpLeft className="h-3.5 w-3.5" />
         </button>
       )}
+
       <div
         className={cn(
           "relative max-w-[70%] rounded-lg px-3 py-2 shadow-sm",
