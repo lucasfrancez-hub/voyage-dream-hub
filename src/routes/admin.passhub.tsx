@@ -211,19 +211,43 @@ function PassHubPage() {
             <h1 className="text-[28px] font-black tracking-tight">Busca aérea</h1>
 
           </div>
-          <button
-            type="button"
-            className="cons-status cons-status-ok h-9 px-4"
-            onClick={() => status.mutate()}
-            disabled={status.isPending}
-          >
-            {status.isPending ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <span className="mr-1.5">●</span>
-            )}
-            PassHub conectada
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className={`cons-status h-9 px-4 ${sessao.data?.conectado ? "cons-status-ok" : "cons-status-warn"}`}
+              onClick={() => status.mutate()}
+              disabled={status.isPending}
+              title={
+                sessao.data?.conectado && sessao.data.minutosRestantes != null
+                  ? `Sessão válida por mais ~${Math.round(sessao.data.minutosRestantes / 60)} h`
+                  : "Sessão não ativa"
+              }
+            >
+              {status.isPending ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <span className="mr-1.5">●</span>
+              )}
+              {sessao.data?.conectado
+                ? sessao.data.minutosRestantes != null && sessao.data.minutosRestantes < 600
+                  ? `PassHub conectada (${Math.max(1, Math.round(sessao.data.minutosRestantes / 60))} h)`
+                  : "PassHub conectada"
+                : "PassHub desconectada"}
+            </button>
+            <button
+              type="button"
+              className="cons-btn-ghost h-9 px-3 text-[13px] font-bold"
+              onClick={() => reconectar.mutate()}
+              disabled={reconectar.isPending}
+            >
+              {reconectar.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                "Reconectar"
+              )}
+            </button>
+          </div>
+
         </header>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(0,0.9fr)]">
