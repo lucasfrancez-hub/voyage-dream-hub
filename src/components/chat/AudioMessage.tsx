@@ -44,6 +44,12 @@ export function AudioMessage({ src, isOut }: Props) {
     if (el) el.playbackRate = velocidade;
   }, [velocidade]);
 
+  const aplicar = (p: number) => {
+    if (fillRef.current) {
+      fillRef.current.style.clipPath = `inset(0 ${(100 - p * 100).toFixed(2)}% 0 0)`;
+    }
+  };
+
   // Atualiza o preenchimento em tempo real (60fps) com easing para suavidade.
   useEffect(() => {
     const alvo = () => {
@@ -58,16 +64,14 @@ export function AudioMessage({ src, isOut }: Props) {
       // Interpola em direção ao tempo real: suaviza saltos do timeupdate
       exibido += (t - exibido) * 0.2;
       if (Math.abs(t - exibido) < 0.002) exibido = t;
-      if (fillRef.current) {
-        fillRef.current.style.width = `${(exibido * 100).toFixed(2)}%`;
-      }
+      aplicar(exibido);
       rafRef.current = requestAnimationFrame(tick);
     };
     if (tocando) {
       rafRef.current = requestAnimationFrame(tick);
     } else {
       // Parado: posiciona direto, sem animação
-      if (fillRef.current) fillRef.current.style.width = `${(alvo() * 100).toFixed(2)}%`;
+      aplicar(alvo());
     }
     return () => cancelAnimationFrame(rafRef.current);
   }, [tocando]);
