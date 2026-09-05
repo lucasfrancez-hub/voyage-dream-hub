@@ -26,15 +26,24 @@ async function rodar(request: Request): Promise<Response> {
 
   const limiteChats = Math.min(Number(url.searchParams.get("chats") ?? 100) || 100, 500);
   const limiteMsgs = Math.min(Number(url.searchParams.get("mensagens") ?? 40) || 40, 200);
+  // Filtros opcionais: um número específico (?phone=55...) e/ou só mensagens
+  // a partir de um instante (?desde=ISO ou epoch em ms).
+  const filtroPhone = (url.searchParams.get("phone") ?? "").replace(/\D/g, "");
+  const desdeRaw = url.searchParams.get("desde");
+  const desdeMs = desdeRaw ? (Number(desdeRaw) || Date.parse(desdeRaw) || 0) : 0;
 
   const { uazListChats, uazListMessages } = await import("@/lib/whatsapp/uaz-channel.server");
   const { ingestUazMessage } = await import("@/lib/whatsapp/uaz-ingest.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const chats = await uazListChats(limiteChats);
+  const todos = await uazListChats(limiteChats);
+  const chats = filtroPhone
+    ? todos.filter((c) => (c.phone ?? c.chatid).replace(/\D/g, "").includes(filtroPhone))
+    : todos;
   let importadas = 0;
 
   for (const chat of chats) {
+
     try {
       const mensagens = await uazListMessages(chat.chatid, limiteMsgs, chat.phone);
       let count = 0;
