@@ -45,27 +45,55 @@ export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHub
   const tokens = [...new Set(input.rateTokens.filter(Boolean))];
   if (tokens.length === 0) throw new Error("Oferta sem rateToken — refaça a busca.");
 
-  const body: Rec = {
-    preco: input.precoEsperado || 0,
-    provider: (input.provedor || "CVC").toUpperCase(),
+  const { provedorDoToken, PROVEDORES_CONHECIDOS } = await import("./provider-registry.server");
+
+  // Ordem de tentativa: o que a tela mandou, o que a busca registrou para o
+  // token e, por fim, os fornecedores conhecidos. Enviar o provider errado é a
+  // causa mais comum do erro genérico da PassHub na tarifação.
+  const candidatos = [
+    (input.provedor || "").toUpperCase(),
+    (provedorDoToken(tokens[0] ?? "") || "").toUpperCase(),
+    ...PROVEDORES_CONHECIDOS,
+  ].filter((p, i, arrp) => p && arrp.indexOf(p) === i);
+
+  const montaCorpo = (provider: string): Rec => {
+    const body: Rec = { preco: input.precoEsperado || 0, provider };
+    if (input.ravPercentual != null) body["rav_percentage"] = input.ravPercentual;
+    if (tokens.length > 2) {
+      body["rateTokens"] = tokens;
+    } else {
+      body["rateToken"] = tokens[0];
+      if (tokens[1]) body["rateTokenVolta"] = tokens[1];
+    }
+    return body;
   };
-  if (input.ravPercentual != null) body["rav_percentage"] = input.ravPercentual;
 
-  if (tokens.length > 2) {
-    body["rateTokens"] = tokens;
-  } else {
-    body["rateToken"] = tokens[0];
-    if (tokens[1]) body["rateTokenVolta"] = tokens[1];
+  let bruto: unknown;
+  let ultimoErro: unknown;
+  for (const provider of candidatos) {
+    try {
+      bruto = await passhubRequest<unknown>(`${passhubBases.nexus}/api/v1/tarifar`, {
+        body: montaCorpo(provider),
+        headers: correlationId(),
+        // A companhia oscila: repetimos sozinhos antes de mostrar erro na tela.
+        retentativas: 2,
+      });
+      ultimoErro = undefined;
+      break;
+    } catch (e) {
+      ultimoErro = e;
+      const detalhe = (e as { detalhe?: unknown } | null)?.detalhe;
+      const texto = (typeof detalhe === "string" ? detalhe : JSON.stringify(detalhe ?? "")).toLowerCase();
+      // Só vale tentar outro fornecedor quando o erro é de token/provider.
+      const trocarProvedor = /provider|rate token|deserialization|rav_invalido/.test(texto);
+      if (!trocarProvedor) throw e;
+      console.warn(`[passhub] tarifar recusou provider=${provider}; tentando o próximo`);
+    }
   }
-
-  const bruto = await passhubRequest<unknown>(`${passhubBases.nexus}/api/v1/tarifar`, {
-    body,
-    headers: correlationId(),
-    // A companhia oscila: repetimos sozinhos antes de mostrar erro na tela.
-    retentativas: 2,
-  });
+  if (ultimoErro) throw ultimoErro;
 
   const r = rec(bruto);
+
 
   const pricedTokens = lista(r["pricedRateTokens"]);
   const pricedToken = str(r["pricedRateToken"]);
