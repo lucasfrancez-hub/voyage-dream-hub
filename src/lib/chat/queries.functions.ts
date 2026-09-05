@@ -846,6 +846,43 @@ export const toggleSavedSticker = createServerFn({ method: "POST" })
     return { salvo: true };
   });
 
+/** Reage (emoji) a uma mensagem no WhatsApp. Emoji vazio remove a reação. */
+export const reactToMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ message_id: z.string().uuid(), emoji: z.string().max(12) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: msg, error } = await context.supabase
+      .from("wa_messages")
+      .select("id, wa_message_id, conversation_id, reactions")
+      .eq("id", data.message_id)
+      .single();
+    if (error || !msg) throw new Error("Mensagem não encontrada");
+
+    const { data: conv } = await context.supabase
+      .from("wa_conversations")
+      .select("wa_phone")
+      .eq("id", msg.conversation_id)
+      .maybeSingle();
+
+    if (msg.wa_message_id && conv?.wa_phone && !conv.wa_phone.startsWith("ig:")) {
+      const { uazReact } = await import("@/lib/whatsapp/uaz-channel.server");
+      const res = await uazReact(conv.wa_phone, msg.wa_message_id, data.emoji);
+      if (!res.ok) throw new Error(res.error ?? "O WhatsApp não confirmou a reação");
+    }
+
+    const { parseReacoes, aplicarNaLista } = await import("@/lib/whatsapp/reactions.server");
+    const lista = aplicarNaLista(parseReacoes((msg as { reactions?: unknown }).reactions), {
+      emoji: data.emoji,
+      from: "business",
+    });
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("wa_messages").update({ reactions: lista } as never).eq("id", msg.id);
+    return { reactions: lista };
+  });
+
 /** Apaga a mensagem para todos no WhatsApp, mas mantém o registro aqui. */
 export const deleteMessageForEveryone = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
