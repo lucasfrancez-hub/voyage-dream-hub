@@ -43,7 +43,7 @@ export async function mirrorInstagramMessage(input: MirrorInput) {
 
   const { data: existing } = await supabaseAdmin
     .from("wa_conversations")
-    .select("id, meta, unread_count, display_name")
+    .select("id, meta, unread_count, display_name, last_message_at")
     .eq("wa_phone", waPhone)
     .maybeSingle();
 
@@ -77,8 +77,10 @@ export async function mirrorInstagramMessage(input: MirrorInput) {
     await supabaseAdmin
       .from("wa_conversations")
       .update({
-        last_message_at: when,
-        last_message_preview: preview,
+        // Histórico não pode "puxar" a conversa pra trás na lista.
+        ...(existing?.last_message_at && new Date(existing.last_message_at as string) > new Date(when)
+          ? {}
+          : { last_message_at: when, last_message_preview: preview }),
         unread_count:
           input.direction === "inbound" ? (existing?.unread_count ?? 0) + 1 : existing?.unread_count ?? 0,
         ...(input.displayName &&
