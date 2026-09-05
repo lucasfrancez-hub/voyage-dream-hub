@@ -110,7 +110,13 @@ export function AudioMessage({ src, isOut }: Props) {
         ref={ref}
         src={src}
         preload="metadata"
-        onPlay={() => setTocando(true)}
+        onPlay={(e) => {
+          const atualEl = e.currentTarget;
+          document.querySelectorAll("audio").forEach((outro) => {
+            if (outro !== atualEl && !outro.paused) outro.pause();
+          });
+          setTocando(true);
+        }}
         onPause={() => setTocando(false)}
         onEnded={() => {
           setTocando(false);
