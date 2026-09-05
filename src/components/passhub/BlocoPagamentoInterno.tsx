@@ -18,7 +18,6 @@ import {
   Check,
   Copy,
   CreditCard,
-  ExternalLink,
   Loader2,
   QrCode,
   RefreshCw,
@@ -114,12 +113,6 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   const [valorManual, setValorManual] = useState("");
   const [copiado, setCopiado] = useState<string | null>(null);
   const [link, setLink] = useState(r.linkPagamento);
-  const [pixPasshub, setPixPasshub] = useState<{
-    copiaECola: string;
-    qrCodeBase64: string;
-    valor: number;
-    expiraEm: string;
-  } | null>(null);
   const [previa, setPrevia] = useState<PreviaPix | null>(null);
   // Pagamento interno no cartão: código do checkout usado só nos bastidores
   // (o link não é exibido nem enviado ao cliente).
@@ -211,16 +204,6 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
       pagamentos.refetch();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao repassar"),
-  });
-
-  const gerarPixPasshub = useMutation({
-    mutationFn: () =>
-      pedirPixPasshub({ data: { id: r.idPassagem, localizador: r.localizador || undefined } }),
-    onSuccess: (res) => {
-      if (!res.ok) return toast.error(res.erro);
-      setPixPasshub(res.pix);
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao gerar o Pix da PassHub"),
   });
 
   const gerarLink = useMutation({
