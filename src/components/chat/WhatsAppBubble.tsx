@@ -173,13 +173,26 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
               )}
 
               {media?.kind === "sticker" && (
-                <img
-                  src={media.url}
-                  alt="figurinha"
-                  className="mb-1 h-32 w-32 object-contain"
-                  loading="lazy"
-                />
+                <div className="group/sticker relative mb-1 inline-block">
+                  <img
+                    src={media.url}
+                    alt="figurinha"
+                    className="h-32 w-32 object-contain"
+                    loading="lazy"
+                  />
+                  {onSaveSticker && (
+                    <button
+                      type="button"
+                      title="Salvar figurinha nas minhas"
+                      onClick={() => onSaveSticker(media.url, media.filename)}
+                      className="absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity hover:bg-black/70 group-hover/sticker:opacity-100"
+                    >
+                      <Star className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               )}
+
 
               {media?.kind === "audio" && <AudioMessage src={media.url} isOut={isOut} />}
               {media?.kind === "video" && (
