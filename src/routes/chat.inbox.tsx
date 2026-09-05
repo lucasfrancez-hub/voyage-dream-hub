@@ -987,6 +987,15 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   });
 
   const toggleStickerFn = useServerFn(toggleSavedSticker);
+  const apagarMsgFn = useServerFn(deleteMessageForEveryone);
+  const apagarMsgMut = useMutation({
+    mutationFn: (id: string) => apagarMsgFn({ data: { message_id: id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
+      toast.success("Apagada no WhatsApp — o registro continua aqui");
+    },
+    onError: (e) => toast.error(`Não deu pra apagar: ${(e as Error).message}`),
+  });
   const salvarStickerMut = useMutation({
     mutationFn: (input: { url: string; filename: string; remover?: boolean }) =>
       toggleStickerFn({ data: input }),
