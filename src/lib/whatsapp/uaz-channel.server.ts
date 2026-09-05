@@ -126,7 +126,7 @@ export async function uazSendText(to: string, body: string, replyId?: string | n
 
 export async function uazSendMediaUrl(
   to: string,
-  kind: "image" | "video" | "audio" | "document",
+  kind: "image" | "video" | "audio" | "document" | "sticker",
   url: string,
   caption?: string | null,
   filename?: string | null,
@@ -149,7 +149,7 @@ export async function uazSendMediaUrl(
 
 export async function uazSendMediaBytes(
   to: string,
-  kind: "image" | "video" | "audio" | "document",
+  kind: "image" | "video" | "audio" | "document" | "sticker",
   bytes: Uint8Array,
   mimeType: string,
   filename: string,

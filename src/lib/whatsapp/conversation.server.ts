@@ -4,6 +4,7 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { aiSender, isAiSender, type WaSender } from "./sender-identity";
+import { messagePreview } from "@/lib/chat/preview";
 
 export type WaConversation = {
   id: string;
@@ -336,7 +337,9 @@ export async function saveMessage(input: {
             ? "video"
             : /\[\[media:document\|/.test(input.content)
               ? "document"
-              : "text");
+              : /\[\[media:sticker\|/.test(input.content)
+                ? "sticker"
+                : "text");
 
   const { data, error } = await supabaseAdmin
     .from("wa_messages")
@@ -404,7 +407,7 @@ export async function saveMessage(input: {
       .from("wa_conversations")
       .update({
         last_message_at: quando,
-        last_message_preview: input.content.slice(0, 200),
+        last_message_preview: messagePreview(input.content, input.direction).slice(0, 200),
         unread_count:
           input.direction === "inbound"
             ? // usar rpc para incremento seguro seria melhor; aqui simplificamos

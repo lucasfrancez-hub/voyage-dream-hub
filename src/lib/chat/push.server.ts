@@ -5,6 +5,7 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { enviarPush } from "@/lib/whatsapp/webpush.server";
+import { messagePreview } from "@/lib/chat/preview";
 
 type Args = {
   conversationId: string;
@@ -45,13 +46,8 @@ async function duplicado(chave: string) {
 }
 
 function limpar(texto: string) {
-  return texto
-    .replace(/\[\[media:(audio|image|video|document)\|[^\]]*\]\]/g, (_m, tipo: string) =>
-      tipo === "audio" ? "🎤 Áudio" : tipo === "image" ? "📷 Foto" : tipo === "video" ? "🎬 Vídeo" : "📎 Arquivo",
-    )
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 160);
+  // Notificação nunca mostra link nem transcrição: só "Imagem recebida" etc.
+  return messagePreview(texto, "inbound") || "Nova mensagem";
 }
 
 /* Presença não bloqueia mais o envio: o atendente é sempre notificado,

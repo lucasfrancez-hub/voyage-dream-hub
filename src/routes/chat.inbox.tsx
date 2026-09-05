@@ -4,10 +4,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, ChevronUp, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2, Eye, EyeOff, Check, CheckCheck, Bookmark, Share2, BarChart3, RefreshCw, UserPlus, Clock, AlertTriangle, Sparkles } from "lucide-react";
+import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, ChevronUp, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2, Eye, EyeOff, Check, CheckCheck, Bookmark, Share2, BarChart3, RefreshCw, UserPlus, Clock, AlertTriangle, Sparkles, Smile } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { messagePreview } from "@/lib/chat/preview";
+import { listStickers, sendHumanSticker } from "@/lib/chat/queries.functions";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead, renameConversation } from "@/lib/chat/queries.functions";
 import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused, setInstagramCommentAiInstruction, ensureInstagramMirror } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
@@ -696,7 +698,7 @@ function ConvItem({ conv, active, onClick, attendantName }: { conv: Conv; active
           </div>
         )}
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-xs text-slate-500">{messageText(conv.last_message_preview) || "—"}</span>
+          <span className="truncate text-xs text-slate-500">{messagePreview(messageText(conv.last_message_preview)) || "—"}</span>
           <div className="flex shrink-0 items-center gap-1">
             {(conv.unread_count ?? 0) > 0 && (
               <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
@@ -942,6 +944,38 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     onSettled: (_d, _e, vars) => { if (vars?.tempId) removerPendente(vars.tempId); },
   });
 
+
+  const stickerFn = useServerFn(sendHumanSticker);
+  const listStickersFn = useServerFn(listStickers);
+  const [stickerOpen, setStickerOpen] = useState(false);
+  const stickersQ = useQuery({
+    queryKey: ["chat", "stickers"],
+    queryFn: () => listStickersFn({}),
+    enabled: stickerOpen,
+    staleTime: 60_000,
+  });
+  const stickerFileRef = useRef<HTMLInputElement>(null);
+  const stickerMut = useMutation({
+    mutationFn: async (input: { url?: string; filename?: string; file?: File }) => {
+      if (input.file) {
+        const buf = new Uint8Array(await input.file.arrayBuffer());
+        let binary = "";
+        for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
+        return stickerFn({ data: {
+          conversation_id: conv.id,
+          filename: input.file.name,
+          mime_type: input.file.type || "image/webp",
+          data_base64: btoa(binary),
+        }});
+      }
+      return stickerFn({ data: { conversation_id: conv.id, url: input.url, filename: input.filename } });
+    },
+    onSuccess: () => {
+      setStickerOpen(false);
+      qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
+    },
+    onError: (e) => toast.error(`Falha ao enviar figurinha: ${(e as Error).message}`),
+  });
 
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -1494,6 +1528,54 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           >
             <Paperclip className="h-4 w-4" />
           </button>
+          <div className="relative">
+            <input
+              ref={stickerFileRef}
+              type="file"
+              accept="image/webp,image/png,image/jpeg"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) stickerMut.mutate({ file: f });
+              }}
+            />
+            <button
+              onClick={() => setStickerOpen((v) => !v)}
+              title="Enviar figurinha"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            >
+              <Smile className="h-4 w-4" />
+            </button>
+            {stickerOpen && (
+              <div className="absolute bottom-12 left-0 z-30 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                <div className="mb-2 flex items-center justify-between px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Figurinhas
+                  <button className="text-slate-400 hover:text-slate-700" onClick={() => stickerFileRef.current?.click()}>
+                    + enviar imagem
+                  </button>
+                </div>
+                <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
+                  {(stickersQ.data ?? []).map((st) => (
+                    <button
+                      key={st.url}
+                      disabled={stickerMut.isPending}
+                      onClick={() => stickerMut.mutate({ url: st.url, filename: st.filename })}
+                      className="rounded-lg p-1 hover:bg-slate-100 disabled:opacity-50"
+                    >
+                      <img src={st.url} alt="figurinha" className="h-14 w-14 object-contain" />
+                    </button>
+                  ))}
+                </div>
+                {stickersQ.isLoading && <div className="p-3 text-xs text-slate-500">Carregando…</div>}
+                {!stickersQ.isLoading && (stickersQ.data ?? []).length === 0 && (
+                  <div className="p-3 text-xs text-slate-500">
+                    Nenhuma figurinha ainda. As figurinhas que chegarem no WhatsApp aparecem aqui.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           {recording ? (
             <div className="flex flex-1 items-center gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               <span className={cn("h-2.5 w-2.5 rounded-full bg-red-500", !paused && "animate-pulse")} />
@@ -2919,7 +3001,7 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
               </div>
             </div>
             {c.contact_username && <div className="text-[10px] text-slate-500">@{c.contact_username}</div>}
-            <div className="truncate text-xs text-slate-500">{c.last_message_preview ?? "—"}</div>
+            <div className="truncate text-xs text-slate-500">{messagePreview(c.last_message_preview) || "—"}</div>
             <ContaTag username={(c as any).account_username} className="mt-0.5" />
           </div>
         </div>
@@ -3950,7 +4032,7 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
           <Instagram className="h-2.5 w-2.5" />
           {conv.contact_username ? `@${conv.contact_username}` : "Direct"}
         </div>
-        <div className="truncate text-xs text-slate-500">{conv.last_message_preview ?? "—"}</div>
+        <div className="truncate text-xs text-slate-500">{messagePreview(conv.last_message_preview) || "—"}</div>
         <ContaTag username={conv.account_username} className="mt-0.5" />
       </div>
     </div>
