@@ -5,7 +5,7 @@ import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
 import { AudioMessage } from "@/components/chat/AudioMessage";
 
-type Media = { kind: "image" | "document" | "audio" | "video"; url: string; filename: string };
+type Media = { kind: "image" | "document" | "audio" | "video" | "sticker"; url: string; filename: string };
 function safeText(value: unknown): string {
   if (typeof value === "string") return value;
   if (value == null) return "";
@@ -24,7 +24,7 @@ function safeText(value: unknown): string {
 
 function parseMedia(content: unknown): { media: Media | null; text: string } {
   const normalized = safeText(content);
-  const m = normalized.match(/^\[\[media:(image|document|audio|video)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
+  const m = normalized.match(/^\[\[media:(image|document|audio|video|sticker)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
   if (!m) return { media: null, text: normalized };
   return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text: (m[4] ?? "").trim() };
 }
@@ -36,6 +36,7 @@ function parseMedia(content: unknown): { media: Media | null; text: string } {
  */
 const LABELS_AUTO = [
   "🖼️ [imagem recebida]",
+  "🩷 [figurinha recebida]",
   "🎬 [vídeo recebido]",
   "📎 [documento recebido]",
   "🎤 [áudio enviado]",
@@ -169,6 +170,15 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                 >
                   <img src={media.url} alt={media.filename} className="max-h-72 w-full rounded-md object-cover" />
                 </button>
+              )}
+
+              {media?.kind === "sticker" && (
+                <img
+                  src={media.url}
+                  alt="figurinha"
+                  className="mb-1 h-32 w-32 object-contain"
+                  loading="lazy"
+                />
               )}
 
               {media?.kind === "audio" && <AudioMessage src={media.url} isOut={isOut} />}
