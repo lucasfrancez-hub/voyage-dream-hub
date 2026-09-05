@@ -42,6 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PagamentoCartaoPasshub } from "@/components/passhub/PagamentoCartaoPasshub";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 
 type PreviaPix = {
