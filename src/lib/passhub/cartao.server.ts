@@ -166,11 +166,13 @@ export type DadosTitular = {
   validadeMes: string;
   validadeAno: string;
   cpfTitular?: string;
+  emailTitular?: string;
   parcelas: number;
 };
 
 function corpoCartao(sessao: CheckoutSessao, d: DadosTitular) {
   const ano = d.validadeAno.length === 2 ? `20${d.validadeAno}` : d.validadeAno;
+  const email = (d.emailTitular || "").trim() || undefined;
   return {
     booking_token: sessao.bookingToken,
     transaction_id: d.transactionId,
@@ -178,6 +180,8 @@ function corpoCartao(sessao: CheckoutSessao, d: DadosTitular) {
     expiration_month: d.validadeMes.padStart(2, "0"),
     expiration_year: ano,
     card_holder_cpf: (d.cpfTitular || "").replace(/\D/g, "") || undefined,
+    email,
+    card_holder_email: email,
     installments: d.parcelas,
     operator_code: null,
     save_card: false,
