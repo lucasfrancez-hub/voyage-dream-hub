@@ -58,11 +58,41 @@ export async function ingestUazMessage(
         const kind = msg.type === "document" ? "document" : msg.type === "video" ? "video" : "image";
         const label =
           kind === "image" ? "🖼️ [imagem recebida]" : kind === "video" ? "🎬 [vídeo recebido]" : "📎 [documento recebido]";
+
+        // ANÁLISE MULTIMODAL — mesma infraestrutura do canal Meta: a leitura da
+        // imagem vira parte do conteúdo, antes de qualquer agente responder.
+        let analiseBloco = "";
+        try {
+          const { analyzeImage, isAnalyzableImage, buildAnalysisBlock } = await import("./image-vision.server");
+          if (isAnalyzableImage(mime)) {
+            console.log(
+              JSON.stringify({
+                event: "image_received",
+                conversation_id: conv.id,
+                wa_message_id: msg.id,
+                mime_type: mime,
+                bytes: media.blob.size,
+                at: new Date().toISOString(),
+              }),
+            );
+            const analysis = await analyzeImage({
+              blob: media.blob,
+              mimeType: mime,
+              caption: content,
+              conversationId: conv.id,
+            });
+            analiseBloco = `\n${buildAnalysisBlock(analysis)}`;
+          }
+        } catch (err) {
+          console.error("[uaz-ingest] análise de imagem falhou:", err);
+        }
+
         content = stored
-          ? `[[media:${kind}|${stored.url}|${stored.filename}]]\n${content || label}`
-          : content || label;
+          ? `[[media:${kind}|${stored.url}|${stored.filename}]]\n${content || label}${analiseBloco}`
+          : `${content || label}${analiseBloco}`;
         tipo = kind;
       }
+
     }
   }
 
