@@ -164,9 +164,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                 </button>
               )}
 
-              {media?.kind === "audio" && (
-                <audio src={media.url} controls preload="none" className="mb-1 w-56 max-w-full" />
-              )}
+              {media?.kind === "audio" && <AudioMessage src={media.url} isOut={isOut} />}
               {media?.kind === "video" && (
                 <video src={media.url} controls preload="metadata" className="mb-1 max-h-72 w-full rounded-md" />
               )}
