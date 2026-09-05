@@ -227,7 +227,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
         <button
           onClick={onReply}
           title="Responder"
-          className="hidden h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white opacity-0 transition-opacity hover:bg-black/30 group-hover:opacity-100 group-hover:flex"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/20 text-white opacity-40 transition-opacity hover:bg-black/30 hover:opacity-100"
         >
           <CornerUpLeft className="h-3.5 w-3.5" />
         </button>
