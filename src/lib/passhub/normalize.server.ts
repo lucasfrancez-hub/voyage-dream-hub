@@ -4,6 +4,8 @@
  */
 
 import type { PassHubVoo, PassHubOferta, PassHubResultado } from "./types";
+import { registraProvedor } from "./provider-registry.server";
+
 
 export type * from "./types";
 
