@@ -116,6 +116,8 @@ export type PassHubTarifacao = {
   incentivoPercentual?: number;
   ravModo: string;
   retarifou: boolean;
+  /** Fornecedor que a PassHub aceitou nesta tarifação (usar na reserva). */
+  provedor?: string;
 };
 
 export type PassHubReserva = {

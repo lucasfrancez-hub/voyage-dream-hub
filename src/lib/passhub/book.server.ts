@@ -139,6 +139,7 @@ export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHub
     incentivoPercentual: incentivoPct,
     ravModo: str(r["rav_mode"]),
     retarifou: r["retarifou"] === true,
+    provedor: providerUsado,
   };
 }
 
