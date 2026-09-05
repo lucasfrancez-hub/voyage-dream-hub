@@ -90,7 +90,7 @@ export function AudioMessage({ src, isOut }: Props) {
     const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
     el.currentTime = pct * el.duration;
     setAtual(el.currentTime);
-    if (fillRef.current) fillRef.current.style.width = `${(pct * 100).toFixed(2)}%`;
+    aplicar(pct);
   }
 
   const ativa = isOut ? "bg-white" : "bg-[var(--brand-orange,#F26B1F)]";
