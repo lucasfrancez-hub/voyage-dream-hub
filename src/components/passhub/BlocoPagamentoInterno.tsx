@@ -22,7 +22,6 @@ import {
   QrCode,
   RefreshCw,
   Send,
-  Wallet,
   Zap,
 } from "lucide-react";
 import {
@@ -72,29 +71,6 @@ const rotuloStatus: Record<string, { texto: string; cor: string }> = {
   estornado: { texto: "Estornado", cor: "cons-status-pay" },
 };
 
-function Etapa({
-  numero,
-  titulo,
-  selo,
-  children,
-}: {
-  numero: string;
-  titulo: string;
-  selo?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="cons-lab">
-          {numero} · {titulo}
-        </h3>
-        {selo}
-      </div>
-      {children}
-    </section>
-  );
-}
 
 export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   const cobrarFn = useServerFn(passhubCobrarComRav);
