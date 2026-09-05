@@ -18,7 +18,6 @@ import {
   Check,
   Copy,
   CreditCard,
-  ExternalLink,
   Loader2,
   QrCode,
   RefreshCw,
@@ -31,7 +30,6 @@ import {
   passhubLinkPagamento,
   passhubPagamentosReserva,
   passhubPagarAgora,
-  passhubPixReserva,
   passhubPreviaPagamento,
   passhubRepassarPagamento,
 } from "@/lib/passhub/passhub.functions";
@@ -103,7 +101,6 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   const pagarFn = useServerFn(passhubPagarAgora);
   const repassarFn = useServerFn(passhubRepassarPagamento);
   const listarFn = useServerFn(passhubPagamentosReserva);
-  const pedirPixPasshub = useServerFn(passhubPixReserva);
   const buscarLink = useServerFn(passhubLinkPagamento);
   const previaFn = useServerFn(passhubPreviaPagamento);
 
@@ -114,12 +111,6 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   const [valorManual, setValorManual] = useState("");
   const [copiado, setCopiado] = useState<string | null>(null);
   const [link, setLink] = useState(r.linkPagamento);
-  const [pixPasshub, setPixPasshub] = useState<{
-    copiaECola: string;
-    qrCodeBase64: string;
-    valor: number;
-    expiraEm: string;
-  } | null>(null);
   const [previa, setPrevia] = useState<PreviaPix | null>(null);
   // Pagamento interno no cartão: código do checkout usado só nos bastidores
   // (o link não é exibido nem enviado ao cliente).
@@ -211,16 +202,6 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
       pagamentos.refetch();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao repassar"),
-  });
-
-  const gerarPixPasshub = useMutation({
-    mutationFn: () =>
-      pedirPixPasshub({ data: { id: r.idPassagem, localizador: r.localizador || undefined } }),
-    onSuccess: (res) => {
-      if (!res.ok) return toast.error(res.erro);
-      setPixPasshub(res.pix);
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao gerar o Pix da PassHub"),
   });
 
   const gerarLink = useMutation({
@@ -359,7 +340,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
       >
         <button
           type="button"
-          className="cons-btn cons-btn-blue w-full justify-center py-3 text-sm font-bold"
+          className="w-full rounded-xl bg-emerald-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 transition hover:bg-emerald-500 disabled:opacity-60 inline-flex items-center justify-center gap-2"
           onClick={() => abrirPrevia.mutate()}
           disabled={abrirPrevia.isPending || pagarAgora.isPending}
         >
@@ -368,145 +349,103 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           ) : (
             <Zap className="h-4 w-4" />
           )}
-          Pagar reserva no Pix
+          Pagar reserva agora
         </button>
+        <p className="text-center text-[11px] cons-muted">
+          Pagamento instantâneo no Pix, debitando o nosso saldo na hora.
+        </p>
+      </Etapa>
 
-
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] cons-muted">
-            Busca o copia e cola da consolidadora e debita o nosso saldo na hora.
-          </p>
-          <button
-            type="button"
-            className="text-[11px] underline cons-muted hover:text-white"
-            onClick={() => gerarPixPasshub.mutate()}
-            disabled={gerarPixPasshub.isPending}
-          >
-            {gerarPixPasshub.isPending ? "abrindo…" : "ver copia e cola"}
-          </button>
-        </div>
-
-        {pixPasshub ? (
-          <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
-            <p className="text-[12px] font-semibold">
-              {pixPasshub.valor ? brl(pixPasshub.valor) : "Pix da consolidadora"}
-              {pixPasshub.expiraEm ? (
-                <span className="ml-2 font-normal cons-muted">até {pixPasshub.expiraEm}</span>
-              ) : null}
-            </p>
-            <code className="block max-h-20 overflow-auto break-all rounded-lg bg-black/40 px-2 py-1 text-[10px]">
-              {pixPasshub.copiaECola}
-            </code>
+      {/* ---------------- 3. Cartão de crédito (auxiliar) ---------------- */}
+      <section className="border-t border-white/5 pt-4">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-widest cons-muted">
+            Recurso auxiliar · cartão de crédito
+          </span>
+          {link ? (
             <button
               type="button"
-              className="cons-btn"
-              onClick={() => copiar(pixPasshub.copiaECola, "pix-passhub", "Pix da PassHub copiado")}
+              className="rounded-md p-1.5 cons-muted hover:bg-white/5 hover:text-white"
+              title="Copiar link do checkout"
+              onClick={() => copiar(link, "link", "Link de pagamento copiado")}
             >
-              {copiado === "pix-passhub" ? (
+              {copiado === "link" ? (
                 <Check className="h-4 w-4" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}
-              Copia e cola
             </button>
-          </div>
-        ) : null}
-      </Etapa>
+          ) : (
+            <button
+              type="button"
+              className="rounded-md p-1.5 cons-muted hover:bg-white/5 hover:text-white"
+              title="Gerar e copiar link do checkout"
+              onClick={() => gerarLink.mutate()}
+              disabled={gerarLink.isPending}
+            >
+              {gerarLink.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </button>
+          )}
+        </div>
 
-      {/* ---------------- 3. Cartão de crédito + link (auxiliar) ---------------- */}
-      <section className="border-t border-white/5 pt-4">
-        <span className="text-[10px] font-bold uppercase tracking-widest cons-muted">
-          Recurso auxiliar · cartão de crédito
-        </span>
         <button
           type="button"
-          className="cons-btn mt-2 w-full justify-center py-3 text-sm font-bold"
+          className="group mt-3 w-full overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-4 text-left transition hover:border-brand-orange/40 hover:from-brand-orange/10 disabled:opacity-60"
           onClick={() => abrirCartao.mutate()}
           disabled={abrirCartao.isPending}
         >
-          {abrirCartao.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <CreditCard className="h-4 w-4" />
-          )}
-          Pagar com cartão de crédito
-        </button>
-        <p className="mt-1 text-[11px] cons-muted">
-          Digita o cartão aqui dentro e paga na hora, com parcelas e confirmação do banco na
-          tela. Nenhum link é gerado para o cliente.
-        </p>
-
-        {link ? (
-          <div className="mt-2 space-y-2">
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 p-2">
-              <code className="min-w-0 flex-1 truncate text-[11px] cons-muted">{link}</code>
-              <button
-                type="button"
-                className="rounded-md p-1.5 cons-muted hover:bg-white/5 hover:text-white"
-                title="Copiar link"
-                onClick={() => copiar(link, "link", "Link de pagamento copiado")}
-              >
-                {copiado === "link" ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </button>
-              <a
-                className="rounded-md p-1.5 cons-muted hover:bg-white/5 hover:text-white"
-                title="Abrir checkout"
-                href={link}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </div>
-            {linkCliente ? (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="cons-btn"
-                  onClick={() =>
-                    copiar(linkCliente, "cliente", "Link do QR Code copiado — é só enviar")
-                  }
-                >
-                  {copiado === "cliente" ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                  Link do QR ao cliente
-                </button>
-                <a
-                  className="cons-btn"
-                  target="_blank"
-                  rel="noreferrer"
-                  href={whatsappHref(
-                    `Segue o link para pagamento da sua reserva ${r.localizador}: ${linkCliente}`,
-                  )}
-                >
-                  WhatsApp
-                </a>
-              </div>
-            ) : null}
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-orange/15 text-brand-orange">
+              {abrirCartao.isPending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <CreditCard className="h-5 w-5" />
+              )}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-bold">Pagar com cartão de crédito</span>
+              <span className="block text-[11px] cons-muted">
+                Abre a tela segura para digitar bandeira, número, validade e escolher as
+                parcelas.
+              </span>
+            </span>
           </div>
-        ) : (
-          <button
-            type="button"
-            className="cons-btn mt-2"
-            onClick={() => gerarLink.mutate()}
-            disabled={gerarLink.isPending}
-          >
-            {gerarLink.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CreditCard className="h-4 w-4" />
-            )}
-            Gerar link e copiar
-          </button>
-        )}
+        </button>
+
+        {linkCliente ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="cons-btn"
+              onClick={() =>
+                copiar(linkCliente, "cliente", "Link do QR Code copiado — é só enviar")
+              }
+            >
+              {copiado === "cliente" ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Link do QR ao cliente
+            </button>
+            <a
+              className="cons-btn"
+              target="_blank"
+              rel="noreferrer"
+              href={whatsappHref(
+                `Segue o link para pagamento da sua reserva ${r.localizador}: ${linkCliente}`,
+              )}
+            >
+              WhatsApp
+            </a>
+          </div>
+        ) : null}
       </section>
+
 
       {/* ---------------- Histórico ---------------- */}
       <section className="space-y-3 border-t border-white/5 pt-4">

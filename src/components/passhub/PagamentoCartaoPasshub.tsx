@@ -83,6 +83,8 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
   const sfRef = useRef<SecureFieldsInstance | null>(null);
   const [pronto, setPronto] = useState(false);
   const [erroCampos, setErroCampos] = useState("");
+  const [bandeira, setBandeira] = useState("");
+  const [numeroMasc, setNumeroMasc] = useState("");
 
   const [nome, setNome] = useState("");
   const [validade, setValidade] = useState("");
@@ -120,6 +122,23 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
           },
         );
         sf.on("ready", () => vivo && setPronto(true));
+        // Espelha bandeira e dígitos no cartão ilustrado (sem expor o número).
+        sf.on("change", (data?: unknown) => {
+          if (!vivo) return;
+          const campos = (data as { fields?: Record<string, { paymentMethod?: string[]; length?: number }> })
+            ?.fields;
+          const num = campos?.["cardNumber"];
+          const marca = num?.paymentMethod?.[0];
+          const mapa: Record<string, string> = {
+            VIS: "Visa", ECA: "Mastercard", AMX: "Amex", DIN: "Diners",
+            DIS: "Discover", JCB: "JCB", ELO: "Elo", HIP: "Hipercard",
+          };
+          setBandeira(marca ? (mapa[marca] ?? marca) : "");
+          const n = num?.length ?? 0;
+          setNumeroMasc(
+            n ? Array.from({ length: Math.min(n, 16) }, () => "•").join("").replace(/(.{4})/g, "$1 ").trim() : "",
+          );
+        });
       } catch {
         if (vivo && tentativas++ < 3) setTimeout(montar, 1500);
         else if (vivo) setErroCampos("Campos do cartão não carregaram. Recarregue a página.");
@@ -277,14 +296,56 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
     );
   }
 
+  const etapaAtual = etapa === "form" ? 1 : etapa === "parcelas" ? 2 : 3;
+
   return (
-    <div className="w-full rounded-3xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <CreditCard className="h-4 w-4 text-brand-orange" />
-        <span className="text-sm font-semibold text-foreground">Cartão de crédito</span>
-        <Lock className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+    <div className="w-full overflow-hidden rounded-3xl border border-border bg-card shadow-xl">
+      {/* Cabeçalho com cartão ilustrado */}
+      <div className="relative bg-gradient-to-br from-[#1b2430] via-[#141c26] to-[#0d1319] px-5 pb-6 pt-5">
+        <div className="mb-4 flex items-center gap-2 text-white/90">
+          <CreditCard className="h-4 w-4 text-brand-orange" />
+          <span className="text-sm font-semibold">Pagar com cartão de crédito</span>
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/70">
+            <Lock className="h-3 w-3" /> Ambiente seguro
+          </span>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur">
+          <div className="flex items-start justify-between">
+            <div className="h-7 w-10 rounded-md bg-gradient-to-br from-amber-200 to-amber-500/80" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-white/60">
+              {bandeira || "cartão"}
+            </span>
+          </div>
+          <div className="mt-5 font-mono text-lg tracking-[0.18em] text-white/85">
+            {numeroMasc || "•••• •••• •••• ••••"}
+          </div>
+          <div className="mt-3 flex items-end justify-between text-[11px] uppercase text-white/50">
+            <span className="truncate pr-3">{nome || "nome do titular"}</span>
+            <span>{validade || "MM/AA"}</span>
+          </div>
+        </div>
+
+        {/* Passos */}
+        <div className="mt-4 flex items-center gap-2">
+          {["Cartão", "Parcelas", "Confirmação"].map((rotulo, i) => (
+            <div key={rotulo} className="flex flex-1 flex-col gap-1">
+              <div
+                className={`h-1 rounded-full ${
+                  etapaAtual > i ? "bg-brand-orange" : "bg-white/15"
+                }`}
+              />
+              <span
+                className={`text-[10px] ${etapaAtual > i ? "text-white/80" : "text-white/35"}`}
+              >
+                {rotulo}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
+      <div className="p-5">
       {etapa === "form" ? (
         <div className="space-y-3">
           {/* Campos hospedados — número e CVV não passam pelo nosso sistema */}
@@ -294,6 +355,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
             </label>
             <div id="ph-sf-number" className="h-12 rounded-xl border border-input bg-white px-3" />
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -406,6 +468,8 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
           ) : null}
         </div>
       ) : null}
+      </div>
     </div>
   );
 }
+
