@@ -66,7 +66,7 @@ interface Props {
   content: unknown;
   timestamp: string; // ISO
   senderLabel?: string; // qualquer nome (completo ou não) — o balão extrai o primeiro
-  status?: "sent" | "delivered" | "read" | "failed";
+  status?: "sending" | "sent" | "delivered" | "read" | "failed";
   deleted?: boolean;
   /** Quem apagou a mensagem no WhatsApp */
   revokedBy?: "customer" | "business" | null;
