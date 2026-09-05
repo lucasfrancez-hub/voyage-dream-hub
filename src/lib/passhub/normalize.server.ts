@@ -108,6 +108,10 @@ export function normalizaBuscaPassHub(bruto: unknown, incentivoPct = 0): PassHub
     const item = rec(p);
     const ida = normalizaVoo(item["ida"], incentivoPct);
     const voltas = arr(item["voltas"]).map((v) => normalizaVoo(v, incentivoPct));
+    // Guardamos o fornecedor de cada token: a tarifação recusa quando o
+    // `provider` enviado não é o mesmo que gerou a oferta.
+    for (const v of [ida, ...voltas]) registraProvedor(v.rateToken, v.provedor);
+
     // A PassHub NÃO precifica por trecho: `preco_total` da ida e de cada volta
     // já é o valor fechado da viagem (ida + aquela volta). Somar os dois
     // duplicaria o preço; o total da oferta é o menor combo disponível.
