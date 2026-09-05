@@ -212,6 +212,26 @@ function ChatLayout() {
     };
   }, [session]);
 
+  // iOS/PWA congela os timers quando o app vai pro fundo: ao voltar, força
+  // recarregar todas as consultas para as mensagens novas aparecerem na hora.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const atualizar = () => {
+      if (document.visibilityState !== "visible") return;
+      void queryClient.invalidateQueries();
+    };
+    document.addEventListener("visibilitychange", atualizar);
+    window.addEventListener("focus", atualizar);
+    window.addEventListener("pageshow", atualizar);
+    window.addEventListener("online", atualizar);
+    return () => {
+      document.removeEventListener("visibilitychange", atualizar);
+      window.removeEventListener("focus", atualizar);
+      window.removeEventListener("pageshow", atualizar);
+      window.removeEventListener("online", atualizar);
+    };
+  }, [queryClient]);
+
   useEffect(() => {
     if (session === undefined) return;
     void (async () => {
