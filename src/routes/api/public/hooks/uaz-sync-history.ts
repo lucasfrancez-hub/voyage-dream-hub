@@ -111,7 +111,9 @@ async function rodar(request: Request): Promise<Response> {
       }
 
       for (const m of lista) {
-        const r = await ingestUazMessage({ ...m, senderName: m.senderName ?? chat.name }, { historico: true });
+        const nome = m.fromMe ? chat.name : (m.senderName ?? chat.name);
+        const r = await ingestUazMessage({ ...m, senderName: nome }, { historico: true });
+
         if (r === "salva") count += 1;
       }
 
