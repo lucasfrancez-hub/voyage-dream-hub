@@ -22,6 +22,19 @@ export async function ingestUazMessage(
 ): Promise<IngestResult> {
   if (!msg.phone) return "ignorada"; // grupos, canais e status não entram no chatbot
 
+  // Reação (emoji): não vira balão, fica registrada na mensagem reagida.
+  if (msg.reaction) {
+    const { registrarReacaoPorWaId } = await import("./reactions.server");
+    const ok = await registrarReacaoPorWaId({
+      waMessageId: msg.reaction.targetId,
+      emoji: msg.reaction.emoji,
+      from: msg.fromMe ? "business" : "customer",
+      sender: msg.fromMe ? null : msg.senderName,
+      at: new Date(msg.timestampMs).toISOString(),
+    });
+    return ok ? "salva" : "ignorada";
+  }
+
   const { getOrCreateConversation, saveMessage } = await import("./conversation.server");
   const { transcribeAudio, storeInboundMedia, extFromMime } = await import("./media.server");
   const { uazDownloadMedia, uazResolveMedia } = await import("./uaz-channel.server");

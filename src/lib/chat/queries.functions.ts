@@ -404,7 +404,7 @@ export const listMessages = createServerFn({ method: "POST" })
     // PRIMEIRAS, o que fazia as mensagens novas sumirem em conversas longas.
     const { data: rows, error } = await context.supabase
       .from("wa_messages")
-      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, agent_slug, deleted_at, is_revoked, revoked_at, revoked_by, wa_message_id, reply_to_wa_id, reply_to_snippet, reply_to_sender, error, delivery_status, delivered_at, read_at")
+      .select("id, direction, sender, content, created_at, tool_calls, sender_user_id, agent_slug, deleted_at, is_revoked, revoked_at, revoked_by, wa_message_id, reply_to_wa_id, reply_to_snippet, reply_to_sender, error, delivery_status, delivered_at, read_at, reactions")
       .eq("conversation_id", data.conversation_id)
       .order("created_at", { ascending: false })
       .limit(500);
@@ -844,6 +844,43 @@ export const toggleSavedSticker = createServerFn({ method: "POST" })
       );
     if (error) throw new Error(error.message);
     return { salvo: true };
+  });
+
+/** Reage (emoji) a uma mensagem no WhatsApp. Emoji vazio remove a reação. */
+export const reactToMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ message_id: z.string().uuid(), emoji: z.string().max(12) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: msg, error } = await context.supabase
+      .from("wa_messages")
+      .select("id, wa_message_id, conversation_id, reactions")
+      .eq("id", data.message_id)
+      .single();
+    if (error || !msg) throw new Error("Mensagem não encontrada");
+
+    const { data: conv } = await context.supabase
+      .from("wa_conversations")
+      .select("wa_phone")
+      .eq("id", msg.conversation_id)
+      .maybeSingle();
+
+    if (msg.wa_message_id && conv?.wa_phone && !conv.wa_phone.startsWith("ig:")) {
+      const { uazReact } = await import("@/lib/whatsapp/uaz-channel.server");
+      const res = await uazReact(conv.wa_phone, msg.wa_message_id, data.emoji);
+      if (!res.ok) throw new Error(res.error ?? "O WhatsApp não confirmou a reação");
+    }
+
+    const { parseReacoes, aplicarNaLista } = await import("@/lib/whatsapp/reactions.server");
+    const lista = aplicarNaLista(parseReacoes((msg as { reactions?: unknown }).reactions), {
+      emoji: data.emoji,
+      from: "business",
+    });
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("wa_messages").update({ reactions: lista } as never).eq("id", msg.id);
+    return { reactions: lista };
   });
 
 /** Apaga a mensagem para todos no WhatsApp, mas mantém o registro aqui. */

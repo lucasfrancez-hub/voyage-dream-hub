@@ -1,0 +1,1 @@
+ALTER TABLE public.wa_messages ADD COLUMN IF NOT EXISTS reactions jsonb NOT NULL DEFAULT '[]'::jsonb;

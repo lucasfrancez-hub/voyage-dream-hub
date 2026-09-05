@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward } from "lucide-react";
+import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward, SmilePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
@@ -98,7 +98,13 @@ interface Props {
   deliveredAt?: string | null;
   /** Horário em que o cliente leu */
   readAt?: string | null;
+  /** Reações (emoji) já registradas nesta mensagem */
+  reactions?: Array<{ emoji: string; from: "customer" | "business"; sender?: string | null }>;
+  /** Reagir a esta mensagem no WhatsApp (emoji vazio remove a reação) */
+  onReact?: (emoji: string) => void;
 }
+
+const EMOJIS_RAPIDOS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -106,7 +112,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt, onSaveSticker, onDeleteForEveryone, deleting, onForward }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt, onSaveSticker, onDeleteForEveryone, deleting, onForward, reactions, onReact }: Props) {
   const reciboTitulo = [
     status === "sent" || status === "delivered" || status === "read" ? `Enviada ${formatTime(timestamp)}` : null,
     deliveredAt ? `Entregue ${formatTime(deliveredAt)}` : status === "delivered" || status === "read" ? "Entregue" : null,
@@ -120,6 +126,59 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const replySnippet = safeText(reply?.snippet).trim();
   const [lightbox, setLightbox] = useState<{ url: string; filename: string } | null>(null);
   const [verLeitura, setVerLeitura] = useState(false);
+  const [painelReacao, setPainelReacao] = useState(false);
+  const listaReacoes = reactions ?? [];
+  const minhaReacao = listaReacoes.find((r) => r.from === "business")?.emoji ?? null;
+
+  const botaoReagir = onReact && !deleted ? (
+    <div className="relative">
+      <button
+        onClick={() => setPainelReacao((v) => !v)}
+        title="Reagir"
+        className="hidden h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white opacity-0 transition-opacity hover:bg-black/30 group-hover:opacity-100 group-hover:flex"
+      >
+        <SmilePlus className="h-3.5 w-3.5" />
+      </button>
+      {painelReacao && (
+        <div className="absolute bottom-9 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-[var(--chat-panel-raised)] px-2 py-1 shadow-lg">
+          {EMOJIS_RAPIDOS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => {
+                setPainelReacao(false);
+                onReact(minhaReacao === e ? "" : e);
+              }}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full text-base transition hover:scale-125",
+                minhaReacao === e && "bg-[var(--brand-orange)]/20",
+              )}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  const chipsReacoes = listaReacoes.length ? (
+    <div className={cn("-mt-1 mb-1 flex flex-wrap gap-1", isOut ? "justify-end" : "justify-start")}>
+      {listaReacoes.map((r, i) => (
+        <button
+          key={`${r.from}-${i}`}
+          type="button"
+          disabled={!onReact || r.from !== "business"}
+          onClick={() => onReact?.("")}
+          title={r.from === "business" ? "Sua reação — clique para remover" : `Reação de ${r.sender || "cliente"}`}
+          className="flex items-center gap-1 rounded-full border border-border bg-[var(--chat-panel-raised)] px-1.5 py-[1px] text-[12px] shadow-sm"
+        >
+          <span>{r.emoji}</span>
+        </button>
+      ))}
+    </div>
+  ) : null;
+
   return (
     <div className={cn("group flex w-full items-center gap-1", isOut ? "justify-end" : "justify-start")}>
       {isOut && onDeleteForEveryone && !deleted && (
@@ -141,6 +200,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           <Forward className="h-3.5 w-3.5" />
         </button>
       )}
+      {isOut && botaoReagir}
       {isOut && onReply && !deleted && (
         <button
           onClick={onReply}
@@ -322,6 +382,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
 
 
         </div>
+        {chipsReacoes}
       </div>
       {!isOut && onReply && !deleted && (
         <button
@@ -332,6 +393,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           <CornerUpLeft className="h-3.5 w-3.5" />
         </button>
       )}
+      {!isOut && botaoReagir}
       {!isOut && onForward && !deleted && (
         <button
           onClick={onForward}

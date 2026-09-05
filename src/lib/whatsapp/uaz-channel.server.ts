@@ -177,6 +177,33 @@ export async function uazPresence(
   }
 }
 
+/**
+ * Reage a uma mensagem no WhatsApp (emoji). Emoji vazio remove a reação.
+ */
+export async function uazReact(
+  to: string,
+  messageId: string,
+  emoji: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const numero = uazNumber(to);
+  const tentativas: Array<[string, Record<string, unknown>]> = [
+    ["/message/react", { number: numero, id: messageId, text: emoji }],
+    ["/message/reaction", { number: numero, id: messageId, text: emoji, reaction: emoji }],
+    ["/send/reaction", { number: numero, id: messageId, text: emoji }],
+  ];
+  let ultimo = "";
+  for (const [path, body] of tentativas) {
+    try {
+      await uazRequest(path, body);
+      return { ok: true };
+    } catch (err) {
+      ultimo = err instanceof Error ? err.message : String(err);
+    }
+  }
+  console.error("[whatsapp/uaz react] falhou:", ultimo);
+  return { ok: false, error: ultimo || "Não foi possível reagir no WhatsApp" };
+}
+
 /** Marca a conversa como lida no aparelho conectado. */
 export async function uazMarkRead(chatid: string): Promise<void> {
   try {
@@ -230,6 +257,8 @@ export type UazNormalized = {
   replyId: string | null;
   /** Prévia textual da mensagem citada, quando a UazAPI a envia. */
   replySnippet: string | null;
+  /** Quando a "mensagem" é na verdade uma reação (emoji) a outra mensagem. */
+  reaction: { emoji: string; targetId: string } | null;
 };
 
 const MEDIA_MAP: Record<string, UazNormalized["type"]> = {
@@ -341,7 +370,45 @@ export function normalizeUazMessage(raw: unknown, phoneHint?: string | null): Ua
     timestampMs,
     replyId: citada.id,
     replySnippet: citada.snippet,
+    reaction: extrairReacao(m, rawType, citada.id),
   };
+}
+
+/**
+ * Detecta reações (emoji) nos vários formatos que a UazAPI usa: campo
+ * `reaction`, `reactionMessage` do WhatsApp cru, ou messageType "reaction"
+ * com o emoji no texto e o alvo no contexto/quoted.
+ */
+function extrairReacao(
+  m: Record<string, unknown>,
+  rawType: string,
+  quotedId: string | null,
+): { emoji: string; targetId: string } | null {
+  const fontes: unknown[] = [
+    m.reaction,
+    m.reactionMessage,
+    (m.message as Record<string, unknown> | undefined)?.reactionMessage,
+    (m.content as Record<string, unknown> | undefined)?.reactionMessage,
+  ];
+  for (const f of fontes) {
+    if (!f || typeof f !== "object") continue;
+    const o = f as Record<string, unknown>;
+    const emoji = String(pick<string>(o, "text", "emoji", "reaction") ?? "");
+    const key = o.key && typeof o.key === "object" ? (o.key as Record<string, unknown>) : null;
+    const alvo =
+      pick<string>(o, "messageId", "messageid", "id", "stanzaId", "targetId") ??
+      (key ? pick<string>(key, "id", "ID") : undefined) ??
+      quotedId ??
+      undefined;
+    if (alvo) return { emoji, targetId: String(alvo) };
+  }
+
+  if (rawType.includes("reaction")) {
+    const emoji = String(pick<string>(m, "text", "body", "emoji", "content") ?? "");
+    const alvo = pick<string>(m, "reactedMessageId", "quotedMessageId", "targetId") ?? quotedId;
+    if (alvo) return { emoji, targetId: String(alvo) };
+  }
+  return null;
 }
 
 /**

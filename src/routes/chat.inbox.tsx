@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { messagePreview } from "@/lib/chat/preview";
-import { listStickers, sendHumanSticker, toggleSavedSticker, deleteMessageForEveryone } from "@/lib/chat/queries.functions";
+import { listStickers, sendHumanSticker, toggleSavedSticker, deleteMessageForEveryone, reactToMessage } from "@/lib/chat/queries.functions";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead, renameConversation } from "@/lib/chat/queries.functions";
 import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused, setInstagramCommentAiInstruction, ensureInstagramMirror } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
@@ -1010,6 +1010,13 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     },
     onError: (e) => toast.error(`Não deu pra apagar: ${(e as Error).message}`),
   });
+  const reagirFn = useServerFn(reactToMessage);
+  const reagirMut = useMutation({
+    mutationFn: (input: { id: string; emoji: string }) =>
+      reagirFn({ data: { message_id: input.id, emoji: input.emoji } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] }),
+    onError: (e) => toast.error(`Não deu pra reagir: ${(e as Error).message}`),
+  });
   const salvarStickerMut = useMutation({
     mutationFn: (input: { url: string; filename: string; remover?: boolean }) =>
       toggleStickerFn({ data: input }),
@@ -1513,6 +1520,12 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                       resending={resendingId === m.id}
                       onSaveSticker={(url, filename) => salvarStickerMut.mutate({ url, filename })}
                       onForward={m.deleted_at ? undefined : () => setEncaminhando(m.id)}
+                      reactions={((m as { reactions?: unknown }).reactions ?? []) as Array<{ emoji: string; from: "customer" | "business"; sender?: string | null }>}
+                      onReact={
+                        m.deleted_at || !m.wa_message_id
+                          ? undefined
+                          : (emoji: string) => reagirMut.mutate({ id: m.id, emoji })
+                      }
                       deleting={apagarMsgMut.isPending}
                       onDeleteForEveryone={
                         m.direction === "outbound" && m.wa_message_id && !(m as { is_revoked?: boolean | null }).is_revoked

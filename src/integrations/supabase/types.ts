@@ -10742,6 +10742,7 @@ export type Database = {
           product_type: string | null
           protocolo_id: string | null
           quote_id: string | null
+          reactions: Json
           read_at: string | null
           reply_to_message_id: string | null
           reply_to_sender: string | null
@@ -10783,6 +10784,7 @@ export type Database = {
           product_type?: string | null
           protocolo_id?: string | null
           quote_id?: string | null
+          reactions?: Json
           read_at?: string | null
           reply_to_message_id?: string | null
           reply_to_sender?: string | null
@@ -10824,6 +10826,7 @@ export type Database = {
           product_type?: string | null
           protocolo_id?: string | null
           quote_id?: string | null
+          reactions?: Json
           read_at?: string | null
           reply_to_message_id?: string | null
           reply_to_sender?: string | null
