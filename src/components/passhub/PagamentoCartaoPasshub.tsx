@@ -456,6 +456,21 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
               />
             </div>
 
+            <div className="relative">
+              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-muted-foreground">
+                E-mail do titular
+              </label>
+              <input
+                className="h-[64px] w-full rounded-xl border border-border bg-background px-4 pb-2.5 pt-7 text-base font-medium text-foreground outline-none transition placeholder:text-muted-foreground/40 focus:border-primary focus:ring-1 focus:ring-primary/50"
+                placeholder="seu@email.com"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
             {erroCampos ? <p className="text-xs text-red-400">{erroCampos}</p> : null}
 
             <button
