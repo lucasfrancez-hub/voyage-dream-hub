@@ -1060,17 +1060,34 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   };
 
   const submit = () => {
+    const novoPendente = (content: string) => {
+      const id = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      setPendentes((p) => [...p, { id, content, createdAt: new Date().toISOString() }]);
+      return id;
+    };
     if (audioDraft) {
-
       const file = audioDraft.file;
-      discardDraft();
-      mediaMut.mutate({ file, caption: "", kind: "audio" });
+      const url = audioDraft.url;
+      setAudioDraft(null); // mantém a URL viva pro balão tocar enquanto envia
+      const tempId = novoPendente(`[[media:audio|${url}|${file.name}]]\n🎤 [áudio enviado]`);
+      mediaMut.mutate({ file, caption: "", kind: "audio", tempId });
     } else if (pendingFile) {
-      mediaMut.mutate({ file: pendingFile.file, caption: input.trim(), kind: pendingFile.kind });
-    } else if (input.trim() && !sendMut.isPending) {
-      sendMut.mutate(input.trim());
+      const { file, previewUrl, kind } = pendingFile;
+      const legenda = input.trim();
+      setPendingFile(null);
+      setInput("");
+      const marcador = previewUrl ? `[[media:${kind}|${previewUrl}|${file.name}]]` : `📎 ${file.name}`;
+      const tempId = novoPendente(legenda ? `${marcador}\n${legenda}` : marcador);
+      mediaMut.mutate({ file, caption: legenda, kind, tempId });
+    } else if (input.trim()) {
+      const texto = input.trim();
+      setInput("");
+      setReplyTo(null);
+      const tempId = novoPendente(texto);
+      sendMut.mutate({ content: texto, tempId, reply: replyTo });
     }
   };
+
 
 
 
