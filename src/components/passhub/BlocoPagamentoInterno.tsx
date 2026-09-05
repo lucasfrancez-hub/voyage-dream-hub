@@ -233,6 +233,20 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao obter o link"),
   });
 
+  // Cartão interno: obtém o código do checkout nos bastidores e abre o
+  // formulário de cartão aqui mesmo — sem gerar/mostrar link ao cliente.
+  const abrirCartao = useMutation({
+    mutationFn: () => buscarLink({ data: { id: r.idPassagem, localizador: r.localizador } }),
+    onSuccess: (res) => {
+      if (!res.ok) return toast.error(res.erro);
+      const codigo = /\/payment\/([^/?#\s]+)/.exec(res.link)?.[1];
+      if (!codigo) return toast.error("Não consegui abrir o checkout desta reserva");
+      setCodigoCartao(codigo);
+      setCartaoAberto(true);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao abrir o pagamento"),
+  });
+
 
 
 
