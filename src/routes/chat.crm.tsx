@@ -6,6 +6,7 @@ import { FUNNEL_STAGES, type FunnelStageKey } from "@/lib/chat/funnel-stages";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { messagePreview } from "@/lib/chat/preview";
 
 export const Route = createFileRoute("/chat/crm")({
   component: CRMPage,
