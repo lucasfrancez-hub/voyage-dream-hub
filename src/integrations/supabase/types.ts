@@ -1681,6 +1681,54 @@ export type Database = {
           },
         ]
       }
+      card_3ds_validations: {
+        Row: {
+          authenticated_at: string | null
+          authentication_flow: string | null
+          card_brand: string | null
+          card_fingerprint: string | null
+          card_last4: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          reservation_id: string
+          status: string
+          stripe_payment_intent_id: string
+          three_ds_result: string | null
+          updated_at: string
+        }
+        Insert: {
+          authenticated_at?: string | null
+          authentication_flow?: string | null
+          card_brand?: string | null
+          card_fingerprint?: string | null
+          card_last4?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reservation_id: string
+          status?: string
+          stripe_payment_intent_id: string
+          three_ds_result?: string | null
+          updated_at?: string
+        }
+        Update: {
+          authenticated_at?: string | null
+          authentication_flow?: string | null
+          card_brand?: string | null
+          card_fingerprint?: string | null
+          card_last4?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reservation_id?: string
+          status?: string
+          stripe_payment_intent_id?: string
+          three_ds_result?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       catalog_availabilities: {
         Row: {
           available: boolean
