@@ -137,6 +137,7 @@ async function processarRevogacao(p: Record<string, unknown>): Promise<boolean> 
         ? (p.data as unknown[])
         : [p];
 
+  const owner = String(p.owner ?? "").trim();
   const alvos: Array<{ waId: string; fromMe: boolean }> = [];
   for (const bruta of brutas) {
     if (!bruta || typeof bruta !== "object") continue;
@@ -168,6 +169,16 @@ async function processarRevogacao(p: Record<string, unknown>): Promise<boolean> 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const quando = new Date().toISOString();
   for (const alvo of alvos) {
+    // A UazAPI pode enviar o id sem o prefixo "owner:" usado no banco.
+    const waIds = Array.from(new Set([alvo.waId, owner ? `${owner}:${alvo.waId}` : null].filter(Boolean))) as string[];
+    const { data: row } = await supabaseAdmin
+      .from("wa_messages")
+      .select("id, wa_message_id")
+      .in("wa_message_id", waIds)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!row) continue;
     await supabaseAdmin
       .from("wa_messages")
       .update({
@@ -175,8 +186,8 @@ async function processarRevogacao(p: Record<string, unknown>): Promise<boolean> 
         revoked_at: quando,
         revoked_by: alvo.fromMe ? "business" : "customer",
       })
-      .eq("wa_message_id", alvo.waId);
-    console.log(JSON.stringify({ event: "uaz_revoke", wa_message_id: alvo.waId }));
+      .eq("id", (row as { id: string }).id);
+    console.log(JSON.stringify({ event: "uaz_revoke", wa_message_id: (row as { wa_message_id: string }).wa_message_id }));
   }
   return true;
 }
