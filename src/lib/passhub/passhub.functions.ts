@@ -349,6 +349,69 @@ export const passhubPixPublico = createServerFn({ method: "POST" })
   });
 
 /* ============================================================
+ * Cartão de crédito no checkout da consolidadora (público — o
+ * código curto do link já é o segredo, igual ao Pix público).
+ * Número e CVV nunca chegam aqui: o navegador tokeniza antes.
+ * ============================================================ */
+
+const cartaoPublicoSchema = z.object({
+  codigo: z.string().min(6).max(64),
+  deviceId: z.string().min(8).max(80),
+});
+
+const titularSchema = cartaoPublicoSchema.extend({
+  transactionId: z.string().min(6).max(200),
+  nome: z.string().min(3).max(80),
+  validadeMes: z.string().regex(/^\d{1,2}$/, "Mês inválido"),
+  validadeAno: z.string().regex(/^(\d{2}|\d{4})$/, "Ano inválido"),
+  cpfTitular: z.string().max(14).optional(),
+  parcelas: z.number().int().min(1).max(24),
+});
+
+/** Parcelamento do cartão já tokenizado no navegador (transaction_id). */
+export const passhubCartaoParcelasPublico = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    cartaoPublicoSchema.extend({ transactionId: z.string().min(6).max(200) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const { passhubCartaoParcelas } = await import("./cartao.server");
+      return {
+        ok: true as const,
+        ...(await passhubCartaoParcelas(data.codigo, data.transactionId, data.deviceId)),
+      };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha no parcelamento" };
+    }
+  });
+
+/** Inicia a autenticação 3DS — pode pedir desafio do banco. */
+export const passhubCartao3dsPublico = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => titularSchema.parse(input))
+  .handler(async ({ data }) => {
+    try {
+      const { passhubCartaoSessao3ds } = await import("./cartao.server");
+      const { codigo, deviceId, ...titular } = data;
+      return { ok: true as const, resultado: await passhubCartaoSessao3ds(codigo, titular, deviceId) };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha na autenticação" };
+    }
+  });
+
+/** Emite o pagamento no cartão (após o 3DS quando houver desafio). */
+export const passhubCartaoEmitirPublico = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => titularSchema.parse(input))
+  .handler(async ({ data }) => {
+    try {
+      const { passhubCartaoEmitir } = await import("./cartao.server");
+      const { codigo, deviceId, ...titular } = data;
+      return { ok: true as const, resultado: await passhubCartaoEmitir(codigo, titular, deviceId) };
+    } catch (e) {
+      return { ok: false as const, erro: e instanceof Error ? e.message : "Falha ao pagar" };
+    }
+  });
+
+/* ============================================================
  * Pagamento interno da reserva (RAV por fora + pagar agora)
  * ============================================================ */
 
