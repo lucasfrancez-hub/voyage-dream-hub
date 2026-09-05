@@ -148,7 +148,8 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           </div>
         )}
         {(() => {
-          const { media, text } = parseMedia(content);
+          const { media, text: bruto } = parseMedia(content);
+          const { visivel: text, leitura } = separarLeituraAuto(bruto);
           return (
             <>
               {media?.kind === "image" && (
