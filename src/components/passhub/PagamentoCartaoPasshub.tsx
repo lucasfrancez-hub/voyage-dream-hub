@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { CreditCard, Loader2, Lock, ShieldCheck } from "lucide-react";
+import { Desafio3DSPasshub } from "@/components/passhub/Desafio3DSPasshub";
 import {
   passhubCartao3dsPublico,
   passhubCartaoEmitirPublico,
