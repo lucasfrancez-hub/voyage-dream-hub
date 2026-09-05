@@ -272,6 +272,26 @@ export function normalizeUazMessage(raw: unknown, phoneHint?: string | null): Ua
   };
 }
 
+/**
+ * Pede à UazAPI que baixe e descriptografe a mídia da mensagem, devolvendo
+ * uma URL já utilizável. Necessário porque o webhook entrega apenas a URL
+ * criptografada (.enc) do WhatsApp.
+ */
+export async function uazResolveMedia(
+  messageId: string,
+): Promise<{ url: string; mimeType: string | null } | null> {
+  try {
+    const res = (await uazRequest("/message/download", { id: messageId })) as
+      | { fileURL?: string; mimetype?: string }
+      | null;
+    if (!res?.fileURL) return null;
+    return { url: res.fileURL, mimeType: res.mimetype ?? null };
+  } catch (err) {
+    console.warn("[whatsapp/uaz media] resolve falhou:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 /** Baixa uma mídia da UazAPI (URL própria da instância ou pública). */
 export async function uazDownloadMedia(
   url: string,
