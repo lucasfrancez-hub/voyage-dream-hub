@@ -68,6 +68,7 @@ async function rodar(request: Request): Promise<Response> {
     ? todos.filter((c) => (c.phone ?? c.chatid).replace(/\D/g, "").includes(filtroPhone))
     : todos;
   let importadas = 0;
+  let corrigidas = 0;
 
   for (const chat of chats) {
 
@@ -79,6 +80,20 @@ async function rodar(request: Request): Promise<Response> {
         .sort((a, b) => a.timestampMs - b.timestampMs)) {
         const r = await ingestUazMessage({ ...m, senderName: m.senderName ?? chat.name }, { historico: true });
         if (r === "salva") count += 1;
+        // Conserta o horário de mensagens já importadas antes (entraram com a
+        // hora do import e bagunçavam a ordem da conversa).
+        if (r === "duplicada") {
+          const real = new Date(m.timestampMs).toISOString();
+          const { data: atual } = await supabaseAdmin
+            .from("wa_messages")
+            .select("id, created_at")
+            .eq("wa_message_id", m.id)
+            .maybeSingle();
+          if (atual && Math.abs(new Date(atual.created_at as string).getTime() - m.timestampMs) > 60_000) {
+            await supabaseAdmin.from("wa_messages").update({ created_at: real }).eq("id", atual.id as string);
+            corrigidas += 1;
+          }
+        }
       }
 
       importadas += count;
@@ -92,5 +107,5 @@ async function rodar(request: Request): Promise<Response> {
     }
   }
 
-  return Response.json({ chats: chats.length, mensagens_importadas: importadas });
+  return Response.json({ chats: chats.length, mensagens_importadas: importadas, horarios_corrigidos: corrigidas });
 }

@@ -114,6 +114,8 @@ export async function ingestUazMessage(
     wa_message_id: msg.id,
     message_type: tipo === "other" ? "text" : tipo,
     transcricao,
+    // Horário REAL do WhatsApp — mantém a ordem cronológica exata na conversa.
+    created_at: new Date(msg.timestampMs).toISOString(),
     ...(opts.historico ? { skip_protocolo: true } : {}),
   });
 

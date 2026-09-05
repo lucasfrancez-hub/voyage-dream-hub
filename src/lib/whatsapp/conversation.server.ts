@@ -273,6 +273,12 @@ export async function saveMessage(input: {
   transcricao?: string | null;
   /** Resumo curto da mensagem (usado quando o cliente responde a um áudio). */
   resumo?: string | null;
+  /**
+   * Horário REAL da mensagem no WhatsApp (ISO). Obrigatório na importação de
+   * histórico: sem isso tudo entra com a hora do import e a conversa aparece
+   * fora de ordem.
+   */
+  created_at?: string | null;
 }): Promise<WaMessage | null> {
   // Dedupe manual quando temos wa_message_id
   if (input.wa_message_id) {
@@ -360,6 +366,7 @@ export async function saveMessage(input: {
       product_type: input.product_type ?? (input.quote_id ? "flight" : null),
       transcricao: input.transcricao ?? null,
       resumo: input.resumo ?? null,
+      ...(input.created_at ? { created_at: input.created_at } : {}),
     })
     .select("*")
     .single();
@@ -378,19 +385,29 @@ export async function saveMessage(input: {
       .eq("id", protocoloId);
   }
 
-  // Atualiza metadados da conversa
-  await supabaseAdmin
+  // Atualiza metadados da conversa. Na importação de histórico a mensagem pode
+  // ser ANTIGA: nesse caso não pode sobrescrever a última mensagem da conversa.
+  const quando = input.created_at ?? new Date().toISOString();
+  const { data: convAtual } = await supabaseAdmin
     .from("wa_conversations")
-    .update({
-      last_message_at: new Date().toISOString(),
-      last_message_preview: input.content.slice(0, 200),
-      unread_count:
-        input.direction === "inbound"
-          ? // usar rpc para incremento seguro seria melhor; aqui simplificamos
-            undefined
-          : 0,
-    })
-    .eq("id", input.conversation_id);
+    .select("last_message_at")
+    .eq("id", input.conversation_id)
+    .maybeSingle();
+  const anterior = convAtual?.last_message_at ? new Date(convAtual.last_message_at as string).getTime() : 0;
+  if (new Date(quando).getTime() >= anterior) {
+    await supabaseAdmin
+      .from("wa_conversations")
+      .update({
+        last_message_at: quando,
+        last_message_preview: input.content.slice(0, 200),
+        unread_count:
+          input.direction === "inbound"
+            ? // usar rpc para incremento seguro seria melhor; aqui simplificamos
+              undefined
+            : 0,
+      })
+      .eq("id", input.conversation_id);
+  }
 
   // Auto-avança funil: quando o cliente responde após um atendimento (IA ou humano),
   // move de "novo"/null para "qualificacao".
