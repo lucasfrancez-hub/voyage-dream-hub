@@ -449,6 +449,8 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
           ) : null}
         </div>
       ) : null}
+      </div>
     </div>
   );
 }
+
