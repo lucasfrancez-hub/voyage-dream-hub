@@ -40,6 +40,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PagamentoCartaoPasshub } from "@/components/passhub/PagamentoCartaoPasshub";
+import { Validacao3DSCartao } from "@/components/passhub/Validacao3DSCartao";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 
 type PreviaPix = {
