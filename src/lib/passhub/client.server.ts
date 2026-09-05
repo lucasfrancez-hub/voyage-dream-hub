@@ -254,6 +254,22 @@ export async function passhubInvalidarToken(): Promise<void> {
   await apagarSessao();
 }
 
+/** Estado da sessão para o painel administrativo (nunca devolve o token). */
+export async function passhubSessaoStatus(): Promise<{
+  conectado: boolean;
+  expiraEm: string | null;
+  minutosRestantes: number | null;
+}> {
+  const sessao = (cache && Date.now() < cache.expiraEm ? cache : null) ?? (await sessaoSalva());
+  if (!sessao) return { conectado: false, expiraEm: null, minutosRestantes: null };
+  return {
+    conectado: true,
+    expiraEm: new Date(sessao.expiraEm).toISOString(),
+    minutosRestantes: Math.max(0, Math.round((sessao.expiraEm - Date.now()) / 60000)),
+  };
+}
+
+
 
 /* ------------------------------- requisição ------------------------------- */
 

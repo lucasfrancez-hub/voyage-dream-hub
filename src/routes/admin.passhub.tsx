@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeftRight, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
-import { passhubStatus, passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
+import {
+  passhubStatus,
+  passhubMotorBuscar,
+  passhubSessaoInfo,
+  passhubReconectar,
+} from "@/lib/passhub/passhub.functions";
 import { ReservaPassHubDialog } from "@/components/passhub/ReservaPassHubDialog";
 import {
   ResultadosPassHub,
@@ -71,6 +76,8 @@ function Radio({
 function PassHubPage() {
   const statusFn = useServerFn(passhubStatus);
   const buscarFn = useServerFn(passhubMotorBuscar);
+  const sessaoFn = useServerFn(passhubSessaoInfo);
+  const reconectarFn = useServerFn(passhubReconectar);
 
   const [tipo, setTipo] = useState<Tipo>("ida-volta");
   const [trechos, setTrechos] = useState<Trecho[]>([{ origem: "", destino: "", data: "" }]);
@@ -112,12 +119,32 @@ function PassHubPage() {
   const [ravAplicada, setRavAplicada] = useState<number | null>(null);
   const [ofertaReserva, setOfertaReserva] = useState<PassHubOferta | null>(null);
 
+  const sessao = useQuery({
+    queryKey: ["passhub-sessao"],
+    queryFn: async () => sessaoFn(),
+    refetchInterval: 5 * 60_000,
+  });
+
   const status = useMutation({
     mutationFn: async () => statusFn(),
-    onSuccess: (r) =>
-      r.ok ? toast.success("Conectado à PassHub") : toast.error(r.erro ?? "Falha na autenticação"),
+    onSuccess: (r) => {
+      void sessao.refetch();
+      r.ok ? toast.success("Conectado à PassHub") : toast.error(r.erro ?? "Falha na autenticação");
+    },
     onError: (e) => toast.error((e as Error).message),
   });
+
+  const reconectar = useMutation({
+    mutationFn: async () => reconectarFn(),
+    onSuccess: (r) => {
+      void sessao.refetch();
+      r.ok
+        ? toast.success("Sessão PassHub renovada")
+        : toast.error(r.erro ?? "Não foi possível reconectar");
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
 
   const busca = useMutation({
     mutationFn: async (p: number) =>
@@ -211,19 +238,43 @@ function PassHubPage() {
             <h1 className="text-[28px] font-black tracking-tight">Busca aérea</h1>
 
           </div>
-          <button
-            type="button"
-            className="cons-status cons-status-ok h-9 px-4"
-            onClick={() => status.mutate()}
-            disabled={status.isPending}
-          >
-            {status.isPending ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <span className="mr-1.5">●</span>
-            )}
-            PassHub conectada
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className={`cons-status h-9 px-4 ${sessao.data?.conectado ? "cons-status-ok" : "cons-status-warn"}`}
+              onClick={() => status.mutate()}
+              disabled={status.isPending}
+              title={
+                sessao.data?.conectado && sessao.data.minutosRestantes != null
+                  ? `Sessão válida por mais ~${Math.round(sessao.data.minutosRestantes / 60)} h`
+                  : "Sessão não ativa"
+              }
+            >
+              {status.isPending ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <span className="mr-1.5">●</span>
+              )}
+              {sessao.data?.conectado
+                ? sessao.data.minutosRestantes != null && sessao.data.minutosRestantes < 600
+                  ? `PassHub conectada (${Math.max(1, Math.round(sessao.data.minutosRestantes / 60))} h)`
+                  : "PassHub conectada"
+                : "PassHub desconectada"}
+            </button>
+            <button
+              type="button"
+              className="cons-btn-ghost h-9 px-3 text-[13px] font-bold"
+              onClick={() => reconectar.mutate()}
+              disabled={reconectar.isPending}
+            >
+              {reconectar.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                "Reconectar"
+              )}
+            </button>
+          </div>
+
         </header>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(0,0.9fr)]">
