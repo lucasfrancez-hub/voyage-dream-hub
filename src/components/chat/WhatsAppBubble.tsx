@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2 } from "lucide-react";
+import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
@@ -92,6 +92,8 @@ interface Props {
   /** Apagar para todos no WhatsApp (mantém o registro aqui) */
   onDeleteForEveryone?: () => void;
   deleting?: boolean;
+  /** Encaminhar esta mensagem (texto, foto, áudio, arquivo) para outra conversa */
+  onForward?: () => void;
   /** Horário em que o WhatsApp confirmou a entrega */
   deliveredAt?: string | null;
   /** Horário em que o cliente leu */
@@ -104,7 +106,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt, onSaveSticker, onDeleteForEveryone, deleting }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt, onSaveSticker, onDeleteForEveryone, deleting, onForward }: Props) {
   const reciboTitulo = [
     status === "sent" || status === "delivered" || status === "read" ? `Enviada ${formatTime(timestamp)}` : null,
     deliveredAt ? `Entregue ${formatTime(deliveredAt)}` : status === "delivered" || status === "read" ? "Entregue" : null,
@@ -128,6 +130,15 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           className="hidden h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white opacity-0 transition-opacity hover:bg-red-500 disabled:opacity-40 group-hover:opacity-100 group-hover:flex"
         >
           <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {isOut && onForward && !deleted && (
+        <button
+          onClick={onForward}
+          title="Encaminhar"
+          className="hidden h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white opacity-0 transition-opacity hover:bg-black/30 group-hover:opacity-100 group-hover:flex"
+        >
+          <Forward className="h-3.5 w-3.5" />
         </button>
       )}
       {isOut && onReply && !deleted && (
@@ -313,6 +324,15 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           className="hidden h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white opacity-0 transition-opacity hover:bg-black/30 group-hover:opacity-100 group-hover:flex"
         >
           <CornerUpLeft className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {!isOut && onForward && !deleted && (
+        <button
+          onClick={onForward}
+          title="Encaminhar"
+          className="hidden h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white opacity-0 transition-opacity hover:bg-black/30 group-hover:opacity-100 group-hover:flex"
+        >
+          <Forward className="h-3.5 w-3.5" />
         </button>
       )}
       {lightbox && (
