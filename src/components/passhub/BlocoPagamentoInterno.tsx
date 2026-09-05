@@ -260,10 +260,10 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-2">
+        <div className="flex gap-2">
           <button
             type="button"
-            className="col-span-4 flex items-center justify-center gap-2 rounded-xl bg-brand-orange py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-3 rounded-lg bg-brand-orange px-4 py-4 font-bold text-white shadow-lg shadow-brand-orange/10 transition-colors hover:bg-brand-orange/90 disabled:opacity-50"
             onClick={() => cobrar.mutate()}
             disabled={cobrar.isPending}
           >
@@ -276,7 +276,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           </button>
           {cobrancaAtiva?.pixCopiaCola ? (
             <a
-              className="col-span-1 flex items-center justify-center rounded-xl border border-brand-orange text-brand-orange transition hover:bg-brand-orange/10"
+              className="flex w-14 items-center justify-center rounded-lg border border-white/10 bg-white/5 cons-muted transition-colors hover:bg-white/10 hover:text-white"
               title="Enviar Pix no WhatsApp"
               target="_blank"
               rel="noreferrer"
@@ -288,16 +288,13 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
             </a>
           ) : (
             <span
-              className="col-span-1 flex items-center justify-center rounded-xl border border-white/10 cons-muted opacity-40"
+              className="flex w-14 items-center justify-center rounded-lg border border-white/10 bg-white/5 cons-muted opacity-40"
               title="Gere o QR Pix primeiro"
             >
               <Send className="h-5 w-5" />
             </span>
           )}
         </div>
-        <p className="text-[11px] cons-muted">
-          Pagamento identificado automaticamente → a reserva é paga sozinha.
-        </p>
       </section>
 
       {/* ---------------- 2. Pagar reserva agora ---------------- */}
