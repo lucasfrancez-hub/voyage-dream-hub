@@ -115,8 +115,8 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
           {
             debug: false,
             styles: {
-              "*": "font-size: 16px; padding: 0; line-height: 46px; color: #111827; outline: none; background: transparent;",
-              "*::placeholder": "color: #9ca3af;",
+              "*": "font-size: 15px; padding: 0; line-height: 46px; color: #f4f7f8; outline: none; background: transparent; font-family: Figtree, sans-serif;",
+              "*::placeholder": "color: rgba(244,247,248,.24);",
             },
             paymentMethods: ["VIS", "ECA", "AMX", "DIN", "DIS", "JCB", "ELO", "HIP"],
           },
@@ -300,33 +300,32 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
   const bandeiras = ["Visa", "Mastercard", "Amex", "Elo", "Hipercard"];
 
   return (
-    <div className="w-full overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900 shadow-2xl">
+    <div className="w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between px-6 pt-6">
-        <h3 className="text-lg font-semibold tracking-tight text-white">Pagar com cartão</h3>
-        <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/70">
+        <h3 className="font-display text-xl font-semibold text-foreground">Pagamento</h3>
+        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
           <Lock className="h-3 w-3" /> Ambiente seguro
         </span>
       </div>
 
       {/* Cartão ilustrado */}
       <div className="p-6 pb-4">
-        <div className="relative aspect-[1.58/1] w-full overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-950 p-5 shadow-xl">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-orange/10 blur-3xl" />
+        <div className="relative aspect-[1.58/1] w-full overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-primary/65 p-5 shadow-xl">
           <div className="relative z-10 flex items-start justify-between">
-            <div className="h-8 w-11 rounded-md bg-gradient-to-br from-amber-200 to-amber-500/80" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-white/70">
+            <div className="h-8 w-11 rounded-md border border-primary-foreground/30 bg-primary-foreground/20" />
+            <span className="text-[11px] font-bold uppercase text-primary-foreground/80">
               {bandeira || "cartão"}
             </span>
           </div>
-          <div className="relative z-10 mt-5 font-mono text-lg font-medium tracking-[0.22em] text-white">
+          <div className="relative z-10 mt-5 font-mono text-lg font-medium text-primary-foreground">
             {numeroMasc || "•••• •••• •••• ••••"}
           </div>
-          <div className="relative z-10 mt-4 flex items-end justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-            <span className="max-w-[65%] truncate text-xs tracking-normal text-white">
+          <div className="relative z-10 mt-4 flex items-end justify-between text-[10px] font-bold uppercase text-primary-foreground/60">
+            <span className="max-w-[65%] truncate text-xs text-primary-foreground">
               {nome || "NOME IMPRESSO"}
             </span>
-            <span className="text-xs tracking-normal text-white">{validade || "MM/AA"}</span>
+            <span className="text-xs text-primary-foreground">{validade || "MM/AA"}</span>
           </div>
         </div>
       </div>
@@ -341,8 +340,8 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
                 key={b}
                 className={`flex h-10 flex-1 items-center justify-center rounded-lg border text-[10px] font-bold transition ${
                   ativa
-                    ? "border-brand-orange/60 bg-brand-orange/10 text-brand-orange"
-                    : "border-white/10 bg-white/[0.04] text-zinc-500"
+                     ? "border-primary/60 bg-primary/10 text-primary"
+                     : "border-border bg-background/60 text-muted-foreground"
                 }`}
               >
                 {b}
@@ -355,19 +354,19 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
           <div className="space-y-3">
             {/* Campos hospedados — número e CVV não passam pelo nosso sistema */}
             <div className="relative">
-              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-zinc-500">
+              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-muted-foreground">
                 Número do cartão
               </label>
-              <div id="ph-sf-number" className="h-[64px] rounded-xl bg-white px-4 pt-5 shadow-sm" />
+              <div id="ph-sf-number" className="h-[64px] rounded-xl border border-border bg-background px-4 pt-5 transition focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="relative">
-                <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-zinc-500">
+                <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-muted-foreground">
                   Validade
                 </label>
                 <input
-                  className="h-[64px] w-full rounded-xl bg-white px-4 pb-2.5 pt-7 text-base font-medium text-zinc-900 shadow-sm outline-none transition focus:ring-2 focus:ring-brand-orange"
+                  className="h-[64px] w-full rounded-xl border border-border bg-background px-4 pb-2.5 pt-7 text-base font-medium text-foreground outline-none transition placeholder:text-muted-foreground/40 focus:border-primary focus:ring-1 focus:ring-primary/50"
                   placeholder="MM/AA"
                   inputMode="numeric"
                   maxLength={5}
@@ -379,19 +378,19 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
                 />
               </div>
               <div className="relative">
-                <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-zinc-500">
+                <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-muted-foreground">
                   CVV
                 </label>
-                <div id="ph-sf-cvv" className="h-[64px] rounded-xl bg-white px-4 pt-5 shadow-sm" />
+                <div id="ph-sf-cvv" className="h-[64px] rounded-xl border border-border bg-background px-4 pt-5 transition focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50" />
               </div>
             </div>
 
             <div className="relative">
-              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-zinc-500">
+              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-muted-foreground">
                 Nome impresso
               </label>
               <input
-                className="h-[64px] w-full rounded-xl bg-white px-4 pb-2.5 pt-7 text-base font-medium uppercase text-zinc-900 shadow-sm outline-none transition focus:ring-2 focus:ring-brand-orange"
+                className="h-[64px] w-full rounded-xl border border-border bg-background px-4 pb-2.5 pt-7 text-base font-medium uppercase text-foreground outline-none transition placeholder:text-muted-foreground/40 focus:border-primary focus:ring-1 focus:ring-primary/50"
                 placeholder="COMO ESTÁ NO CARTÃO"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
@@ -399,11 +398,11 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
             </div>
 
             <div className="relative">
-              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-zinc-500">
+              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-muted-foreground">
                 CPF do titular
               </label>
               <input
-                className="h-[64px] w-full rounded-xl bg-white px-4 pb-2.5 pt-7 text-base font-medium text-zinc-900 shadow-sm outline-none transition focus:ring-2 focus:ring-brand-orange"
+                className="h-[64px] w-full rounded-xl border border-border bg-background px-4 pb-2.5 pt-7 text-base font-medium text-foreground outline-none transition placeholder:text-muted-foreground/40 focus:border-primary focus:ring-1 focus:ring-primary/50"
                 placeholder="000.000.000-00"
                 inputMode="numeric"
                 value={cpf}
@@ -417,7 +416,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
               type="button"
               onClick={verParcelas}
               disabled={!pronto || processando}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-orange py-4 font-bold text-white shadow-lg shadow-orange-950/40 transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display font-semibold text-primary-foreground shadow-lg transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
             >
               {processando ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
