@@ -355,6 +355,9 @@ export function passhubMotivo(erro: unknown): string {
   const texto = typeof bruto === "string" ? bruto : bruto ? JSON.stringify(bruto) : "";
   if (!texto) return "";
   const baixo = texto.toLowerCase();
+  if (/segment_unavailable|segmento sem disponibilidade/.test(baixo)) {
+    return "a companhia acabou de perder a disponibilidade deste trecho — escolha outro voo ou refaça a busca";
+  }
   if (/deserialization rate token|token_preview|rate token/.test(baixo)) {
     return "a oferta expirou na companhia — refaça a busca e tarife novamente";
   }
@@ -364,18 +367,29 @@ export function passhubMotivo(erro: unknown): string {
   if (/erro no provedor|falha na comunica/.test(baixo)) {
     return "a companhia aérea está instável no momento — tente de novo em instantes";
   }
-  try {
-    const j = JSON.parse(texto) as Record<string, unknown>;
-    const d = (j["detail"] ?? j) as Record<string, unknown>;
-    for (const k of ["mensagem", "message", "erro", "error", "detail", "description"]) {
-      const v = (d as Record<string, unknown>)[k];
-      if (typeof v === "string" && v.trim()) return v.trim();
+  // Procura a primeira mensagem legível em qualquer nível do corpo do erro.
+  const procura = (v: unknown, nivel = 0): string => {
+    if (nivel > 4 || !v || typeof v !== "object") return "";
+    const o = v as Record<string, unknown>;
+    for (const k of ["mensagem", "message", "erro", "error", "detail", "description", "msg"]) {
+      const val = o[k];
+      if (typeof val === "string" && val.trim()) return val.trim();
     }
+    for (const val of Object.values(o)) {
+      const achado = procura(val, nivel + 1);
+      if (achado) return achado;
+    }
+    return "";
+  };
+  try {
+    const achado = procura(JSON.parse(texto));
+    if (achado) return achado;
   } catch {
     /* corpo não-JSON */
   }
   return texto.replace(/\s+/g, " ").trim().slice(0, 200);
 }
+
 
 
 /** Diagnóstico: valida credenciais fazendo login + /auth/me. */
