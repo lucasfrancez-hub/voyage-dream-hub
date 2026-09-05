@@ -1586,24 +1586,53 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                     + enviar imagem
                   </button>
                 </div>
-                <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
-                  {(stickersQ.data ?? []).map((st) => (
-                    <button
-                      key={st.url}
-                      disabled={stickerMut.isPending}
-                      onClick={() => stickerMut.mutate({ url: st.url, filename: st.filename })}
-                      className="rounded-lg p-1 hover:bg-slate-100 disabled:opacity-50"
-                    >
-                      <img src={st.url} alt="figurinha" className="h-14 w-14 object-contain" />
-                    </button>
-                  ))}
+                <div className="max-h-72 overflow-y-auto">
+                  {(["salvas", "recentes"] as const).map((grupo) => {
+                    const itens = (stickersQ.data ?? []).filter((st) =>
+                      grupo === "salvas" ? st.salvo : !st.salvo,
+                    );
+                    if (itens.length === 0) return null;
+                    return (
+                      <div key={grupo} className="mb-2">
+                        <div className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          {grupo === "salvas" ? "Minhas figurinhas" : "Recentes das conversas"}
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {itens.map((st) => (
+                            <div key={st.url} className="group/st relative">
+                              <button
+                                disabled={stickerMut.isPending}
+                                onClick={() => stickerMut.mutate({ url: st.url, filename: st.filename })}
+                                className="w-full rounded-lg p-1 hover:bg-slate-100 disabled:opacity-50"
+                              >
+                                <img src={st.url} alt="figurinha" className="h-14 w-14 object-contain" />
+                              </button>
+                              <button
+                                title={st.salvo ? "Remover das minhas" : "Salvar nas minhas"}
+                                onClick={() =>
+                                  salvarStickerMut.mutate({ url: st.url, filename: st.filename, remover: st.salvo })
+                                }
+                                className={cn(
+                                  "absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-400 shadow transition-opacity hover:text-[#F26B1F]",
+                                  st.salvo ? "text-[#F26B1F] opacity-100" : "opacity-0 group-hover/st:opacity-100",
+                                )}
+                              >
+                                <Star className={cn("h-3 w-3", st.salvo && "fill-current")} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 {stickersQ.isLoading && <div className="p-3 text-xs text-slate-500">Carregando…</div>}
                 {!stickersQ.isLoading && (stickersQ.data ?? []).length === 0 && (
                   <div className="p-3 text-xs text-slate-500">
-                    Nenhuma figurinha ainda. As figurinhas que chegarem no WhatsApp aparecem aqui.
+                    Nenhuma figurinha ainda. As que chegarem no WhatsApp aparecem aqui, e você pode salvá-las.
                   </div>
                 )}
+
               </div>
             )}
           </div>
