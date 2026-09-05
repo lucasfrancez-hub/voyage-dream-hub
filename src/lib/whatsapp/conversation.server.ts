@@ -4,6 +4,7 @@
  */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { aiSender, isAiSender, type WaSender } from "./sender-identity";
+import { messagePreview } from "@/lib/chat/preview";
 
 export type WaConversation = {
   id: string;
@@ -336,7 +337,9 @@ export async function saveMessage(input: {
             ? "video"
             : /\[\[media:document\|/.test(input.content)
               ? "document"
-              : "text");
+              : /\[\[media:sticker\|/.test(input.content)
+                ? "sticker"
+                : "text");
 
   const { data, error } = await supabaseAdmin
     .from("wa_messages")
