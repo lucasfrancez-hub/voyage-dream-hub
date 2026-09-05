@@ -98,11 +98,126 @@ function normalizaVoo(raw: unknown, incentivoPct = 0): PassHubVoo {
   };
 }
 
+/** "180" minutos -> "03:00". */
+function minutosParaDuracao(min: number): string {
+  if (!Number.isFinite(min) || min <= 0) return "";
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/**
+ * A busca multitrecho devolve um formato próprio (`grupos` -> `combos` ->
+ * `trechos`), sem os campos em caixa alta do motor de ida/volta. Convertemos
+ * cada combo em uma oferta (1º trecho = ida, demais = trechos seguintes) para
+ * a tela mostrar os voos normalmente.
+ */
+function normalizaTrechoMulti(
+  raw: unknown,
+  combo: Rec,
+  rateToken: string,
+  incentivoPct: number,
+): PassHubVoo {
+  const t = rec(raw);
+  const segs = arr(t["segments"]).map(rec);
+  const primeiro = segs[0] ?? {};
+  const ultimo = segs[segs.length - 1] ?? primeiro;
+  const duracaoMin = num(t["duration"]);
+  const tarifa = num(t["preco_tarifa"]);
+
+  return {
+    companhia: str(primeiro["airline"], str(combo["companhia"], "—")),
+    companhiaIata: str(primeiro["airline_iata"], str(combo["companhia"])),
+    operadoPor: str(primeiro["operating_airline_iata"]),
+    familiaTarifaria: str(primeiro["fare_family"]),
+    classe: str(primeiro["class_service"]),
+    origem: str(t["origin"]),
+    destino: str(t["destination"]),
+    partida: str(t["departure_date"]),
+    chegada: str(t["arrival_date"]),
+    duracao: minutosParaDuracao(duracaoMin),
+    duracaoMinutos: duracaoMin,
+    numeroVoo: str(primeiro["flight_number"]),
+    paradas: num(t["stops"], Math.max(segs.length - 1, 0)),
+    escala: "",
+    mudancaAeroporto: bool(t["has_airport_change"]),
+    conexoes: segs.slice(1).map((s, i) => {
+      const anterior = segs[i] ?? {};
+      return {
+        aeroporto: str(s["departure"]),
+        chegada: str(anterior["arrival_date"]),
+        saida: str(s["departure_date"]),
+        duracao: "",
+        mudancaAeroporto: str(anterior["arrival"]) !== str(s["departure"]),
+      };
+    }),
+    bagagemDespachada: bool(primeiro["has_checked_bag"]),
+    bagagemDespachadaQtd: num(primeiro["checked_bag_qty"]),
+    bagagemMao: bool(primeiro["has_cabin_bag"]),
+    servicos: [],
+    precoTotal: num(t["price"]),
+    precoTarifa: tarifa,
+    taxas: num(t["total_tax"]),
+    ravValor: 0,
+    ravPercentual: 0,
+    incentivoValor: Math.round(tarifa * (incentivoPct / 100) * 100) / 100,
+    incentivoPercentual: incentivoPct,
+    provedor: str(combo["provider"]),
+    canal: "",
+    rateToken,
+    parcelamento: [],
+    ...(ultimo === primeiro ? {} : {}),
+  };
+}
+
+function ofertasMultitrecho(raiz: Rec, incentivoPct: number): PassHubOferta[] {
+  const ofertas: PassHubOferta[] = [];
+  arr(raiz["grupos"]).forEach((g, gi) => {
+    const grupo = rec(g);
+    arr(grupo["combos"]).forEach((c, ci) => {
+      const combo = rec(c);
+      const tokens = arr(combo["rate_tokens"]).map((x) => str(x));
+      const provedor = str(combo["provider"]);
+      const voos = arr(combo["trechos"]).map((t, i) =>
+        normalizaTrechoMulti(t, combo, tokens[i] ?? "", incentivoPct),
+      );
+      if (!voos.length) return;
+      for (const v of voos) if (v.rateToken) registraProvedor(v.rateToken, provedor);
+      const [ida, ...demais] = voos as [PassHubVoo, ...PassHubVoo[]];
+      ofertas.push({
+        id: `mt-${gi}-${ci}-${ida.numeroVoo}-${ida.partida}`,
+        precoTotal: num(combo["total_price"]),
+        ida,
+        voltas: demais,
+      });
+    });
+  });
+  return ofertas;
+}
+
 /** Converte o payload bruto da PassHub em ofertas prontas para o motor. */
 export function normalizaBuscaPassHub(bruto: unknown, incentivoPct = 0): PassHubResultado {
   const raiz = rec(bruto);
   const meta = rec(raiz["meta"]);
   const global = rec(meta["global"]);
+
+  if (Array.isArray(raiz["grupos"])) {
+    const ofertasMulti = ofertasMultitrecho(raiz, incentivoPct);
+    const precosMulti = ofertasMulti.map((o) => o.precoTotal).filter((n) => n > 0);
+    return {
+      pagina: num(meta["page"], 1),
+      porPagina: num(meta["page_size"], ofertasMulti.length),
+      total: num(meta["total_items"], ofertasMulti.length),
+      totalPaginas: num(meta["total_pages"], 1),
+      companhias: arr(global["airlines"]).map((a) => str(a)),
+      familias: arr(global["fare_families"]).map((a) => str(a)),
+      precoMin: precosMulti.length ? Math.min(...precosMulti) : num(global["preco_min"]),
+      precoMax: precosMulti.length ? Math.max(...precosMulti) : num(global["preco_max"]),
+      ofertas: ofertasMulti,
+    };
+  }
+
+
 
   const ofertas: PassHubOferta[] = arr(raiz["passagens"]).map((p, i) => {
     const item = rec(p);
