@@ -223,6 +223,47 @@ const MEDIA_MAP: Record<string, UazNormalized["type"]> = {
   chat: "text",
 };
 
+/**
+ * Extrai a mensagem citada (reply). A UazAPI varia bastante o formato:
+ * campo direto, objeto `quoted`, ou o `contextInfo` cru do WhatsApp.
+ */
+function extrairCitada(m: Record<string, unknown>): { id: string | null; snippet: string | null } {
+  const direto = pick<string>(m, "quotedMessageId", "replyid", "replyId", "quotedId", "stanzaId");
+  const candidatos: unknown[] = [
+    m.quoted,
+    m.quotedMessage,
+    m.contextInfo,
+    m.messageContextInfo,
+    (m.content as Record<string, unknown> | undefined)?.contextInfo,
+    (m.message as Record<string, unknown> | undefined)?.contextInfo,
+    ((m.message as Record<string, unknown> | undefined)?.extendedTextMessage as Record<string, unknown> | undefined)
+      ?.contextInfo,
+  ];
+
+  let id = typeof direto === "string" ? direto : null;
+  let snippet: string | null = null;
+
+  for (const c of candidatos) {
+    if (!c || typeof c !== "object") continue;
+    const o = c as Record<string, unknown>;
+    if (!id) {
+      const cid = pick<string>(o, "stanzaId", "stanzaid", "id", "messageid", "messageId", "quotedMessageId");
+      if (typeof cid === "string") id = cid;
+    }
+    if (!snippet) {
+      const txt =
+        pick<string>(o, "text", "body", "caption", "conversation") ??
+        (o.quotedMessage && typeof o.quotedMessage === "object"
+          ? pick<string>(o.quotedMessage as Record<string, unknown>, "text", "body", "caption", "conversation")
+          : undefined);
+      if (typeof txt === "string" && txt.trim()) snippet = txt.trim().slice(0, 300);
+    }
+    if (id && snippet) break;
+  }
+
+  return { id, snippet };
+}
+
 /** Converte a mensagem crua da UazAPI no formato interno do chatbot. */
 export function normalizeUazMessage(raw: unknown, phoneHint?: string | null): UazNormalized | null {
   if (!raw || typeof raw !== "object") return null;
