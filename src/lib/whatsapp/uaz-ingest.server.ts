@@ -35,7 +35,7 @@ export async function ingestUazMessage(
 
   let content = msg.text?.trim() ?? "";
   let transcricao: string | null = null;
-  let tipo = msg.type === "sticker" ? "image" : msg.type;
+  let tipo = msg.type;
 
   if (msg.type !== "text" && msg.type !== "other") {
     // O webhook entrega a URL criptografada do WhatsApp; a UazAPI descriptografa.
@@ -58,9 +58,22 @@ export async function ingestUazMessage(
           : "🎤 [sistema · transcricao_falhou] Não foi possível transcrever este áudio. Peça ao cliente, de forma natural, que reenvie o áudio ou escreva a mensagem. NÃO tente adivinhar o conteúdo.";
         content = stored ? `[[media:audio|${stored.url}|${stored.filename}]]\n${texto}` : texto;
       } else {
-        const kind = msg.type === "document" ? "document" : msg.type === "video" ? "video" : "image";
+        const kind =
+          msg.type === "document"
+            ? "document"
+            : msg.type === "video"
+              ? "video"
+              : msg.type === "sticker"
+                ? "sticker"
+                : "image";
         const label =
-          kind === "image" ? "🖼️ [imagem recebida]" : kind === "video" ? "🎬 [vídeo recebido]" : "📎 [documento recebido]";
+          kind === "image"
+            ? "🖼️ [imagem recebida]"
+            : kind === "video"
+              ? "🎬 [vídeo recebido]"
+              : kind === "sticker"
+                ? "🩷 [figurinha recebida]"
+                : "📎 [documento recebido]";
 
         // ANÁLISE MULTIMODAL — mesma infraestrutura do canal Meta: a leitura da
         // imagem vira parte do conteúdo, antes de qualquer agente responder.
