@@ -12,6 +12,10 @@ import type { UazNormalized } from "./uaz-channel.server";
 
 export type IngestResult = "salva" | "duplicada" | "ignorada" | "agendada";
 
+// Conversas cuja foto de perfil já foi tentada neste processo (evita
+// refazer a chamada à UazAPI a cada mensagem da mesma conversa).
+const profilePicAttempted = new Set<string>();
+
 export async function ingestUazMessage(
   msg: UazNormalized,
   opts: { historico?: boolean } = {},
@@ -27,6 +31,26 @@ export async function ingestUazMessage(
   // Em mensagens que NÓS enviamos, o "senderName" é o nosso próprio perfil
   // (VIA AIR) — nunca pode virar o nome do contato.
   const conv = await getOrCreateConversation(msg.phone, msg.fromMe ? null : msg.senderName);
+
+  // Foto de perfil: busca uma vez por conversa (por processo) quando ainda
+  // não temos. Falhas marcam fetched_at pra não ficar tentando a cada msg.
+  if (!(conv as { profile_pic_url?: string | null }).profile_pic_url && !profilePicAttempted.has(conv.id)) {
+    profilePicAttempted.add(conv.id);
+    try {
+      const { uazFetchProfilePic } = await import("./uaz-channel.server");
+      const pic = await uazFetchProfilePic(msg.phone);
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ profile_pic_url: pic, profile_pic_fetched_at: new Date().toISOString() })
+        .eq("id", conv.id)
+        .is("profile_pic_url", null);
+      if (pic) (conv as { profile_pic_url?: string | null }).profile_pic_url = pic;
+    } catch (err) {
+      console.error("[uaz-ingest] foto de perfil falhou:", err);
+    }
+  }
+
+
 
 
   // Mensagens que nós mesmos enviamos pelo celular entram como histórico

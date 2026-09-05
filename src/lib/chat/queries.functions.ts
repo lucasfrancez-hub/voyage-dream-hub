@@ -12,7 +12,7 @@ export const listConversations = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("wa_conversations")
-      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage, protocolo_ativo_id, ai_instruction, ai_instruction_at, ai_debounce_until, ai_paused, fraud_risk_score, fraud_risk_level, fraud_transfer_required")
+      .select("id, wa_phone, display_name, mode, agent_slug, assigned_to, last_message_at, last_message_preview, unread_count, tags, person_id, funnel_stage, protocolo_ativo_id, ai_instruction, ai_instruction_at, ai_debounce_until, ai_paused, fraud_risk_score, fraud_risk_level, fraud_transfer_required, profile_pic_url")
       .order("last_message_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
@@ -32,6 +32,44 @@ export const listConversations = createServerFn({ method: "GET" })
       ...c,
       protocolo_numero: c.protocolo_ativo_id ? protoMap[c.protocolo_ativo_id] ?? null : null,
     }));
+  });
+
+/**
+ * Preenche a foto de perfil (WhatsApp/UazAPI) das conversas que ainda não
+ * têm. Roda em lotes pra não sobrecarregar a instância.
+ */
+export const refreshProfilePics = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ limit: z.number().int().min(1).max(100).default(40) }).parse(raw ?? {}))
+  .handler(async ({ data, context }) => {
+    const { data: isStaff } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isStaff) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { uazFetchProfilePic } = await import("@/lib/whatsapp/uaz-channel.server");
+    const { data: convs } = await supabaseAdmin
+      .from("wa_conversations")
+      .select("id, wa_phone")
+      .is("profile_pic_url", null)
+      .is("profile_pic_fetched_at", null)
+      .not("wa_phone", "like", "ig:%")
+      .order("last_message_at", { ascending: false })
+      .limit(data.limit);
+    let ok = 0;
+    let sem = 0;
+    for (const c of convs ?? []) {
+      try {
+        const pic = await uazFetchProfilePic(c.wa_phone);
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({ profile_pic_url: pic, profile_pic_fetched_at: new Date().toISOString() })
+          .eq("id", c.id);
+        if (pic) ok++;
+        else sem++;
+      } catch {
+        sem++;
+      }
+    }
+    return { processadas: (convs ?? []).length, com_foto: ok, sem_foto: sem };
   });
 
 export const listProtocolos = createServerFn({ method: "POST" })

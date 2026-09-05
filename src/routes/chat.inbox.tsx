@@ -649,8 +649,17 @@ function ConvItem({ conv, active, onClick, attendantName }: { conv: Conv; active
         active ? "bg-orange-50" : "hover:bg-slate-50",
       )}
     >
-      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-xs font-semibold text-white">
-        {initials}
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-xs font-semibold text-white">
+        {(conv as { profile_pic_url?: string | null }).profile_pic_url ? (
+          <img
+            src={(conv as { profile_pic_url?: string | null }).profile_pic_url!}
+            alt=""
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          initials
+        )}
         {conv.mode === "human" && !conv.assigned_to && (
           <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
@@ -1273,8 +1282,17 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             <ArrowLeft className="h-5 w-5" />
           </button>
         )}
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-xs font-semibold text-white">
-          {(conv.display_name ?? conv.wa_phone).slice(0, 2).toUpperCase()}
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#F26B1F] to-orange-400 text-xs font-semibold text-white">
+          {(conv as { profile_pic_url?: string | null }).profile_pic_url ? (
+            <img
+              src={(conv as { profile_pic_url?: string | null }).profile_pic_url!}
+              alt=""
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            (conv.display_name ?? conv.wa_phone).slice(0, 2).toUpperCase()
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
@@ -1750,7 +1768,13 @@ function ConversationMenu({ conv, onChange }: { conv: Conv; onChange: () => void
 
 function ContactDetails({ conv, onChange, avatarUrl = null }: { conv: Conv; onChange: () => void; avatarUrl?: string | null }) {
   const [fotoAberta, setFotoAberta] = useState(false);
-  const foto = igImg(avatarUrl ?? (conv as { contact_profile_pic?: string | null }).contact_profile_pic ?? null) ?? null;
+  const foto =
+    igImg(
+      avatarUrl ??
+        (conv as { contact_profile_pic?: string | null }).contact_profile_pic ??
+        (conv as { profile_pic_url?: string | null }).profile_pic_url ??
+        null,
+    ) ?? null;
   // Nome do contato editável — o nome importado nem sempre vem certo.
   const renameFn = useServerFn(renameConversation);
   const [editandoNome, setEditandoNome] = useState(false);
