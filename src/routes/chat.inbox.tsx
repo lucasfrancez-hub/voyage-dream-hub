@@ -909,6 +909,11 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const pauseAiFn = useServerFn(setAiPaused);
   
   const [input, setInput] = useState("");
+  // Mensagens "em trânsito": aparecem no balão na hora, enquanto o envio
+  // termina em segundo plano (nada trava a caixa de texto).
+  const [pendentes, setPendentes] = useState<{ id: string; content: string; createdAt: string }[]>([]);
+  const removerPendente = (id: string) =>
+    setPendentes((p) => p.filter((x) => x.id !== id));
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<{ wa_id: string; snippet: string; sender: string | null } | null>(null);
   const wallpaper = useWallpaper();
@@ -916,7 +921,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   const fileRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<{ file: File; previewUrl: string | null; kind: "image" | "document" } | null>(null);
   const mediaMut = useMutation({
-    mutationFn: async ({ file, caption, kind }: { file: File; caption: string; kind: "image" | "document" | "audio" }) => {
+    mutationFn: async ({ file, caption, kind }: { file: File; caption: string; kind: "image" | "document" | "audio"; tempId?: string }) => {
       const buf = new Uint8Array(await file.arrayBuffer());
       let binary = "";
       for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
@@ -931,12 +936,12 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
       }});
     },
     onSuccess: () => {
-      setPendingFile((p) => { if (p?.previewUrl) URL.revokeObjectURL(p.previewUrl); return null; });
-      setInput("");
       qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
     },
     onError: (e) => toast.error(`Falha ao enviar: ${(e as Error).message}`),
+    onSettled: (_d, _e, vars) => { if (vars?.tempId) removerPendente(vars.tempId); },
   });
+
 
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
