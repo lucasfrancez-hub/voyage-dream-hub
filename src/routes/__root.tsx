@@ -21,6 +21,7 @@ import {
 } from "../lib/stale-app-recovery";
 import { instalarHandshakeVersao } from "../lib/app-version";
 import { instalarDragScroll } from "../lib/drag-scroll";
+import { instalarGestoVoltar } from "../lib/edge-swipe-back";
 
 import { Toaster } from "@/components/ui/sonner";
 import { ConfirmProvider } from "@/lib/confirm";
@@ -233,6 +234,8 @@ function RootComponent() {
   useEffect(() => limparMarcasDeRecuperacao(), []);
   // Arrastar com o dedo/mouse em barras horizontais (menu admin, abas do chat).
   useEffect(() => instalarDragScroll(), []);
+  // Arrastar da borda esquerda pra direita volta/fecha a tela (igual iOS).
+  useEffect(() => instalarGestoVoltar(), []);
 
 
   // Métricas de uso (anônimas): visitas, navegação, cliques e tempo.
