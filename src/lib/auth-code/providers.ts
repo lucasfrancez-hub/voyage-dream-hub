@@ -102,6 +102,16 @@ export const PROVEDORES_CODIGO: ProvedorCodigo[] = [
     tamanhos: [6],
   },
   {
+    id: "oba",
+    nome: "Oba Viagens (Safeguard)",
+    // O Safeguard é app próprio no celular/emulador; o código chega pelo
+    // agente do Mac (tools/safeguard-agent), não por e-mail/SMS.
+    dominios: ["obaturismo.com.br", "obaviagens.com.br"],
+    pistas: ["oba viagens", "safeguard", "obaturismo"],
+    assuntos: ["codigo", "verificacao", "token"],
+    tamanhos: [6],
+  },
+  {
     id: "generico",
     nome: "Genérico (qualquer fornecedor)",
     dominios: [],
