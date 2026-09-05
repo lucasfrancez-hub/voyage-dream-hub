@@ -277,15 +277,20 @@ body:has([data-chat-root]),
   overscroll-behavior: none;
 }
 
-/* Comprovante: imprimir apenas o cartão */
+/* Comprovante: imprimir apenas o cartão, em quantas páginas A4 forem
+   necessárias. NUNCA usar position:fixed aqui — elemento fixo é recortado
+   na primeira página e o resto do documento "some" no PDF. */
 @media print {
   body * { visibility: hidden !important; }
   #comprovante-print, #comprovante-print * { visibility: visible !important; }
   #comprovante-print {
-    position: fixed !important;
-    inset: 0 auto auto 0;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
     margin: 0 !important;
     width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
     box-shadow: none !important;
     border-radius: 0 !important;
     print-color-adjust: exact;
