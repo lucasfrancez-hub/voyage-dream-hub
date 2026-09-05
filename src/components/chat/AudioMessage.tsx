@@ -145,10 +145,8 @@ export function AudioMessage({ src, isOut }: Props) {
           {/* Camada de fundo (inativa) */}
           {grade(inativa)}
           {/* Camada de progresso: corte contínuo, sem "pulo" de bloco em bloco */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div ref={fillRef} className="h-full overflow-hidden" style={{ width: "0%" }}>
-              <div className="w-56 max-w-none">{grade(ativa)}</div>
-            </div>
+          <div ref={fillRef} className="absolute inset-0" style={{ clipPath: "inset(0 100% 0 0)" }}>
+            {grade(ativa)}
           </div>
         </div>
         <div className="flex items-center justify-between">
