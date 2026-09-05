@@ -1457,6 +1457,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                           : undefined
                       }
                       resending={resendingId === m.id}
+                      onSaveSticker={(url, filename) => salvarStickerMut.mutate({ url, filename })}
                     />
 
                   </div>
