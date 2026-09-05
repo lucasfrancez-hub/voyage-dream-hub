@@ -1355,7 +1355,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                       side={m.direction === "inbound" ? "in" : "out"}
                       content={m.content}
                       timestamp={m.created_at}
-                      senderLabel={senderLabel}
+                      senderLabel={labelVisivel}
                       status={
                         m.direction === "outbound"
                           ? ((m as { error?: string | null }).error
