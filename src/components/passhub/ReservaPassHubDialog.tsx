@@ -169,6 +169,8 @@ export function ReservaPassHubDialog({
   const [paxs, setPaxs] = useState<PassHubPax[]>(listaInicial);
   const [contato, setContato] = useState(CONTATO_PADRAO);
   const [tokens, setTokens] = useState<string[] | null>(null);
+  /** Fornecedor confirmado pela tarifação — a reserva precisa usar o mesmo. */
+  const [provedorTarifado, setProvedorTarifado] = useState<string | null>(null);
   const [precoTarifado, setPrecoTarifado] = useState<number | null>(null);
   const [precoSemTaxaTarifado, setPrecoSemTaxaTarifado] = useState<number | null>(null);
   const [comissaoTarifada, setComissaoTarifada] = useState<number | null>(null);
@@ -255,6 +257,7 @@ export function ReservaPassHubDialog({
         return;
       }
       setTokens(r.tarifacao.pricedRateTokens);
+      if (r.tarifacao.provedor) setProvedorTarifado(r.tarifacao.provedor);
       setPrecoTarifado(r.tarifacao.preco);
       setPrecoSemTaxaTarifado(r.tarifacao.precoSemTaxa);
       setComissaoTarifada(r.tarifacao.ravValor || 0);
@@ -299,11 +302,11 @@ export function ReservaPassHubDialog({
   });
 
   const criacao = useMutation({
-    mutationFn: async (tokensAtuais: string[]) =>
+    mutationFn: async (args: { tokens: string[]; provedor: string }) =>
       reservarFn({
         data: {
-          pricedRateTokens: tokensAtuais,
-          provedor,
+          pricedRateTokens: args.tokens,
+          provedor: args.provedor,
           ravPercentual: ravPercentual || null,
           paxs: paxsComContato(),
         },
@@ -325,6 +328,7 @@ export function ReservaPassHubDialog({
     setPaxs(listaInicial);
     setContato(CONTATO_PADRAO);
     setTokens(null);
+    setProvedorTarifado(null);
     setPrecoTarifado(null);
     setPrecoSemTaxaTarifado(null);
     setComissaoTarifada(null);
@@ -639,7 +643,10 @@ export function ReservaPassHubDialog({
                   onClick={async () => {
                     const r = await tarifacao.mutateAsync();
                     if (!r.ok) return;
-                    await criacao.mutateAsync(r.tarifacao.pricedRateTokens);
+                    await criacao.mutateAsync({
+                      tokens: r.tarifacao.pricedRateTokens,
+                      provedor: r.tarifacao.provedor || provedorTarifado || provedor,
+                    });
                   }}
                   disabled={
                     !paxs.every(paxCompleto) ||
