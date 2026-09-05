@@ -1528,7 +1528,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
             <button
               onClick={() => (recording ? stopRecording(false) : startRecording())}
               title={recording ? "Concluir gravação" : "Gravar áudio"}
-              disabled={mediaMut.isPending}
+              disabled={false}
               className={cn(
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-md border transition-colors disabled:opacity-40",
                 recording
@@ -1536,17 +1536,18 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                   : "border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900",
               )}
             >
-              {mediaMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </button>
           )}
 
           <button
             onClick={submit}
-            disabled={(!input.trim() && !pendingFile && !audioDraft) || sendMut.isPending || mediaMut.isPending}
+            disabled={!input.trim() && !pendingFile && !audioDraft}
             className="flex h-10 w-10 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
-            {(sendMut.isPending || mediaMut.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            <Send className="h-4 w-4" />
           </button>
+
         </div>
       </div>
     </div>
