@@ -243,104 +243,92 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
   return (
     <div className="space-y-6">
       {/* ---------------- 1. Cobrar o cliente ---------------- */}
-      <Etapa
-        numero="1"
-        titulo="Cobrar o cliente"
-        selo={
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase tracking-widest cons-muted">
+            Cobrar o cliente
+          </h3>
           <span className="rounded-full bg-brand-orange/10 px-2 py-0.5 text-[10px] font-semibold text-brand-orange">
             Pix VIA AIR
           </span>
-        }
-      >
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <span className="block text-[10px] uppercase tracking-wide cons-muted">
-                Total da reserva
-              </span>
-              <span className="text-lg font-semibold">{brl(base)}</span>
-            </div>
-            <label className="w-32">
-              <span className="mb-1 block text-right text-[10px] uppercase tracking-wide cons-muted">
-                RAV extra
-              </span>
-              <input
-                className="cons-field w-full text-right"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={rav}
-                onChange={(e) => setRav(e.target.value)}
-              />
-            </label>
-            <label className="w-32">
-              <span className="mb-1 block text-right text-[10px] uppercase tracking-wide cons-muted">
-                Valor manual
-              </span>
-              <input
-                className="cons-field w-full text-right"
-                inputMode="decimal"
-                placeholder="opcional"
-                value={valorManual}
-                onChange={(e) => setValorManual(e.target.value)}
-              />
-            </label>
-          </div>
+        </div>
 
-          <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
-            <span className="text-sm font-semibold">Total a cobrar</span>
+        <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+          <div className="mb-2 flex justify-between text-sm text-white/80">
+            <span>Total da reserva</span>
+            <span className="font-medium">{brl(base)}</span>
+          </div>
+          <label className="mb-2 flex items-center justify-between gap-3 text-sm text-white/80">
+            <span>RAV extra</span>
+            <input
+              className="w-24 rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-right text-sm font-medium text-emerald-400 outline-none transition focus:border-brand-orange"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={rav}
+              onChange={(e) => setRav(e.target.value)}
+            />
+          </label>
+          <label className="mb-4 block">
+            <input
+              className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-brand-orange"
+              inputMode="decimal"
+              placeholder="Valor manual (opcional)"
+              value={valorManual}
+              onChange={(e) => setValorManual(e.target.value)}
+            />
+          </label>
+
+          <div className="flex items-end justify-between border-t border-white/10 pt-3">
+            <span className="text-xs cons-muted">Total a cobrar</span>
             <span className="text-xl font-bold text-brand-orange">{brl(previsto)}</span>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-5 gap-2">
           <button
             type="button"
-            className="cons-btn cons-btn-primary justify-center"
+            className="col-span-4 flex items-center justify-center gap-2 rounded-xl bg-brand-orange py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
             onClick={() => cobrar.mutate()}
             disabled={cobrar.isPending}
           >
             {cobrar.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <QrCode className="h-4 w-4" />
+              <QrCode className="h-5 w-5" />
             )}
             {cobrancaAtiva ? "Gerar novo QR Pix" : "Gerar QR Pix"}
           </button>
           {cobrancaAtiva?.pixCopiaCola ? (
             <a
-              className="cons-btn justify-center"
+              className="col-span-1 flex items-center justify-center rounded-xl border border-brand-orange text-brand-orange transition hover:bg-brand-orange/10"
+              title="Enviar Pix no WhatsApp"
               target="_blank"
               rel="noreferrer"
               href={whatsappHref(
                 `Pix da sua reserva ${r.localizador || ""} — ${brl(cobrancaAtiva.valorCobrado)}:\n\n${cobrancaAtiva.pixCopiaCola}`,
               )}
             >
-              <Send className="h-4 w-4" /> Enviar no WhatsApp
+              <Send className="h-5 w-5" />
             </a>
           ) : (
-            <button type="button" className="cons-btn justify-center opacity-40" disabled>
-              <Send className="h-4 w-4" /> Enviar no WhatsApp
-            </button>
+            <span
+              className="col-span-1 flex items-center justify-center rounded-xl border border-white/10 cons-muted opacity-40"
+              title="Gere o QR Pix primeiro"
+            >
+              <Send className="h-5 w-5" />
+            </span>
           )}
         </div>
         <p className="text-[11px] cons-muted">
-          Pagamento identificado automaticamente → a consolidadora é paga sozinha.
+          Pagamento identificado automaticamente → a reserva é paga sozinha.
         </p>
-      </Etapa>
+      </section>
 
       {/* ---------------- 2. Pagar reserva agora ---------------- */}
-      <Etapa
-        numero="2"
-        titulo="Pagar reserva agora"
-        selo={
-          <span className="flex items-center gap-1.5 text-[10px] font-medium text-emerald-400">
-            <Wallet className="h-3.5 w-3.5" /> Saldo ASAAS
-          </span>
-        }
-      >
+      <section className="flex flex-col gap-3">
         <button
           type="button"
-          className="w-full rounded-xl bg-emerald-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 transition hover:bg-emerald-500 disabled:opacity-60 inline-flex items-center justify-center gap-2"
+          className="flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-600 py-4 font-bold text-white shadow-lg transition hover:bg-emerald-700 disabled:opacity-60"
           onClick={() => abrirPrevia.mutate()}
           disabled={abrirPrevia.isPending || pagarAgora.isPending}
         >
@@ -350,43 +338,46 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
             <Zap className="h-4 w-4" />
           )}
           Pagar reserva agora
+          <span className="rounded border border-emerald-400/30 bg-emerald-500/30 px-2 py-0.5 text-[10px] uppercase tracking-tighter">
+            Saldo ASAAS
+          </span>
         </button>
         <p className="text-center text-[11px] cons-muted">
           Pagamento instantâneo no Pix, debitando o nosso saldo na hora.
         </p>
-      </Etapa>
+      </section>
 
       {/* ---------------- 3. Cartão de crédito (auxiliar) ---------------- */}
-      <section className="border-t border-white/5 pt-4">
+      <section className="flex flex-col gap-3 border-t border-white/5 pt-4">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-widest cons-muted">
+          <h3 className="text-[10px] font-semibold uppercase tracking-widest cons-muted">
             Recurso auxiliar · cartão de crédito
-          </span>
+          </h3>
           {link ? (
             <button
               type="button"
-              className="rounded-md p-1.5 cons-muted hover:bg-white/5 hover:text-white"
+              className="rounded p-1.5 cons-muted transition hover:bg-white/5 hover:text-white"
               title="Copiar link do checkout"
               onClick={() => copiar(link, "link", "Link de pagamento copiado")}
             >
               {copiado === "link" ? (
-                <Check className="h-4 w-4" />
+                <Check className="h-3.5 w-3.5" />
               ) : (
-                <Copy className="h-4 w-4" />
+                <Copy className="h-3.5 w-3.5" />
               )}
             </button>
           ) : (
             <button
               type="button"
-              className="rounded-md p-1.5 cons-muted hover:bg-white/5 hover:text-white"
+              className="rounded p-1.5 cons-muted transition hover:bg-white/5 hover:text-white"
               title="Gerar e copiar link do checkout"
               onClick={() => gerarLink.mutate()}
               disabled={gerarLink.isPending}
             >
               {gerarLink.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Copy className="h-4 w-4" />
+                <Copy className="h-3.5 w-3.5" />
               )}
             </button>
           )}
@@ -394,52 +385,54 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
 
         <button
           type="button"
-          className="group mt-3 w-full overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.02] p-4 text-left transition hover:border-brand-orange/40 hover:from-brand-orange/10 disabled:opacity-60"
+          className="w-full rounded-xl border border-brand-orange/40 bg-gradient-to-br from-brand-orange/20 to-brand-orange/5 p-4 text-left transition hover:border-brand-orange/70 hover:from-brand-orange/25 disabled:opacity-60"
           onClick={() => abrirCartao.mutate()}
           disabled={abrirCartao.isPending}
         >
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-orange/15 text-brand-orange">
+          <div className="flex items-center gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-orange/25 text-brand-orange">
               {abrirCartao.isPending ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin" />
               ) : (
-                <CreditCard className="h-5 w-5" />
+                <CreditCard className="h-6 w-6" />
               )}
             </span>
             <span className="min-w-0">
-              <span className="block text-sm font-bold">Pagar com cartão de crédito</span>
-              <span className="block text-[11px] cons-muted">
-                Abre a tela segura para digitar bandeira, número, validade e escolher as
-                parcelas.
+              <span className="block text-sm font-semibold text-white">
+                Pagar com cartão de crédito
+              </span>
+              <span className="block text-xs cons-muted">
+                Abre a tela segura para digitar os dados e escolher as parcelas.
               </span>
             </span>
           </div>
         </button>
 
         {linkCliente ? (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              className="cons-btn"
+              className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-medium text-white/80 transition hover:bg-white/10"
               onClick={() =>
                 copiar(linkCliente, "cliente", "Link do QR Code copiado — é só enviar")
               }
             >
               {copiado === "cliente" ? (
-                <Check className="h-4 w-4" />
+                <Check className="h-3.5 w-3.5" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-3.5 w-3.5" />
               )}
-              Link do QR ao cliente
+              Link ao cliente
             </button>
             <a
-              className="cons-btn"
+              className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-medium text-white/80 transition hover:bg-white/10"
               target="_blank"
               rel="noreferrer"
               href={whatsappHref(
                 `Segue o link para pagamento da sua reserva ${r.localizador}: ${linkCliente}`,
               )}
             >
+              <Send className="h-3.5 w-3.5" />
               WhatsApp
             </a>
           </div>
