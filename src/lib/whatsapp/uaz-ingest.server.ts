@@ -24,7 +24,10 @@ export async function ingestUazMessage(
   const { deveIgnorarParaIA } = await import("./ai-silence.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const conv = await getOrCreateConversation(msg.phone, msg.senderName);
+  // Em mensagens que NÓS enviamos, o "senderName" é o nosso próprio perfil
+  // (VIA AIR) — nunca pode virar o nome do contato.
+  const conv = await getOrCreateConversation(msg.phone, msg.fromMe ? null : msg.senderName);
+
 
   // Mensagens que nós mesmos enviamos pelo celular entram como histórico
   // (outbound humano) — nunca acionam a IA.
