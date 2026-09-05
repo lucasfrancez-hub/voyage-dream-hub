@@ -696,7 +696,7 @@ function ConvItem({ conv, active, onClick, attendantName }: { conv: Conv; active
           </div>
         )}
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-xs text-slate-500">{messageText(conv.last_message_preview) || "—"}</span>
+          <span className="truncate text-xs text-slate-500">{messagePreview(messageText(conv.last_message_preview)) || "—"}</span>
           <div className="flex shrink-0 items-center gap-1">
             {(conv.unread_count ?? 0) > 0 && (
               <span className="rounded-full bg-[#F26B1F] px-1.5 text-[10px] font-medium text-white">{conv.unread_count}</span>
@@ -2919,7 +2919,7 @@ function InstagramList({ folder, search, activeId, onSelect }: { folder: string;
               </div>
             </div>
             {c.contact_username && <div className="text-[10px] text-slate-500">@{c.contact_username}</div>}
-            <div className="truncate text-xs text-slate-500">{c.last_message_preview ?? "—"}</div>
+            <div className="truncate text-xs text-slate-500">{messagePreview(c.last_message_preview) || "—"}</div>
             <ContaTag username={(c as any).account_username} className="mt-0.5" />
           </div>
         </div>
@@ -3950,7 +3950,7 @@ function IgConvRow({ conv, active, onClick }: { conv: any; active: boolean; onCl
           <Instagram className="h-2.5 w-2.5" />
           {conv.contact_username ? `@${conv.contact_username}` : "Direct"}
         </div>
-        <div className="truncate text-xs text-slate-500">{conv.last_message_preview ?? "—"}</div>
+        <div className="truncate text-xs text-slate-500">{messagePreview(conv.last_message_preview) || "—"}</div>
         <ContaTag username={conv.account_username} className="mt-0.5" />
       </div>
     </div>

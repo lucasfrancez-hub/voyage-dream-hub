@@ -89,7 +89,7 @@ function CRMPage() {
                       <div className="truncate text-[10px] text-slate-500">{c.wa_phone}</div>
                       {c.last_message_preview && (
                         <div className="mt-1 line-clamp-2 text-[11px] text-slate-600">
-                          {c.last_message_preview}
+                          {messagePreview(c.last_message_preview)}
                         </div>
                       )}
                       <div className="mt-1.5 flex items-center justify-between">
