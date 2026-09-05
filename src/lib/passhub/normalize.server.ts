@@ -121,7 +121,6 @@ function normalizaTrechoMulti(
   const t = rec(raw);
   const segs = arr(t["segments"]).map(rec);
   const primeiro = segs[0] ?? {};
-  const ultimo = segs[segs.length - 1] ?? primeiro;
   const duracaoMin = num(t["duration"]);
   const tarifa = num(t["preco_tarifa"]);
 
@@ -166,7 +165,6 @@ function normalizaTrechoMulti(
     canal: "",
     rateToken,
     parcelamento: [],
-    ...(ultimo === primeiro ? {} : {}),
   };
 }
 
