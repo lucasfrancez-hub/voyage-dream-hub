@@ -115,7 +115,7 @@ export function AudioMessage({ src, isOut }: Props) {
         onEnded={() => {
           setTocando(false);
           setAtual(0);
-          if (fillRef.current) fillRef.current.style.width = "0%";
+          aplicar(0);
         }}
         onTimeUpdate={(e) => setAtual(e.currentTarget.currentTime)}
         onLoadedMetadata={(e) => {
