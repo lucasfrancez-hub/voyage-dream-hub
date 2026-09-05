@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeftRight, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { AirportAutocomplete } from "@/components/search/AirportAutocomplete";
-import { passhubStatus, passhubMotorBuscar } from "@/lib/passhub/passhub.functions";
+import {
+  passhubStatus,
+  passhubMotorBuscar,
+  passhubSessaoInfo,
+  passhubReconectar,
+} from "@/lib/passhub/passhub.functions";
 import { ReservaPassHubDialog } from "@/components/passhub/ReservaPassHubDialog";
 import {
   ResultadosPassHub,
@@ -71,6 +76,8 @@ function Radio({
 function PassHubPage() {
   const statusFn = useServerFn(passhubStatus);
   const buscarFn = useServerFn(passhubMotorBuscar);
+  const sessaoFn = useServerFn(passhubSessaoInfo);
+  const reconectarFn = useServerFn(passhubReconectar);
 
   const [tipo, setTipo] = useState<Tipo>("ida-volta");
   const [trechos, setTrechos] = useState<Trecho[]>([{ origem: "", destino: "", data: "" }]);
