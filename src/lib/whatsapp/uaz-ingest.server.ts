@@ -109,12 +109,33 @@ export async function ingestUazMessage(
 
   if (!content) return "ignorada";
 
+  // Resposta citada (reply): guarda a referência pra aparecer no balão, igual
+  // ao canal Meta. Se a mensagem original não estiver no banco, o snippet que
+  // a UazAPI mandou já garante a prévia.
+  let replySender: string | null = null;
+  if (msg.replyId) {
+    const { data: quoted } = await supabaseAdmin
+      .from("wa_messages")
+      .select("direction, sender")
+      .eq("wa_message_id", msg.replyId)
+      .maybeSingle();
+    if (quoted) replySender = quoted.direction === "outbound" ? "me" : (quoted.sender ?? "customer");
+    else replySender = msg.fromMe ? "customer" : "me";
+  }
+
   const saved = await saveMessage({
     conversation_id: conv.id,
     direction,
     sender: msg.fromMe ? "human" : "customer",
     content,
     wa_message_id: msg.id,
+    ...(msg.replyId
+      ? {
+          reply_to_wa_id: msg.replyId,
+          reply_to_snippet: msg.replySnippet ?? null,
+          reply_to_sender: replySender,
+        }
+      : {}),
     message_type: tipo === "other" ? "text" : tipo,
     transcricao,
     // Horário REAL do WhatsApp — mantém a ordem cronológica exata na conversa.
