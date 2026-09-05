@@ -296,164 +296,221 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
     );
   }
 
-  const etapaAtual = etapa === "form" ? 1 : etapa === "parcelas" ? 2 : 3;
+  const parcelaEscolhida = parcelas.find((p) => p.parcelas === parcelaSel);
+  const bandeiras = ["Visa", "Mastercard", "Amex", "Elo", "Hipercard"];
 
   return (
-    <div className="w-full overflow-hidden rounded-3xl border border-border bg-card shadow-xl">
-      {/* Cabeçalho com cartão ilustrado */}
-      <div className="relative bg-gradient-to-br from-[#1b2430] via-[#141c26] to-[#0d1319] px-5 pb-6 pt-5">
-        <div className="mb-4 flex items-center gap-2 text-white/90">
-          <CreditCard className="h-4 w-4 text-brand-orange" />
-          <span className="text-sm font-semibold">Pagar com cartão de crédito</span>
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/70">
-            <Lock className="h-3 w-3" /> Ambiente seguro
-          </span>
-        </div>
+    <div className="w-full overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900 shadow-2xl">
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between px-6 pt-6">
+        <h3 className="text-lg font-semibold tracking-tight text-white">Pagar com cartão</h3>
+        <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/70">
+          <Lock className="h-3 w-3" /> Ambiente seguro
+        </span>
+      </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur">
-          <div className="flex items-start justify-between">
-            <div className="h-7 w-10 rounded-md bg-gradient-to-br from-amber-200 to-amber-500/80" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-white/60">
+      {/* Cartão ilustrado */}
+      <div className="p-6 pb-4">
+        <div className="relative aspect-[1.58/1] w-full overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-950 p-5 shadow-xl">
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-orange/10 blur-3xl" />
+          <div className="relative z-10 flex items-start justify-between">
+            <div className="h-8 w-11 rounded-md bg-gradient-to-br from-amber-200 to-amber-500/80" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-white/70">
               {bandeira || "cartão"}
             </span>
           </div>
-          <div className="mt-5 font-mono text-lg tracking-[0.18em] text-white/85">
+          <div className="relative z-10 mt-5 font-mono text-lg font-medium tracking-[0.22em] text-white">
             {numeroMasc || "•••• •••• •••• ••••"}
           </div>
-          <div className="mt-3 flex items-end justify-between text-[11px] uppercase text-white/50">
-            <span className="truncate pr-3">{nome || "nome do titular"}</span>
-            <span>{validade || "MM/AA"}</span>
+          <div className="relative z-10 mt-4 flex items-end justify-between text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+            <span className="max-w-[65%] truncate text-xs tracking-normal text-white">
+              {nome || "NOME IMPRESSO"}
+            </span>
+            <span className="text-xs tracking-normal text-white">{validade || "MM/AA"}</span>
           </div>
-        </div>
-
-        {/* Passos */}
-        <div className="mt-4 flex items-center gap-2">
-          {["Cartão", "Parcelas", "Confirmação"].map((rotulo, i) => (
-            <div key={rotulo} className="flex flex-1 flex-col gap-1">
-              <div
-                className={`h-1 rounded-full ${
-                  etapaAtual > i ? "bg-brand-orange" : "bg-white/15"
-                }`}
-              />
-              <span
-                className={`text-[10px] ${etapaAtual > i ? "text-white/80" : "text-white/35"}`}
-              >
-                {rotulo}
-              </span>
-            </div>
-          ))}
         </div>
       </div>
 
-      <div className="p-5">
-      {etapa === "form" ? (
-        <div className="space-y-3">
-          {/* Campos hospedados — número e CVV não passam pelo nosso sistema */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Número do cartão
-            </label>
-            <div id="ph-sf-number" className="h-12 rounded-xl border border-input bg-white px-3" />
-          </div>
+      <div className="space-y-4 px-6 pb-6">
+        {/* Bandeiras */}
+        <div className="flex justify-between gap-2">
+          {bandeiras.map((b) => {
+            const ativa = bandeira.toLowerCase().startsWith(b.toLowerCase());
+            return (
+              <span
+                key={b}
+                className={`flex h-10 flex-1 items-center justify-center rounded-lg border text-[10px] font-bold transition ${
+                  ativa
+                    ? "border-brand-orange/60 bg-brand-orange/10 text-brand-orange"
+                    : "border-white/10 bg-white/[0.04] text-zinc-500"
+                }`}
+              >
+                {b}
+              </span>
+            );
+          })}
+        </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Validade (MM/AA)
+        {etapa === "form" ? (
+          <div className="space-y-3">
+            {/* Campos hospedados — número e CVV não passam pelo nosso sistema */}
+            <div className="relative">
+              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-zinc-500">
+                Número do cartão
+              </label>
+              <div id="ph-sf-number" className="h-[64px] rounded-xl bg-white px-4 pt-5 shadow-sm" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="relative">
+                <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-zinc-500">
+                  Validade
+                </label>
+                <input
+                  className="h-[64px] w-full rounded-xl bg-white px-4 pb-2.5 pt-7 text-base font-medium text-zinc-900 shadow-sm outline-none transition focus:ring-2 focus:ring-brand-orange"
+                  placeholder="MM/AA"
+                  inputMode="numeric"
+                  maxLength={5}
+                  value={validade}
+                  onChange={(e) => {
+                    const d = e.target.value.replace(/\D/g, "").slice(0, 4);
+                    setValidade(d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
+                  }}
+                />
+              </div>
+              <div className="relative">
+                <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-zinc-500">
+                  CVV
+                </label>
+                <div id="ph-sf-cvv" className="h-[64px] rounded-xl bg-white px-4 pt-5 shadow-sm" />
+              </div>
+            </div>
+
+            <div className="relative">
+              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-zinc-500">
+                Nome impresso
               </label>
               <input
-                className="h-12 w-full rounded-xl border border-input bg-white px-3 text-base text-gray-900 outline-none focus:border-brand-orange"
-                placeholder="12/28"
-                inputMode="numeric"
-                maxLength={5}
-                value={validade}
-                onChange={(e) => {
-                  const d = e.target.value.replace(/\D/g, "").slice(0, 4);
-                  setValidade(d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
-                }}
+                className="h-[64px] w-full rounded-xl bg-white px-4 pb-2.5 pt-7 text-base font-medium uppercase text-zinc-900 shadow-sm outline-none transition focus:ring-2 focus:ring-brand-orange"
+                placeholder="COMO ESTÁ NO CARTÃO"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
               />
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">CVV</label>
-              <div id="ph-sf-cvv" className="h-12 rounded-xl border border-input bg-white px-3" />
+
+            <div className="relative">
+              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-zinc-500">
+                CPF do titular
+              </label>
+              <input
+                className="h-[64px] w-full rounded-xl bg-white px-4 pb-2.5 pt-7 text-base font-medium text-zinc-900 shadow-sm outline-none transition focus:ring-2 focus:ring-brand-orange"
+                placeholder="000.000.000-00"
+                inputMode="numeric"
+                value={cpf}
+                onChange={(e) => setCpf(e.target.value)}
+              />
             </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              Nome impresso no cartão
-            </label>
-            <input
-              className="h-12 w-full rounded-xl border border-input bg-white px-3 text-base uppercase text-gray-900 outline-none focus:border-brand-orange"
-              placeholder="NOME COMO ESTÁ NO CARTÃO"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              CPF do titular (opcional)
-            </label>
-            <input
-              className="h-12 w-full rounded-xl border border-input bg-white px-3 text-base text-gray-900 outline-none focus:border-brand-orange"
-              placeholder="000.000.000-00"
-              inputMode="numeric"
-              value={cpf}
-              onChange={(e) => setCpf(e.target.value)}
-            />
-          </div>
 
-          {erroCampos ? <p className="text-xs text-red-600">{erroCampos}</p> : null}
+            {erroCampos ? <p className="text-xs text-red-400">{erroCampos}</p> : null}
 
-          <button
-            type="button"
-            onClick={verParcelas}
-            disabled={!pronto || processando}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-orange text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {processando ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CreditCard className="h-4 w-4" />
-            )}
-            {pronto ? "Ver parcelas" : "Carregando campos seguros…"}
-          </button>
-        </div>
-      ) : null}
+            <button
+              type="button"
+              onClick={verParcelas}
+              disabled={!pronto || processando}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-orange py-4 font-bold text-white shadow-lg shadow-orange-950/40 transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+            >
+              {processando ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4" />
+              )}
+              {pronto ? "Ver parcelas" : "Carregando campos seguros…"}
+            </button>
+          </div>
+        ) : null}
 
-      {etapa === "parcelas" ? (
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Cartão validado. Escolha as parcelas:
+        {etapa === "parcelas" ? (
+          <div className="space-y-3">
+            <p className="text-xs text-zinc-400">Cartão validado. Escolha as parcelas:</p>
+
+            <div className="space-y-2">
+              {parcelas.map((p) => {
+                const selecionada = parcelaSel === p.parcelas;
+                return (
+                  <button
+                    key={p.parcelas}
+                    type="button"
+                    onClick={() => setParcelaSel(p.parcelas)}
+                    className={`flex w-full items-center justify-between rounded-2xl border p-4 text-left transition ${
+                      selecionada
+                        ? "border-2 border-brand-orange bg-white/[0.04]"
+                        : "border-white/10 hover:bg-white/[0.03]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <span
+                        className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                          selecionada ? "border-brand-orange" : "border-zinc-700"
+                        }`}
+                      >
+                        {selecionada ? (
+                          <span className="h-2.5 w-2.5 rounded-full bg-brand-orange" />
+                        ) : null}
+                      </span>
+                      <span className="flex flex-col">
+                        <span
+                          className={`text-sm font-semibold ${selecionada ? "text-white" : "text-zinc-300"}`}
+                        >
+                          {p.parcelas}x de {brl(p.valorParcela)}
+                        </span>
+                        {p.parcelas === 1 ? (
+                          <span className="text-[10px] font-medium uppercase text-zinc-500">
+                            Valor total à vista
+                          </span>
+                        ) : null}
+                      </span>
+                    </span>
+                    {p.parcelas === 1 ? (
+                      <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
+                        SEM JUROS
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-zinc-600">SEM JUROS</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={pagar}
+              disabled={processando}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-5 text-lg font-extrabold text-white shadow-xl shadow-emerald-950/30 transition hover:bg-emerald-500 active:scale-[0.98] disabled:opacity-50"
+            >
+              {processando ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Lock className="h-4 w-4" />
+              )}
+              Pagar {parcelaEscolhida ? brl(parcelaEscolhida.total) : ""}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEtapa("form")}
+              className="w-full text-center text-xs text-zinc-500 underline"
+            >
+              usar outro cartão
+            </button>
+          </div>
+        ) : null}
+
+        <div className="flex items-center justify-center gap-2 pt-1">
+          <Lock className="h-3 w-3 text-zinc-600" />
+          <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-600">
+            Pagamento 100% seguro
           </p>
-          <select
-            className="h-12 w-full rounded-xl border border-input bg-white px-3 text-base text-gray-900 outline-none focus:border-brand-orange"
-            value={parcelaSel}
-            onChange={(e) => setParcelaSel(Number(e.target.value))}
-          >
-            {parcelas.map((p) => (
-              <option key={p.parcelas} value={p.parcelas}>
-                {p.rotulo}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={pagar}
-            disabled={processando}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-orange text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {processando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-            Pagar {parcelas.find((p) => p.parcelas === parcelaSel)?.total ? brl(parcelas.find((p) => p.parcelas === parcelaSel)!.total) : ""}
-          </button>
-          <button
-            type="button"
-            onClick={() => setEtapa("form")}
-            className="w-full text-center text-xs text-muted-foreground underline"
-          >
-            usar outro cartão
-          </button>
         </div>
-      ) : null}
 
       {etapa === "desafio" ? (
         <div className="space-y-3">
