@@ -719,8 +719,9 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
       }
     }
 
+    const rotuloAudio = deliveredAs === "document" ? "\n🎤 [áudio enviado como arquivo]" : "\n🎤 [áudio enviado]";
     const content = data.kind === "audio"
-      ? `${marker}${deliveredAs === "document" ? "\n🎤 [áudio enviado como arquivo]" : "\n🎤 [áudio enviado]"}`
+      ? `${marker}${rotuloAudio}${transcricao ? `\n🎤 [áudio transcrito] ${transcricao}` : ""}`
       : data.caption ? `${marker}\n${data.caption}` : marker;
 
 
