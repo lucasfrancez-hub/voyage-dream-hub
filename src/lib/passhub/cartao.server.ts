@@ -121,6 +121,7 @@ export async function passhubCartaoParcelas(
     (Array.isArray(dados["financiamentos"]) && dados["financiamentos"]) ||
     (Array.isArray(dados["data"]) && dados["data"]) ||
     (Array.isArray(json) && json) ||
+    acharListaParcelas(json) ||
     [];
 
   const brl = (v: number) =>
@@ -157,7 +158,35 @@ export async function passhubCartaoParcelas(
   }
   parcelas.sort((a, b) => a.parcelas - b.parcelas);
 
-  return { parcelas, valorOriginal: num(dados["amount"] ?? dados["valor"], 0) || null };
+  const bruto =
+    num(dados["amount"] ?? dados["valor"] ?? dados["total"] ?? dados["total_amount"], 0) || null;
+  return { parcelas, valorOriginal: bruto };
+}
+
+/** Procura, em qualquer nível da resposta, uma lista com cara de parcelamento. */
+function acharListaParcelas(raiz: unknown, nivel = 0): Record<string, unknown>[] | null {
+  if (!raiz || typeof raiz !== "object" || nivel > 4) return null;
+  if (Array.isArray(raiz)) {
+    const ok = raiz.some(
+      (i) =>
+        i &&
+        typeof i === "object" &&
+        ["installments", "parcelas", "quantity"].some(
+          (k) => (i as Record<string, unknown>)[k] !== undefined,
+        ),
+    );
+    if (ok) return raiz as Record<string, unknown>[];
+    for (const item of raiz) {
+      const achou = acharListaParcelas(item, nivel + 1);
+      if (achou) return achou;
+    }
+    return null;
+  }
+  for (const v of Object.values(raiz as Record<string, unknown>)) {
+    const achou = acharListaParcelas(v, nivel + 1);
+    if (achou) return achou;
+  }
+  return null;
 }
 
 export type DadosTitular = {
