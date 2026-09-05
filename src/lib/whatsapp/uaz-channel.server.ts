@@ -257,6 +257,8 @@ export type UazNormalized = {
   replyId: string | null;
   /** Prévia textual da mensagem citada, quando a UazAPI a envia. */
   replySnippet: string | null;
+  /** Quando a "mensagem" é na verdade uma reação (emoji) a outra mensagem. */
+  reaction: { emoji: string; targetId: string } | null;
 };
 
 const MEDIA_MAP: Record<string, UazNormalized["type"]> = {
