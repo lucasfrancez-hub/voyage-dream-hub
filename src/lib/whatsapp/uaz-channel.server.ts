@@ -384,11 +384,24 @@ function extrairReacao(
   rawType: string,
   quotedId: string | null,
 ): { emoji: string; targetId: string } | null {
+  // O conteúdo às vezes chega como JSON em texto: {"key":{...},"text":"❤️"}
+  let contentObj: Record<string, unknown> | null = null;
+  if (typeof m.content === "string" && m.content.trim().startsWith("{")) {
+    try {
+      contentObj = JSON.parse(m.content) as Record<string, unknown>;
+    } catch {
+      contentObj = null;
+    }
+  } else if (m.content && typeof m.content === "object") {
+    contentObj = m.content as Record<string, unknown>;
+  }
+
   const fontes: unknown[] = [
     m.reaction,
     m.reactionMessage,
     (m.message as Record<string, unknown> | undefined)?.reactionMessage,
-    (m.content as Record<string, unknown> | undefined)?.reactionMessage,
+    contentObj?.reactionMessage,
+    rawType.includes("reaction") ? contentObj : null,
   ];
   for (const f of fontes) {
     if (!f || typeof f !== "object") continue;
@@ -404,12 +417,19 @@ function extrairReacao(
   }
 
   if (rawType.includes("reaction")) {
-    const emoji = String(pick<string>(m, "text", "body", "emoji", "content") ?? "");
-    const alvo = pick<string>(m, "reactedMessageId", "quotedMessageId", "targetId") ?? quotedId;
-    if (alvo) return { emoji, targetId: String(alvo) };
+    // Reação sempre fica registrada na mensagem reagida — nunca vira balão,
+    // mesmo quando não conseguimos identificar o alvo.
+    const emoji = String(
+      pick<string>(m, "text", "body", "emoji", "content") ??
+        (contentObj ? (pick<string>(contentObj, "text", "emoji") ?? "") : ""),
+    );
+    const alvo =
+      pick<string>(m, "reactedMessageId", "quotedMessageId", "targetId", "referenceId") ?? quotedId ?? "";
+    return { emoji, targetId: String(alvo) };
   }
   return null;
 }
+
 
 /**
  * Pede à UazAPI que baixe e descriptografe a mídia da mensagem, devolvendo
