@@ -1138,22 +1138,25 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
   });
 
   const sendMut = useMutation({
-
-    mutationFn: async (content: string) => sendFn({ data: {
+    mutationFn: async ({ content, reply }: {
+      content: string;
+      tempId?: string;
+      reply?: { wa_id: string; snippet: string; sender: string | null } | null;
+    }) => sendFn({ data: {
       conversation_id: conv.id,
       content,
-      reply_to_wa_id: replyTo?.wa_id ?? null,
-      reply_to_snippet: replyTo?.snippet ?? null,
-      reply_to_sender: replyTo?.sender ?? null,
+      reply_to_wa_id: reply?.wa_id ?? null,
+      reply_to_snippet: reply?.snippet ?? null,
+      reply_to_sender: reply?.sender ?? null,
     } }),
     onSuccess: () => {
-      setInput("");
-      setReplyTo(null);
       qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
       onRefetch();
     },
     onError: (e) => toast.error(`Falha ao enviar: ${(e as Error).message}`),
+    onSettled: (_d, _e, vars) => { if (vars?.tempId) removerPendente(vars.tempId); },
   });
+
 
   const toggleMut = useMutation({
     mutationFn: async (mode: "ai" | "human") => toggleFn({ data: { conversation_id: conv.id, mode } }),
