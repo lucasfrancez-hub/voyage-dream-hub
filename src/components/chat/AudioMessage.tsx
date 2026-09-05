@@ -30,6 +30,8 @@ interface Props {
 
 export function AudioMessage({ src, isOut }: Props) {
   const ref = useRef<HTMLAudioElement | null>(null);
+  const fillRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number>(0);
   const [tocando, setTocando] = useState(false);
   const [atual, setAtual] = useState(0);
   const [duracao, setDuracao] = useState(0);
@@ -42,7 +44,33 @@ export function AudioMessage({ src, isOut }: Props) {
     if (el) el.playbackRate = velocidade;
   }, [velocidade]);
 
-  const progresso = duracao > 0 ? atual / duracao : 0;
+  // Atualiza o preenchimento em tempo real (60fps) com easing para suavidade.
+  useEffect(() => {
+    const alvo = () => {
+      const el = ref.current;
+      return el && Number.isFinite(el.duration) && el.duration > 0
+        ? Math.min(1, el.currentTime / el.duration)
+        : 0;
+    };
+    let exibido = alvo();
+    const tick = () => {
+      const t = alvo();
+      // Interpola em direção ao tempo real: suaviza saltos do timeupdate
+      exibido += (t - exibido) * 0.2;
+      if (Math.abs(t - exibido) < 0.002) exibido = t;
+      if (fillRef.current) {
+        fillRef.current.style.width = `${(exibido * 100).toFixed(2)}%`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    if (tocando) {
+      rafRef.current = requestAnimationFrame(tick);
+    } else {
+      // Parado: posiciona direto, sem animação
+      if (fillRef.current) fillRef.current.style.width = `${(alvo() * 100).toFixed(2)}%`;
+    }
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [tocando]);
 
   function alternar() {
     const el = ref.current;
@@ -58,10 +86,19 @@ export function AudioMessage({ src, isOut }: Props) {
     const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
     el.currentTime = pct * el.duration;
     setAtual(el.currentTime);
+    if (fillRef.current) fillRef.current.style.width = `${(pct * 100).toFixed(2)}%`;
   }
 
   const ativa = isOut ? "bg-white" : "bg-[var(--brand-orange,#F26B1F)]";
   const inativa = isOut ? "bg-white/40" : "bg-black/15";
+
+  const grade = (cor: string) => (
+    <div className="flex h-6 items-end gap-[2px]">
+      {barras.map((altura, i) => (
+        <div key={i} className={cn("flex-1 rounded-full", cor)} style={{ height: `${Math.round(altura * 24)}px` }} />
+      ))}
+    </div>
+  );
 
   return (
     <div className="mb-1 flex w-60 max-w-full items-center gap-3">
@@ -74,6 +111,7 @@ export function AudioMessage({ src, isOut }: Props) {
         onEnded={() => {
           setTocando(false);
           setAtual(0);
+          if (fillRef.current) fillRef.current.style.width = "0%";
         }}
         onTimeUpdate={(e) => setAtual(e.currentTarget.currentTime)}
         onLoadedMetadata={(e) => {
@@ -99,14 +137,15 @@ export function AudioMessage({ src, isOut }: Props) {
       </button>
 
       <div className="flex flex-1 flex-col gap-1.5">
-        <div onClick={buscar} className="flex h-6 cursor-pointer items-end gap-[2px]">
-          {barras.map((altura, i) => (
-            <div
-              key={i}
-              className={cn("flex-1 rounded-full", i / barras.length <= progresso ? ativa : inativa)}
-              style={{ height: `${Math.round(altura * 24)}px` }}
-            />
-          ))}
+        <div onClick={buscar} className="relative h-6 cursor-pointer">
+          {/* Camada de fundo (inativa) */}
+          {grade(inativa)}
+          {/* Camada de progresso: corte contínuo, sem "pulo" de bloco em bloco */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div ref={fillRef} className="h-full overflow-hidden" style={{ width: "0%" }}>
+              <div className="w-56 max-w-none">{grade(ativa)}</div>
+            </div>
+          </div>
         </div>
         <div className="flex items-center justify-between">
           <span className={cn("text-[10px] font-medium", isOut ? "text-white/80" : "text-foreground/50")}>
