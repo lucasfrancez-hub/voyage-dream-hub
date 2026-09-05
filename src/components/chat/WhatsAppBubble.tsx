@@ -28,6 +28,39 @@ function parseMedia(content: unknown): { media: Media | null; text: string } {
   return { media: { kind: m[1] as Media["kind"], url: m[2], filename: m[3] }, text: (m[4] ?? "").trim() };
 }
 
+/**
+ * A leitura automática (transcrição de áudio e leitura de imagem) serve pra IA,
+ * não pra poluir a conversa do atendente. Aqui ela é separada do texto do
+ * cliente e só aparece quando o atendente clica em "ver leitura".
+ */
+const LABELS_AUTO = ["🖼️ [imagem recebida]", "🎬 [vídeo recebido]", "📎 [documento recebido]"];
+
+function separarLeituraAuto(text: string): { visivel: string; leitura: string } {
+  if (!text) return { visivel: "", leitura: "" };
+
+  const [antes, ...resto] = text.split("[[analise-imagem]]");
+  const leitura: string[] = [];
+  if (resto.length) leitura.push(resto.join("[[analise-imagem]]").trim());
+
+  const visiveis: string[] = [];
+  for (const linha of antes.split("\n")) {
+    const t = linha.trim();
+    if (!t) continue;
+    if (t.startsWith("🎤 [áudio transcrito]")) {
+      leitura.unshift(t.replace("🎤 [áudio transcrito]", "").trim());
+      continue;
+    }
+    if (t.startsWith("🎤 [sistema ·") || t.startsWith("📎 [sistema ·")) {
+      leitura.unshift(t);
+      continue;
+    }
+    if (LABELS_AUTO.includes(t)) continue;
+    visiveis.push(linha);
+  }
+
+  return { visivel: visiveis.join("\n").trim(), leitura: leitura.filter(Boolean).join("\n\n").trim() };
+}
+
 interface Props {
   side: "in" | "out";
   content: unknown;
