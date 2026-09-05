@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward, SmilePlus } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star, Trash2, Forward, SmilePlus, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
@@ -130,6 +131,50 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const listaReacoes = reactions ?? [];
   const minhaReacao = listaReacoes.find((r) => r.from === "business")?.emoji ?? null;
 
+  // Texto/mídia da mensagem, calculado uma vez (usado no balão e no "copiar").
+  const { media: mediaMsg, text: textoBruto } = parseMedia(content);
+  const { visivel: textoVisivel } = separarLeituraAuto(textoBruto);
+
+  // Segurar o balão (celular) ou clique com botão direito (computador) abre o
+  // menu de ações: reagir, copiar, responder, encaminhar, apagar.
+  const [menuAberto, setMenuAberto] = useState(false);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressPos = useRef<{ x: number; y: number } | null>(null);
+
+  const cancelarPress = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+    pressPos.current = null;
+  };
+
+  const onTouchStartBubble = (e: React.TouchEvent) => {
+    if (menuAberto || deleted) return;
+    const t = e.touches[0];
+    pressPos.current = { x: t.clientX, y: t.clientY };
+    pressTimer.current = setTimeout(() => {
+      pressTimer.current = null;
+      setMenuAberto(true);
+    }, 500);
+  };
+  const onTouchMoveBubble = (e: React.TouchEvent) => {
+    if (!pressPos.current) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - pressPos.current.x) > 10 || Math.abs(t.clientY - pressPos.current.y) > 10) {
+      cancelarPress();
+    }
+  };
+
+  const copiarTexto = async () => {
+    setMenuAberto(false);
+    if (!textoVisivel) return;
+    try {
+      await navigator.clipboard.writeText(textoVisivel);
+      toast.success("Mensagem copiada");
+    } catch {
+      toast.error("Não consegui copiar");
+    }
+  };
+
   const botaoReagir = onReact && !deleted ? (
     <div className="relative">
       <button
@@ -217,7 +262,93 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           isOut ? "bg-[var(--chat-bubble-out)]" : "bg-[var(--chat-bubble-in)]",
         )}
         style={{ color: bubbleFg }}
+        onContextMenu={(e) => {
+          if (deleted) return;
+          e.preventDefault();
+          setMenuAberto(true);
+        }}
+        onTouchStart={onTouchStartBubble}
+        onTouchMove={onTouchMoveBubble}
+        onTouchEnd={cancelarPress}
+        onTouchCancel={cancelarPress}
       >
+        {menuAberto && (
+          <>
+            <button
+              type="button"
+              aria-label="Fechar menu"
+              className="fixed inset-0 z-40 cursor-default"
+              onClick={() => setMenuAberto(false)}
+            />
+            <div
+              className={cn(
+                "absolute -top-2 z-50 w-max max-w-[92vw] -translate-y-full rounded-xl border border-border bg-[var(--chat-panel-raised)] p-1.5 shadow-xl",
+                isOut ? "right-0" : "left-0",
+              )}
+            >
+              {onReact && (
+                <div className="mb-1 flex items-center gap-0.5 border-b border-border pb-1">
+                  {EMOJIS_RAPIDOS.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => {
+                        setMenuAberto(false);
+                        onReact(minhaReacao === e ? "" : e);
+                      }}
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-full text-lg transition hover:scale-125",
+                        minhaReacao === e && "bg-[var(--brand-orange)]/20",
+                      )}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex flex-col">
+                {textoVisivel && (
+                  <button
+                    type="button"
+                    onClick={copiarTexto}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-black/5"
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copiar
+                  </button>
+                )}
+                {onReply && (
+                  <button
+                    type="button"
+                    onClick={() => { setMenuAberto(false); onReply(); }}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-black/5"
+                  >
+                    <CornerUpLeft className="h-3.5 w-3.5" /> Responder
+                  </button>
+                )}
+                {onForward && (
+                  <button
+                    type="button"
+                    onClick={() => { setMenuAberto(false); onForward(); }}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-black/5"
+                  >
+                    <Forward className="h-3.5 w-3.5" /> Encaminhar
+                  </button>
+                )}
+                {isOut && onDeleteForEveryone && (
+                  <button
+                    type="button"
+                    onClick={() => { setMenuAberto(false); onDeleteForEveryone(); }}
+                    disabled={deleting}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Apagar para todos
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
         {label && (
           <div
             className="mb-0.5 text-[11px] font-bold"
