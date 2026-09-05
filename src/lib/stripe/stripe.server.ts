@@ -10,10 +10,7 @@ import Stripe from "stripe";
 export function stripeClient(): Stripe {
   const chave = process.env["STRIPE_SECRET_KEY"];
   if (!chave) throw new Error("STRIPE_SECRET_KEY não configurada no servidor.");
-  return new Stripe(chave, {
-    apiVersion: "2025-08-27.basil",
-    httpClient: Stripe.createFetchHttpClient(),
-  });
+  return new Stripe(chave, { httpClient: Stripe.createFetchHttpClient() });
 }
 
 /** Minutos de validade de uma autenticação 3DS aprovada. */
