@@ -6,11 +6,11 @@ import { isInstagramConversation } from "@/lib/instagram/bridge.server";
  *
  * Roda a cada 10 min via pg_cron. Dois estágios:
  *
- *   1) AVISO (60 min sem atividade): envia um balão avisando que o atendimento
+ *   1) AVISO (47h sem atividade): envia um balão avisando que o atendimento
  *      vai ser encerrado se não houver resposta, e marca `inactivity_warned_at`.
  *      Não fecha ainda.
  *
- *   2) ENCERRAMENTO (mais 60 min depois do aviso, sem resposta): fecha o
+ *   2) ENCERRAMENTO (1h depois do aviso, ou seja 48h/2 dias no total): fecha o
  *      protocolo, gera resumo via IA e envia balão curto de encerramento.
  *
  * Se o cliente responder antes, saveMessage() bumpa `last_activity_at`
@@ -27,8 +27,8 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
         const { sendWhatsAppBubbles } = await import("@/lib/whatsapp/send.server");
 
         const now = Date.now();
-        const warnCutoff = new Date(now - 60 * 60 * 1000).toISOString(); // 1h sem atividade → aviso
-        const closeAfterWarn = new Date(now - 60 * 60 * 1000).toISOString(); // +1h após o aviso → encerra
+        const warnCutoff = new Date(now - 47 * 60 * 60 * 1000).toISOString(); // 47h sem atividade → aviso
+        const closeAfterWarn = new Date(now - 60 * 60 * 1000).toISOString(); // +1h após o aviso → encerra (48h no total)
 
 
         const warned: string[] = [];
@@ -79,7 +79,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
         }
 
 
-        // ============ 1) AVISO (60min sem resposta) ============
+        // ============ 1) AVISO (47h sem resposta) ============
         const { data: toWarn, error: warnErr } = await supabaseAdmin
           .from("wa_protocolos")
           .select("id, numero, conversation_id")
@@ -195,7 +195,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
             const res = await closeProtocolAndResetRuntime({
               protocolo_id: proto.id,
               status: "encerrado_inatividade",
-              reason: "inatividade_2h",
+              reason: "inatividade_2d",
             });
             if (!res.ok) {
               console.error("[inactivity] falha ao encerrar protocolo", proto.numero);
