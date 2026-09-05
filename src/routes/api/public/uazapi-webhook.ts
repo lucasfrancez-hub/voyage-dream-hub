@@ -204,16 +204,6 @@ async function processarAtualizacaoStatus(p: Record<string, unknown>) {
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Loga payload bruto para depuração do formato real enviado pela UazAPI.
-  try {
-    await (supabaseAdmin as any).from("uaz_webhook_log").insert({
-      event_type: String(p.EventType ?? p.event ?? p.type ?? "status"),
-      payload: p as never,
-    });
-  } catch {
-    /* não bloqueia */
-  }
-
   for (const bruta of brutas) {
     if (!bruta || typeof bruta !== "object") continue;
     const o = bruta as Record<string, unknown>;
