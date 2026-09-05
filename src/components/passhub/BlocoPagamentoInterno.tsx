@@ -260,10 +260,10 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-2">
+        <div className="flex gap-2">
           <button
             type="button"
-            className="col-span-4 flex items-center justify-center gap-2 rounded-xl bg-brand-orange py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-3 rounded-lg bg-brand-orange px-4 py-4 font-bold text-white shadow-lg shadow-brand-orange/10 transition-colors hover:bg-brand-orange/90 disabled:opacity-50"
             onClick={() => cobrar.mutate()}
             disabled={cobrar.isPending}
           >
@@ -276,7 +276,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           </button>
           {cobrancaAtiva?.pixCopiaCola ? (
             <a
-              className="col-span-1 flex items-center justify-center rounded-xl border border-brand-orange text-brand-orange transition hover:bg-brand-orange/10"
+              className="flex w-14 items-center justify-center rounded-lg border border-white/10 bg-white/5 cons-muted transition-colors hover:bg-white/10 hover:text-white"
               title="Enviar Pix no WhatsApp"
               target="_blank"
               rel="noreferrer"
@@ -288,39 +288,33 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
             </a>
           ) : (
             <span
-              className="col-span-1 flex items-center justify-center rounded-xl border border-white/10 cons-muted opacity-40"
+              className="flex w-14 items-center justify-center rounded-lg border border-white/10 bg-white/5 cons-muted opacity-40"
               title="Gere o QR Pix primeiro"
             >
               <Send className="h-5 w-5" />
             </span>
           )}
         </div>
-        <p className="text-[11px] cons-muted">
-          Pagamento identificado automaticamente → a reserva é paga sozinha.
-        </p>
       </section>
 
       {/* ---------------- 2. Pagar reserva agora ---------------- */}
       <section className="flex flex-col gap-3">
         <button
           type="button"
-          className="flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-600 py-4 font-bold text-white shadow-lg transition hover:bg-emerald-700 disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-3 rounded-lg bg-emerald-500 px-4 py-4 font-bold text-white shadow-lg shadow-emerald-500/10 transition-colors hover:bg-emerald-600 disabled:opacity-60"
           onClick={() => abrirPrevia.mutate()}
           disabled={abrirPrevia.isPending || pagarAgora.isPending}
         >
           {abrirPrevia.isPending || pagarAgora.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            <Zap className="h-4 w-4" />
+            <Zap className="h-5 w-5" />
           )}
           Pagar reserva agora
-          <span className="rounded border border-emerald-400/30 bg-emerald-500/30 px-2 py-0.5 text-[10px] uppercase tracking-tighter">
+          <span className="rounded bg-black/20 px-2 py-0.5 text-[10px] uppercase tracking-tighter">
             Saldo ASAAS
           </span>
         </button>
-        <p className="text-center text-[11px] cons-muted">
-          Pagamento instantâneo no Pix, debitando o nosso saldo na hora.
-        </p>
       </section>
 
       {/* ---------------- 3. Cartão de crédito (auxiliar) ---------------- */}
@@ -361,27 +355,20 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
 
         <button
           type="button"
-          className="w-full rounded-xl border border-brand-orange/40 bg-gradient-to-br from-brand-orange/20 to-brand-orange/5 p-4 text-left transition hover:border-brand-orange/70 hover:from-brand-orange/25 disabled:opacity-60"
+          className="group flex w-full items-center gap-4 rounded-xl border border-brand-orange/30 bg-transparent px-5 py-4 text-left transition-all hover:border-brand-orange hover:bg-brand-orange/5 disabled:opacity-60"
           onClick={() => abrirCartao.mutate()}
           disabled={abrirCartao.isPending}
         >
-          <div className="flex items-center gap-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-orange/25 text-brand-orange">
-              {abrirCartao.isPending ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
-              ) : (
-                <CreditCard className="h-6 w-6" />
-              )}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-white">
-                Pagar com cartão de crédito
-              </span>
-              <span className="block text-xs cons-muted">
-                Abre a tela segura para digitar os dados e escolher as parcelas.
-              </span>
-            </span>
-          </div>
+          <span className="flex h-10 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-orange/10 text-brand-orange transition-colors group-hover:bg-brand-orange/20">
+            {abrirCartao.isPending ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : (
+              <CreditCard className="h-6 w-6" />
+            )}
+          </span>
+          <span className="text-base font-semibold text-white">
+            Pagar com cartão de crédito
+          </span>
         </button>
 
         {linkCliente ? (
