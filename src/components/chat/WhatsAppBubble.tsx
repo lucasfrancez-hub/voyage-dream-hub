@@ -3,6 +3,7 @@ import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
+import { AudioMessage } from "@/components/chat/AudioMessage";
 
 type Media = { kind: "image" | "document" | "audio" | "video"; url: string; filename: string };
 function safeText(value: unknown): string {
@@ -33,7 +34,13 @@ function parseMedia(content: unknown): { media: Media | null; text: string } {
  * não pra poluir a conversa do atendente. Aqui ela é separada do texto do
  * cliente e só aparece quando o atendente clica em "ver leitura".
  */
-const LABELS_AUTO = ["🖼️ [imagem recebida]", "🎬 [vídeo recebido]", "📎 [documento recebido]"];
+const LABELS_AUTO = [
+  "🖼️ [imagem recebida]",
+  "🎬 [vídeo recebido]",
+  "📎 [documento recebido]",
+  "🎤 [áudio enviado]",
+  "🎤 [áudio enviado como arquivo]",
+];
 
 function separarLeituraAuto(text: string): { visivel: string; leitura: string } {
   if (!text) return { visivel: "", leitura: "" };
