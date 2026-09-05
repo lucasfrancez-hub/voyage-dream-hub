@@ -28,8 +28,8 @@ const { data: ativas } = await supabaseAdmin
   .select("localizador")
   .limit(1);
 
-const locCancelada = canceladas?.[0]?.localizador ?? "";
-console.log("canceladas p/ teste:", canceladas?.map((c) => c.localizador));
+const locCancelada = String(canceladas?.[0]?.id_passagem ?? canceladas?.[0]?.localizador ?? "");
+console.log("canceladas p/ teste:", canceladas);
 
 // 1) Campos da reserva (leitura) — ver se RAV aparece e com que nome
 if (locCancelada) {
