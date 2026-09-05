@@ -57,6 +57,7 @@ export async function passhubBuscarVoos(input: PassHubBuscaInput): Promise<Json>
         })),
       },
       headers: { "X-Correlation-Id": crypto.randomUUID() },
+      retentativas: 1,
     });
   }
 
@@ -68,10 +69,11 @@ export async function passhubBuscarVoos(input: PassHubBuscaInput): Promise<Json>
       iata_to: up(t.destino),
       dates: [{ date_outbound: t.data, date_inbound: input.dataVolta || undefined }],
     },
+    retentativas: 1,
   });
 }
 
 /** Tarifação do voo escolhido (revalida preço/disponibilidade). */
 export async function passhubTarifar(payload: unknown): Promise<Json> {
-  return passhubRequest<Json>(`${passhubBases.nexus}/api/v1/tarifar`, { body: payload });
+  return passhubRequest<Json>(`${passhubBases.nexus}/api/v1/tarifar`, { body: payload, retentativas: 2 });
 }
