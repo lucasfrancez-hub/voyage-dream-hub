@@ -42,6 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PagamentoCartaoPasshub } from "@/components/passhub/PagamentoCartaoPasshub";
 import type { PassHubReservaLista } from "@/lib/passhub/types";
 
 type PreviaPix = {
@@ -120,6 +121,11 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
     expiraEm: string;
   } | null>(null);
   const [previa, setPrevia] = useState<PreviaPix | null>(null);
+  // Pagamento interno no cartão: código do checkout usado só nos bastidores
+  // (o link não é exibido nem enviado ao cliente).
+  const [codigoCartao, setCodigoCartao] = useState("");
+  const [cartaoAberto, setCartaoAberto] = useState(false);
+
 
 
   const pagamentos = useQuery({
@@ -225,6 +231,20 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
       await copiar(res.link, "link", "Link de pagamento copiado");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao obter o link"),
+  });
+
+  // Cartão interno: obtém o código do checkout nos bastidores e abre o
+  // formulário de cartão aqui mesmo — sem gerar/mostrar link ao cliente.
+  const abrirCartao = useMutation({
+    mutationFn: () => buscarLink({ data: { id: r.idPassagem, localizador: r.localizador } }),
+    onSuccess: (res) => {
+      if (!res.ok) return toast.error(res.erro);
+      const codigo = /\/payment\/([^/?#\s]+)/.exec(res.link)?.[1];
+      if (!codigo) return toast.error("Não consegui abrir o checkout desta reserva");
+      setCodigoCartao(codigo);
+      setCartaoAberto(true);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao abrir o pagamento"),
   });
 
 
@@ -350,6 +370,24 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           )}
           Pagar PassHub agora
         </button>
+
+        <button
+          type="button"
+          className="cons-btn w-full justify-center py-3 text-sm font-bold"
+          onClick={() => abrirCartao.mutate()}
+          disabled={abrirCartao.isPending}
+        >
+          {abrirCartao.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <CreditCard className="h-4 w-4" />
+          )}
+          Pagar com cartão de crédito
+        </button>
+        <p className="-mt-1 text-[11px] cons-muted">
+          Digita o cartão aqui dentro e paga na hora, com parcelas e confirmação do banco na
+          tela. Nenhum link é gerado para o cliente.
+        </p>
 
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] cons-muted">
@@ -717,6 +755,21 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
               </div>
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* ---------------- Pagamento interno no cartão ---------------- */}
+      <Dialog open={cartaoAberto} onOpenChange={setCartaoAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pagar reserva no cartão</DialogTitle>
+            <DialogDescription>
+              Reserva {r.localizador || r.idPassagem} — os dados do cartão são digitados em
+              campos seguros e não passam pelo nosso sistema. Se o banco pedir, a confirmação
+              aparece aqui mesmo.
+            </DialogDescription>
+          </DialogHeader>
+          {codigoCartao ? <PagamentoCartaoPasshub codigo={codigoCartao} /> : null}
         </DialogContent>
       </Dialog>
     </div>
