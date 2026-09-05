@@ -275,7 +275,13 @@ export async function passhubSessaoStatus(): Promise<{
 
 export async function passhubRequest<T>(
   url: string,
-  init: { method?: string; body?: unknown; headers?: Record<string, string> } = {},
+  init: {
+    method?: string;
+    body?: unknown;
+    headers?: Record<string, string>;
+    /** Repetições em falha temporária (5xx/timeout). Nunca usar em reservar. */
+    retentativas?: number;
+  } = {},
 ): Promise<T> {
   const executar = async (token: string) => {
     const controller = new AbortController();
@@ -297,22 +303,80 @@ export async function passhubRequest<T>(
     }
   };
 
-  let res = await executar(await passhubToken());
-  if (res.status === 401 || res.status === 403) {
-    await passhubInvalidarToken();
-    res = await executar(await passhubToken());
+  const tentativas = Math.max(0, init.retentativas ?? 0);
+  let ultimoErro: PassHubError | null = null;
+
+  for (let i = 0; i <= tentativas; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 700 * i));
+
+    let res: Response;
+    try {
+      res = await executar(await passhubToken());
+      if (res.status === 401 || res.status === 403) {
+        await passhubInvalidarToken();
+        res = await executar(await passhubToken());
+      }
+    } catch (e) {
+      // Timeout/queda de rede: também merece nova tentativa.
+      ultimoErro = new PassHubError(
+        e instanceof Error && e.name === "AbortError"
+          ? "PassHub não respondeu a tempo"
+          : `Falha de conexão com a PassHub`,
+        504,
+        e instanceof Error ? e.message : String(e),
+      );
+      continue;
+    }
+
+    const texto = await res.text();
+    if (!res.ok) {
+      ultimoErro = new PassHubError(
+        `PassHub respondeu ${res.status}`,
+        res.status,
+        texto.slice(0, 1500),
+      );
+      // Só instabilidade (5xx) vale nova tentativa; 4xx é erro do pedido.
+      if (res.status >= 500 && i < tentativas) continue;
+      throw ultimoErro;
+    }
+    try {
+      return JSON.parse(texto) as T;
+    } catch {
+      throw new PassHubError("Resposta PassHub inválida (não é JSON)", 502, texto.slice(0, 500));
+    }
   }
 
-  const texto = await res.text();
-  if (!res.ok) {
-    throw new PassHubError(`PassHub respondeu ${res.status}`, res.status, texto.slice(0, 1500));
+  throw ultimoErro ?? new PassHubError("Falha desconhecida na PassHub", 500);
+}
+
+/** Traduz o corpo de erro da PassHub em um motivo legível para a tela. */
+export function passhubMotivo(erro: unknown): string {
+  const bruto = (erro as { detalhe?: unknown } | null)?.detalhe;
+  const texto = typeof bruto === "string" ? bruto : bruto ? JSON.stringify(bruto) : "";
+  if (!texto) return "";
+  const baixo = texto.toLowerCase();
+  if (/deserialization rate token|token_preview|rate token/.test(baixo)) {
+    return "a oferta expirou na companhia — refaça a busca e tarife novamente";
+  }
+  if (/sold out|indispon|no availability|unavailable/.test(baixo)) {
+    return "a companhia não tem mais essa tarifa disponível";
+  }
+  if (/erro no provedor|falha na comunica/.test(baixo)) {
+    return "a companhia aérea está instável no momento — tente de novo em instantes";
   }
   try {
-    return JSON.parse(texto) as T;
+    const j = JSON.parse(texto) as Record<string, unknown>;
+    const d = (j["detail"] ?? j) as Record<string, unknown>;
+    for (const k of ["mensagem", "message", "erro", "error", "detail", "description"]) {
+      const v = (d as Record<string, unknown>)[k];
+      if (typeof v === "string" && v.trim()) return v.trim();
+    }
   } catch {
-    throw new PassHubError("Resposta PassHub inválida (não é JSON)", 502, texto.slice(0, 500));
+    /* corpo não-JSON */
   }
+  return texto.replace(/\s+/g, " ").trim().slice(0, 200);
 }
+
 
 /** Diagnóstico: valida credenciais fazendo login + /auth/me. */
 export async function passhubPing(): Promise<{ ok: boolean; conta?: string; erro?: string }> {
