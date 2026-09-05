@@ -179,13 +179,18 @@ export const passhubReservar = createServerFn({ method: "POST" })
       const textoDetalhe = typeof detalhe === "string" ? detalhe : detalhe ? JSON.stringify(detalhe) : "";
       console.error("[passhub] reservar falhou:", msg, textoDetalhe);
       let amigavel = msg;
+      const { passhubMotivo } = await import("./client.server");
+      const legivel = passhubMotivo(e) || motivoLegivel(textoDetalhe);
       const d = textoDetalhe.toLowerCase();
-      if (/expir|token|inválid|invalid|not found/.test(d) || /respondeu 5\d\d/.test(msg)) {
-        amigavel = `${msg} — ${motivoLegivel(textoDetalhe) || "a tarifa pode ter expirado; tarife novamente e reserve em seguida."}`;
-      } else if (textoDetalhe) {
-        amigavel = `${msg} — ${motivoLegivel(textoDetalhe)}`;
+      if (/segment_unavailable|segmento sem disponibilidade|indispon/.test(d)) {
+        amigavel = "Este trecho acabou de ficar indisponível na companhia. Refaça a busca e escolha outro voo.";
+      } else if (/expir|token|inválid|invalid|not found/.test(d) || /respondeu 5\d\d/.test(msg)) {
+        amigavel = legivel || "A tarifa pode ter expirado; tarife novamente e reserve em seguida.";
+      } else if (legivel) {
+        amigavel = legivel;
       }
       return { ok: false as const, erro: amigavel, detalhe: textoDetalhe.slice(0, 800) };
+
     }
   });
 
