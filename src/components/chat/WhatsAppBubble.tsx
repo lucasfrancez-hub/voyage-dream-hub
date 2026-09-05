@@ -244,27 +244,39 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           e.preventDefault();
           setMenuAberto(true);
         }}
-        onTouchStart={onTouchStartBubble}
-        onTouchMove={onTouchMoveBubble}
-        onTouchEnd={cancelarPress}
-        onTouchCancel={cancelarPress}
       >
+        {!deleted && (
+          <button
+            type="button"
+            aria-label="Opções da mensagem"
+            title="Opções"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuAberto(true);
+            }}
+            className={cn(
+              "absolute top-0.5 z-20 flex h-5 w-5 items-center justify-center rounded-full opacity-60 transition hover:opacity-100",
+              isOut ? "right-0.5" : "right-0.5",
+            )}
+            style={{ color: bubbleFg }}
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        )}
         {menuAberto && (
           <>
             <button
               type="button"
               aria-label="Fechar menu"
-              className="fixed inset-0 z-40 cursor-default"
+              className="fixed inset-0 z-[60] cursor-default bg-black/30"
               onClick={() => setMenuAberto(false)}
             />
             <div
-              className={cn(
-                "absolute -top-2 z-50 w-max max-w-[92vw] -translate-y-full rounded-xl border border-border bg-[var(--chat-panel-raised)] p-1.5 shadow-xl",
-                isOut ? "right-0" : "left-0",
-              )}
+              className="fixed inset-x-2 bottom-2 z-[61] mx-auto max-h-[70vh] w-auto max-w-md overflow-y-auto rounded-2xl border border-border bg-[var(--chat-panel-raised)] p-2 shadow-2xl"
+              style={{ paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))" }}
             >
               {onReact && (
-                <div className="mb-1 flex items-center gap-0.5 border-b border-border pb-1">
+                <div className="mb-1 flex items-center justify-around gap-0.5 border-b border-border pb-2">
                   {EMOJIS_RAPIDOS.map((e) => (
                     <button
                       key={e}
@@ -274,7 +286,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                         onReact(minhaReacao === e ? "" : e);
                       }}
                       className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-full text-lg transition hover:scale-125",
+                        "flex h-10 w-10 items-center justify-center rounded-full text-2xl transition hover:scale-125",
                         minhaReacao === e && "bg-[var(--brand-orange)]/20",
                       )}
                     >
@@ -288,27 +300,27 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                   <button
                     type="button"
                     onClick={copiarTexto}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-black/5"
+                    className="flex items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-black/5"
                   >
-                    <Copy className="h-3.5 w-3.5" /> Copiar
+                    <Copy className="h-4 w-4" /> Copiar
                   </button>
                 )}
                 {onReply && (
                   <button
                     type="button"
                     onClick={() => { setMenuAberto(false); onReply(); }}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-black/5"
+                    className="flex items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-black/5"
                   >
-                    <CornerUpLeft className="h-3.5 w-3.5" /> Responder
+                    <CornerUpLeft className="h-4 w-4" /> Responder
                   </button>
                 )}
                 {onForward && (
                   <button
                     type="button"
                     onClick={() => { setMenuAberto(false); onForward(); }}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-black/5"
+                    className="flex items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-black/5"
                   >
-                    <Forward className="h-3.5 w-3.5" /> Encaminhar
+                    <Forward className="h-4 w-4" /> Encaminhar
                   </button>
                 )}
                 {isOut && onDeleteForEveryone && (
@@ -316,15 +328,16 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                     type="button"
                     onClick={() => { setMenuAberto(false); onDeleteForEveryone(); }}
                     disabled={deleting}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-50"
+                    className="flex items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-50"
                   >
-                    <Trash2 className="h-3.5 w-3.5" /> Apagar para todos
+                    <Trash2 className="h-4 w-4" /> Apagar para todos
                   </button>
                 )}
               </div>
             </div>
           </>
         )}
+
 
         {label && (
           <div
