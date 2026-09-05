@@ -31,7 +31,12 @@ async function rodar(request: Request): Promise<Response> {
   if (!auto && (!esperado || recebido !== esperado)) return new Response("Invalid token", { status: 401 });
 
   const limiteChats = auto ? 200 : Math.min(Number(url.searchParams.get("chats") ?? 100) || 100, 500);
-  const limiteMsgs = auto ? 60 : Math.min(Number(url.searchParams.get("mensagens") ?? 40) || 40, 200);
+  const soHorariosParam = !auto && url.searchParams.get("horarios") === "1";
+  // No modo conserto de horários varremos bem mais fundo (histórico antigo).
+  const tetoMsgs = soHorariosParam ? 3000 : 200;
+  const limiteMsgs = auto
+    ? 60
+    : Math.min(Number(url.searchParams.get("mensagens") ?? (soHorariosParam ? 1000 : 40)) || 40, tetoMsgs);
   // Filtros opcionais: um número específico (?phone=55...) e/ou só mensagens
   // a partir de um instante (?desde=ISO ou epoch em ms).
   const soHorarios = !auto && url.searchParams.get("horarios") === "1";
