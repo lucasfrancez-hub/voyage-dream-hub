@@ -120,7 +120,65 @@ function pareceAtualizacaoStatus(p: Record<string, unknown>): boolean {
   });
 }
 
+/**
+ * Marca mensagens apagadas para todos, preservando o conteúdo no sistema.
+ * Devolve true quando encontrou (e tratou) alguma revogação no payload.
+ */
+async function processarRevogacao(p: Record<string, unknown>): Promise<boolean> {
+  const brutas: unknown[] = Array.isArray(p.messages)
+    ? (p.messages as unknown[])
+    : p.message
+      ? [p.message]
+      : Array.isArray(p.data)
+        ? (p.data as unknown[])
+        : [p];
+
+  const alvos: Array<{ waId: string; fromMe: boolean }> = [];
+  for (const bruta of brutas) {
+    if (!bruta || typeof bruta !== "object") continue;
+    const o = bruta as Record<string, unknown>;
+    const tipo = String(o.messageType ?? o.type ?? "").toLowerCase();
+    const revogado =
+      o.isDeleted === true ||
+      o.deleted === true ||
+      o.wasDeleted === true ||
+      o.isRevoked === true ||
+      tipo.includes("revoke") ||
+      tipo.includes("protocol");
+    if (!revogado) continue;
+    const alvo =
+      o.deletedMessageId ??
+      o.revokedMessageId ??
+      (o.protocolMessage && typeof o.protocolMessage === "object"
+        ? ((o.protocolMessage as Record<string, unknown>).key as Record<string, unknown> | undefined)?.id
+        : undefined) ??
+      o.id ??
+      o.messageid ??
+      o.messageId;
+    const waId = String(alvo ?? "").trim();
+    if (!waId) continue;
+    alvos.push({ waId, fromMe: Boolean(o.fromMe ?? o.fromme) });
+  }
+  if (alvos.length === 0) return false;
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const quando = new Date().toISOString();
+  for (const alvo of alvos) {
+    await supabaseAdmin
+      .from("wa_messages")
+      .update({
+        is_revoked: true,
+        revoked_at: quando,
+        revoked_by: alvo.fromMe ? "business" : "customer",
+      })
+      .eq("wa_message_id", alvo.waId);
+    console.log(JSON.stringify({ event: "uaz_revoke", wa_message_id: alvo.waId }));
+  }
+  return true;
+}
+
 async function processarAtualizacaoStatus(p: Record<string, unknown>) {
+
   const brutas: unknown[] = Array.isArray(p.messages)
     ? (p.messages as unknown[])
     : p.message
