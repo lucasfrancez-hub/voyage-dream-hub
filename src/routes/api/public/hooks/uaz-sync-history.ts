@@ -47,10 +47,13 @@ async function rodar(request: Request): Promise<Response> {
     try {
       const mensagens = await uazListMessages(chat.chatid, limiteMsgs, chat.phone);
       let count = 0;
-      for (const m of mensagens.sort((a, b) => a.timestampMs - b.timestampMs)) {
+      for (const m of mensagens
+        .filter((m) => !desdeMs || m.timestampMs >= desdeMs)
+        .sort((a, b) => a.timestampMs - b.timestampMs)) {
         const r = await ingestUazMessage({ ...m, senderName: m.senderName ?? chat.name }, { historico: true });
         if (r === "salva") count += 1;
       }
+
       importadas += count;
       const phone = chat.phone ?? chat.chatid.split("@")[0];
       await supabaseAdmin.from("wa_history_sync").upsert(
