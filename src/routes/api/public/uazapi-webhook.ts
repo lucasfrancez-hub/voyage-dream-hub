@@ -195,7 +195,7 @@ async function processarAtualizacaoStatus(p: Record<string, unknown>) {
 
   // Loga payload bruto para depuração do formato real enviado pela UazAPI.
   try {
-    await supabaseAdmin.from("uaz_webhook_log").insert({
+    await (supabaseAdmin as any).from("uaz_webhook_log").insert({
       event_type: String(p.EventType ?? p.event ?? p.type ?? "status"),
       payload: p as never,
     });
