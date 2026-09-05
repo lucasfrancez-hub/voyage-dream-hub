@@ -112,12 +112,32 @@ function PassHubPage() {
   const [ravAplicada, setRavAplicada] = useState<number | null>(null);
   const [ofertaReserva, setOfertaReserva] = useState<PassHubOferta | null>(null);
 
+  const sessao = useQuery({
+    queryKey: ["passhub-sessao"],
+    queryFn: async () => sessaoFn(),
+    refetchInterval: 5 * 60_000,
+  });
+
   const status = useMutation({
     mutationFn: async () => statusFn(),
-    onSuccess: (r) =>
-      r.ok ? toast.success("Conectado à PassHub") : toast.error(r.erro ?? "Falha na autenticação"),
+    onSuccess: (r) => {
+      void sessao.refetch();
+      r.ok ? toast.success("Conectado à PassHub") : toast.error(r.erro ?? "Falha na autenticação");
+    },
     onError: (e) => toast.error((e as Error).message),
   });
+
+  const reconectar = useMutation({
+    mutationFn: async () => reconectarFn(),
+    onSuccess: (r) => {
+      void sessao.refetch();
+      r.ok
+        ? toast.success("Sessão PassHub renovada")
+        : toast.error(r.erro ?? "Não foi possível reconectar");
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
 
   const busca = useMutation({
     mutationFn: async (p: number) =>
