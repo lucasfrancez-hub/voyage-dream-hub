@@ -715,7 +715,7 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
               Pagamento da reserva {r.localizador || r.idPassagem} com cartão de crédito.
             </DialogDescription>
           </DialogHeader>
-          {codigoCartao ? <PagamentoCartaoPasshub codigo={codigoCartao} /> : null}
+          {codigoCartao ? <PagamentoCartaoPasshub codigo={codigoCartao} valorTotal={r.totalVenda || r.preco} /> : null}
         </DialogContent>
       </Dialog>
     </div>
