@@ -175,7 +175,10 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
             {replySender && <div className="font-semibold" style={{ color: isOut ? "var(--chat-bubble-out-fg)" : "var(--brand-orange)" }}>{replySender}</div>}
             <div className="line-clamp-2 opacity-80">{replySnippet || "mensagem"}</div>
             {reply.deleted && (
-              <div className="mt-0.5 text-[10px] font-medium text-red-500">
+              <div
+                className="mt-0.5 text-[10px] font-medium"
+                style={{ color: isOut ? "rgba(255,255,255,0.85)" : "#ef4444" }}
+              >
                 {reply.revokedBy === "business"
                   ? "Mensagem apagada pela empresa"
                   : "Mensagem apagada pelo cliente"}
@@ -264,7 +267,10 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
                 </div>
               )}
               {deleted && (
-                <div className="mt-1 text-[11px] font-medium text-red-500">
+                <div
+                  className="mt-1 text-[11px] font-medium"
+                  style={{ color: isOut ? "rgba(255,255,255,0.85)" : "#ef4444" }}
+                >
                   {revokedBy === "business"
                     ? "Mensagem apagada pela empresa"
                     : "Mensagem apagada pelo cliente"}
