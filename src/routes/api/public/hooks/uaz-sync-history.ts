@@ -65,20 +65,23 @@ async function rodar(request: Request): Promise<Response> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   if (auto) {
+    const lockId = deep ? LOCK_ID_DEEP : LOCK_ID;
+    const intervalo = deep ? DEEP_INTERVALO_MS : AUTO_INTERVALO_MS;
     const { data: lock } = await supabaseAdmin
       .from("wa_history_sync")
       .select("last_synced_at")
-      .eq("chat_id", LOCK_ID)
+      .eq("chat_id", lockId)
       .maybeSingle();
     const ultimo = lock?.last_synced_at ? new Date(lock.last_synced_at as string).getTime() : 0;
-    if (Date.now() - ultimo < AUTO_INTERVALO_MS) return Response.json({ pulado: true });
+    if (Date.now() - ultimo < intervalo) return Response.json({ pulado: true });
     await supabaseAdmin
       .from("wa_history_sync")
       .upsert(
-        { chat_id: LOCK_ID, wa_phone: LOCK_ID, imported: 0, last_synced_at: new Date().toISOString() },
+        { chat_id: lockId, wa_phone: lockId, imported: 0, last_synced_at: new Date().toISOString() },
         { onConflict: "chat_id" },
       );
   }
+
 
 
   const todos = await uazListChats(limiteChats);
