@@ -347,10 +347,10 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
         </p>
       </Etapa>
 
-      {/* ---------------- 2. Pagar a consolidadora ---------------- */}
+      {/* ---------------- 2. Pagar reserva agora ---------------- */}
       <Etapa
         numero="2"
-        titulo="Pagar a consolidadora"
+        titulo="Pagar reserva agora"
         selo={
           <span className="flex items-center gap-1.5 text-[10px] font-medium text-emerald-400">
             <Wallet className="h-3.5 w-3.5" /> Saldo ASAAS
@@ -368,26 +368,9 @@ export function BlocoPagamentoInterno({ r }: { r: PassHubReservaLista }) {
           ) : (
             <Zap className="h-4 w-4" />
           )}
-          Pagar PassHub agora
+          Pagar reserva no Pix
         </button>
 
-        <button
-          type="button"
-          className="cons-btn w-full justify-center py-3 text-sm font-bold"
-          onClick={() => abrirCartao.mutate()}
-          disabled={abrirCartao.isPending}
-        >
-          {abrirCartao.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <CreditCard className="h-4 w-4" />
-          )}
-          Pagar com cartão de crédito
-        </button>
-        <p className="-mt-1 text-[11px] cons-muted">
-          Digita o cartão aqui dentro e paga na hora, com parcelas e confirmação do banco na
-          tela. Nenhum link é gerado para o cliente.
-        </p>
 
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] cons-muted">
