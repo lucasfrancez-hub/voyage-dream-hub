@@ -177,6 +177,33 @@ export async function uazPresence(
   }
 }
 
+/**
+ * Reage a uma mensagem no WhatsApp (emoji). Emoji vazio remove a reação.
+ */
+export async function uazReact(
+  to: string,
+  messageId: string,
+  emoji: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const numero = uazNumber(to);
+  const tentativas: Array<[string, Record<string, unknown>]> = [
+    ["/message/react", { number: numero, id: messageId, text: emoji }],
+    ["/message/reaction", { number: numero, id: messageId, text: emoji, reaction: emoji }],
+    ["/send/reaction", { number: numero, id: messageId, text: emoji }],
+  ];
+  let ultimo = "";
+  for (const [path, body] of tentativas) {
+    try {
+      await uazRequest(path, body);
+      return { ok: true };
+    } catch (err) {
+      ultimo = err instanceof Error ? err.message : String(err);
+    }
+  }
+  console.error("[whatsapp/uaz react] falhou:", ultimo);
+  return { ok: false, error: ultimo || "Não foi possível reagir no WhatsApp" };
+}
+
 /** Marca a conversa como lida no aparelho conectado. */
 export async function uazMarkRead(chatid: string): Promise<void> {
   try {
