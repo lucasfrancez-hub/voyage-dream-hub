@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText } from "lucide-react";
+import { Check, CheckCheck, Clock, FileText, Download, CornerUpLeft, AlertCircle, RotateCw, ScanText, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
@@ -87,6 +87,8 @@ interface Props {
   /** Handler pra reenviar um balão que não foi entregue */
   onResend?: () => void;
   resending?: boolean;
+  /** Salvar uma figurinha recebida na coleção do time */
+  onSaveSticker?: (url: string, filename: string) => void;
   /** Horário em que o WhatsApp confirmou a entrega */
   deliveredAt?: string | null;
   /** Horário em que o cliente leu */
@@ -99,7 +101,7 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt }: Props) {
+export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, deleted, revokedBy, replied, reply, onReply, onResend, resending, deliveredAt, readAt, onSaveSticker }: Props) {
   const reciboTitulo = [
     status === "sent" || status === "delivered" || status === "read" ? `Enviada ${formatTime(timestamp)}` : null,
     deliveredAt ? `Entregue ${formatTime(deliveredAt)}` : status === "delivered" || status === "read" ? "Entregue" : null,
@@ -173,13 +175,26 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
               )}
 
               {media?.kind === "sticker" && (
-                <img
-                  src={media.url}
-                  alt="figurinha"
-                  className="mb-1 h-32 w-32 object-contain"
-                  loading="lazy"
-                />
+                <div className="group/sticker relative mb-1 inline-block">
+                  <img
+                    src={media.url}
+                    alt="figurinha"
+                    className="h-32 w-32 object-contain"
+                    loading="lazy"
+                  />
+                  {onSaveSticker && (
+                    <button
+                      type="button"
+                      title="Salvar figurinha nas minhas"
+                      onClick={() => onSaveSticker(media.url, media.filename)}
+                      className="absolute right-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity hover:bg-black/70 group-hover/sticker:opacity-100"
+                    >
+                      <Star className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               )}
+
 
               {media?.kind === "audio" && <AudioMessage src={media.url} isOut={isOut} />}
               {media?.kind === "video" && (

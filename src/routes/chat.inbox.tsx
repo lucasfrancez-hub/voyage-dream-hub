@@ -4,12 +4,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, ChevronUp, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2, Eye, EyeOff, Check, CheckCheck, Bookmark, Share2, BarChart3, RefreshCw, UserPlus, Clock, AlertTriangle, Sparkles, Smile } from "lucide-react";
+import { Pause, Play, Search, Send, Bot, User, MoreVertical, Loader2, Inbox as InboxIcon, Users, Archive, Plus, ChevronDown, ChevronUp, Image as ImageIcon, XCircle, History, Paperclip, PanelLeftClose, PanelLeftOpen, FileText, X, Save, ExternalLink, ArrowLeft, Info, Instagram, MessageCircle, MessageSquare, Heart, Mic, Square, Trash2, Eye, EyeOff, Check, CheckCheck, Bookmark, Share2, BarChart3, RefreshCw, UserPlus, Clock, AlertTriangle, Sparkles, Smile, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { messagePreview } from "@/lib/chat/preview";
-import { listStickers, sendHumanSticker } from "@/lib/chat/queries.functions";
+import { listStickers, sendHumanSticker, toggleSavedSticker } from "@/lib/chat/queries.functions";
 import { listConversations, listMessages, sendHumanReply, resendHumanMessage, sendHumanMedia, toggleConversationMode, startOutboundConversation, setFunnelStage, assignConversation, setAiPaused, listAttendants, getActiveProtocolo, closeProtocoloManually, listConversationProtocolos, getConversationOrders, updateProtocoloDetails, listProtocoloMessages, ensureProtocoloResumo, clearConversationHistory, markConversationRead, renameConversation } from "@/lib/chat/queries.functions";
 import { listInstagramAccounts, listInstagramConversations, listInstagramMessages, sendInstagramAttachment, sendInstagramReply, listInstagramCommentThreads, refreshInstagramProfile, triggerAutoReplyComment, markInstagramConversationRead, markInstagramConversationUnread, deleteInstagramConversation, markInstagramCommentThreadRead, markInstagramCommentThreadUnread, getInstagramMediaDetails, getInstagramMediaStats, deleteInstagramCommentThread, deleteInstagramComment, setInstagramCommentHidden, syncInstagramCommentLikes, toggleInstagramCommentLike, deleteInstagramMessage, sugerirRespostaComentarioIa, dispensarAlertaComentario, setInstagramCommentAiPaused, setInstagramCommentAiInstruction, ensureInstagramMirror } from "@/lib/instagram/queries.functions";
 import { firstName } from "@/lib/whatsapp/text-utils.shared";
@@ -986,6 +986,18 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
     onError: (e) => toast.error(`Falha ao enviar figurinha: ${(e as Error).message}`),
   });
 
+  const toggleStickerFn = useServerFn(toggleSavedSticker);
+  const salvarStickerMut = useMutation({
+    mutationFn: (input: { url: string; filename: string; remover?: boolean }) =>
+      toggleStickerFn({ data: input }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["chat", "stickers"] });
+      toast.success(r?.salvo ? "Figurinha salva nas suas" : "Figurinha removida");
+    },
+    onError: (e) => toast.error(`Não deu pra salvar: ${(e as Error).message}`),
+  });
+
+
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = "";
@@ -1445,6 +1457,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                           : undefined
                       }
                       resending={resendingId === m.id}
+                      onSaveSticker={(url, filename) => salvarStickerMut.mutate({ url, filename })}
                     />
 
                   </div>
@@ -1573,24 +1586,53 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                     + enviar imagem
                   </button>
                 </div>
-                <div className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto">
-                  {(stickersQ.data ?? []).map((st) => (
-                    <button
-                      key={st.url}
-                      disabled={stickerMut.isPending}
-                      onClick={() => stickerMut.mutate({ url: st.url, filename: st.filename })}
-                      className="rounded-lg p-1 hover:bg-slate-100 disabled:opacity-50"
-                    >
-                      <img src={st.url} alt="figurinha" className="h-14 w-14 object-contain" />
-                    </button>
-                  ))}
+                <div className="max-h-72 overflow-y-auto">
+                  {(["salvas", "recentes"] as const).map((grupo) => {
+                    const itens = (stickersQ.data ?? []).filter((st) =>
+                      grupo === "salvas" ? st.salvo : !st.salvo,
+                    );
+                    if (itens.length === 0) return null;
+                    return (
+                      <div key={grupo} className="mb-2">
+                        <div className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          {grupo === "salvas" ? "Minhas figurinhas" : "Recentes das conversas"}
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {itens.map((st) => (
+                            <div key={st.url} className="group/st relative">
+                              <button
+                                disabled={stickerMut.isPending}
+                                onClick={() => stickerMut.mutate({ url: st.url, filename: st.filename })}
+                                className="w-full rounded-lg p-1 hover:bg-slate-100 disabled:opacity-50"
+                              >
+                                <img src={st.url} alt="figurinha" className="h-14 w-14 object-contain" />
+                              </button>
+                              <button
+                                title={st.salvo ? "Remover das minhas" : "Salvar nas minhas"}
+                                onClick={() =>
+                                  salvarStickerMut.mutate({ url: st.url, filename: st.filename, remover: st.salvo })
+                                }
+                                className={cn(
+                                  "absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-white text-slate-400 shadow transition-opacity hover:text-[#F26B1F]",
+                                  st.salvo ? "text-[#F26B1F] opacity-100" : "opacity-0 group-hover/st:opacity-100",
+                                )}
+                              >
+                                <Star className={cn("h-3 w-3", st.salvo && "fill-current")} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 {stickersQ.isLoading && <div className="p-3 text-xs text-slate-500">Carregando…</div>}
                 {!stickersQ.isLoading && (stickersQ.data ?? []).length === 0 && (
                   <div className="p-3 text-xs text-slate-500">
-                    Nenhuma figurinha ainda. As figurinhas que chegarem no WhatsApp aparecem aqui.
+                    Nenhuma figurinha ainda. As que chegarem no WhatsApp aparecem aqui, e você pode salvá-las.
                   </div>
                 )}
+
               </div>
             )}
           </div>

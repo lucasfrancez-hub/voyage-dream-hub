@@ -782,30 +782,70 @@ export const sendHumanMedia = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Figurinhas já usadas/recebidas no nosso WhatsApp — vira a "gaveta" de stickers. */
+/** Figurinhas salvas pelo time + as que já circularam no nosso WhatsApp. */
 export const listStickers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const vistos = new Set<string>();
+    const stickers: { url: string; filename: string; salvo: boolean }[] = [];
+
+    const { data: salvos } = await supabaseAdmin
+      .from("wa_stickers_salvos")
+      .select("url, filename, created_at")
+      .order("created_at", { ascending: false })
+      .limit(120);
+    for (const row of salvos ?? []) {
+      const url = String(row.url);
+      if (vistos.has(url)) continue;
+      vistos.add(url);
+      stickers.push({ url, filename: String(row.filename ?? "figurinha.webp"), salvo: true });
+    }
+
     const { data } = await supabaseAdmin
       .from("wa_messages")
       .select("content, created_at")
       .like("content", "[[media:sticker|%")
       .order("created_at", { ascending: false })
       .limit(300);
-    const vistos = new Set<string>();
-    const stickers: { url: string; filename: string }[] = [];
     for (const row of data ?? []) {
       const m = String(row.content).match(/^\[\[media:sticker\|([^|]+)\|([^\]]+)\]\]/);
       if (!m) continue;
       const url = m[1]!;
       if (vistos.has(url)) continue;
       vistos.add(url);
-      stickers.push({ url, filename: m[2]! });
-      if (stickers.length >= 60) break;
+      stickers.push({ url, filename: m[2]!, salvo: false });
+      if (stickers.length >= 120) break;
     }
     return stickers;
   });
+
+/** Salva (ou remove) uma figurinha na coleção do time. */
+export const toggleSavedSticker = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      url: z.string().min(1).max(2000),
+      filename: z.string().min(1).max(240).optional(),
+      remover: z.boolean().optional(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.remover) {
+      await supabaseAdmin.from("wa_stickers_salvos").delete().eq("url", data.url);
+      return { salvo: false };
+    }
+    const { error } = await supabaseAdmin
+      .from("wa_stickers_salvos")
+      .upsert(
+        { url: data.url, filename: data.filename ?? "figurinha.webp", saved_by: context.userId },
+        { onConflict: "url" },
+      );
+    if (error) throw new Error(error.message);
+    return { salvo: true };
+  });
+
 
 /** Envia figurinha (reutilizada da gaveta ou uma imagem enviada pelo atendente). */
 export const sendHumanSticker = createServerFn({ method: "POST" })
