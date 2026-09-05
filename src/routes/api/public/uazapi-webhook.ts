@@ -46,11 +46,19 @@ async function processarEvento(payload: unknown) {
 
   const tipoEvento = String(p.EventType ?? p.event ?? p.type ?? "").toLowerCase();
 
+  // Mensagem apagada para todos (revoke): mantemos o conteúdo, só marcamos.
+  if (tipoEvento.includes("revoke") || tipoEvento.includes("delete")) {
+    await processarRevogacao(p);
+    return;
+  }
+
   // Eventos de ACK (messages.update): atualizam enviado/entregue/lido das mensagens.
   if (tipoEvento.includes("update") || tipoEvento.includes("ack") || tipoEvento.includes("status")) {
+    if (await processarRevogacao(p)) return;
     await processarAtualizacaoStatus(p);
     return;
   }
+
 
   if (tipoEvento && !tipoEvento.includes("message")) return; // presença, conexão, etc.
 
