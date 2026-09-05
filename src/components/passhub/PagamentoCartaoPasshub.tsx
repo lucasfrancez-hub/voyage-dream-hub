@@ -77,7 +77,7 @@ const brl = (v: number) =>
 
 type Parcela = { parcelas: number; valorParcela: number; total: number; rotulo: string };
 
-export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
+export function PagamentoCartaoPasshub({ codigo, valorTotal = 0 }: { codigo: string; valorTotal?: number }) {
   const parcelasFn = useServerFn(passhubCartaoParcelasPublico);
   const sessaoFn = useServerFn(passhubCartao3dsPublico);
   const emitirFn = useServerFn(passhubCartaoEmitirPublico);
@@ -86,6 +86,8 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
   const [pronto, setPronto] = useState(false);
   const [erroCampos, setErroCampos] = useState("");
   const [bandeira, setBandeira] = useState("");
+  const [bandeiraManual, setBandeiraManual] = useState("");
+  const [desafioMontado, setDesafioMontado] = useState(false);
   const [numeroMasc, setNumeroMasc] = useState("");
   const [numeroCompleto, setNumeroCompleto] = useState(false);
   const [cvvCompleto, setCvvCompleto] = useState(false);
@@ -233,13 +235,21 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
       const res = await parcelasFn({ data: { codigo, deviceId: deviceId(), transactionId: tx } });
       setProcessando(false);
       if (!res.ok) return toast.error(res.erro);
+      const baseValor = res.valorOriginal || valorTotal || 0;
       if (!res.parcelas.length) {
-        // Sem tabela de parcelas: segue à vista
+        // Sem tabela de parcelas: segue à vista com o total da reserva
         setParcelas([
-          { parcelas: 1, valorParcela: res.valorOriginal ?? 0, total: res.valorOriginal ?? 0, rotulo: "À vista" },
+          { parcelas: 1, valorParcela: baseValor, total: baseValor, rotulo: "À vista" },
         ]);
       } else {
-        setParcelas(res.parcelas);
+        // Se a consolidadora não mandou valores, calcula pelo total da reserva
+        setParcelas(
+          res.parcelas.map((p) => {
+            const total = p.total || baseValor;
+            const valorParcela = p.valorParcela || (total ? total / p.parcelas : 0);
+            return { ...p, total, valorParcela };
+          }),
+        );
       }
       setParcelaSel(1);
       setEtapa("parcelas");
@@ -298,6 +308,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
         reject(new Error(e?.message || "Autenticação não aprovada pelo banco.")),
       );
       el.on("error", (e) => reject(new Error(e?.message || "Erro na autenticação 3DS.")));
+      setDesafioMontado(true);
       el.mount(alvo);
     });
   };
@@ -321,6 +332,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
       const r = res.resultado;
       if (r.acao === "bloqueado") throw new Error(r.motivo);
       if (r.acao === "desafio") {
+        setDesafioMontado(false);
         setEtapa("desafio");
         // espera o modal renderizar antes de montar o desafio
         await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
@@ -353,6 +365,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
   }
 
   const parcelaEscolhida = parcelas.find((p) => p.parcelas === parcelaSel);
+  const bandeiraExibida = bandeira || bandeiraManual;
 
   return (
     <div className="w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
@@ -370,7 +383,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
           <div className="relative z-10 flex items-start justify-between">
             <div className="h-7 w-10 rounded-md border border-primary-foreground/30 bg-primary-foreground/20" />
             <span className="text-[11px] font-bold uppercase text-primary-foreground/80">
-              {bandeira || "cartão"}
+              {bandeiraExibida || "cartão"}
             </span>
           </div>
           <div className="relative z-10 mt-3 font-mono text-lg font-medium text-primary-foreground">
@@ -389,11 +402,19 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
         {/* Bandeiras — logos coloridas, cinza quando não é a do cartão */}
         <div className="flex flex-wrap items-center justify-center gap-2">
           {CARD_BRANDS.map((b) => (
-            <BrandLogo
+            <button
               key={b}
-              brand={b}
-              active={bandeira.toLowerCase().startsWith(b.toLowerCase())}
-            />
+              type="button"
+              title={`Selecionar ${b}`}
+              onClick={() => setBandeiraManual((atual) => (atual === b ? "" : b))}
+              className={`rounded-md transition ${
+                bandeiraExibida.toLowerCase().startsWith(b.toLowerCase())
+                  ? "ring-2 ring-primary ring-offset-2 ring-offset-card"
+                  : "hover:opacity-90"
+              }`}
+            >
+              <BrandLogo brand={b} active={bandeiraExibida.toLowerCase().startsWith(b.toLowerCase())} />
+            </button>
           ))}
         </div>
 
@@ -580,10 +601,11 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
       {etapa === "desafio" ? (
         <Desafio3DSPasshub
           challengeRef={desafioRef}
-          bankName={bandeira || "Seu banco"}
+          bankName={bandeiraExibida || "Seu banco"}
           cardLast4={numeroMasc.slice(-4) || "••••"}
           valor={parcelaEscolhida?.total ?? 0}
           parcelas={parcelaEscolhida?.parcelas ?? 1}
+          challengeMounted={desafioMontado}
           processing={processando}
           onCancel={() => {
             setEtapa("parcelas");

@@ -19,6 +19,8 @@ interface Props {
   parcelas?: number;
   onCancel: () => void;
   onConfirmManual?: (codigo: string) => void;
+  /** true quando o desafio real do banco já está montado no container */
+  challengeMounted?: boolean;
   processing?: boolean;
 }
 
@@ -34,6 +36,7 @@ export function Desafio3DSPasshub({
   parcelas = 1,
   onCancel,
   onConfirmManual,
+  challengeMounted = false,
   processing = false,
 }: Props) {
   const [metodo, setMetodo] = useState<Metodo>("app");
@@ -96,7 +99,7 @@ export function Desafio3DSPasshub({
         </div>
 
         {/* Tabs */}
-        <div className="grid grid-cols-3 gap-1 border-b border-border bg-muted/30 p-1">
+        <div className={challengeMounted ? "hidden" : "grid grid-cols-3 gap-1 border-b border-border bg-muted/30 p-1">
           <Tab ativo={metodo === "app"} onClick={() => setMetodo("app")} icon={<Smartphone className="h-3.5 w-3.5" />} label="App" />
           <Tab ativo={metodo === "sms"} onClick={() => setMetodo("sms")} icon={<MessageSquare className="h-3.5 w-3.5" />} label="SMS" />
           <Tab ativo={metodo === "email"} onClick={() => setMetodo("email")} icon={<Mail className="h-3.5 w-3.5" />} label="E-mail" />
