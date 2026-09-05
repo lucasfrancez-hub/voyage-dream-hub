@@ -25,6 +25,7 @@ import { Route as PagarBoletoRouteImport } from './routes/pagar-boleto'
 import { Route as PasseiosRouteImport } from './routes/passeios'
 import { Route as PixPreviewRouteImport } from './routes/pix-preview'
 import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
+import { Route as Reserva3dsRetornoRouteImport } from './routes/reserva-3ds-retorno'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
@@ -283,6 +284,11 @@ const PixPreviewRoute = PixPreviewRouteImport.update({
 const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
   id: '/politica-de-privacidade',
   path: '/politica-de-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Reserva3dsRetornoRoute = Reserva3dsRetornoRouteImport.update({
+  id: '/reserva-3ds-retorno',
+  path: '/reserva-3ds-retorno',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -1242,6 +1248,7 @@ export interface FileRoutesByFullPath {
   '/passeios': typeof PasseiosRoute
   '/pix-preview': typeof PixPreviewRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/reserva-3ds-retorno': typeof Reserva3dsRetornoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -1437,6 +1444,7 @@ export interface FileRoutesByTo {
   '/passeios': typeof PasseiosRoute
   '/pix-preview': typeof PixPreviewRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/reserva-3ds-retorno': typeof Reserva3dsRetornoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -1634,6 +1642,7 @@ export interface FileRoutesById {
   '/passeios': typeof PasseiosRoute
   '/pix-preview': typeof PixPreviewRoute
   '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/reserva-3ds-retorno': typeof Reserva3dsRetornoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos-de-uso': typeof TermosDeUsoRoute
@@ -1833,6 +1842,7 @@ export interface FileRouteTypes {
     | '/passeios'
     | '/pix-preview'
     | '/politica-de-privacidade'
+    | '/reserva-3ds-retorno'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
@@ -2028,6 +2038,7 @@ export interface FileRouteTypes {
     | '/passeios'
     | '/pix-preview'
     | '/politica-de-privacidade'
+    | '/reserva-3ds-retorno'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
@@ -2224,6 +2235,7 @@ export interface FileRouteTypes {
     | '/passeios'
     | '/pix-preview'
     | '/politica-de-privacidade'
+    | '/reserva-3ds-retorno'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos-de-uso'
@@ -2422,6 +2434,7 @@ export interface RootRouteChildren {
   PasseiosRoute: typeof PasseiosRoute
   PixPreviewRoute: typeof PixPreviewRoute
   PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
+  Reserva3dsRetornoRoute: typeof Reserva3dsRetornoRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosDeUsoRoute: typeof TermosDeUsoRoute
@@ -2621,6 +2634,13 @@ declare module '@tanstack/react-router' {
       path: '/politica-de-privacidade'
       fullPath: '/politica-de-privacidade'
       preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reserva-3ds-retorno': {
+      id: '/reserva-3ds-retorno'
+      path: '/reserva-3ds-retorno'
+      fullPath: '/reserva-3ds-retorno'
+      preLoaderRoute: typeof Reserva3dsRetornoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -4156,6 +4176,7 @@ const rootRouteChildren: RootRouteChildren = {
   PasseiosRoute: PasseiosRoute,
   PixPreviewRoute: PixPreviewRoute,
   PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
+  Reserva3dsRetornoRoute: Reserva3dsRetornoRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosDeUsoRoute: TermosDeUsoRoute,
