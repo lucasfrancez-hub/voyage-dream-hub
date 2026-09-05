@@ -73,6 +73,54 @@ async function fetchGraph(path: string, init: RequestInit & { token: string; ope
   }
 }
 
+/**
+ * Recupera a URL de um anexo de DM (áudio/foto/vídeo) pela Graph API.
+ *
+ * O eco do webhook nem sempre traz o link da mídia (típico de áudio enviado
+ * pelo app). Aqui buscamos a mensagem oficial para extrair o anexo:
+ * 1) tenta o nó da mensagem diretamente;
+ * 2) se não houver, lista as mensagens da thread e localiza pelo `messageId`.
+ */
+export async function fetchDmAttachmentUrl(params: {
+  messageId: string;
+  threadId?: string | null;
+  token: string;
+}): Promise<string | null> {
+  const extrair = (attachments: unknown): string | null => {
+    const a = (attachments as { data?: Array<Record<string, unknown>> } | undefined)?.data?.[0];
+    if (!a) return null;
+    const img = a.image_data as { url?: string } | undefined;
+    const vid = a.video_data as { url?: string } | undefined;
+    const pay = a.payload as { url?: string } | undefined;
+    return img?.url ?? vid?.url ?? (a.file_url as string | undefined) ?? pay?.url ?? (a.url as string | undefined) ?? null;
+  };
+
+  try {
+    const data = await fetchGraph(
+      `/${params.messageId}?fields=${encodeURIComponent("id,attachments")}`,
+      { token: params.token, method: "GET", operation: "fetch_dm_attachment" },
+    );
+    const url = extrair((data as Record<string, unknown>).attachments);
+    if (url) return url;
+  } catch (err) {
+    console.error("[ig-api] anexo direto da mensagem falhou:", (err as Error).message);
+  }
+
+  if (!params.threadId) return null;
+  try {
+    const data = await fetchGraph(
+      `/${params.threadId}/messages?limit=50&fields=${encodeURIComponent("id,attachments")}`,
+      { token: params.token, method: "GET", operation: "fetch_dm_attachment" },
+    );
+    const msgs = ((data as { data?: Array<{ id?: string; attachments?: unknown }> }).data ?? []);
+    const msg = msgs.find((m) => m.id === params.messageId);
+    return extrair(msg?.attachments);
+  } catch (err) {
+    console.error("[ig-api] anexo via thread falhou:", (err as Error).message);
+    return null;
+  }
+}
+
 // ============ Direct Messages ============
 
 export async function sendDirectMessage(params: {

@@ -185,10 +185,28 @@ async function processPayload(payload: IGPayload) {
           },
           { onConflict: "account_id,contact_ig_id" },
         )
-        .select("id, unread_count")
+        .select("id, unread_count, ig_thread_id")
         .single();
 
       if (convError || !conv) throw new Error(convError?.message ?? "Falha ao criar conversa");
+
+      // O eco do webhook às vezes vem sem o link da mídia (áudio enviado pelo
+      // app, por exemplo). Busca o anexo pela Graph API pra não gravar só o
+      // rótulo "[Áudio]" sem arquivo tocável.
+      if (!anexo.url && igToken && msg.message.mid && (anexo.tipo === "audio" || anexo.tipo === "image" || anexo.tipo === "video" || anexo.tipo === "file")) {
+        try {
+          const { fetchDmAttachmentUrl } = await import("@/lib/instagram/api.server");
+          const url = await fetchDmAttachmentUrl({
+            messageId: msg.message.mid,
+            threadId: (conv as { ig_thread_id?: string | null }).ig_thread_id ?? null,
+            token: igToken,
+          });
+          if (url) anexo.url = url;
+        } catch (e) {
+          console.error("[instagram] busca de anexo falhou:", (e as Error).message);
+        }
+      }
+
       const { error: messageError } = await supabaseAdmin.from("instagram_messages").upsert({
         conversation_id: conv!.id,
         ig_message_id: msg.message.mid ?? null,
