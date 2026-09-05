@@ -89,6 +89,9 @@ interface Props {
   resending?: boolean;
   /** Salvar uma figurinha recebida na coleção do time */
   onSaveSticker?: (url: string, filename: string) => void;
+  /** Apagar para todos no WhatsApp (mantém o registro aqui) */
+  onDeleteForEveryone?: () => void;
+  deleting?: boolean;
   /** Horário em que o WhatsApp confirmou a entrega */
   deliveredAt?: string | null;
   /** Horário em que o cliente leu */
