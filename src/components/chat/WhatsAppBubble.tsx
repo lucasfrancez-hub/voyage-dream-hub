@@ -262,7 +262,93 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
           isOut ? "bg-[var(--chat-bubble-out)]" : "bg-[var(--chat-bubble-in)]",
         )}
         style={{ color: bubbleFg }}
+        onContextMenu={(e) => {
+          if (deleted) return;
+          e.preventDefault();
+          setMenuAberto(true);
+        }}
+        onTouchStart={onTouchStartBubble}
+        onTouchMove={onTouchMoveBubble}
+        onTouchEnd={cancelarPress}
+        onTouchCancel={cancelarPress}
       >
+        {menuAberto && (
+          <>
+            <button
+              type="button"
+              aria-label="Fechar menu"
+              className="fixed inset-0 z-40 cursor-default"
+              onClick={() => setMenuAberto(false)}
+            />
+            <div
+              className={cn(
+                "absolute -top-2 z-50 w-max max-w-[92vw] -translate-y-full rounded-xl border border-border bg-[var(--chat-panel-raised)] p-1.5 shadow-xl",
+                isOut ? "right-0" : "left-0",
+              )}
+            >
+              {onReact && (
+                <div className="mb-1 flex items-center gap-0.5 border-b border-border pb-1">
+                  {EMOJIS_RAPIDOS.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => {
+                        setMenuAberto(false);
+                        onReact(minhaReacao === e ? "" : e);
+                      }}
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-full text-lg transition hover:scale-125",
+                        minhaReacao === e && "bg-[var(--brand-orange)]/20",
+                      )}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex flex-col">
+                {textoVisivel && (
+                  <button
+                    type="button"
+                    onClick={copiarTexto}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-black/5"
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copiar
+                  </button>
+                )}
+                {onReply && (
+                  <button
+                    type="button"
+                    onClick={() => { setMenuAberto(false); onReply(); }}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-black/5"
+                  >
+                    <CornerUpLeft className="h-3.5 w-3.5" /> Responder
+                  </button>
+                )}
+                {onForward && (
+                  <button
+                    type="button"
+                    onClick={() => { setMenuAberto(false); onForward(); }}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-black/5"
+                  >
+                    <Forward className="h-3.5 w-3.5" /> Encaminhar
+                  </button>
+                )}
+                {isOut && onDeleteForEveryone && (
+                  <button
+                    type="button"
+                    onClick={() => { setMenuAberto(false); onDeleteForEveryone(); }}
+                    disabled={deleting}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Apagar para todos
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
         {label && (
           <div
             className="mb-0.5 text-[11px] font-bold"
