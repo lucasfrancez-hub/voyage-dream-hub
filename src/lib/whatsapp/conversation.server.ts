@@ -404,7 +404,7 @@ export async function saveMessage(input: {
       .from("wa_conversations")
       .update({
         last_message_at: quando,
-        last_message_preview: input.content.slice(0, 200),
+        last_message_preview: messagePreview(input.content, input.direction).slice(0, 200),
         unread_count:
           input.direction === "inbound"
             ? // usar rpc para incremento seguro seria melhor; aqui simplificamos
