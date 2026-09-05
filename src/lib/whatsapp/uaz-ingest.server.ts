@@ -28,6 +28,26 @@ export async function ingestUazMessage(
   // (VIA AIR) — nunca pode virar o nome do contato.
   const conv = await getOrCreateConversation(msg.phone, msg.fromMe ? null : msg.senderName);
 
+  // Foto de perfil: busca uma vez por conversa (por processo) quando ainda
+  // não temos. Falhas marcam fetched_at pra não ficar tentando a cada msg.
+  if (!(conv as { profile_pic_url?: string | null }).profile_pic_url && !profilePicAttempted.has(conv.id)) {
+    profilePicAttempted.add(conv.id);
+    try {
+      const { uazFetchProfilePic } = await import("./uaz-channel.server");
+      const pic = await uazFetchProfilePic(msg.phone);
+      await supabaseAdmin
+        .from("wa_conversations")
+        .update({ profile_pic_url: pic, profile_pic_fetched_at: new Date().toISOString() })
+        .eq("id", conv.id)
+        .is("profile_pic_url", null);
+      if (pic) (conv as { profile_pic_url?: string | null }).profile_pic_url = pic;
+    } catch (err) {
+      console.error("[uaz-ingest] foto de perfil falhou:", err);
+    }
+  }
+
+
+
 
   // Mensagens que nós mesmos enviamos pelo celular entram como histórico
   // (outbound humano) — nunca acionam a IA.
