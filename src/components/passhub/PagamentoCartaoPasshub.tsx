@@ -362,19 +362,19 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
         </span>
       </div>
 
-      {/* Cartão ilustrado */}
-      <div className="p-6 pb-4">
-        <div className="relative aspect-[1.58/1] w-full overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-primary/65 p-5 shadow-xl">
+      {/* Cartão ilustrado — mais compacto */}
+      <div className="px-6 pb-3 pt-4">
+        <div className="relative w-full overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-primary/65 px-5 py-4 shadow-xl">
           <div className="relative z-10 flex items-start justify-between">
-            <div className="h-8 w-11 rounded-md border border-primary-foreground/30 bg-primary-foreground/20" />
+            <div className="h-7 w-10 rounded-md border border-primary-foreground/30 bg-primary-foreground/20" />
             <span className="text-[11px] font-bold uppercase text-primary-foreground/80">
               {bandeira || "cartão"}
             </span>
           </div>
-          <div className="relative z-10 mt-5 font-mono text-lg font-medium text-primary-foreground">
+          <div className="relative z-10 mt-3 font-mono text-lg font-medium text-primary-foreground">
             {numeroMasc || "•••• •••• •••• ••••"}
           </div>
-          <div className="relative z-10 mt-4 flex items-end justify-between text-[10px] font-bold uppercase text-primary-foreground/60">
+          <div className="relative z-10 mt-3 flex items-end justify-between text-[10px] font-bold uppercase text-primary-foreground/60">
             <span className="max-w-[65%] truncate text-xs text-primary-foreground">
               {nome || "NOME IMPRESSO"}
             </span>
@@ -384,23 +384,15 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
       </div>
 
       <div className="space-y-4 px-6 pb-6">
-        {/* Bandeiras */}
-        <div className="flex justify-between gap-2">
-          {bandeiras.map((b) => {
-            const ativa = bandeira.toLowerCase().startsWith(b.toLowerCase());
-            return (
-              <span
-                key={b}
-                className={`flex h-10 flex-1 items-center justify-center rounded-lg border text-[10px] font-bold transition ${
-                  ativa
-                     ? "border-primary/60 bg-primary/10 text-primary"
-                     : "border-border bg-background/60 text-muted-foreground"
-                }`}
-              >
-                {b}
-              </span>
-            );
-          })}
+        {/* Bandeiras — logos coloridas, cinza quando não é a do cartão */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {CARD_BRANDS.map((b) => (
+            <BrandLogo
+              key={b}
+              brand={b}
+              active={bandeira.toLowerCase().startsWith(b.toLowerCase())}
+            />
+          ))}
         </div>
 
         {etapa === "form" ? (
