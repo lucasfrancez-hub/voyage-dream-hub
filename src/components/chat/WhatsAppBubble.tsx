@@ -229,7 +229,10 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
             </span>
           )}
           {isOut && status && (
-            status === "failed" ? (
+            status === "sending" ? (
+              <Clock className="h-3 w-3 opacity-70" aria-label="Enviando" />
+            ) : status === "failed" ? (
+
               <span className="flex items-center gap-1 font-medium text-red-500">
                 <span className="flex items-center gap-0.5" title="Não entregue">
                   <AlertCircle className="h-3 w-3" /> não entregue
