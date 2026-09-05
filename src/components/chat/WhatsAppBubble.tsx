@@ -255,12 +255,12 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
               setMenuAberto(true);
             }}
             className={cn(
-              "absolute top-0.5 z-20 flex h-5 w-5 items-center justify-center rounded-full opacity-60 transition hover:opacity-100",
-              isOut ? "right-0.5" : "right-0.5",
+              "absolute -top-1.5 z-20 flex h-4 w-4 items-center justify-center rounded-full opacity-40 transition hover:opacity-100",
+              isOut ? "-right-1.5" : "-right-1.5",
             )}
             style={{ color: bubbleFg }}
           >
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronUp className="h-3 w-3" />
           </button>
         )}
         {menuAberto && (
