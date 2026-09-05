@@ -1458,6 +1458,22 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
                       }
                       resending={resendingId === m.id}
                       onSaveSticker={(url, filename) => salvarStickerMut.mutate({ url, filename })}
+                      deleting={apagarMsgMut.isPending}
+                      onDeleteForEveryone={
+                        m.direction === "outbound" && m.wa_message_id && !(m as { is_revoked?: boolean | null }).is_revoked
+                          ? () =>
+                              confirmThen(
+                                {
+                                  title: "Apagar para todos?",
+                                  description:
+                                    "A mensagem some do WhatsApp do cliente, mas continua guardada aqui marcada como apagada.",
+                                  confirmText: "Apagar para todos",
+                                  destructive: true,
+                                },
+                                () => apagarMsgMut.mutate(m.id),
+                              )
+                          : undefined
+                      }
                     />
 
                   </div>
