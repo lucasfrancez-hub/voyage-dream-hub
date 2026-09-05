@@ -29,6 +29,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
         const now = Date.now();
         const warnCutoff = new Date(now - 47 * 60 * 60 * 1000).toISOString(); // 47h sem atividade → aviso
         const closeAfterWarn = new Date(now - 60 * 60 * 1000).toISOString(); // +1h após o aviso → encerra (48h no total)
+        const closeCutoff = new Date(now - 48 * 60 * 60 * 1000).toISOString(); // nunca fecha antes de 48h da atividade real
 
 
         const warned: string[] = [];
@@ -157,7 +158,7 @@ export const Route = createFileRoute("/api/public/hooks/close-inactive-protocols
           .eq("status", "aberto")
           .not("inactivity_warned_at", "is", null)
           .lt("inactivity_warned_at", closeAfterWarn)
-          .lt("last_activity_at", closeAfterWarn)
+          .lt("last_activity_at", closeCutoff)
           .limit(50);
 
         if (closeErr) {

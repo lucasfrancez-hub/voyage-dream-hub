@@ -389,7 +389,13 @@ export async function saveMessage(input: {
   if (protocoloId) {
     await supabaseAdmin
       .from("wa_protocolos")
-      .update({ last_activity_at: new Date().toISOString() })
+      // Qualquer mensagem real reinicia integralmente o relógio de 48 horas.
+      // Sem limpar o aviso, um protocolo podia ser encerrado 1h após um aviso
+      // antigo mesmo tendo recebido mensagens novas nesse intervalo.
+      .update({
+        last_activity_at: input.created_at ?? new Date().toISOString(),
+        inactivity_warned_at: null,
+      })
       .eq("id", protocoloId);
   }
 
