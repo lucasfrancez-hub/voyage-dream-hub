@@ -309,6 +309,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
       validadeMes: val.mes,
       validadeAno: val.ano,
       cpfTitular: cpf.replace(/\D/g, "") || undefined,
+      emailTitular: email.trim() || undefined,
       parcelas: parcelaSel,
     };
     setProcessando(true);
