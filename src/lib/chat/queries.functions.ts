@@ -1113,6 +1113,27 @@ export const markConversationRead = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Renomeia o contato da conversa (nome que aparece no inbox). */
+export const renameConversation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      conversation_id: z.string().uuid(),
+      display_name: z.string().max(120).nullable(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const nome = data.display_name?.trim() || null;
+    const { error } = await context.supabase
+      .from("wa_conversations")
+      .update({ display_name: nome })
+      .eq("id", data.conversation_id);
+    if (error) throw new Error(error.message);
+    return { ok: true, display_name: nome };
+  });
+
+
+
 
 
 export const listAttendants = createServerFn({ method: "GET" })
