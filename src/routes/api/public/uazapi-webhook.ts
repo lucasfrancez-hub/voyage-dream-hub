@@ -193,6 +193,16 @@ async function processarAtualizacaoStatus(p: Record<string, unknown>) {
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+  // Loga payload bruto para depuração do formato real enviado pela UazAPI.
+  try {
+    await supabaseAdmin.from("uaz_webhook_log").insert({
+      event_type: String(p.EventType ?? p.event ?? p.type ?? "status"),
+      payload: p as never,
+    });
+  } catch {
+    /* não bloqueia */
+  }
+
   for (const bruta of brutas) {
     if (!bruta || typeof bruta !== "object") continue;
     const o = bruta as Record<string, unknown>;
@@ -208,11 +218,18 @@ async function processarAtualizacaoStatus(p: Record<string, unknown>) {
       patch.delivered_at = quando; // lida implica entregue
     }
 
+    // A UazAPI às vezes manda o id sem o prefixo "owner:" que usamos no banco.
+    // Tenta casar direto e, se não der, tenta com o prefixo do campo owner.
+    const owner = String(p.owner ?? o.owner ?? "").trim();
+    const waIds = Array.from(new Set([waId, owner ? `${owner}:${waId}` : null].filter(Boolean))) as string[];
+
     // Nunca regride o status: read > delivered > sent.
     const { data: atual } = await supabaseAdmin
       .from("wa_messages")
-      .select("delivery_status, delivered_at, read_at")
-      .eq("wa_message_id", waId)
+      .select("id, wa_message_id, delivery_status, delivered_at, read_at")
+      .in("wa_message_id", waIds)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (!atual) continue; // mensagem não é nossa (ex.: enviada por outro canal)
     const peso: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
@@ -228,8 +245,8 @@ async function processarAtualizacaoStatus(p: Record<string, unknown>) {
     const { error } = await supabaseAdmin
       .from("wa_messages")
       .update(patch as never)
-      .eq("wa_message_id", waId);
+      .eq("id", (atual as { id: string }).id);
     if (error) console.error("[uaz-webhook] falha ao registrar status:", error.message);
-    else console.log(JSON.stringify({ event: "uaz_status", wa_message_id: waId, status }));
+    else console.log(JSON.stringify({ event: "uaz_status", wa_message_id: (atual as { wa_message_id: string }).wa_message_id, status }));
   }
 }
