@@ -1539,3 +1539,94 @@ export const clearConversationHistory = createServerFn({ method: "POST" })
 
     return { ok: true, deleted: count ?? 0 };
   });
+
+/** Encaminha uma mensagem (texto, foto, áudio, documento) para outras conversas. */
+export const forwardMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({
+      message_id: z.string().uuid(),
+      conversation_ids: z.array(z.string().uuid()).min(1).max(20),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: msg, error } = await context.supabase
+      .from("wa_messages")
+      .select("id, content, message_type")
+      .eq("id", data.message_id)
+      .single();
+    if (error || !msg) throw new Error("Mensagem não encontrada");
+
+    const raw = String(msg.content ?? "");
+    const m = raw.match(/^\[\[media:(image|document|audio|video|sticker)\|([^|]+)\|([^\]]+)\]\](?:\n([\s\S]*))?$/);
+    const media = m ? { kind: m[1]!, url: m[2]!, filename: m[3]! } : null;
+    const texto = (media ? (m?.[4] ?? "") : raw)
+      .replace(/\n?🎤 \[áudio (enviado|recebido)[^\]]*\]/g, "")
+      .replace(/\n?🎤 \[áudio transcrito\][\s\S]*$/g, "")
+      .replace(/^\*[^*]+:\*\s*/, "")
+      .trim();
+    if (!media && !texto) throw new Error("Nada para encaminhar nesta mensagem");
+
+    const { data: alvos } = await context.supabase
+      .from("wa_conversations")
+      .select("id, wa_phone")
+      .in("id", data.conversation_ids);
+    if (!alvos || alvos.length === 0) throw new Error("Escolha ao menos uma conversa");
+
+    const { sendWhatsAppText, sendWhatsAppImage, sendWhatsAppDocument, sendWhatsAppAudio } =
+      await import("@/lib/whatsapp/send.server");
+    const { uazSendMediaUrl } = await import("@/lib/whatsapp/uaz-channel.server");
+    const { saveMessage } = await import("@/lib/whatsapp/conversation.server");
+
+    const { data: profile } = await context.supabase
+      .from("profiles").select("full_name").eq("id", context.userId).maybeSingle();
+    const emailLocal = typeof context.claims.email === "string"
+      ? context.claims.email.split("@")[0]?.replace(/[._-]+/g, " ") : null;
+    const senderName = profile?.full_name?.trim() || emailLocal || null;
+    const prefixo = senderName ? `*${senderName.split(/\s+/)[0]}:*` : null;
+
+    let enviados = 0;
+    const falhas: string[] = [];
+    for (const alvo of alvos) {
+      try {
+        let res: { id: string | null; error?: string };
+        if (media) {
+          const caption = texto ? (prefixo ? `${prefixo}\n${texto}` : texto) : null;
+          if (media.kind === "sticker" || media.kind === "video") {
+            res = await uazSendMediaUrl(alvo.wa_phone, media.kind, media.url, caption, media.filename);
+          } else if (media.kind === "image") {
+            res = await sendWhatsAppImage(alvo.wa_phone, media.url, caption);
+          } else if (media.kind === "audio") {
+            res = await sendWhatsAppAudio(alvo.wa_phone, media.url);
+            if (res.error || !res.id) {
+              res = await sendWhatsAppDocument(alvo.wa_phone, media.url, media.filename, caption);
+            }
+          } else {
+            res = await sendWhatsAppDocument(alvo.wa_phone, media.url, media.filename, caption);
+          }
+        } else {
+          res = await sendWhatsAppText(alvo.wa_phone, prefixo ? `${prefixo}\n${texto}` : texto, null);
+        }
+        if (res.error || !res.id) throw new Error(res.error ?? "não confirmado pelo WhatsApp");
+
+        const content = media
+          ? `[[media:${media.kind}|${media.url}|${media.filename}]]${texto ? `\n${texto}` : ""}`
+          : texto;
+        await saveMessage({
+          conversation_id: alvo.id,
+          direction: "outbound",
+          sender: "human",
+          content,
+          sender_user_id: context.userId,
+          agent_name: senderName,
+          wa_message_id: res.id,
+          message_type: media ? (media.kind === "video" ? "video" : media.kind) : "text",
+        });
+        enviados += 1;
+      } catch (err) {
+        falhas.push(err instanceof Error ? err.message : String(err));
+      }
+    }
+    if (enviados === 0) throw new Error(falhas[0] ?? "Não foi possível encaminhar");
+    return { ok: true, enviados, falhas: falhas.length };
+  });
