@@ -12,6 +12,10 @@ import type { UazNormalized } from "./uaz-channel.server";
 
 export type IngestResult = "salva" | "duplicada" | "ignorada" | "agendada";
 
+// Conversas cuja foto de perfil já foi tentada neste processo (evita
+// refazer a chamada à UazAPI a cada mensagem da mesma conversa).
+const profilePicAttempted = new Set<string>();
+
 export async function ingestUazMessage(
   msg: UazNormalized,
   opts: { historico?: boolean } = {},
