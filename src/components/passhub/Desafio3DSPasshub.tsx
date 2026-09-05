@@ -99,14 +99,14 @@ export function Desafio3DSPasshub({
         </div>
 
         {/* Tabs */}
-        <div className={challengeMounted ? "hidden" : "grid grid-cols-3 gap-1 border-b border-border bg-muted/30 p-1">
+        <div className={challengeMounted ? "hidden" : "grid grid-cols-3 gap-1 border-b border-border bg-muted/30 p-1"}>
           <Tab ativo={metodo === "app"} onClick={() => setMetodo("app")} icon={<Smartphone className="h-3.5 w-3.5" />} label="App" />
           <Tab ativo={metodo === "sms"} onClick={() => setMetodo("sms")} icon={<MessageSquare className="h-3.5 w-3.5" />} label="SMS" />
           <Tab ativo={metodo === "email"} onClick={() => setMetodo("email")} icon={<Mail className="h-3.5 w-3.5" />} label="E-mail" />
         </div>
 
         <div className="p-6">
-          {metodo === "app" ? (
+          {challengeMounted ? null : metodo === "app" ? (
             <div className="space-y-5 text-center">
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
                 <span className="text-3xl">📲</span>
@@ -186,8 +186,16 @@ export function Desafio3DSPasshub({
             </div>
           )}
 
-          {/* Container do desafio real (Evervault/Rinne) — mantido no DOM mesmo quando invisível */}
-          <div ref={challengeRef} className="sr-only" />
+          {/* Container do desafio real do banco (Evervault/Rinne) */}
+          {challengeMounted ? (
+            <p className="mb-3 text-center text-xs text-muted-foreground">
+              Confirme abaixo, na tela do seu banco.
+            </p>
+          ) : null}
+          <div
+            ref={challengeRef}
+            className={challengeMounted ? "min-h-[450px] w-full overflow-hidden rounded-2xl bg-white" : "sr-only"}
+          />
 
           {processing ? (
             <p className="mt-5 flex items-center justify-center gap-2 text-xs text-muted-foreground">
