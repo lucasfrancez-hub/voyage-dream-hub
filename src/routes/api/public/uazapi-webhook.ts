@@ -64,10 +64,15 @@ async function processarEvento(payload: unknown) {
   if (tipoEvento && !tipoEvento.includes("message") && !tipoEvento.includes("reaction")) return; // presença, conexão, etc.
 
   // Alguns payloads de ACK chegam sem EventType claro: mensagem com "status" e sem texto/mídia.
-  if (!tipoEvento && pareceAtualizacaoStatus(p)) {
+  if (pareceAtualizacaoStatus(p)) {
     await processarAtualizacaoStatus(p);
     return;
   }
+
+  // Eventos normais de mensagem nossa também trazem o ack ("SERVER_ACK",
+  // "DELIVERY_ACK", 2/3/4): aproveitamos para atualizar os risquinhos antes
+  // de seguir com a ingestão (que só deduplica).
+  await processarAtualizacaoStatus(p);
 
 
   const brutas: unknown[] = Array.isArray(p.messages)
@@ -107,6 +112,7 @@ function mapearStatus(status: unknown): "sent" | "delivered" | "read" | "failed"
   }
   const s = String(status ?? "").toUpperCase();
   if (!s) return null;
+  if (/^-?\d+$/.test(s)) return mapearStatus(Number(s));
   if (s.includes("READ") || s.includes("PLAYED") || s.includes("VIEWED")) return "read";
   if (s.includes("DELIVER")) return "delivered";
   if (s.includes("SENT") || s === "SERVER_ACK") return "sent";
