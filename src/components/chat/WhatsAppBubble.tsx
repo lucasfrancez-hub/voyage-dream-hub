@@ -135,34 +135,10 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
   const { media: mediaMsg, text: textoBruto } = parseMedia(content);
   const { visivel: textoVisivel } = separarLeituraAuto(textoBruto);
 
-  // Segurar o balão (celular) ou clique com botão direito (computador) abre o
-  // menu de ações: reagir, copiar, responder, encaminhar, apagar.
+  // Uma setinha discreta no canto do balão abre o menu de ações (reagir,
+  // copiar, responder, encaminhar, apagar). Nada de "segurar o balão": no
+  // celular isso ativava a seleção azul do sistema e escondia o menu.
   const [menuAberto, setMenuAberto] = useState(false);
-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pressPos = useRef<{ x: number; y: number } | null>(null);
-
-  const cancelarPress = () => {
-    if (pressTimer.current) clearTimeout(pressTimer.current);
-    pressTimer.current = null;
-    pressPos.current = null;
-  };
-
-  const onTouchStartBubble = (e: React.TouchEvent) => {
-    if (menuAberto || deleted) return;
-    const t = e.touches[0];
-    pressPos.current = { x: t.clientX, y: t.clientY };
-    pressTimer.current = setTimeout(() => {
-      pressTimer.current = null;
-      setMenuAberto(true);
-    }, 500);
-  };
-  const onTouchMoveBubble = (e: React.TouchEvent) => {
-    if (!pressPos.current) return;
-    const t = e.touches[0];
-    if (Math.abs(t.clientX - pressPos.current.x) > 10 || Math.abs(t.clientY - pressPos.current.y) > 10) {
-      cancelarPress();
-    }
-  };
 
   const copiarTexto = async () => {
     setMenuAberto(false);
@@ -174,6 +150,7 @@ export function WhatsAppBubble({ side, content, timestamp, senderLabel, status, 
       toast.error("Não consegui copiar");
     }
   };
+
 
   const botaoReagir = onReact && !deleted ? (
     <div className="relative">
