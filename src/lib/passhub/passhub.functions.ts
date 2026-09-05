@@ -365,6 +365,7 @@ const titularSchema = cartaoPublicoSchema.extend({
   validadeMes: z.string().regex(/^\d{1,2}$/, "Mês inválido"),
   validadeAno: z.string().regex(/^(\d{2}|\d{4})$/, "Ano inválido"),
   cpfTitular: z.string().max(14).optional(),
+  emailTitular: z.string().max(120).optional(),
   parcelas: z.number().int().min(1).max(24),
 });
 

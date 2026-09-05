@@ -91,6 +91,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
   const [nome, setNome] = useState("");
   const [validade, setValidade] = useState("");
   const [cpf, setCpf] = useState("");
+  const [email, setEmail] = useState("");
   const [etapa, setEtapa] = useState<"form" | "parcelas" | "desafio" | "fim">("form");
   const [processando, setProcessando] = useState(false);
   const [transactionId, setTransactionId] = useState("");
@@ -108,12 +109,30 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
     const montar = async () => {
       try {
         await carregarScript("https://pay.datatrans.com/upp/payment/js/secure-fields-2.0.0.js");
-        if (!vivo || !window.SecureFields) return;
+        if (!vivo) return;
+        // O script pode já estar na página mas ainda inicializando.
+        for (let i = 0; i < 40 && !window.SecureFields; i++) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        if (!vivo) return;
+        if (!window.SecureFields) throw new Error("SecureFields indisponível");
+        // Os contêineres precisam existir no DOM antes do initTokenize.
+        for (let i = 0; i < 40 && !document.getElementById("ph-sf-number"); i++) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        if (!vivo) return;
+        if (!document.getElementById("ph-sf-number")) throw new Error("Campos ausentes");
+        try {
+          sfRef.current?.destroy?.();
+        } catch {
+          /* ok */
+        }
         const sf = new window.SecureFields();
         sfRef.current = sf;
         sf.initTokenize(
           MERCHANT_SECUREFIELDS,
-          { cardNumber: "#ph-sf-number", cvv: "#ph-sf-cvv" },
+          // IDs sem "#" — é o formato aceito pelo SecureFields.
+          { cardNumber: "ph-sf-number", cvv: "ph-sf-cvv" },
           {
             debug: false,
             styles: {
@@ -123,7 +142,19 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
             paymentMethods: ["VIS", "ECA", "AMX", "DIN", "DIS", "JCB", "ELO", "HIP"],
           },
         );
-        sf.on("ready", () => vivo && setPronto(true));
+        let carregou = false;
+        sf.on("ready", () => {
+          if (!vivo) return;
+          carregou = true;
+          setErroCampos("");
+          setPronto(true);
+        });
+        // Se não ficar pronto em 8s, tenta montar de novo (igual ao checkout oficial).
+        setTimeout(() => {
+          if (!vivo || carregou) return;
+          if (tentativas++ < 3) montar();
+          else setErroCampos("Campos do cartão não carregaram. Recarregue a página.");
+        }, 8000);
         // Espelha bandeira e dígitos no cartão ilustrado (sem expor o número).
         sf.on("change", (data?: unknown) => {
           if (!vivo) return;
@@ -167,12 +198,15 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
     return m ? { mes: m[1], ano: m[2] } : null;
   };
 
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+
   const formularioCompleto =
     pronto &&
     numeroCompleto &&
     cvvCompleto &&
     nome.trim().length >= 3 &&
     validadePartes() !== null &&
+    emailValido &&
     cpf.replace(/\D/g, "").length === 11;
 
   const verParcelas = () => {
@@ -182,6 +216,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
     if (nome.trim().length < 3) return toast.error("Informe o nome impresso no cartão.");
     if (!validadePartes()) return toast.error("Validade inválida — use MM/AA.");
     if (cpf.replace(/\D/g, "").length !== 11) return toast.error("Informe o CPF completo do titular.");
+    if (!emailValido) return toast.error("Informe um e-mail válido do titular.");
     setErroCampos("");
     setProcessando(true);
 
