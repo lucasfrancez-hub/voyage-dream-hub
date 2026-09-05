@@ -29,7 +29,7 @@ export function detectBrand(number: string): CardBrand | "" {
 }
 
 // Logos "textuais" das bandeiras (aparência de badge oficial, sem uso de marca registrada).
-function BrandLogo({ brand, active }: { brand: CardBrand; active: boolean }) {
+export function BrandLogo({ brand, active }: { brand: CardBrand; active: boolean }) {
   const base = "flex h-8 w-14 items-center justify-center rounded-md text-[10px] font-black tracking-tight";
   const dim = active ? "" : "opacity-60 grayscale";
   const cls = `${base} ${dim}`;

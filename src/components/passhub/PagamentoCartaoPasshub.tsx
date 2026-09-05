@@ -15,6 +15,7 @@ import {
   passhubCartaoEmitirPublico,
   passhubCartaoParcelasPublico,
 } from "@/lib/passhub/passhub.functions";
+import { BrandLogo, CARD_BRANDS } from "@/components/CardForm";
 
 declare global {
   interface Window {
@@ -91,6 +92,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
   const [nome, setNome] = useState("");
   const [validade, setValidade] = useState("");
   const [cpf, setCpf] = useState("");
+  const [email, setEmail] = useState("");
   const [etapa, setEtapa] = useState<"form" | "parcelas" | "desafio" | "fim">("form");
   const [processando, setProcessando] = useState(false);
   const [transactionId, setTransactionId] = useState("");
@@ -108,12 +110,30 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
     const montar = async () => {
       try {
         await carregarScript("https://pay.datatrans.com/upp/payment/js/secure-fields-2.0.0.js");
-        if (!vivo || !window.SecureFields) return;
+        if (!vivo) return;
+        // O script pode já estar na página mas ainda inicializando.
+        for (let i = 0; i < 40 && !window.SecureFields; i++) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        if (!vivo) return;
+        if (!window.SecureFields) throw new Error("SecureFields indisponível");
+        // Os contêineres precisam existir no DOM antes do initTokenize.
+        for (let i = 0; i < 40 && !document.getElementById("ph-sf-number"); i++) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        if (!vivo) return;
+        if (!document.getElementById("ph-sf-number")) throw new Error("Campos ausentes");
+        try {
+          sfRef.current?.destroy?.();
+        } catch {
+          /* ok */
+        }
         const sf = new window.SecureFields();
         sfRef.current = sf;
         sf.initTokenize(
           MERCHANT_SECUREFIELDS,
-          { cardNumber: "#ph-sf-number", cvv: "#ph-sf-cvv" },
+          // IDs sem "#" — é o formato aceito pelo SecureFields.
+          { cardNumber: "ph-sf-number", cvv: "ph-sf-cvv" },
           {
             debug: false,
             styles: {
@@ -123,7 +143,19 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
             paymentMethods: ["VIS", "ECA", "AMX", "DIN", "DIS", "JCB", "ELO", "HIP"],
           },
         );
-        sf.on("ready", () => vivo && setPronto(true));
+        let carregou = false;
+        sf.on("ready", () => {
+          if (!vivo) return;
+          carregou = true;
+          setErroCampos("");
+          setPronto(true);
+        });
+        // Se não ficar pronto em 8s, tenta montar de novo (igual ao checkout oficial).
+        setTimeout(() => {
+          if (!vivo || carregou) return;
+          if (tentativas++ < 3) montar();
+          else setErroCampos("Campos do cartão não carregaram. Recarregue a página.");
+        }, 8000);
         // Espelha bandeira e dígitos no cartão ilustrado (sem expor o número).
         sf.on("change", (data?: unknown) => {
           if (!vivo) return;
@@ -167,12 +199,15 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
     return m ? { mes: m[1], ano: m[2] } : null;
   };
 
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+
   const formularioCompleto =
     pronto &&
     numeroCompleto &&
     cvvCompleto &&
     nome.trim().length >= 3 &&
     validadePartes() !== null &&
+    emailValido &&
     cpf.replace(/\D/g, "").length === 11;
 
   const verParcelas = () => {
@@ -182,6 +217,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
     if (nome.trim().length < 3) return toast.error("Informe o nome impresso no cartão.");
     if (!validadePartes()) return toast.error("Validade inválida — use MM/AA.");
     if (cpf.replace(/\D/g, "").length !== 11) return toast.error("Informe o CPF completo do titular.");
+    if (!emailValido) return toast.error("Informe um e-mail válido do titular.");
     setErroCampos("");
     setProcessando(true);
 
@@ -274,6 +310,7 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
       validadeMes: val.mes,
       validadeAno: val.ano,
       cpfTitular: cpf.replace(/\D/g, "") || undefined,
+      emailTitular: email.trim() || undefined,
       parcelas: parcelaSel,
     };
     setProcessando(true);
@@ -315,7 +352,6 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
   }
 
   const parcelaEscolhida = parcelas.find((p) => p.parcelas === parcelaSel);
-  const bandeiras = ["Visa", "Mastercard", "Amex", "Elo", "Hipercard"];
 
   return (
     <div className="w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
@@ -327,19 +363,19 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
         </span>
       </div>
 
-      {/* Cartão ilustrado */}
-      <div className="p-6 pb-4">
-        <div className="relative aspect-[1.58/1] w-full overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-primary/65 p-5 shadow-xl">
+      {/* Cartão ilustrado — mais compacto */}
+      <div className="px-6 pb-3 pt-4">
+        <div className="relative w-full overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-primary/65 px-5 py-4 shadow-xl">
           <div className="relative z-10 flex items-start justify-between">
-            <div className="h-8 w-11 rounded-md border border-primary-foreground/30 bg-primary-foreground/20" />
+            <div className="h-7 w-10 rounded-md border border-primary-foreground/30 bg-primary-foreground/20" />
             <span className="text-[11px] font-bold uppercase text-primary-foreground/80">
               {bandeira || "cartão"}
             </span>
           </div>
-          <div className="relative z-10 mt-5 font-mono text-lg font-medium text-primary-foreground">
+          <div className="relative z-10 mt-3 font-mono text-lg font-medium text-primary-foreground">
             {numeroMasc || "•••• •••• •••• ••••"}
           </div>
-          <div className="relative z-10 mt-4 flex items-end justify-between text-[10px] font-bold uppercase text-primary-foreground/60">
+          <div className="relative z-10 mt-3 flex items-end justify-between text-[10px] font-bold uppercase text-primary-foreground/60">
             <span className="max-w-[65%] truncate text-xs text-primary-foreground">
               {nome || "NOME IMPRESSO"}
             </span>
@@ -349,23 +385,15 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
       </div>
 
       <div className="space-y-4 px-6 pb-6">
-        {/* Bandeiras */}
-        <div className="flex justify-between gap-2">
-          {bandeiras.map((b) => {
-            const ativa = bandeira.toLowerCase().startsWith(b.toLowerCase());
-            return (
-              <span
-                key={b}
-                className={`flex h-10 flex-1 items-center justify-center rounded-lg border text-[10px] font-bold transition ${
-                  ativa
-                     ? "border-primary/60 bg-primary/10 text-primary"
-                     : "border-border bg-background/60 text-muted-foreground"
-                }`}
-              >
-                {b}
-              </span>
-            );
-          })}
+        {/* Bandeiras — logos coloridas, cinza quando não é a do cartão */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {CARD_BRANDS.map((b) => (
+            <BrandLogo
+              key={b}
+              brand={b}
+              active={bandeira.toLowerCase().startsWith(b.toLowerCase())}
+            />
+          ))}
         </div>
 
         {etapa === "form" ? (
@@ -425,6 +453,21 @@ export function PagamentoCartaoPasshub({ codigo }: { codigo: string }) {
                 inputMode="numeric"
                 value={cpf}
                 onChange={(e) => setCpf(e.target.value)}
+              />
+            </div>
+
+            <div className="relative">
+              <label className="absolute left-4 top-2 z-10 text-[10px] font-bold uppercase text-muted-foreground">
+                E-mail do titular
+              </label>
+              <input
+                className="h-[64px] w-full rounded-xl border border-border bg-background px-4 pb-2.5 pt-7 text-base font-medium text-foreground outline-none transition placeholder:text-muted-foreground/40 focus:border-primary focus:ring-1 focus:ring-primary/50"
+                placeholder="seu@email.com"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
