@@ -19,23 +19,33 @@ export const Route = createFileRoute("/api/public/hooks/uaz-sync-history")({
 });
 
 const LOCK_ID = "__auto_lock";
-const AUTO_INTERVALO_MS = 5 * 60_000;
+const LOCK_ID_DEEP = "__auto_lock_deep";
+// Varredura rápida (a cada 2 min) e varredura profunda (1x por hora).
+const AUTO_INTERVALO_MS = 90_000;
+const DEEP_INTERVALO_MS = 55 * 60_000;
 
 async function rodar(request: Request): Promise<Response> {
   const esperado = process.env.UAZAPI_WEBHOOK_TOKEN;
   const url = new URL(request.url);
   const recebido = url.searchParams.get("token") ?? request.headers.get("x-uaz-token") ?? "";
-  // Modo "rede de segurança": chamado pelo cron a cada poucos minutos, sem
-  // token, mas com janela fixa (últimas 12h) e trava de 5 min contra abuso.
+  // Modo "rede de segurança": chamado pelo cron sem token, com janela fixa e
+  // trava de tempo contra abuso. `deep=1` varre as últimas 12h (1x/hora).
   const auto = url.searchParams.get("auto") === "1";
+  const deep = auto && url.searchParams.get("deep") === "1";
   if (!auto && (!esperado || recebido !== esperado)) return new Response("Invalid token", { status: 401 });
 
-  const limiteChats = auto ? 200 : Math.min(Number(url.searchParams.get("chats") ?? 100) || 100, 500);
+  const limiteChats = auto
+    ? deep
+      ? 200
+      : 60
+    : Math.min(Number(url.searchParams.get("chats") ?? 100) || 100, 500);
   const soHorariosParam = !auto && url.searchParams.get("horarios") === "1";
   // No modo conserto de horários varremos bem mais fundo (histórico antigo).
   const tetoMsgs = soHorariosParam ? 3000 : 200;
   const limiteMsgs = auto
-    ? 60
+    ? deep
+      ? 60
+      : 20
     : Math.min(Number(url.searchParams.get("mensagens") ?? (soHorariosParam ? 1000 : 40)) || 40, tetoMsgs);
   // Filtros opcionais: um número específico (?phone=55...) e/ou só mensagens
   // a partir de um instante (?desde=ISO ou epoch em ms).
@@ -43,30 +53,35 @@ async function rodar(request: Request): Promise<Response> {
   const filtroPhone = auto ? "" : (url.searchParams.get("phone") ?? "").replace(/\D/g, "");
   const desdeRaw = url.searchParams.get("desde");
   const desdeMs = auto
-    ? Date.now() - 12 * 3600_000
+    ? Date.now() - (deep ? 12 * 3600_000 : 30 * 60_000)
     : desdeRaw
       ? Number(desdeRaw) || Date.parse(desdeRaw) || 0
       : 0;
+
+
 
   const { uazListChats, uazListMessages } = await import("@/lib/whatsapp/uaz-channel.server");
   const { ingestUazMessage } = await import("@/lib/whatsapp/uaz-ingest.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   if (auto) {
+    const lockId = deep ? LOCK_ID_DEEP : LOCK_ID;
+    const intervalo = deep ? DEEP_INTERVALO_MS : AUTO_INTERVALO_MS;
     const { data: lock } = await supabaseAdmin
       .from("wa_history_sync")
       .select("last_synced_at")
-      .eq("chat_id", LOCK_ID)
+      .eq("chat_id", lockId)
       .maybeSingle();
     const ultimo = lock?.last_synced_at ? new Date(lock.last_synced_at as string).getTime() : 0;
-    if (Date.now() - ultimo < AUTO_INTERVALO_MS) return Response.json({ pulado: true });
+    if (Date.now() - ultimo < intervalo) return Response.json({ pulado: true });
     await supabaseAdmin
       .from("wa_history_sync")
       .upsert(
-        { chat_id: LOCK_ID, wa_phone: LOCK_ID, imported: 0, last_synced_at: new Date().toISOString() },
+        { chat_id: lockId, wa_phone: lockId, imported: 0, last_synced_at: new Date().toISOString() },
         { onConflict: "chat_id" },
       );
   }
+
 
 
   const todos = await uazListChats(limiteChats);
