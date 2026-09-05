@@ -70,6 +70,7 @@ export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHub
 
   let bruto: unknown;
   let ultimoErro: unknown;
+  let providerUsado = candidatos[0] ?? "CVC";
   for (const provider of candidatos) {
     try {
       bruto = await passhubRequest<unknown>(`${passhubBases.nexus}/api/v1/tarifar`, {
@@ -78,6 +79,7 @@ export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHub
         // A companhia oscila: repetimos sozinhos antes de mostrar erro na tela.
         retentativas: 2,
       });
+      providerUsado = provider;
       ultimoErro = undefined;
       break;
     } catch (e) {
@@ -94,10 +96,16 @@ export async function passhubTarifarOferta(input: TarifarInput): Promise<PassHub
 
   const r = rec(bruto);
 
-
   const pricedTokens = lista(r["pricedRateTokens"]);
   const pricedToken = str(r["pricedRateToken"]);
   const pricedVolta = str(r["pricedRateTokenVolta"]);
+
+  // O mesmo fornecedor precisa ir na reserva; guardamos junto do token tarifado.
+  {
+    const { registraProvedor } = await import("./provider-registry.server");
+    for (const t of [...pricedTokens, pricedToken, pricedVolta]) registraProvedor(t, providerUsado);
+  }
+
 
   const preco = num(r["preco"] ?? r["total_price"] ?? r["priceWithTax"], input.precoEsperado);
   const precoSemTaxa = num(r["preco_sem_taxa"] ?? r["priceWithoutTax"]);
