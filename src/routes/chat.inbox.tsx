@@ -1836,7 +1836,47 @@ function ContactDetails({ conv, onChange, avatarUrl = null }: { conv: Conv; onCh
               )}
             </DialogContent>
           </Dialog>
-          <div className="truncate text-sm font-semibold text-slate-900">{conv.display_name ?? "Sem cadastro"}</div>
+          {editandoNome ? (
+            <div className="flex items-center gap-1">
+              <input
+                value={nomeDraft}
+                onChange={(e) => setNomeDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") renameMut.mutate(nomeDraft);
+                  if (e.key === "Escape") { setNomeDraft(conv.display_name ?? ""); setEditandoNome(false); }
+                }}
+                autoFocus
+                placeholder="Nome do cliente"
+                className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm focus:border-[#F26B1F]/50 focus:outline-none"
+              />
+              <button
+                onClick={() => renameMut.mutate(nomeDraft)}
+                disabled={renameMut.isPending}
+                title="Salvar nome"
+                className="flex h-7 w-7 items-center justify-center rounded-md bg-[#F26B1F] text-white disabled:opacity-50"
+              >
+                {renameMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              </button>
+              <button
+                onClick={() => { setNomeDraft(conv.display_name ?? ""); setEditandoNome(false); }}
+                title="Cancelar"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditandoNome(true)}
+              title="Editar nome do contato"
+              className="mx-auto flex max-w-full items-center gap-1 rounded-md px-1 py-0.5 hover:bg-slate-100"
+            >
+              <span className="truncate text-sm font-semibold text-slate-900">{conv.display_name ?? "Sem cadastro"}</span>
+              <Save className="h-3 w-3 shrink-0 text-slate-400" />
+            </button>
+          )}
+
           <div className="text-[11px] text-slate-500">{conv.wa_phone}</div>
 
 
