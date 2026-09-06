@@ -537,7 +537,21 @@ export const sendHumanReply = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const content = capitalizeKnownNames(capitalizeBubbles(data.content), [convFull?.display_name?.split(/\s+/)[0]]);
-    const prefix = buildSenderPrefix(senderName);
+
+    // O nome só vai no PRIMEIRO balão de cada sequência nossa: se a última
+    // mensagem da conversa já foi nossa (e do mesmo atendente), não repete.
+    const { data: ultima } = await context.supabase
+      .from("wa_messages")
+      .select("direction, sender, agent_name")
+      .eq("conversation_id", conv.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const mesmaSequencia =
+      (ultima as { direction?: string; sender?: string | null; agent_name?: string | null } | null)?.direction ===
+        "outbound" &&
+      ((ultima as { agent_name?: string | null } | null)?.agent_name ?? null) === (senderName ?? null);
+    const prefix = mesmaSequencia ? null : buildSenderPrefix(senderName);
 
     const { splitToBubbles } = await import("@/lib/whatsapp/send.server");
     const bubbles = splitToBubbles(content);
