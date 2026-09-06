@@ -43,8 +43,13 @@ export const Route = createFileRoute("/api/public/uazapi-webhook")({
 async function processarEvento(payload: unknown) {
   if (!payload || typeof payload !== "object") return;
   const p = payload as Record<string, unknown>;
+  const dataEvento = p.data && typeof p.data === "object" && !Array.isArray(p.data)
+    ? (p.data as Record<string, unknown>)
+    : null;
 
-  const tipoEvento = String(p.EventType ?? p.event ?? p.type ?? "").toLowerCase();
+  const tipoEvento = String(
+    p.EventType ?? p.event ?? p.type ?? dataEvento?.EventType ?? dataEvento?.event ?? dataEvento?.type ?? "",
+  ).toLowerCase();
 
   // Mensagem apagada para todos (revoke): mantemos o conteúdo, só marcamos.
   if (tipoEvento.includes("revoke") || tipoEvento.includes("delete")) {
@@ -56,7 +61,9 @@ async function processarEvento(payload: unknown) {
   if (tipoEvento.includes("update") || tipoEvento.includes("ack") || tipoEvento.includes("status")) {
     if (await processarRevogacao(p)) return;
     await processarAtualizacaoStatus(p);
-    return;
+    // Reações também podem chegar como `messages.update`. Só encerra aqui
+    // quando o payload é exclusivamente uma atualização de status.
+    if (pareceAtualizacaoStatus(p)) return;
   }
 
 
@@ -75,13 +82,7 @@ async function processarEvento(payload: unknown) {
   await processarAtualizacaoStatus(p);
 
 
-  const brutas: unknown[] = Array.isArray(p.messages)
-    ? (p.messages as unknown[])
-    : p.message
-      ? [p.message]
-      : Array.isArray(p.data)
-        ? (p.data as unknown[])
-        : [p];
+  const brutas = extrairItens(p);
 
   // Alguns provedores mandam o "apagar para todos" dentro do evento normal de
   // mensagem (protocolMessage / REVOKE). Tratamos antes de tentar ingerir.
@@ -93,11 +94,26 @@ async function processarEvento(payload: unknown) {
   for (const bruta of brutas) {
     const msg = normalizeUazMessage(bruta);
     if (!msg) continue;
-    const resultado = await ingestUazMessage(msg);
+    const resultado = await ingestUazMessage(msg, {
+      owner: String(p.owner ?? dataEvento?.owner ?? "").trim() || null,
+    });
     console.log(
       JSON.stringify({ event: "uaz_inbound", wa_message_id: msg.id, tipo: msg.type, resultado }),
     );
   }
+}
+
+/** A UazAPI varia entre message/messages/data e às vezes aninha data.message. */
+function extrairItens(p: Record<string, unknown>): unknown[] {
+  const direto = Array.isArray(p.messages) ? p.messages : p.message ? [p.message] : [];
+  if (direto.length) return direto;
+  if (Array.isArray(p.data)) return p.data;
+  if (p.data && typeof p.data === "object") {
+    const data = p.data as Record<string, unknown>;
+    const aninhados = extrairItens(data);
+    return aninhados.length && aninhados[0] !== data ? aninhados : [data];
+  }
+  return [p];
 }
 
 /** Mapeia o ack do WhatsApp/UazAPI para o nosso delivery_status. */
@@ -107,7 +123,7 @@ function mapearStatus(status: unknown): "sent" | "delivered" | "read" | "failed"
     if (status === 2) return "sent";
     if (status === 3) return "delivered";
     if (status === 4 || status === 5) return "read";
-    if (status < 0) return "failed";
+    if (status <= 0) return "failed";
     return null;
   }
   const s = String(status ?? "").toUpperCase();
@@ -121,13 +137,17 @@ function mapearStatus(status: unknown): "sent" | "delivered" | "read" | "failed"
 }
 
 function pareceAtualizacaoStatus(p: Record<string, unknown>): boolean {
-  const msgs = Array.isArray(p.messages) ? p.messages : p.message ? [p.message] : [];
+  const msgs = extrairItens(p);
   return msgs.some((m) => {
     if (!m || typeof m !== "object") return false;
     const o = m as Record<string, unknown>;
-    const temStatus = o.status !== undefined || o.ack !== undefined;
-    const temConteudo = o.text !== undefined || o.body !== undefined || o.mediaUrl !== undefined;
-    return temStatus && !temConteudo && (o.id ?? o.messageid ?? o.messageId) !== undefined;
+    const updateObj = o.update && typeof o.update === "object" ? (o.update as Record<string, unknown>) : null;
+    const temStatus = o.status !== undefined || o.ack !== undefined || updateObj?.status !== undefined || updateObj?.ack !== undefined;
+    const temConteudo =
+      o.text !== undefined || o.body !== undefined || o.mediaUrl !== undefined ||
+      o.reaction !== undefined || o.reactionMessage !== undefined ||
+      (o.message && typeof o.message === "object" && (o.message as Record<string, unknown>).reactionMessage !== undefined);
+    return temStatus && !temConteudo && (o.id ?? o.messageid ?? o.messageId ?? (o.key as Record<string, unknown> | undefined)?.id ?? updateObj?.id) !== undefined;
   });
 }
 
@@ -136,13 +156,7 @@ function pareceAtualizacaoStatus(p: Record<string, unknown>): boolean {
  * Devolve true quando encontrou (e tratou) alguma revogação no payload.
  */
 async function processarRevogacao(p: Record<string, unknown>): Promise<boolean> {
-  const brutas: unknown[] = Array.isArray(p.messages)
-    ? (p.messages as unknown[])
-    : p.message
-      ? [p.message]
-      : Array.isArray(p.data)
-        ? (p.data as unknown[])
-        : [p];
+  const brutas = extrairItens(p);
 
   const owner = String(p.owner ?? "").trim();
   const alvos: Array<{ waId: string; fromMe: boolean }> = [];
@@ -201,13 +215,7 @@ async function processarRevogacao(p: Record<string, unknown>): Promise<boolean> 
 
 async function processarAtualizacaoStatus(p: Record<string, unknown>) {
 
-  const brutas: unknown[] = Array.isArray(p.messages)
-    ? (p.messages as unknown[])
-    : p.message
-      ? [p.message]
-      : Array.isArray(p.data)
-        ? (p.data as unknown[])
-        : [p];
+  const brutas = extrairItens(p);
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -215,8 +223,9 @@ async function processarAtualizacaoStatus(p: Record<string, unknown>) {
     if (!bruta || typeof bruta !== "object") continue;
     const o = bruta as Record<string, unknown>;
     const keyObj = o.key && typeof o.key === "object" ? (o.key as Record<string, unknown>) : null;
-    const waId = String(o.id ?? o.messageid ?? o.messageId ?? keyObj?.id ?? "").trim();
-    const status = mapearStatus(o.status ?? o.ack ?? o.messageStatus);
+    const updateObj = o.update && typeof o.update === "object" ? (o.update as Record<string, unknown>) : null;
+    const waId = String(o.id ?? o.messageid ?? o.messageId ?? keyObj?.id ?? updateObj?.id ?? "").trim();
+    const status = mapearStatus(o.status ?? o.ack ?? o.messageStatus ?? updateObj?.status ?? updateObj?.ack);
     if (!waId || !status) continue;
 
     const quando = new Date().toISOString();
@@ -233,13 +242,27 @@ async function processarAtualizacaoStatus(p: Record<string, unknown>) {
     const waIds = Array.from(new Set([waId, owner ? `${owner}:${waId}` : null].filter(Boolean))) as string[];
 
     // Nunca regride o status: read > delivered > sent.
-    const { data: atual } = await supabaseAdmin
+    let { data: atual } = await supabaseAdmin
       .from("wa_messages")
       .select("id, wa_message_id, delivery_status, delivered_at, read_at")
       .in("wa_message_id", waIds)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    // Mesmo caso das reações: o ACK pode trazer 3EB0... e o histórico ter
+    // guardado owner:3EB0.... Faz o casamento por sufixo quando necessário.
+    const partes = waId.split(":");
+    const semPrefixo = partes[partes.length - 1] ?? waId;
+    if (!atual && semPrefixo) {
+      const fallback = await supabaseAdmin
+        .from("wa_messages")
+        .select("id, wa_message_id, delivery_status, delivered_at, read_at")
+        .like("wa_message_id", `%:${semPrefixo}`)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      atual = fallback.data;
+    }
     if (!atual) continue; // mensagem não é nossa (ex.: enviada por outro canal)
     const peso: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
     const anterior = (atual as { delivery_status?: string | null }).delivery_status ?? null;

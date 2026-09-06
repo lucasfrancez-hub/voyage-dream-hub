@@ -62,19 +62,49 @@ export async function registrarReacaoPorWaId(args: {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const bruto = args.waMessageId.trim();
   if (!bruto) return false;
-  const semPrefixo = bruto.includes(":") ? bruto.split(":").pop()! : bruto;
+  const partes = bruto.split(":");
+  const semPrefixo = partes[partes.length - 1] ?? bruto;
   const candidatos = Array.from(
     new Set([bruto, semPrefixo, args.owner ? `${args.owner}:${semPrefixo}` : null].filter(Boolean)),
   ) as string[];
 
-  const { data: row } = await supabaseAdmin
+  let { data: row } = await supabaseAdmin
     .from("wa_messages")
     .select("id, reactions")
     .in("wa_message_id", candidatos)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!row) return false;
+  // O webhook frequentemente entrega só o id final (3EB0...), enquanto as
+  // mensagens sincronizadas ficam como "owner:3EB0...". Quando o evento não
+  // traz `owner`, casa pelo sufixo para não perder a reação do cliente.
+  if (!row && semPrefixo) {
+    const fallback = await supabaseAdmin
+      .from("wa_messages")
+      .select("id, reactions")
+      .like("wa_message_id", `%:${semPrefixo}`)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    row = fallback.data;
+  }
+  if (!row) {
+    // A reação pode chegar antes de a mensagem enviada receber seu ID final.
+    // Guarda para `setWaMessageId` reaplicar assim que o envio for associado.
+    await supabaseAdmin.from("wa_webhook_events").insert({
+      webhook_field: "messages",
+      event_type: "reaction_pending",
+      meta_message_id: semPrefixo,
+      note: args.emoji || "removed",
+      payload: {
+        emoji: args.emoji,
+        from: args.from,
+        sender: args.sender ?? null,
+        at: args.at ?? new Date().toISOString(),
+      },
+    });
+    return false;
+  }
 
   const lista = aplicarNaLista(parseReacoes((row as { reactions?: unknown }).reactions), {
     emoji: args.emoji,

@@ -18,7 +18,7 @@ const profilePicAttempted = new Set<string>();
 
 export async function ingestUazMessage(
   msg: UazNormalized,
-  opts: { historico?: boolean } = {},
+  opts: { historico?: boolean; owner?: string | null } = {},
 ): Promise<IngestResult> {
   if (!msg.phone) return "ignorada"; // grupos, canais e status não entram no chatbot
 
@@ -27,6 +27,7 @@ export async function ingestUazMessage(
     const { registrarReacaoPorWaId } = await import("./reactions.server");
     const ok = await registrarReacaoPorWaId({
       waMessageId: msg.reaction.targetId,
+      owner: opts.owner ?? null,
       emoji: msg.reaction.emoji,
       from: msg.fromMe ? "business" : "customer",
       sender: msg.fromMe ? null : msg.senderName,

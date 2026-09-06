@@ -371,7 +371,7 @@ export async function saveMessage(input: {
       resumo: input.resumo ?? null,
       // Mensagem enviada com sucesso ao WhatsApp já nasce com 1 risquinho (enviada);
       // os acks da UazAPI sobem para entregue (2 risquinhos) e lida (azul).
-      ...(input.direction === "outbound" && input.wa_message_id
+      ...(input.direction === "outbound"
         ? { delivery_status: "sent", delivery_status_at: new Date().toISOString() }
         : {}),
       ...(input.created_at ? { created_at: input.created_at } : {}),
@@ -527,25 +527,59 @@ export async function setWaMessageId(rowId: string, waId: string | null): Promis
   // Status (entregue/lida) que chegaram ANTES do id ser gravado ficam
   // guardados no log do webhook — aplica agora pra não perder o risquinho.
   try {
+    const waIdPartes = waId.split(":");
+    const waIdSemPrefixo = waIdPartes[waIdPartes.length - 1] ?? waId;
     const { data: pendentes } = await supabaseAdmin
       .from("wa_webhook_events")
-      .select("id, payload")
-      .eq("event_type", "status_pending")
-      .eq("meta_message_id", waId)
-      .order("created_at", { ascending: true });
+      .select("id, event_type, payload")
+      .in("event_type", ["status_pending", "reaction_pending"])
+      .in("meta_message_id", Array.from(new Set([waId, waIdSemPrefixo])))
+      .order("received_at", { ascending: true });
     if (!pendentes?.length) return;
     const peso: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
     let melhor: Record<string, unknown> = {};
     let melhorPeso = 0;
+    const reacoesPendentes: Array<{
+      emoji: string;
+      from: "customer" | "business";
+      sender?: string | null;
+      at?: string;
+    }> = [];
     for (const ev of pendentes) {
+      if ((ev as { event_type?: string }).event_type === "reaction_pending") {
+        const reaction = (ev as { payload?: unknown }).payload;
+        if (reaction && typeof reaction === "object") {
+          const r = reaction as Record<string, unknown>;
+          reacoesPendentes.push({
+            emoji: typeof r.emoji === "string" ? r.emoji : "",
+            from: r.from === "business" ? "business" : "customer",
+            sender: typeof r.sender === "string" ? r.sender : null,
+            at: typeof r.at === "string" ? r.at : undefined,
+          });
+        }
+        continue;
+      }
       const p = (ev as { payload?: { patch?: Record<string, unknown>; status?: string } }).payload;
       if (!p?.patch) continue;
       const w = peso[p.status ?? ""] ?? 0;
-      melhor = { ...melhor, ...p.patch };
-      if (w >= melhorPeso) melhorPeso = w;
+      if (w >= melhorPeso) {
+        melhor = { ...melhor, ...p.patch };
+        melhorPeso = w;
+      }
     }
     if (Object.keys(melhor).length) {
       await supabaseAdmin.from("wa_messages").update(melhor as never).eq("id", rowId);
+    }
+    if (reacoesPendentes.length) {
+      const { data: msg } = await supabaseAdmin
+        .from("wa_messages")
+        .select("reactions")
+        .eq("id", rowId)
+        .maybeSingle();
+      const { parseReacoes, aplicarNaLista } = await import("./reactions.server");
+      let lista = parseReacoes((msg as { reactions?: unknown } | null)?.reactions);
+      for (const reaction of reacoesPendentes) lista = aplicarNaLista(lista, reaction);
+      await supabaseAdmin.from("wa_messages").update({ reactions: lista } as never).eq("id", rowId);
     }
     await supabaseAdmin
       .from("wa_webhook_events")
