@@ -231,6 +231,30 @@ async function processPayload(payload: WhatsAppPayload) {
         const profileName =
           value.contacts?.find((c) => c.wa_id === msg.from)?.profile?.name ?? null;
 
+        // --- REAÇÃO (emoji) ---
+        // Não vira balão novo: fica guardada na mensagem que recebeu a reação.
+        const reacao = (msg as { reaction?: { message_id?: string; emoji?: string } }).reaction;
+        if (msg.type === "reaction" || reacao?.message_id) {
+          const alvoId = reacao?.message_id ?? msg.context?.id ?? null;
+          if (alvoId) {
+            const { registrarReacaoPorWaId } = await import("@/lib/whatsapp/reactions.server");
+            const ok = await registrarReacaoPorWaId({
+              waMessageId: alvoId,
+              emoji: reacao?.emoji ?? "",
+              from: "customer",
+              sender: profileName,
+              at: msg.timestamp
+                ? new Date(Number(msg.timestamp) * 1000).toISOString()
+                : new Date().toISOString(),
+            });
+            console.log(
+              JSON.stringify({ event: "wa_reaction", alvo: alvoId, emoji: reacao?.emoji ?? "", ok }),
+            );
+          }
+          continue;
+        }
+
+
         // --- DELEÇÃO ("apagar para todos") ---
         // A Meta manda o evento no MESMO endpoint das mensagens, com
         // type=unsupported (+ errors[131051]). O `id` costuma ser o id da
