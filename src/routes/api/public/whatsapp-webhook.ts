@@ -181,6 +181,18 @@ async function processPayload(payload: WhatsAppPayload) {
               .select("delivery_status, delivered_at, read_at")
               .eq("wa_message_id", st.id)
               .maybeSingle();
+            if (!atual) {
+              // CORRIDA: o status chega antes do id da Meta ser gravado na linha.
+              // Guarda o evento pra ser aplicado assim que o id existir.
+              await logWebhookEvent(supabaseAdmin, {
+                event_type: "status_pending",
+                meta_message_id: st.id,
+                wa_from: st.recipient_id,
+                note: st.status,
+                payload: { patch, status: st.status } as Record<string, unknown>,
+              });
+              continue;
+            }
             const peso: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
             const anterior = (atual as { delivery_status?: string | null } | null)?.delivery_status ?? null;
             if (anterior && conhecido && st.status !== "failed" && (peso[anterior] ?? 0) > (peso[st.status] ?? 0)) {
@@ -230,6 +242,30 @@ async function processPayload(payload: WhatsAppPayload) {
       for (const msg of value.messages ?? []) {
         const profileName =
           value.contacts?.find((c) => c.wa_id === msg.from)?.profile?.name ?? null;
+
+        // --- REAÇÃO (emoji) ---
+        // Não vira balão novo: fica guardada na mensagem que recebeu a reação.
+        const reacao = (msg as { reaction?: { message_id?: string; emoji?: string } }).reaction;
+        if (msg.type === "reaction" || reacao?.message_id) {
+          const alvoId = reacao?.message_id ?? msg.context?.id ?? null;
+          if (alvoId) {
+            const { registrarReacaoPorWaId } = await import("@/lib/whatsapp/reactions.server");
+            const ok = await registrarReacaoPorWaId({
+              waMessageId: alvoId,
+              emoji: reacao?.emoji ?? "",
+              from: "customer",
+              sender: profileName,
+              at: msg.timestamp
+                ? new Date(Number(msg.timestamp) * 1000).toISOString()
+                : new Date().toISOString(),
+            });
+            console.log(
+              JSON.stringify({ event: "wa_reaction", alvo: alvoId, emoji: reacao?.emoji ?? "", ok }),
+            );
+          }
+          continue;
+        }
+
 
         // --- DELEÇÃO ("apagar para todos") ---
         // A Meta manda o evento no MESMO endpoint das mensagens, com
