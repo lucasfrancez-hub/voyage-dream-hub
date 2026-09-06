@@ -94,7 +94,9 @@ async function processarEvento(payload: unknown) {
   for (const bruta of brutas) {
     const msg = normalizeUazMessage(bruta);
     if (!msg) continue;
-    const resultado = await ingestUazMessage(msg);
+    const resultado = await ingestUazMessage(msg, {
+      owner: String(p.owner ?? dataEvento?.owner ?? "").trim() || null,
+    });
     console.log(
       JSON.stringify({ event: "uaz_inbound", wa_message_id: msg.id, tipo: msg.type, resultado }),
     );
@@ -121,7 +123,7 @@ function mapearStatus(status: unknown): "sent" | "delivered" | "read" | "failed"
     if (status === 2) return "sent";
     if (status === 3) return "delivered";
     if (status === 4 || status === 5) return "read";
-    if (status < 0) return "failed";
+    if (status <= 0) return "failed";
     return null;
   }
   const s = String(status ?? "").toUpperCase();

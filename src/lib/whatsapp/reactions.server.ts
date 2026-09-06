@@ -88,7 +88,23 @@ export async function registrarReacaoPorWaId(args: {
       .maybeSingle();
     row = fallback.data;
   }
-  if (!row) return false;
+  if (!row) {
+    // A reação pode chegar antes de a mensagem enviada receber seu ID final.
+    // Guarda para `setWaMessageId` reaplicar assim que o envio for associado.
+    await supabaseAdmin.from("wa_webhook_events").insert({
+      webhook_field: "messages",
+      event_type: "reaction_pending",
+      meta_message_id: semPrefixo,
+      note: args.emoji || "removed",
+      payload: {
+        emoji: args.emoji,
+        from: args.from,
+        sender: args.sender ?? null,
+        at: args.at ?? new Date().toISOString(),
+      },
+    });
+    return false;
+  }
 
   const lista = aplicarNaLista(parseReacoes((row as { reactions?: unknown }).reactions), {
     emoji: args.emoji,

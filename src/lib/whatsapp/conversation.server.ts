@@ -529,23 +529,55 @@ export async function setWaMessageId(rowId: string, waId: string | null): Promis
   try {
     const { data: pendentes } = await supabaseAdmin
       .from("wa_webhook_events")
-      .select("id, payload")
-      .eq("event_type", "status_pending")
+      .select("id, event_type, payload")
+      .in("event_type", ["status_pending", "reaction_pending"])
       .eq("meta_message_id", waId)
-      .order("created_at", { ascending: true });
+      .order("received_at", { ascending: true });
     if (!pendentes?.length) return;
     const peso: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
     let melhor: Record<string, unknown> = {};
     let melhorPeso = 0;
+    const reacoesPendentes: Array<{
+      emoji: string;
+      from: "customer" | "business";
+      sender?: string | null;
+      at?: string;
+    }> = [];
     for (const ev of pendentes) {
+      if ((ev as { event_type?: string }).event_type === "reaction_pending") {
+        const reaction = (ev as { payload?: unknown }).payload;
+        if (reaction && typeof reaction === "object") {
+          const r = reaction as Record<string, unknown>;
+          reacoesPendentes.push({
+            emoji: typeof r.emoji === "string" ? r.emoji : "",
+            from: r.from === "business" ? "business" : "customer",
+            sender: typeof r.sender === "string" ? r.sender : null,
+            at: typeof r.at === "string" ? r.at : undefined,
+          });
+        }
+        continue;
+      }
       const p = (ev as { payload?: { patch?: Record<string, unknown>; status?: string } }).payload;
       if (!p?.patch) continue;
       const w = peso[p.status ?? ""] ?? 0;
-      melhor = { ...melhor, ...p.patch };
-      if (w >= melhorPeso) melhorPeso = w;
+      if (w >= melhorPeso) {
+        melhor = { ...melhor, ...p.patch };
+        melhorPeso = w;
+      }
     }
     if (Object.keys(melhor).length) {
       await supabaseAdmin.from("wa_messages").update(melhor as never).eq("id", rowId);
+    }
+    if (reacoesPendentes.length) {
+      const { data: msg } = await supabaseAdmin
+        .from("wa_messages")
+        .select("reactions")
+        .eq("id", rowId)
+        .maybeSingle();
+      const { parseReacoes, aplicarNaLista } = await import("./reactions.server");
+      let lista = parseReacoes((msg as { reactions?: unknown } | null)?.reactions);
+      for (const reaction of reacoesPendentes) lista = aplicarNaLista(lista, reaction);
+      await supabaseAdmin.from("wa_messages").update({ reactions: lista } as never).eq("id", rowId);
     }
     await supabaseAdmin
       .from("wa_webhook_events")
