@@ -527,11 +527,13 @@ export async function setWaMessageId(rowId: string, waId: string | null): Promis
   // Status (entregue/lida) que chegaram ANTES do id ser gravado ficam
   // guardados no log do webhook — aplica agora pra não perder o risquinho.
   try {
+    const waIdPartes = waId.split(":");
+    const waIdSemPrefixo = waIdPartes[waIdPartes.length - 1] ?? waId;
     const { data: pendentes } = await supabaseAdmin
       .from("wa_webhook_events")
       .select("id, event_type, payload")
       .in("event_type", ["status_pending", "reaction_pending"])
-      .eq("meta_message_id", waId)
+      .in("meta_message_id", Array.from(new Set([waId, waIdSemPrefixo])))
       .order("received_at", { ascending: true });
     if (!pendentes?.length) return;
     const peso: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
