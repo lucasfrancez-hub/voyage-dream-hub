@@ -523,6 +523,37 @@ export async function setWaMessageId(rowId: string, waId: string | null): Promis
     .update({ wa_message_id: waId })
     .eq("id", rowId);
   if (error) console.error("[wa/setWaMessageId]", error.message);
+
+  // Status (entregue/lida) que chegaram ANTES do id ser gravado ficam
+  // guardados no log do webhook — aplica agora pra não perder o risquinho.
+  try {
+    const { data: pendentes } = await supabaseAdmin
+      .from("wa_webhook_events")
+      .select("id, payload")
+      .eq("event_type", "status_pending")
+      .eq("meta_message_id", waId)
+      .order("created_at", { ascending: true });
+    if (!pendentes?.length) return;
+    const peso: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
+    let melhor: Record<string, unknown> = {};
+    let melhorPeso = 0;
+    for (const ev of pendentes) {
+      const p = (ev as { payload?: { patch?: Record<string, unknown>; status?: string } }).payload;
+      if (!p?.patch) continue;
+      const w = peso[p.status ?? ""] ?? 0;
+      melhor = { ...melhor, ...p.patch };
+      if (w >= melhorPeso) melhorPeso = w;
+    }
+    if (Object.keys(melhor).length) {
+      await supabaseAdmin.from("wa_messages").update(melhor as never).eq("id", rowId);
+    }
+    await supabaseAdmin
+      .from("wa_webhook_events")
+      .delete()
+      .in("id", pendentes.map((e) => (e as { id: string }).id));
+  } catch (e) {
+    console.error("[wa/setWaMessageId] status pendente falhou:", e);
+  }
 }
 
 /**
