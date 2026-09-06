@@ -43,8 +43,13 @@ export const Route = createFileRoute("/api/public/uazapi-webhook")({
 async function processarEvento(payload: unknown) {
   if (!payload || typeof payload !== "object") return;
   const p = payload as Record<string, unknown>;
+  const dataEvento = p.data && typeof p.data === "object" && !Array.isArray(p.data)
+    ? (p.data as Record<string, unknown>)
+    : null;
 
-  const tipoEvento = String(p.EventType ?? p.event ?? p.type ?? "").toLowerCase();
+  const tipoEvento = String(
+    p.EventType ?? p.event ?? p.type ?? dataEvento?.EventType ?? dataEvento?.event ?? dataEvento?.type ?? "",
+  ).toLowerCase();
 
   // Mensagem apagada para todos (revoke): mantemos o conteúdo, só marcamos.
   if (tipoEvento.includes("revoke") || tipoEvento.includes("delete")) {
@@ -56,7 +61,9 @@ async function processarEvento(payload: unknown) {
   if (tipoEvento.includes("update") || tipoEvento.includes("ack") || tipoEvento.includes("status")) {
     if (await processarRevogacao(p)) return;
     await processarAtualizacaoStatus(p);
-    return;
+    // Reações também podem chegar como `messages.update`. Só encerra aqui
+    // quando o payload é exclusivamente uma atualização de status.
+    if (pareceAtualizacaoStatus(p)) return;
   }
 
 
@@ -75,13 +82,7 @@ async function processarEvento(payload: unknown) {
   await processarAtualizacaoStatus(p);
 
 
-  const brutas: unknown[] = Array.isArray(p.messages)
-    ? (p.messages as unknown[])
-    : p.message
-      ? [p.message]
-      : Array.isArray(p.data)
-        ? (p.data as unknown[])
-        : [p];
+  const brutas = extrairItens(p);
 
   // Alguns provedores mandam o "apagar para todos" dentro do evento normal de
   // mensagem (protocolMessage / REVOKE). Tratamos antes de tentar ingerir.
@@ -138,9 +139,13 @@ function pareceAtualizacaoStatus(p: Record<string, unknown>): boolean {
   return msgs.some((m) => {
     if (!m || typeof m !== "object") return false;
     const o = m as Record<string, unknown>;
-    const temStatus = o.status !== undefined || o.ack !== undefined;
-    const temConteudo = o.text !== undefined || o.body !== undefined || o.mediaUrl !== undefined;
-    return temStatus && !temConteudo && (o.id ?? o.messageid ?? o.messageId) !== undefined;
+    const updateObj = o.update && typeof o.update === "object" ? (o.update as Record<string, unknown>) : null;
+    const temStatus = o.status !== undefined || o.ack !== undefined || updateObj?.status !== undefined || updateObj?.ack !== undefined;
+    const temConteudo =
+      o.text !== undefined || o.body !== undefined || o.mediaUrl !== undefined ||
+      o.reaction !== undefined || o.reactionMessage !== undefined ||
+      (o.message && typeof o.message === "object" && (o.message as Record<string, unknown>).reactionMessage !== undefined);
+    return temStatus && !temConteudo && (o.id ?? o.messageid ?? o.messageId ?? (o.key as Record<string, unknown> | undefined)?.id ?? updateObj?.id) !== undefined;
   });
 }
 
