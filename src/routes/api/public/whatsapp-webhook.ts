@@ -181,6 +181,18 @@ async function processPayload(payload: WhatsAppPayload) {
               .select("delivery_status, delivered_at, read_at")
               .eq("wa_message_id", st.id)
               .maybeSingle();
+            if (!atual) {
+              // CORRIDA: o status chega antes do id da Meta ser gravado na linha.
+              // Guarda o evento pra ser aplicado assim que o id existir.
+              await logWebhookEvent(supabaseAdmin, {
+                event_type: "status_pending",
+                meta_message_id: st.id,
+                wa_from: st.recipient_id,
+                note: st.status,
+                payload: { patch, status: st.status } as Record<string, unknown>,
+              });
+              continue;
+            }
             const peso: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
             const anterior = (atual as { delivery_status?: string | null } | null)?.delivery_status ?? null;
             if (anterior && conhecido && st.status !== "failed" && (peso[anterior] ?? 0) > (peso[st.status] ?? 0)) {
