@@ -38,7 +38,8 @@ export type EtapaResultado = {
   titulo: string;
   ok: boolean;
   detalhe: string;
-  dados?: unknown;
+  /** Dados brutos da etapa, já em texto (JSON) para viajar com segurança. */
+  dados: string | null;
 };
 
 export type FormaPagamentoOner = {
@@ -63,7 +64,13 @@ function etapa(
   dados?: unknown,
 ): EtapaResultado {
   const titulo = ONER_FLOW_STEPS.find((e) => e.chave === chave)?.titulo ?? chave;
-  return { chave, titulo, ok, detalhe, ...(dados === undefined ? {} : { dados }) };
+  return {
+    chave,
+    titulo,
+    ok,
+    detalhe,
+    dados: dados === undefined ? null : JSON.stringify(dados, null, 2),
+  };
 }
 
 export function urlPagamentoOner(cartId: string): string {
