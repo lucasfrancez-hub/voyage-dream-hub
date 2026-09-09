@@ -236,6 +236,7 @@ export function PagamentoCartaoPasshub({ codigo, valorTotal = 0 }: { codigo: str
 
   const verParcelas = () => {
     if (!sfRef.current || !pronto) return;
+    if (processando) return; // já existe uma validação em andamento
     if (!numeroCompleto) return toast.error("Preencha o número completo do cartão.");
     if (!cvvCompleto) return toast.error("Preencha o CVV do cartão.");
     if (nome.trim().length < 3) return toast.error("Informe o nome impresso no cartão.");
@@ -268,13 +269,18 @@ export function PagamentoCartaoPasshub({ codigo, valorTotal = 0 }: { codigo: str
       setParcelaSel(1);
       setEtapa("parcelas");
     };
-    sf.on("success", onSucesso);
-    sf.on("error", () => {
-      setProcessando(false);
-      toast.error("Cartão recusado na validação. Confira número e CVV.");
-    });
+
+    // Substitui a ação pendente em vez de acumular avisos a cada clique.
+    aposValidacaoRef.current = {
+      sucesso: onSucesso,
+      erro: () => {
+        setProcessando(false);
+        toast.error("Cartão recusado na validação. Confira número e CVV.");
+      },
+    };
     sf.submit();
   };
+
 
   const emitir = async (dados: {
     transactionId: string;
