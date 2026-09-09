@@ -121,7 +121,7 @@ export async function consultarParcelas(
   total: number,
   paymentMethodId: number = ONER_PAYMENT_METHOD.CreditCard,
 ): Promise<{ call: OnerCall; opcoes: OnerInstallmentOption[] }> {
-  const url = `${ONER_API}/booking/installments/${cartId}?total=${total}&paymentMethodId=${paymentMethodId}`;
+  const url = `${ONER_API}/api/booking/installments/${cartId}?total=${total}&paymentMethodId=${paymentMethodId}`;
   const r = await onerFetch<OnerInstallmentOption[]>(url, { token });
   return { call: r.call, opcoes: Array.isArray(r.body) ? r.body : [] };
 }
@@ -135,7 +135,7 @@ export async function consultarParcelasDoCartao(
   cartId: string,
   entrada: { totalValue: number; vaultToken: string; vaultKey: string; multiplosCartoes: boolean },
 ): Promise<{ call: OnerCall; opcoes: OnerInstallmentOption[] }> {
-  const url = `${ONER_API}/booking/installments/${cartId}`;
+  const url = `${ONER_API}/api/booking/installments/${cartId}`;
   const r = await onerFetch<OnerInstallmentOption[]>(url, {
     token,
     method: "POST",
@@ -204,7 +204,7 @@ export async function pagarComCartoes(
   token: string,
   entrada: PagamentoCartaoEntrada,
 ): Promise<{ call: OnerCall; compra: OnerPurchaseResult | null; raw: string }> {
-  const url = `${ONER_API}/booking/payNotification`;
+  const url = `${ONER_API}/api/booking/payNotification`;
   const r = await onerFetch<{ purchase?: OnerPurchaseResult } & OnerPurchaseResult>(url, {
     token,
     method: "POST",
@@ -220,7 +220,7 @@ export async function pagarPixMaisCartoes(
   token: string,
   entrada: PagamentoCartaoEntrada & { valorPix: number },
 ): Promise<{ call: OnerCall; compra: OnerPurchaseResult | null; raw: string }> {
-  const url = `${ONER_API}/booking/pay/combined/retention/credit-card`;
+  const url = `${ONER_API}/api/booking/pay/combined/retention/credit-card`;
   const r = await onerFetch<{ purchase?: OnerPurchaseResult } & OnerPurchaseResult>(url, {
     token,
     method: "POST",
@@ -233,6 +233,6 @@ export async function pagarPixMaisCartoes(
 
 /** Cancela um pagamento pendente do carrinho. */
 export async function cancelarPagamento(token: string, cartId: string) {
-  const r = await onerFetch(`${ONER_API}/booking/pay/cancel/${cartId}`, { token, method: "PUT" });
+  const r = await onerFetch(`${ONER_API}/api/booking/pay/cancel/${cartId}`, { token, method: "PUT" });
   return r.call;
 }
