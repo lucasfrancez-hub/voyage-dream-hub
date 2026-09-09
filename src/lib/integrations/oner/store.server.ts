@@ -6,8 +6,18 @@
 import {
   ONER_PROVIDER,
   proximoIntervaloSegundos,
+  type OnerPaymentMethod,
+  type OnerPixStep,
   type OnerState,
 } from "./config";
+
+/** Marca de uma etapa da lista de conferência do Pix manual. */
+export type MarcaEtapaManual = {
+  feito: boolean;
+  em?: string | null;
+  por?: string | null;
+  observacao?: string | null;
+};
 
 export type IntegrationOrder = {
   id: string;
@@ -25,6 +35,13 @@ export type IntegrationOrder = {
   amount: number | null;
   amount_provider: number | null;
   currency: string;
+  payment_method: OnerPaymentMethod;
+  commission_amount: number | null;
+  provider_net_amount: number | null;
+  search_reference: Record<string, unknown>;
+  manual_checklist: Partial<Record<OnerPixStep, MarcaEtapaManual>>;
+  manual_notes: string | null;
+  manual_owner_user_id: string | null;
   customer_name: string | null;
   customer_email: string | null;
   customer_payment_id: string | null;
@@ -46,6 +63,7 @@ export type IntegrationOrder = {
   created_at: string;
   updated_at: string;
 };
+
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
