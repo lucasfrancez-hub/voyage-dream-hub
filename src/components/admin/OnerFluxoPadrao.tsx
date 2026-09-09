@@ -1,7 +1,8 @@
 /**
  * Fluxo padrão da Comprar Viagem, sempre na mesma ordem:
- * carrinho do nosso portal → login com código do e-mail → dados do passageiro
- * → tela de pagamento. Nada é pulado, para não dar erro no meio do caminho.
+ * carrinho do nosso portal → ir para o pagamento (é aí que entra o código do
+ * e-mail) → dados do passageiro → tela de pagamento. Nada é pulado.
+
  */
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
