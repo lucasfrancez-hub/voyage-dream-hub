@@ -139,7 +139,11 @@ function PainelOner() {
         </div>
       </section>
 
+      {/* Pix manual */}
+      <OnerPixManual />
+
       {/* Operações */}
+
       <section className="rounded-2xl border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border p-4">
           <h2 className="text-sm font-bold">Compras em andamento</h2>
