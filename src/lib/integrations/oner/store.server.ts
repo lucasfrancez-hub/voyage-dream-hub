@@ -98,8 +98,17 @@ export async function criarOperacao(input: {
   customerName?: string | null;
   customerEmail?: string | null;
   cartId?: string | null;
+  /** CARD segue automático; PIX nasce como tarefa manual da equipe. */
+  paymentMethod?: OnerPaymentMethod;
+  /** Comissão original da oferta. Nunca é zerada em cartão. */
+  commissionAmount?: number | null;
+  /** IDs/referências da busca original, para a equipe refazer a oferta. */
+  searchReference?: Record<string, unknown>;
+  state?: OnerState;
 }): Promise<IntegrationOrder> {
   const db = await admin();
+  const metodo: OnerPaymentMethod = input.paymentMethod ?? "CARD";
+  const estado: OnerState = input.state ?? (metodo === "PIX" ? "PIX_MANUAL_PREPARATION" : "CART_CREATED");
   const { data, error } = await db
     .from("integration_orders")
     .insert({
@@ -112,7 +121,10 @@ export async function criarOperacao(input: {
       currency: input.currency ?? "BRL",
       customer_name: input.customerName ?? null,
       customer_email: input.customerEmail ?? null,
-      state: "CART_CREATED",
+      payment_method: metodo,
+      commission_amount: input.commissionAmount ?? null,
+      search_reference: (input.searchReference ?? {}) as never,
+      state: estado,
     } as never)
     .select("*")
     .single();
@@ -120,12 +132,47 @@ export async function criarOperacao(input: {
   const row = data as unknown as IntegrationOrder;
   await registrarEvento({
     integrationOrderId: row.id,
-    eventType: "cart_created",
-    state: "CART_CREATED",
-    message: "Oferta guardada no carrinho VIA AIR",
+    eventType: metodo === "PIX" ? "pix_manual_created" : "cart_created",
+    state: estado,
+    message:
+      metodo === "PIX"
+        ? "Reserva Pix registrada — aguardando preparação manual na Comprar Viagem"
+        : "Oferta guardada no carrinho VIA AIR",
   });
   return row;
 }
+
+/**
+ * Marca (ou desmarca) uma etapa da lista de conferência do Pix manual,
+ * guardando quem fez e quando. O histórico registra cada mudança.
+ */
+export async function marcarEtapaManual(
+  id: string,
+  etapa: OnerPixStep,
+  feito: boolean,
+  autor?: string | null,
+  observacao?: string | null,
+): Promise<IntegrationOrder | null> {
+  const op = await buscarOperacao(id);
+  if (!op) return null;
+  const lista = { ...(op.manual_checklist ?? {}) };
+  lista[etapa] = {
+    feito,
+    em: feito ? new Date().toISOString() : null,
+    por: feito ? (autor ?? null) : null,
+    observacao: observacao ?? null,
+  };
+  return atualizarOperacao(
+    id,
+    { manual_checklist: lista },
+    {
+      eventType: "pix_manual_step",
+      message: `${etapa} → ${feito ? "concluído" : "reaberto"}`,
+      payload: { etapa, feito },
+    },
+  );
+}
+
 
 export async function buscarOperacao(id: string): Promise<IntegrationOrder | null> {
   const db = await admin();
