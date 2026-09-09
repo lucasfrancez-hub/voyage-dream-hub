@@ -34,7 +34,7 @@ export function OnerPixManual() {
 
   const tarefas = useQuery({
     queryKey: ["oner", "pix"],
-    queryFn: () => listar({}),
+    queryFn: (): Promise<TarefaPixResumo[]> => listar({}) as Promise<TarefaPixResumo[]>,
     refetchInterval: 30_000,
   });
 
@@ -159,13 +159,13 @@ export function OnerPixManual() {
                     <div>
                       <h3 className="text-xs font-bold uppercase text-muted-foreground">Oferta original</h3>
                       <pre className="mt-1 max-h-52 overflow-auto rounded-lg bg-background p-2 text-[11px]">
-                        {JSON.stringify(t.oferta, null, 2)}
+                        {t.oferta}
                       </pre>
                     </div>
                     <div>
                       <h3 className="text-xs font-bold uppercase text-muted-foreground">Referências da busca</h3>
                       <pre className="mt-1 max-h-52 overflow-auto rounded-lg bg-background p-2 text-[11px]">
-                        {JSON.stringify(t.busca, null, 2)}
+                        {t.busca}
                       </pre>
                     </div>
                   </div>

@@ -153,8 +153,8 @@ export type TarefaPixResumo = {
   estado: string;
   etapa: string;
   pendente: boolean;
-  oferta: Record<string, unknown>;
-  busca: Record<string, unknown>;
+  oferta: string;
+  busca: string;
   etapas: Array<{ chave: string; titulo: string; feito: boolean; em: string | null }>;
   passageiros: Array<{ nome: string; tipo: string; documento: string | null; nascimento: string | null }>;
 };
@@ -188,8 +188,8 @@ export const onerListarTarefasPix = createServerFn({ method: "GET" })
         estado: t.state,
         etapa: ONER_STATE_LABEL[t.state] ?? t.state,
         pendente: t.state === "PIX_MANUAL_PREPARATION",
-        oferta: t.offer_payload ?? {},
-        busca: t.search_reference ?? {},
+        oferta: JSON.stringify(t.offer_payload ?? {}, null, 2),
+        busca: JSON.stringify(t.search_reference ?? {}, null, 2),
         etapas: ONER_PIX_STEPS.map((chave) => ({
           chave,
           titulo: ONER_PIX_STEP_LABEL[chave],
