@@ -214,13 +214,18 @@ async function tentarLerGmail(pedido: OtpRequest): Promise<boolean> {
     const achado = escolherMensagem(mensagens, provedor, desde, new Set());
     if (!achado) return false;
     const r = await registrarCodigoRecebido({
-      remetente: achado.mensagem.remetenteOriginal || achado.mensagem.remetente,
+      // Na caixa de encaminhamento o remetente visível é o nosso e-mail;
+      // levamos os dois para conferir a origem verdadeira.
+      remetente: [achado.mensagem.remetente, achado.mensagem.remetenteOriginal]
+        .filter(Boolean)
+        .join(" "),
       assunto: achado.mensagem.assunto,
       corpo: achado.mensagem.corpo,
       recebidoEm: new Date(achado.mensagem.recebidoEm).toISOString(),
       messageId: `gmail:${achado.mensagem.id}`,
       origem: "gmail",
     });
+
     return r.ok;
   } catch {
     return false; // caixa indisponível não derruba a espera
