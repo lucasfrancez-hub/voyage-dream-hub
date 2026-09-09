@@ -34,6 +34,7 @@ import {
   onerSalvarNotas,
   type IntegracaoOnerDoPedido,
 } from "@/lib/integrations/oner/order.functions";
+import { rotuloTitularCartaoOner } from "@/lib/integrations/oner/config";
 
 const brl = (v: number | null | undefined) =>
   v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
