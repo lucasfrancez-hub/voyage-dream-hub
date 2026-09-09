@@ -198,29 +198,34 @@ export async function executarFluxoOner(entrada: EntradaFluxo): Promise<Resultad
   }
   etapas.push(etapa("carrinho_link", true, `Carrinho ${cartId}`, { cartId, site: ONER_SITE }));
 
-  // 2 — sessão: login com código do e-mail
-  const token = entrada.semNovoLogin
-    ? await tokenAtual()
-    : await obterToken({
-        integrationOrderId: entrada.integrationOrderId ?? null,
-        ...(entrada.esperarCodigoMs === undefined ? {} : { esperarCodigoMs: entrada.esperarCodigoMs }),
-      });
-  if (!token) {
-    etapas.push(
-      etapa(
-        "sessao",
-        false,
-        entrada.semNovoLogin
-          ? "Não há sessão ativa. Peça o código de acesso para entrar."
-          : "O código do e-mail não chegou a tempo.",
-      ),
-    );
-    return parar("sessao", cartId);
-  }
-  etapas.push(etapa("sessao", true, "Conta operacional conectada"));
+  // 2 — conferência do carrinho (sem pedir código ainda)
+  const sessaoExistente = await tokenAtual();
+  let carrinho = await lerCarrinho(cartId, sessaoExistente ?? "", entrada.integrationOrderId ?? undefined);
 
-  // 3 — conferência do carrinho
-  const carrinho = await lerCarrinho(cartId, token, entrada.integrationOrderId ?? undefined);
+  // 3 — ir para o pagamento: é aqui que o fornecedor pede o código do e-mail
+  let token = sessaoExistente;
+  if (!token || !carrinho.call.ok) {
+    token = entrada.semNovoLogin
+      ? await tokenAtual()
+      : await obterToken({
+          integrationOrderId: entrada.integrationOrderId ?? null,
+          ...(entrada.esperarCodigoMs === undefined ? {} : { esperarCodigoMs: entrada.esperarCodigoMs }),
+        });
+    if (!token) {
+      etapas.push(
+        etapa(
+          "sessao",
+          false,
+          entrada.semNovoLogin
+            ? "Não há sessão ativa. Peça o código de acesso para seguir ao pagamento."
+            : "O código do e-mail não chegou a tempo.",
+        ),
+      );
+      return parar("sessao", cartId);
+    }
+    carrinho = await lerCarrinho(cartId, token, entrada.integrationOrderId ?? undefined);
+  }
+
   const resumo = carrinho.resumo;
   if (!carrinho.call.ok || !resumo) {
     etapas.push(etapa("carrinho", false, `Não consegui ler o carrinho (${carrinho.call.status}).`));
@@ -237,6 +242,8 @@ export async function executarFluxoOner(entrada: EntradaFluxo): Promise<Resultad
   etapas.push(
     etapa("carrinho", true, `Carrinho válido — total ${resumo.total} ${resumo.moeda ?? "BRL"}`, resumo),
   );
+  etapas.push(etapa("sessao", true, "Pagamento liberado com a conta operacional"));
+
 
   // 4 — passageiros (primeira etapa do checkout)
   if (entrada.passageiros?.length) {
