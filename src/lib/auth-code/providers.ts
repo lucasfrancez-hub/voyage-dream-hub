@@ -102,6 +102,15 @@ export const PROVEDORES_CODIGO: ProvedorCodigo[] = [
     tamanhos: [6],
   },
   {
+    id: "oner",
+    nome: "Comprar Viagem / Oner",
+    // Login sempre com lucas@voeair.com; o código chega no encaminhamento.
+    dominios: ["comprarviagem.com.br", "onertravel.com", "oner.com.br"],
+    pistas: ["comprar viagem", "comprarviagem", "oner"],
+    assuntos: ["codigo de acesso", "codigo de verificacao", "codigo"],
+    tamanhos: [6],
+  },
+  {
     id: "oba",
     nome: "Oba Viagens (Safeguard)",
     // O Safeguard é app próprio no celular/emulador; o código chega pelo
