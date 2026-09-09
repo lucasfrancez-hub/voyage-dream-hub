@@ -5374,6 +5374,7 @@ export type Database = {
           amount_provider: number | null
           attempts: number
           commission_amount: number | null
+          commission_final: number | null
           created_at: string
           currency: string
           customer_email: string | null
@@ -5381,6 +5382,8 @@ export type Database = {
           customer_payment_id: string | null
           customer_payment_status: string | null
           customer_payment_txid: string | null
+          customer_total: number | null
+          fulfillment_cart_id: string | null
           hotel_locator: string | null
           id: string
           last_error: string | null
@@ -5391,6 +5394,7 @@ export type Database = {
           manual_owner_user_id: string | null
           next_poll_at: string | null
           offer_payload: Json
+          original_cart_id: string | null
           payment_method: string
           poll_count: number
           product_kind: string | null
@@ -5399,9 +5403,14 @@ export type Database = {
           provider_cart_id: string | null
           provider_net_amount: number | null
           provider_order_number: string | null
+          provider_original_total: number | null
+          provider_payment_authorized_at: string | null
+          provider_payment_authorized_by: string | null
           provider_payment_id: string | null
+          provider_payment_reference: string | null
           provider_payment_status: string | null
           provider_pix_brcode: string | null
+          provider_pix_expires_at: string | null
           provider_pix_idempotency_key: string | null
           provider_pix_payload: Json | null
           provider_sale_id: string | null
@@ -5411,6 +5420,7 @@ export type Database = {
           state: string
           state_detail: string | null
           updated_at: string
+          viaair_margin: number | null
           viaair_order_id: string | null
         }
         Insert: {
@@ -5418,6 +5428,7 @@ export type Database = {
           amount_provider?: number | null
           attempts?: number
           commission_amount?: number | null
+          commission_final?: number | null
           created_at?: string
           currency?: string
           customer_email?: string | null
@@ -5425,6 +5436,8 @@ export type Database = {
           customer_payment_id?: string | null
           customer_payment_status?: string | null
           customer_payment_txid?: string | null
+          customer_total?: number | null
+          fulfillment_cart_id?: string | null
           hotel_locator?: string | null
           id?: string
           last_error?: string | null
@@ -5435,6 +5448,7 @@ export type Database = {
           manual_owner_user_id?: string | null
           next_poll_at?: string | null
           offer_payload?: Json
+          original_cart_id?: string | null
           payment_method?: string
           poll_count?: number
           product_kind?: string | null
@@ -5443,9 +5457,14 @@ export type Database = {
           provider_cart_id?: string | null
           provider_net_amount?: number | null
           provider_order_number?: string | null
+          provider_original_total?: number | null
+          provider_payment_authorized_at?: string | null
+          provider_payment_authorized_by?: string | null
           provider_payment_id?: string | null
+          provider_payment_reference?: string | null
           provider_payment_status?: string | null
           provider_pix_brcode?: string | null
+          provider_pix_expires_at?: string | null
           provider_pix_idempotency_key?: string | null
           provider_pix_payload?: Json | null
           provider_sale_id?: string | null
@@ -5455,6 +5474,7 @@ export type Database = {
           state?: string
           state_detail?: string | null
           updated_at?: string
+          viaair_margin?: number | null
           viaair_order_id?: string | null
         }
         Update: {
@@ -5462,6 +5482,7 @@ export type Database = {
           amount_provider?: number | null
           attempts?: number
           commission_amount?: number | null
+          commission_final?: number | null
           created_at?: string
           currency?: string
           customer_email?: string | null
@@ -5469,6 +5490,8 @@ export type Database = {
           customer_payment_id?: string | null
           customer_payment_status?: string | null
           customer_payment_txid?: string | null
+          customer_total?: number | null
+          fulfillment_cart_id?: string | null
           hotel_locator?: string | null
           id?: string
           last_error?: string | null
@@ -5479,6 +5502,7 @@ export type Database = {
           manual_owner_user_id?: string | null
           next_poll_at?: string | null
           offer_payload?: Json
+          original_cart_id?: string | null
           payment_method?: string
           poll_count?: number
           product_kind?: string | null
@@ -5487,9 +5511,14 @@ export type Database = {
           provider_cart_id?: string | null
           provider_net_amount?: number | null
           provider_order_number?: string | null
+          provider_original_total?: number | null
+          provider_payment_authorized_at?: string | null
+          provider_payment_authorized_by?: string | null
           provider_payment_id?: string | null
+          provider_payment_reference?: string | null
           provider_payment_status?: string | null
           provider_pix_brcode?: string | null
+          provider_pix_expires_at?: string | null
           provider_pix_idempotency_key?: string | null
           provider_pix_payload?: Json | null
           provider_sale_id?: string | null
@@ -5499,6 +5528,7 @@ export type Database = {
           state?: string
           state_detail?: string | null
           updated_at?: string
+          viaair_margin?: number | null
           viaair_order_id?: string | null
         }
         Relationships: [
@@ -8339,6 +8369,53 @@ export type Database = {
             columns: ["protocolo_id"]
             isOneToOne: false
             referencedRelation: "wa_protocolos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_attempts: {
+        Row: {
+          cart_id: string | null
+          created_at: string
+          id: string
+          integration_order_id: string | null
+          notes: string | null
+          provider: string
+          purpose: string
+          status: string
+          updated_at: string
+          viaair_order_id: string | null
+        }
+        Insert: {
+          cart_id?: string | null
+          created_at?: string
+          id?: string
+          integration_order_id?: string | null
+          notes?: string | null
+          provider?: string
+          purpose?: string
+          status?: string
+          updated_at?: string
+          viaair_order_id?: string | null
+        }
+        Update: {
+          cart_id?: string | null
+          created_at?: string
+          id?: string
+          integration_order_id?: string | null
+          notes?: string | null
+          provider?: string
+          purpose?: string
+          status?: string
+          updated_at?: string
+          viaair_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_attempts_integration_order_id_fkey"
+            columns: ["integration_order_id"]
+            isOneToOne: false
+            referencedRelation: "integration_orders"
             referencedColumns: ["id"]
           },
         ]

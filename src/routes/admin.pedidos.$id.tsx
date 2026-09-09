@@ -42,6 +42,7 @@ import {
   type OrderDetail, type OrderHeader, type OrderPassenger, type OrderItem, type OrderItemFinancial, type OrderPayment, type OrderLogEntry,
 } from "@/lib/orders.functions";
 import { PeopleSearchDialog } from "@/components/people/PeopleSearchDialog";
+import { OnerOrderSection } from "@/components/admin/OnerOrderSection";
 import { AirlineCombobox } from "@/components/AirlineCombobox";
 import { AirlineLogo } from "@/components/AirlineLogo";
 import { FlightNumberInput } from "@/components/FlightNumberInput";
@@ -744,6 +745,11 @@ function OrderDetailPage() {
         payments={detail.payments}
         onChange={invalidate}
       />
+
+      {/* Só aparece quando o fornecedor do pedido é a Comprar Viagem / Oner */}
+      <OnerOrderSection orderId={order.id} />
+
+
 
 
 
