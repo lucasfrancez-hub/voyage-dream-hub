@@ -44,6 +44,51 @@ export const onerEnviarCodigo = createServerFn({ method: "POST" })
     return { ok: r.ok, mensagem: r.ok ? "Conexão estabelecida" : (r.erro ?? "Código recusado") };
   });
 
+/* ------- Fluxo padrão: carrinho → login → passageiros → pagamento ------- */
+
+export type PassageiroEntrada = {
+  nome: string;
+  sobrenome: string;
+  documento: string;
+  nascimento: string;
+  sexo: "M" | "F";
+  tipo: "ADT" | "CHD" | "INF";
+  email: string;
+  telefone: string;
+};
+
+export const onerExecutarFluxo = createServerFn({ method: "POST" })
+  .inputValidator(
+    (d: { carrinho: string; passageiros?: PassageiroEntrada[]; semNovoLogin?: boolean }) => d,
+  )
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context as never);
+    const { executarFluxoOner } = await import("./flow.server");
+    const passageiros = (data.passageiros ?? []).map((p) => ({
+      firstName: p.nome.trim().toUpperCase(),
+      lastName: p.sobrenome.trim().toUpperCase(),
+      documentNumber: p.documento.replace(/\D/g, ""),
+      documentTypeId: 1,
+      dateOfBirth: p.nascimento,
+      gender: p.sexo === "F" ? 2 : 1,
+      nationalityCountryId: 30,
+      passengerTypeCode: p.tipo,
+      typeCode: p.tipo,
+      title: p.sexo === "F" ? "MRS" : "MR",
+      contact: {
+        emailAddress: p.email.trim(),
+        ddi: 55,
+        phoneNumber: p.telefone.replace(/\D/g, ""),
+      },
+    }));
+    return executarFluxoOner({
+      cartRef: data.carrinho,
+      ...(passageiros.length ? { passageiros } : {}),
+      ...(data.semNovoLogin ? { semNovoLogin: true } : {}),
+    });
+  });
+
 export type OperacaoResumo = {
   id: string;
   provider_order_number: string | null;
