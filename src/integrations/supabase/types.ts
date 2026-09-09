@@ -5327,6 +5327,291 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          integration_order_id: string | null
+          message: string | null
+          payload: Json | null
+          provider: string
+          state: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          integration_order_id?: string | null
+          message?: string | null
+          payload?: Json | null
+          provider?: string
+          state?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          integration_order_id?: string | null
+          message?: string | null
+          payload?: Json | null
+          provider?: string
+          state?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_events_integration_order_id_fkey"
+            columns: ["integration_order_id"]
+            isOneToOne: false
+            referencedRelation: "integration_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_orders: {
+        Row: {
+          amount: number | null
+          amount_provider: number | null
+          attempts: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_payment_id: string | null
+          customer_payment_status: string | null
+          customer_payment_txid: string | null
+          hotel_locator: string | null
+          id: string
+          last_error: string | null
+          last_sync_at: string | null
+          locator: string | null
+          next_poll_at: string | null
+          offer_payload: Json
+          poll_count: number
+          product_kind: string | null
+          provider: string
+          provider_booking_id: string | null
+          provider_cart_id: string | null
+          provider_order_number: string | null
+          provider_payment_id: string | null
+          provider_payment_status: string | null
+          provider_pix_brcode: string | null
+          provider_pix_idempotency_key: string | null
+          provider_pix_payload: Json | null
+          provider_sale_id: string | null
+          provider_status: string | null
+          sale_detail: Json | null
+          state: string
+          state_detail: string | null
+          updated_at: string
+          viaair_order_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          amount_provider?: number | null
+          attempts?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_payment_id?: string | null
+          customer_payment_status?: string | null
+          customer_payment_txid?: string | null
+          hotel_locator?: string | null
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          locator?: string | null
+          next_poll_at?: string | null
+          offer_payload?: Json
+          poll_count?: number
+          product_kind?: string | null
+          provider?: string
+          provider_booking_id?: string | null
+          provider_cart_id?: string | null
+          provider_order_number?: string | null
+          provider_payment_id?: string | null
+          provider_payment_status?: string | null
+          provider_pix_brcode?: string | null
+          provider_pix_idempotency_key?: string | null
+          provider_pix_payload?: Json | null
+          provider_sale_id?: string | null
+          provider_status?: string | null
+          sale_detail?: Json | null
+          state?: string
+          state_detail?: string | null
+          updated_at?: string
+          viaair_order_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          amount_provider?: number | null
+          attempts?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_payment_id?: string | null
+          customer_payment_status?: string | null
+          customer_payment_txid?: string | null
+          hotel_locator?: string | null
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          locator?: string | null
+          next_poll_at?: string | null
+          offer_payload?: Json
+          poll_count?: number
+          product_kind?: string | null
+          provider?: string
+          provider_booking_id?: string | null
+          provider_cart_id?: string | null
+          provider_order_number?: string | null
+          provider_payment_id?: string | null
+          provider_payment_status?: string | null
+          provider_pix_brcode?: string | null
+          provider_pix_idempotency_key?: string | null
+          provider_pix_payload?: Json | null
+          provider_sale_id?: string | null
+          provider_status?: string | null
+          sale_detail?: Json | null
+          state?: string
+          state_detail?: string | null
+          updated_at?: string
+          viaair_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_orders_viaair_order_id_fkey"
+            columns: ["viaair_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_passengers: {
+        Row: {
+          birth_date: string | null
+          created_at: string
+          document_number: string | null
+          document_type: string | null
+          email: string | null
+          extra: Json
+          first_name: string
+          gender: string | null
+          id: string
+          integration_order_id: string
+          last_name: string
+          nationality: string | null
+          passenger_type: string
+          phone: string | null
+          provider_passenger_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          birth_date?: string | null
+          created_at?: string
+          document_number?: string | null
+          document_type?: string | null
+          email?: string | null
+          extra?: Json
+          first_name: string
+          gender?: string | null
+          id?: string
+          integration_order_id: string
+          last_name: string
+          nationality?: string | null
+          passenger_type?: string
+          phone?: string | null
+          provider_passenger_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          birth_date?: string | null
+          created_at?: string
+          document_number?: string | null
+          document_type?: string | null
+          email?: string | null
+          extra?: Json
+          first_name?: string
+          gender?: string | null
+          id?: string
+          integration_order_id?: string
+          last_name?: string
+          nationality?: string | null
+          passenger_type?: string
+          phone?: string | null
+          provider_passenger_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_passengers_integration_order_id_fkey"
+            columns: ["integration_order_id"]
+            isOneToOne: false
+            referencedRelation: "integration_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_tickets: {
+        Row: {
+          airline: string | null
+          created_at: string
+          extra: Json
+          id: string
+          integration_order_id: string
+          passenger_id: string | null
+          passenger_name: string | null
+          pnr: string | null
+          status: string | null
+          ticket_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          airline?: string | null
+          created_at?: string
+          extra?: Json
+          id?: string
+          integration_order_id: string
+          passenger_id?: string | null
+          passenger_name?: string | null
+          pnr?: string | null
+          status?: string | null
+          ticket_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          airline?: string | null
+          created_at?: string
+          extra?: Json
+          id?: string
+          integration_order_id?: string
+          passenger_id?: string | null
+          passenger_name?: string | null
+          pnr?: string | null
+          status?: string | null
+          ticket_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_tickets_integration_order_id_fkey"
+            columns: ["integration_order_id"]
+            isOneToOne: false
+            referencedRelation: "integration_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_tickets_passenger_id_fkey"
+            columns: ["passenger_id"]
+            isOneToOne: false
+            referencedRelation: "integration_passengers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_email_codes: {
         Row: {
           attempts: number
@@ -5836,6 +6121,110 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      oner_otp_requests: {
+        Row: {
+          account_email: string
+          code_encrypted: string | null
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          integration_order_id: string | null
+          message_id: string | null
+          provider: string
+          received_at: string | null
+          requested_at: string
+          sender: string | null
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_email: string
+          code_encrypted?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          integration_order_id?: string | null
+          message_id?: string | null
+          provider?: string
+          received_at?: string | null
+          requested_at?: string
+          sender?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_email?: string
+          code_encrypted?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          integration_order_id?: string | null
+          message_id?: string | null
+          provider?: string
+          received_at?: string | null
+          requested_at?: string
+          sender?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oner_otp_requests_integration_order_id_fkey"
+            columns: ["integration_order_id"]
+            isOneToOne: false
+            referencedRelation: "integration_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oner_sessions: {
+        Row: {
+          account_email: string
+          authenticated_at: string
+          cookies_encrypted: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          last_used_at: string | null
+          provider: string
+          status: string
+          token_encrypted: string
+          updated_at: string
+        }
+        Insert: {
+          account_email: string
+          authenticated_at?: string
+          cookies_encrypted?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          provider?: string
+          status?: string
+          token_encrypted: string
+          updated_at?: string
+        }
+        Update: {
+          account_email?: string
+          authenticated_at?: string
+          cookies_encrypted?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          provider?: string
+          status?: string
+          token_encrypted?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       order_item_financials: {
         Row: {
