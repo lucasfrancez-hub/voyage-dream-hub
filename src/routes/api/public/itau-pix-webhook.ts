@@ -92,6 +92,19 @@ export const Route = createFileRoute('/api/public/itau-pix-webhook')({
                 })
               }
 
+              // Se o fornecedor for a Comprar Viagem / Oner, o mesmo pedido
+              // passa a mostrar "Pagamento recebido — confirmando sua reserva".
+              try {
+                const { marcarPagamentoClienteRecebido } = await import(
+                  '@/lib/integrations/oner/order-bridge.server'
+                )
+                await marcarPagamentoClienteRecebido(cob.order_id)
+              } catch (e) {
+                console.warn('[pix-webhook] ponte Oner falhou', e)
+              }
+
+
+
               // Notifica admin por e-mail
               try {
                 const adminEmail = process.env.AGENCIA_EMAIL_ASSINATURA
