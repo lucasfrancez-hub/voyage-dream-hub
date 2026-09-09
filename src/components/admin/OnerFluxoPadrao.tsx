@@ -58,7 +58,9 @@ export function OnerFluxoPadrao() {
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         Cole o endereço do carrinho que o nosso buscador gera no “Comprar agora”. O caminho é sempre
-        o mesmo: carrinho, entrada com o código do e-mail, dados do passageiro e só então a tela de
+        o mesmo: carrinho, ir para o pagamento (é aí que chega o código do e-mail), dados do
+        passageiro e então a tela de
+
         pagamento.
       </p>
 
