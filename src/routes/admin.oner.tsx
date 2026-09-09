@@ -12,6 +12,8 @@ import {
   onerSincronizarAgora,
   onerStatusConexao,
 } from "@/lib/integrations/oner/admin.functions";
+import { OnerPixManual } from "@/components/admin/OnerPixManual";
+
 
 export const Route = createFileRoute("/admin/oner")({
   component: PainelOner,
