@@ -105,6 +105,13 @@ export function PagamentoCartaoPasshub({ codigo, valorTotal = 0 }: { codigo: str
     null,
   );
   const desafioRef = useRef<HTMLDivElement | null>(null);
+  /**
+   * O que fazer quando o cartão for validado. Os avisos de sucesso/erro dos
+   * campos seguros são ligados UMA única vez; aqui guardamos só a ação da
+   * tentativa atual, para que clicar duas vezes não repita a consulta.
+   */
+  const aposValidacaoRef = useRef<{ sucesso?: (d?: unknown) => void; erro?: () => void }>({});
+
 
   // Monta os campos hospedados do cartão
   useEffect(() => {
