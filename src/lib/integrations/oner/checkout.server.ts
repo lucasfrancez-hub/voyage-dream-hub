@@ -7,7 +7,23 @@ import { ONER_API, extrairNumeroPedido } from "./config";
 import { arr, num, onerFetch, pick, procurarFundo } from "./client.server";
 import { registrarEvento } from "./store.server";
 
+/**
+ * Trava do fluxo de cartão: a comissão original é preservada integralmente.
+ * Nada aqui usa "Aplicar desconto/acréscimo" — zerar comissão só acontece
+ * à mão, pela equipe, e apenas no fluxo Pix manual.
+ */
+export function garantirComissaoPreservada(op: {
+  payment_method?: string | null;
+  commission_amount?: number | null;
+}) {
+  if ((op.payment_method ?? "CARD") !== "CARD") return;
+  if (op.commission_amount != null && Number(op.commission_amount) <= 0) {
+    throw new Error("Comissão zerada em pagamento com cartão — operação bloqueada.");
+  }
+}
+
 export function extrairCartId(entrada: string): string | null {
+
   const m = String(entrada ?? "").match(
     /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/,
   );

@@ -5373,6 +5373,7 @@ export type Database = {
           amount: number | null
           amount_provider: number | null
           attempts: number
+          commission_amount: number | null
           created_at: string
           currency: string
           customer_email: string | null
@@ -5385,13 +5386,18 @@ export type Database = {
           last_error: string | null
           last_sync_at: string | null
           locator: string | null
+          manual_checklist: Json
+          manual_notes: string | null
+          manual_owner_user_id: string | null
           next_poll_at: string | null
           offer_payload: Json
+          payment_method: string
           poll_count: number
           product_kind: string | null
           provider: string
           provider_booking_id: string | null
           provider_cart_id: string | null
+          provider_net_amount: number | null
           provider_order_number: string | null
           provider_payment_id: string | null
           provider_payment_status: string | null
@@ -5401,6 +5407,7 @@ export type Database = {
           provider_sale_id: string | null
           provider_status: string | null
           sale_detail: Json | null
+          search_reference: Json
           state: string
           state_detail: string | null
           updated_at: string
@@ -5410,6 +5417,7 @@ export type Database = {
           amount?: number | null
           amount_provider?: number | null
           attempts?: number
+          commission_amount?: number | null
           created_at?: string
           currency?: string
           customer_email?: string | null
@@ -5422,13 +5430,18 @@ export type Database = {
           last_error?: string | null
           last_sync_at?: string | null
           locator?: string | null
+          manual_checklist?: Json
+          manual_notes?: string | null
+          manual_owner_user_id?: string | null
           next_poll_at?: string | null
           offer_payload?: Json
+          payment_method?: string
           poll_count?: number
           product_kind?: string | null
           provider?: string
           provider_booking_id?: string | null
           provider_cart_id?: string | null
+          provider_net_amount?: number | null
           provider_order_number?: string | null
           provider_payment_id?: string | null
           provider_payment_status?: string | null
@@ -5438,6 +5451,7 @@ export type Database = {
           provider_sale_id?: string | null
           provider_status?: string | null
           sale_detail?: Json | null
+          search_reference?: Json
           state?: string
           state_detail?: string | null
           updated_at?: string
@@ -5447,6 +5461,7 @@ export type Database = {
           amount?: number | null
           amount_provider?: number | null
           attempts?: number
+          commission_amount?: number | null
           created_at?: string
           currency?: string
           customer_email?: string | null
@@ -5459,13 +5474,18 @@ export type Database = {
           last_error?: string | null
           last_sync_at?: string | null
           locator?: string | null
+          manual_checklist?: Json
+          manual_notes?: string | null
+          manual_owner_user_id?: string | null
           next_poll_at?: string | null
           offer_payload?: Json
+          payment_method?: string
           poll_count?: number
           product_kind?: string | null
           provider?: string
           provider_booking_id?: string | null
           provider_cart_id?: string | null
+          provider_net_amount?: number | null
           provider_order_number?: string | null
           provider_payment_id?: string | null
           provider_payment_status?: string | null
@@ -5475,6 +5495,7 @@ export type Database = {
           provider_sale_id?: string | null
           provider_status?: string | null
           sale_detail?: Json | null
+          search_reference?: Json
           state?: string
           state_detail?: string | null
           updated_at?: string

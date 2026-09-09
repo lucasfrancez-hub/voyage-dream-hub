@@ -22,9 +22,48 @@ export const ONER_PATHS = {
   saleDetail: (saleId: string | number) => `${ONER_USER_AREA}/sales-detail/${saleId}`,
 } as const;
 
+/**
+ * Forma de pagamento escolhida pelo cliente.
+ * CARD segue automatizado ponta a ponta; PIX, nesta primeira versão,
+ * é preparado à mão pela equipe dentro da Comprar Viagem.
+ */
+export type OnerPaymentMethod = "CARD" | "PIX";
+
+/**
+ * Etapas da lista de conferência do Pix manual, na ordem em que a equipe
+ * executa a operação no fornecedor.
+ */
+export const ONER_PIX_STEPS = [
+  "cart_prepared",
+  "net_amount_checked",
+  "order_created",
+  "oner_pix_generated",
+  "customer_paid",
+  "oner_paid",
+  "booking_confirmed",
+  "locator_received",
+  "tickets_received",
+] as const;
+
+export type OnerPixStep = (typeof ONER_PIX_STEPS)[number];
+
+export const ONER_PIX_STEP_LABEL: Record<OnerPixStep, string> = {
+  cart_prepared: "Carrinho preparado",
+  net_amount_checked: "Valor líquido Oner conferido",
+  order_created: "Pedido F-… criado",
+  oner_pix_generated: "Pix Oner gerado",
+  customer_paid: "Pagamento do cliente confirmado",
+  oner_paid: "Oner paga",
+  booking_confirmed: "Reserva confirmada",
+  locator_received: "Localizador recebido",
+  tickets_received: "Bilhetes recebidos",
+};
+
 /** Etapas da operação, na ordem natural do fluxo. */
 export const ONER_STATES = [
   "CART_CREATED",
+  "PIX_MANUAL_PREPARATION",
+
   "PASSENGERS_PENDING",
   "PASSENGERS_COMPLETED",
   "ONER_SESSION_CHECK",
@@ -66,11 +105,15 @@ export const ONER_ATTENTION_STATES: OnerState[] = [
   "FAILED",
   "PRICE_CHANGED",
   "ONER_AUTH_REQUIRED",
+  "PIX_MANUAL_PREPARATION",
 ];
+
 
 /** Texto amigável de cada etapa, para telas internas. */
 export const ONER_STATE_LABEL: Record<OnerState, string> = {
   CART_CREATED: "Oferta guardada",
+  PIX_MANUAL_PREPARATION: "Pix — preparar manualmente",
+
   PASSENGERS_PENDING: "Aguardando passageiros",
   PASSENGERS_COMPLETED: "Passageiros preenchidos",
   ONER_SESSION_CHECK: "Verificando sessão do fornecedor",

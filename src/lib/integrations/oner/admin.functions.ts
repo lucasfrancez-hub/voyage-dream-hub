@@ -133,3 +133,117 @@ export const onerMarcarRevisao = createServerFn({ method: "POST" })
     await mudarEtapa(data.id, data.estado, { detail: data.observacao ?? "Ajuste manual pelo painel" });
     return { ok: true };
   });
+
+/* ---------------- PIX — preparação manual ---------------- */
+
+export type TarefaPixResumo = {
+  id: string;
+  criado_em: string;
+  cliente: string | null;
+  email: string | null;
+  produto: string | null;
+  valor: number | null;
+  comissao: number | null;
+  valor_liquido: number | null;
+  moeda: string | null;
+  pedido: string | null;
+  localizador: string | null;
+  brcode: string | null;
+  observacoes: string | null;
+  estado: string;
+  etapa: string;
+  pendente: boolean;
+  oferta: string;
+  busca: string;
+  etapas: Array<{ chave: string; titulo: string; feito: boolean; em: string | null }>;
+  passageiros: Array<{ nome: string; tipo: string; documento: string | null; nascimento: string | null }>;
+};
+
+export const onerListarTarefasPix = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<TarefaPixResumo[]> => {
+    await exigirAdmin(context as never);
+    const { listarTarefasPix } = await import("./pix-manual.server");
+    const { listarPassageiros } = await import("./store.server");
+    const { ONER_PIX_STEPS, ONER_PIX_STEP_LABEL } = await import("./config");
+    const tarefas = await listarTarefasPix();
+    const resultado: TarefaPixResumo[] = [];
+    for (const t of tarefas) {
+      const pax = (await listarPassageiros(t.id)) as unknown as Array<Record<string, unknown>>;
+      const lista = t.manual_checklist ?? {};
+      resultado.push({
+        id: t.id,
+        criado_em: t.created_at,
+        cliente: t.customer_name,
+        email: t.customer_email,
+        produto: t.product_kind,
+        valor: t.amount,
+        comissao: t.commission_amount,
+        valor_liquido: t.provider_net_amount,
+        moeda: t.currency,
+        pedido: t.provider_order_number,
+        localizador: t.locator,
+        brcode: t.provider_pix_brcode,
+        observacoes: t.manual_notes,
+        estado: t.state,
+        etapa: ONER_STATE_LABEL[t.state] ?? t.state,
+        pendente: t.state === "PIX_MANUAL_PREPARATION",
+        oferta: JSON.stringify(t.offer_payload ?? {}, null, 2),
+        busca: JSON.stringify(t.search_reference ?? {}, null, 2),
+        etapas: ONER_PIX_STEPS.map((chave) => ({
+          chave,
+          titulo: ONER_PIX_STEP_LABEL[chave],
+          feito: Boolean(lista[chave]?.feito),
+          em: lista[chave]?.em ?? null,
+        })),
+        passageiros: pax.map((p) => ({
+          nome: `${String(p["first_name"] ?? "")} ${String(p["last_name"] ?? "")}`.trim(),
+          tipo: String(p["passenger_type"] ?? "ADT"),
+          documento: (p["document_number"] as string | null) ?? null,
+          nascimento: (p["birth_date"] as string | null) ?? null,
+        })),
+      });
+    }
+    return resultado;
+  });
+
+export const onerMarcarEtapaPix = createServerFn({ method: "POST" })
+  .inputValidator((d: { id: string; etapa: string; feito: boolean }) => d)
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context as never);
+    const { marcarEtapaPix } = await import("./pix-manual.server");
+    await marcarEtapaPix(data.id, data.etapa as never, data.feito, (context as { userId: string }).userId);
+    return { ok: true };
+  });
+
+export const onerRegistrarDadosPix = createServerFn({ method: "POST" })
+  .inputValidator(
+    (d: {
+      id: string;
+      valorLiquido?: number | null;
+      numeroPedido?: string | null;
+      brcode?: string | null;
+      localizador?: string | null;
+      observacoes?: string | null;
+    }) => d,
+  )
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context as never);
+    const { registrarDadosPix } = await import("./pix-manual.server");
+    const { id, ...dados } = data;
+    await registrarDadosPix(id, dados);
+    return { ok: true };
+  });
+
+export const onerConcluirPix = createServerFn({ method: "POST" })
+  .inputValidator((d: { id: string }) => d)
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ data, context }) => {
+    await exigirAdmin(context as never);
+    const { concluirTarefaPix } = await import("./pix-manual.server");
+    await concluirTarefaPix(data.id, (context as { userId: string }).userId);
+    return { ok: true };
+  });
+
