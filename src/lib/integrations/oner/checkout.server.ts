@@ -110,7 +110,27 @@ export type PassageiroOner = {
   typeCode: string;
   title: string;
   contact: { emailAddress: string; ddi: number; phoneNumber: string };
+  /** Datas do voo: o fornecedor valida a idade contra elas. */
+  firstJourneyDate?: string;
+  lastJourneyDate?: string | null;
 };
+
+/** Data do primeiro/último voo do carrinho, no formato aceito pelo fornecedor. */
+function datasDaViagem(body: unknown): { primeira?: string; ultima?: string } {
+  const journeys = (body as { data?: { flight?: { journeys?: unknown[] } } })?.data?.flight?.journeys;
+  if (!Array.isArray(journeys) || journeys.length === 0) return {};
+  const iso = (j: unknown, campo: "departure" | "destination") => {
+    const p = (j as Record<string, { date?: { year?: number; month?: number; day?: number }; time?: { hour?: number; minute?: number } }>)[campo];
+    const d = p?.date;
+    if (!d?.year || !d.month || !d.day) return undefined;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.year}-${pad(d.month)}-${pad(d.day)}T${pad(p?.time?.hour ?? 0)}:${pad(p?.time?.minute ?? 0)}:00`;
+  };
+  return {
+    primeira: iso(journeys[0], "departure"),
+    ultima: iso(journeys[journeys.length - 1], "destination"),
+  };
+}
 
 /** Envia os passageiros já preenchidos no portal VIA AIR. */
 export async function enviarPassageiros(
@@ -119,14 +139,24 @@ export async function enviarPassageiros(
   token: string,
   integrationOrderId?: string,
 ) {
+  // O fornecedor recusa o passageiro ("adulto deve ter mais de 12 anos")
+  // quando as datas do voo não vão junto, então buscamos no carrinho.
+  const carrinho = await onerFetch(`${ONER_API}/api/checkout/v1/booking/${cartId}`, { token });
+  const { primeira, ultima } = datasDaViagem(carrinho.body);
   const body = {
     cartId,
-    passengers: passageiros.map((p) => ({ ...p, dateOfBirth: normalizarNascimento(p.dateOfBirth) })),
+    passengers: passageiros.map((p) => ({
+      ...p,
+      dateOfBirth: normalizarNascimento(p.dateOfBirth),
+      firstJourneyDate: p.firstJourneyDate ?? primeira ?? null,
+      lastJourneyDate: p.lastJourneyDate ?? ultima ?? null,
+    })),
   };
   const r = await onerFetch<{ success?: boolean; message?: string }>(
     `${ONER_API}/api/booking/flight/passenger/${cartId}`,
     { method: "PUT", body, token },
   );
+
   const ok = Boolean(r.body?.success) && r.call.ok;
   await registrarEvento({
     integrationOrderId: integrationOrderId ?? null,
