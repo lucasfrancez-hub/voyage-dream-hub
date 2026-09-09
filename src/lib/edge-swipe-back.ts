@@ -222,12 +222,20 @@ export function instalarGestoVoltar(): () => void {
     return replaceOriginal(...args);
   }) as History["replaceState"];
 
+  // Depois de voltar, a foto guardada não vale mais: só volta a existir
+  // quando o usuário navegar de novo aqui dentro.
+  const aoVoltarHistorico = () => {
+    fotoAnterior = null;
+  };
+
+  window.addEventListener("popstate", aoVoltarHistorico);
   window.addEventListener("touchstart", inicio, { passive: true });
   window.addEventListener("touchmove", mover, { passive: true });
   window.addEventListener("touchend", fim, { passive: true });
   window.addEventListener("touchcancel", fim, { passive: true });
 
   return () => {
+    window.removeEventListener("popstate", aoVoltarHistorico);
     window.removeEventListener("touchstart", inicio);
     window.removeEventListener("touchmove", mover);
     window.removeEventListener("touchend", fim);
@@ -235,5 +243,6 @@ export function instalarGestoVoltar(): () => void {
     window.history.pushState = pushOriginal;
     window.history.replaceState = replaceOriginal;
     limpar();
+
   };
 }
