@@ -163,6 +163,10 @@ export function OnerOrderSection({ orderId }: { orderId: string }) {
             rotulo="Pagamento ao fornecedor"
             valor={data.providerPaymentStatus === "paid" ? "Fornecedor pago ✓" : (data.providerPaymentStatus ?? "—")}
           />
+          <Linha
+            rotulo="Na tela de pagamento da Oner"
+            valor={rotuloTitularCartaoOner(pix ? "PIX" : "CARD")}
+          />
         </div>
 
         <div className="grid gap-x-8 gap-y-1 rounded-lg bg-muted/40 p-3 sm:grid-cols-2">
