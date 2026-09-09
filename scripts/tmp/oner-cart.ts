@@ -1,0 +1,11 @@
+import { extrairCartId, lerCarrinho } from "../../src/lib/integrations/oner/checkout.server";
+import { tokenAtual } from "../../src/lib/integrations/oner/session.server";
+const url = "https://www.comprarviagem.com.br/viaair/flight-cart/898ef220-d3af-4179-9506-759b484052f5?source=f&isRoundTrip=false";
+const id = extrairCartId(url);
+console.log("cartId", id);
+const t = await tokenAtual();
+console.log("sessao ativa?", Boolean(t));
+const r = await lerCarrinho(id!, t ?? "");
+console.log("status", r.call.status, "ok", r.call.ok);
+console.log("resumo", JSON.stringify(r.resumo, null, 2));
+console.log("raw", r.raw.slice(0, 1500));
