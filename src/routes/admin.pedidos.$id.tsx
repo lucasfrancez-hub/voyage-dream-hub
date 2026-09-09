@@ -745,6 +745,11 @@ function OrderDetailPage() {
         onChange={invalidate}
       />
 
+      {/* Só aparece quando o fornecedor do pedido é a Comprar Viagem / Oner */}
+      <OnerOrderSection orderId={order.id} />
+
+
+
 
 
       <CommissionAdjustDialog
