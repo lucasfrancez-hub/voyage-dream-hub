@@ -44,9 +44,31 @@ export const onerEnviarCodigo = createServerFn({ method: "POST" })
     return { ok: r.ok, mensagem: r.ok ? "Conexão estabelecida" : (r.erro ?? "Código recusado") };
   });
 
+export type OperacaoResumo = {
+  id: string;
+  provider_order_number: string | null;
+  provider_sale_id: string | null;
+  state: string;
+  provider_status: string | null;
+  amount: number | null;
+  currency: string | null;
+  customer_name: string | null;
+  locator: string | null;
+  last_error: string | null;
+  updated_at: string;
+  etapa: string;
+};
+
+export type EventoResumo = {
+  id: string;
+  created_at: string;
+  event_type: string;
+  message: string | null;
+};
+
 export const onerListarOperacoes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<OperacaoResumo[]> => {
     await exigirAdmin(context as never);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
@@ -57,8 +79,18 @@ export const onerListarOperacoes = createServerFn({ method: "GET" })
       .eq("provider", "oner")
       .order("updated_at", { ascending: false })
       .limit(100);
-    return (data ?? []).map((o: Record<string, unknown>) => ({
-      ...o,
+    return ((data ?? []) as unknown as Array<Record<string, unknown>>).map((o) => ({
+      id: String(o["id"]),
+      provider_order_number: (o["provider_order_number"] as string | null) ?? null,
+      provider_sale_id: (o["provider_sale_id"] as string | null) ?? null,
+      state: String(o["state"]),
+      provider_status: (o["provider_status"] as string | null) ?? null,
+      amount: (o["amount"] as number | null) ?? null,
+      currency: (o["currency"] as string | null) ?? null,
+      customer_name: (o["customer_name"] as string | null) ?? null,
+      locator: (o["locator"] as string | null) ?? null,
+      last_error: (o["last_error"] as string | null) ?? null,
+      updated_at: String(o["updated_at"]),
       etapa: ONER_STATE_LABEL[o["state"] as OnerState] ?? String(o["state"]),
     }));
   });
@@ -66,20 +98,22 @@ export const onerListarOperacoes = createServerFn({ method: "GET" })
 export const onerDetalheOperacao = createServerFn({ method: "GET" })
   .inputValidator((d: { id: string }) => d)
   .middleware([requireSupabaseAuth])
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<{ eventos: EventoResumo[] } | null> => {
     await exigirAdmin(context as never);
-    const { buscarOperacao, listarEventos, listarPassageiros, listarBilhetes } = await import(
-      "./store.server"
-    );
+    const { buscarOperacao, listarEventos } = await import("./store.server");
     const op = await buscarOperacao(data.id);
     if (!op) return null;
+    const eventos = (await listarEventos(data.id)) as unknown as Array<Record<string, unknown>>;
     return {
-      operacao: { ...op, etapa: ONER_STATE_LABEL[op.state] ?? op.state },
-      eventos: await listarEventos(data.id),
-      passageiros: await listarPassageiros(data.id),
-      bilhetes: await listarBilhetes(data.id),
+      eventos: eventos.map((e) => ({
+        id: String(e["id"]),
+        created_at: String(e["created_at"]),
+        event_type: String(e["event_type"]),
+        message: (e["message"] as string | null) ?? null,
+      })),
     };
   });
+
 
 export const onerSincronizarAgora = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => d)
