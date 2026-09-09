@@ -105,6 +105,13 @@ export function PagamentoCartaoPasshub({ codigo, valorTotal = 0 }: { codigo: str
     null,
   );
   const desafioRef = useRef<HTMLDivElement | null>(null);
+  /**
+   * O que fazer quando o cartão for validado. Os avisos de sucesso/erro dos
+   * campos seguros são ligados UMA única vez; aqui guardamos só a ação da
+   * tentativa atual, para que clicar duas vezes não repita a consulta.
+   */
+  const aposValidacaoRef = useRef<{ sucesso?: (d?: unknown) => void; erro?: () => void }>({});
+
 
   // Monta os campos hospedados do cartão
   useEffect(() => {
@@ -181,6 +188,20 @@ export function PagamentoCartaoPasshub({ codigo, valorTotal = 0 }: { codigo: str
           setNumeroCompleto(num?.valid === true || n >= 13);
           setCvvCompleto(cvv?.valid === true || (cvv?.length ?? 0) >= 3);
         });
+        // Ligados uma única vez: cada tentativa apenas troca a ação pendente.
+        sf.on("success", (data?: unknown) => {
+          if (!vivo) return;
+          const acao = aposValidacaoRef.current.sucesso;
+          aposValidacaoRef.current = {};
+          acao?.(data);
+        });
+        sf.on("error", () => {
+          if (!vivo) return;
+          const acao = aposValidacaoRef.current.erro;
+          aposValidacaoRef.current = {};
+          acao?.();
+        });
+
       } catch {
         if (vivo && tentativas++ < 3) setTimeout(montar, 1500);
         else if (vivo) setErroCampos("Campos do cartão não carregaram. Recarregue a página.");
@@ -215,6 +236,7 @@ export function PagamentoCartaoPasshub({ codigo, valorTotal = 0 }: { codigo: str
 
   const verParcelas = () => {
     if (!sfRef.current || !pronto) return;
+    if (processando) return; // já existe uma validação em andamento
     if (!numeroCompleto) return toast.error("Preencha o número completo do cartão.");
     if (!cvvCompleto) return toast.error("Preencha o CVV do cartão.");
     if (nome.trim().length < 3) return toast.error("Informe o nome impresso no cartão.");
@@ -247,13 +269,18 @@ export function PagamentoCartaoPasshub({ codigo, valorTotal = 0 }: { codigo: str
       setParcelaSel(1);
       setEtapa("parcelas");
     };
-    sf.on("success", onSucesso);
-    sf.on("error", () => {
-      setProcessando(false);
-      toast.error("Cartão recusado na validação. Confira número e CVV.");
-    });
+
+    // Substitui a ação pendente em vez de acumular avisos a cada clique.
+    aposValidacaoRef.current = {
+      sucesso: onSucesso,
+      erro: () => {
+        setProcessando(false);
+        toast.error("Cartão recusado na validação. Confira número e CVV.");
+      },
+    };
     sf.submit();
   };
+
 
   const emitir = async (dados: {
     transactionId: string;
