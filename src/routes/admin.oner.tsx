@@ -158,52 +158,52 @@ function PainelOner() {
         ) : (
           <ul className="divide-y divide-border">
             {operacoes.data.map((o) => (
-              <li key={String(o["id"])} className="p-4">
+              <li key={o.id} className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold">
-                      {String(o["provider_order_number"] ?? "sem número")}{" "}
-                      <span className="text-muted-foreground">· {String(o["etapa"])}</span>
+                      {o.provider_order_number ?? "sem número"}{" "}
+                      <span className="text-muted-foreground">· {o.etapa}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {String(o["customer_name"] ?? "—")}
-                      {o["locator"] ? ` · localizador ${String(o["locator"])}` : ""}
-                      {o["amount"] ? ` · R$ ${Number(o["amount"]).toFixed(2)}` : ""}
+                      {o.customer_name ?? "—"}
+                      {o.locator ? ` · localizador ${o.locator}` : ""}
+                      {o.amount ? ` · R$ ${Number(o.amount).toFixed(2)}` : ""}
                     </p>
-                    {o["last_error"] ? (
-                      <p className="mt-1 text-xs text-destructive">{String(o["last_error"])}</p>
+                    {o.last_error ? (
+                      <p className="mt-1 text-xs text-destructive">{o.last_error}</p>
                     ) : null}
                   </div>
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => mSync.mutate(String(o["id"]))}
+                      onClick={() => mSync.mutate(o.id)}
                       className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold"
                     >
                       Consultar agora
                     </button>
                     <button
                       type="button"
-                      onClick={() => setAberta(aberta === String(o["id"]) ? null : String(o["id"]))}
+                      onClick={() => setAberta(aberta === o.id ? null : o.id)}
                       className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold"
                     >
-                      {aberta === String(o["id"]) ? "Fechar" : "Histórico"}
+                      {aberta === o.id ? "Fechar" : "Histórico"}
                     </button>
                   </div>
                 </div>
 
-                {aberta === String(o["id"]) ? (
+                {aberta === o.id ? (
                   <div className="mt-3 rounded-xl bg-muted/40 p-3">
                     {detalhe.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     ) : (
                       <ol className="space-y-1.5">
-                        {(detalhe.data?.eventos ?? []).map((e: Record<string, unknown>) => (
-                          <li key={String(e["id"])} className="text-xs text-muted-foreground">
+                        {(detalhe.data?.eventos ?? []).map((e) => (
+                          <li key={e.id} className="text-xs text-muted-foreground">
                             <span className="text-foreground">
-                              {new Date(String(e["created_at"])).toLocaleString("pt-BR")}
+                              {new Date(e.created_at).toLocaleString("pt-BR")}
                             </span>{" "}
-                            — {String(e["message"] ?? e["event_type"])}
+                            — {e.message ?? e.event_type}
                           </li>
                         ))}
                       </ol>
@@ -212,6 +212,7 @@ function PainelOner() {
                 ) : null}
               </li>
             ))}
+
           </ul>
         )}
       </section>
