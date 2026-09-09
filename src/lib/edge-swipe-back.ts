@@ -90,10 +90,7 @@ export function instalarGestoVoltar(): () => void {
     alvo.style.boxShadow =
       deslocamento > 2 ? "-18px 0 42px rgba(0,0,0,0.4)" : "none";
     alvo.style.overflow = deslocamento > 2 ? "hidden" : "";
-    // Sem foto da tela anterior, cai no escurecimento antigo como último recurso.
-    if (!fundo) {
-      document.body.style.backgroundColor = `rgba(0,0,0,${0.25 + progresso * 0.45})`;
-    }
+
   };
 
   const limpar = () => {
