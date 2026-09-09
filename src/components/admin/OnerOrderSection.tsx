@@ -34,6 +34,7 @@ import {
   onerSalvarNotas,
   type IntegracaoOnerDoPedido,
 } from "@/lib/integrations/oner/order.functions";
+import { rotuloTitularCartaoOner } from "@/lib/integrations/oner/config";
 
 const brl = (v: number | null | undefined) =>
   v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -161,6 +162,10 @@ export function OnerOrderSection({ orderId }: { orderId: string }) {
           <Linha
             rotulo="Pagamento ao fornecedor"
             valor={data.providerPaymentStatus === "paid" ? "Fornecedor pago ✓" : (data.providerPaymentStatus ?? "—")}
+          />
+          <Linha
+            rotulo="Na tela de pagamento da Oner"
+            valor={rotuloTitularCartaoOner(pix ? "PIX" : "CARD")}
           />
         </div>
 

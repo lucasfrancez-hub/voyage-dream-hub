@@ -30,6 +30,27 @@ export const ONER_PATHS = {
 export type OnerPaymentMethod = "CARD" | "PIX";
 
 /**
+ * Na tela "Pagamento Com Cartão" da Comprar Viagem sempre há a escolha de quem
+ * é o cartão. Regra fixa da VIA AIR:
+ *  - CARD → "Pagamento no cartão do cliente" (o cliente preenche os dados);
+ *  - PIX  → "Pagamento no cartão da agência/representante".
+ */
+export type OnerCardOwner = "CLIENT" | "AGENCY";
+
+export const ONER_CARD_OWNER_LABEL: Record<OnerCardOwner, string> = {
+  CLIENT: "Pagamento no cartão do cliente",
+  AGENCY: "Pagamento no cartão da agência/representante",
+};
+
+export function titularCartaoOner(paymentMethod: OnerPaymentMethod): OnerCardOwner {
+  return paymentMethod === "CARD" ? "CLIENT" : "AGENCY";
+}
+
+export function rotuloTitularCartaoOner(paymentMethod: OnerPaymentMethod): string {
+  return ONER_CARD_OWNER_LABEL[titularCartaoOner(paymentMethod)];
+}
+
+/**
  * Etapas da lista de conferência do Pix manual, na ordem em que a equipe
  * executa a operação no fornecedor.
  */
