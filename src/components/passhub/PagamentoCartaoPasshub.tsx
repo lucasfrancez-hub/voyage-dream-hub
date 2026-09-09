@@ -188,6 +188,20 @@ export function PagamentoCartaoPasshub({ codigo, valorTotal = 0 }: { codigo: str
           setNumeroCompleto(num?.valid === true || n >= 13);
           setCvvCompleto(cvv?.valid === true || (cvv?.length ?? 0) >= 3);
         });
+        // Ligados uma única vez: cada tentativa apenas troca a ação pendente.
+        sf.on("success", (data?: unknown) => {
+          if (!vivo) return;
+          const acao = aposValidacaoRef.current.sucesso;
+          aposValidacaoRef.current = {};
+          acao?.(data);
+        });
+        sf.on("error", () => {
+          if (!vivo) return;
+          const acao = aposValidacaoRef.current.erro;
+          aposValidacaoRef.current = {};
+          acao?.();
+        });
+
       } catch {
         if (vivo && tentativas++ < 3) setTimeout(montar, 1500);
         else if (vivo) setErroCampos("Campos do cartão não carregaram. Recarregue a página.");
