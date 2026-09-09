@@ -198,13 +198,52 @@ export async function informarCodigoManual(codigo: string): Promise<{ ok: boolea
  * Espera o código chegar (automático ou manual) e o consome — uso único.
  * Devolve null se estourar o tempo.
  */
+/**
+ * Tenta achar o código na caixa encaminhamentoviaair@gmail.com
+ * (mesma caixa do 2FA da FRT) e preenche a tentativa aberta.
+ */
+async function tentarLerGmail(pedido: OtpRequest): Promise<boolean> {
+  try {
+    const { mensagensRecentes } = await import("@/lib/auth-code/gmail.server");
+    const { escolherMensagem } = await import("@/lib/auth-code/service.server");
+    const { acharProvedor } = await import("@/lib/auth-code/providers");
+    const provedor = acharProvedor("oner");
+    // Só mensagens chegadas depois do pedido (folga de 2 min p/ relógio).
+    const desde = new Date(pedido.requested_at).getTime() - 120_000;
+    const mensagens = await mensagensRecentes(desde);
+    const achado = escolherMensagem(mensagens, provedor, desde, new Set());
+    if (!achado) return false;
+    const r = await registrarCodigoRecebido({
+      remetente: achado.mensagem.remetenteOriginal || achado.mensagem.remetente,
+      assunto: achado.mensagem.assunto,
+      corpo: achado.mensagem.corpo,
+      recebidoEm: new Date(achado.mensagem.recebidoEm).toISOString(),
+      messageId: `gmail:${achado.mensagem.id}`,
+      origem: "gmail",
+    });
+    return r.ok;
+  } catch {
+    return false; // caixa indisponível não derruba a espera
+  }
+}
+
 export async function aguardarCodigo(
   pedidoId: string,
   timeoutMs = 3 * 60_000,
 ): Promise<string | null> {
   const db = await admin();
   const limite = Date.now() + timeoutMs;
+  let pedidoCache: OtpRequest | null = null;
   while (Date.now() < limite) {
+    // 1) tenta ler o código direto da caixa de encaminhamento
+    pedidoCache ??= await db
+      .from("oner_otp_requests")
+      .select("*")
+      .eq("id", pedidoId)
+      .maybeSingle()
+      .then((r) => (r.data as unknown as OtpRequest | null) ?? null);
+    if (pedidoCache) await tentarLerGmail(pedidoCache);
+
     const { data } = await db
       .from("oner_otp_requests")
       .select("id, status, code_encrypted")
