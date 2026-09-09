@@ -66,6 +66,7 @@ import { Route as AdminMotorPacoteRouteImport } from './routes/admin.motor-pacot
 import { Route as AdminMotorTremRouteImport } from './routes/admin.motor-trem'
 import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
 import { Route as AdminOnerRouteImport } from './routes/admin.oner'
+import { Route as AdminOnerPagamentoRouteImport } from './routes/admin.oner-pagamento'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPacotesCativaRouteImport } from './routes/admin.pacotes-cativa'
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
@@ -110,6 +111,7 @@ import { Route as LSlugRouteImport } from './routes/l.$slug'
 import { Route as OrcamentoTokenRouteImport } from './routes/orcamento.$token'
 import { Route as PacotesIndexRouteImport } from './routes/pacotes.index'
 import { Route as PacotesAdminRouteImport } from './routes/pacotes.admin'
+import { Route as PagarViagemReservaRouteImport } from './routes/pagar-viagem.$reserva'
 import { Route as PassaporteTokenRouteImport } from './routes/passaporte.$token'
 import { Route as ProtocoloProtocoloIdRouteImport } from './routes/protocolo.$protocoloId'
 import { Route as ReservaTokenRouteImport } from './routes/reserva.$token'
@@ -495,6 +497,11 @@ const AdminOnerRoute = AdminOnerRouteImport.update({
   path: '/oner',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOnerPagamentoRoute = AdminOnerPagamentoRouteImport.update({
+  id: '/oner-pagamento',
+  path: '/oner-pagamento',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPacotesRoute = AdminPacotesRouteImport.update({
   id: '/pacotes',
   path: '/pacotes',
@@ -714,6 +721,11 @@ const PacotesAdminRoute = PacotesAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => PacotesRoute,
+} as any)
+const PagarViagemReservaRoute = PagarViagemReservaRouteImport.update({
+  id: '/pagar-viagem/$reserva',
+  path: '/pagar-viagem/$reserva',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PassaporteTokenRoute = PassaporteTokenRouteImport.update({
   id: '/passaporte/$token',
@@ -1313,6 +1325,7 @@ export interface FileRoutesByFullPath {
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/oner': typeof AdminOnerRoute
+  '/admin/oner-pagamento': typeof AdminOnerPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pacotes-cativa': typeof AdminPacotesCativaRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1355,6 +1368,7 @@ export interface FileRoutesByFullPath {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
+  '/pagar-viagem/$reserva': typeof PagarViagemReservaRoute
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
@@ -1512,6 +1526,7 @@ export interface FileRoutesByTo {
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/oner': typeof AdminOnerRoute
+  '/admin/oner-pagamento': typeof AdminOnerPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pacotes-cativa': typeof AdminPacotesCativaRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1554,6 +1569,7 @@ export interface FileRoutesByTo {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
+  '/pagar-viagem/$reserva': typeof PagarViagemReservaRoute
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
@@ -1715,6 +1731,7 @@ export interface FileRoutesById {
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
   '/admin/oner': typeof AdminOnerRoute
+  '/admin/oner-pagamento': typeof AdminOnerPagamentoRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pacotes-cativa': typeof AdminPacotesCativaRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1757,6 +1774,7 @@ export interface FileRoutesById {
   '/l/$slug': typeof LSlugRoute
   '/orcamento/$token': typeof OrcamentoTokenRoute
   '/pacotes/admin': typeof PacotesAdminRoute
+  '/pagar-viagem/$reserva': typeof PagarViagemReservaRoute
   '/passaporte/$token': typeof PassaporteTokenRouteWithChildren
   '/protocolo/$protocoloId': typeof ProtocoloProtocoloIdRoute
   '/reserva/$token': typeof ReservaTokenRoute
@@ -1919,6 +1937,7 @@ export interface FileRouteTypes {
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/oner'
+    | '/admin/oner-pagamento'
     | '/admin/pacotes'
     | '/admin/pacotes-cativa'
     | '/admin/pagamentos'
@@ -1961,6 +1980,7 @@ export interface FileRouteTypes {
     | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
+    | '/pagar-viagem/$reserva'
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
@@ -2118,6 +2138,7 @@ export interface FileRouteTypes {
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/oner'
+    | '/admin/oner-pagamento'
     | '/admin/pacotes'
     | '/admin/pacotes-cativa'
     | '/admin/pagamentos'
@@ -2160,6 +2181,7 @@ export interface FileRouteTypes {
     | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
+    | '/pagar-viagem/$reserva'
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
@@ -2320,6 +2342,7 @@ export interface FileRouteTypes {
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
     | '/admin/oner'
+    | '/admin/oner-pagamento'
     | '/admin/pacotes'
     | '/admin/pacotes-cativa'
     | '/admin/pagamentos'
@@ -2362,6 +2385,7 @@ export interface FileRouteTypes {
     | '/l/$slug'
     | '/orcamento/$token'
     | '/pacotes/admin'
+    | '/pagar-viagem/$reserva'
     | '/passaporte/$token'
     | '/protocolo/$protocoloId'
     | '/reserva/$token'
@@ -2495,6 +2519,7 @@ export interface RootRouteChildren {
   EmbedPassagensBaratasRoute: typeof EmbedPassagensBaratasRoute
   LSlugRoute: typeof LSlugRoute
   OrcamentoTokenRoute: typeof OrcamentoTokenRoute
+  PagarViagemReservaRoute: typeof PagarViagemReservaRoute
   PassaporteTokenRoute: typeof PassaporteTokenRouteWithChildren
   ProtocoloProtocoloIdRoute: typeof ProtocoloProtocoloIdRoute
   ReservaTokenRoute: typeof ReservaTokenRoute
@@ -2973,6 +2998,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOnerRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/oner-pagamento': {
+      id: '/admin/oner-pagamento'
+      path: '/oner-pagamento'
+      fullPath: '/admin/oner-pagamento'
+      preLoaderRoute: typeof AdminOnerPagamentoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pacotes': {
       id: '/admin/pacotes'
       path: '/pacotes'
@@ -3280,6 +3312,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/pacotes/admin'
       preLoaderRoute: typeof PacotesAdminRouteImport
       parentRoute: typeof PacotesRoute
+    }
+    '/pagar-viagem/$reserva': {
+      id: '/pagar-viagem/$reserva'
+      path: '/pagar-viagem/$reserva'
+      fullPath: '/pagar-viagem/$reserva'
+      preLoaderRoute: typeof PagarViagemReservaRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/passaporte/$token': {
       id: '/passaporte/$token'
@@ -4038,6 +4077,7 @@ interface AdminRouteChildren {
   AdminMotorTremRoute: typeof AdminMotorTremRoute
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
   AdminOnerRoute: typeof AdminOnerRoute
+  AdminOnerPagamentoRoute: typeof AdminOnerPagamentoRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPacotesCativaRoute: typeof AdminPacotesCativaRoute
   AdminPagamentosRoute: typeof AdminPagamentosRoute
@@ -4111,6 +4151,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMotorTremRoute: AdminMotorTremRoute,
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
   AdminOnerRoute: AdminOnerRoute,
+  AdminOnerPagamentoRoute: AdminOnerPagamentoRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPacotesCativaRoute: AdminPacotesCativaRoute,
   AdminPagamentosRoute: AdminPagamentosRoute,
@@ -4271,6 +4312,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmbedPassagensBaratasRoute: EmbedPassagensBaratasRoute,
   LSlugRoute: LSlugRoute,
   OrcamentoTokenRoute: OrcamentoTokenRoute,
+  PagarViagemReservaRoute: PagarViagemReservaRoute,
   PassaporteTokenRoute: PassaporteTokenRouteWithChildren,
   ProtocoloProtocoloIdRoute: ProtocoloProtocoloIdRoute,
   ReservaTokenRoute: ReservaTokenRoute,

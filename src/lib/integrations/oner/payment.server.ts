@@ -239,3 +239,167 @@ export async function cancelarPagamento(token: string, cartId: string) {
   const r = await onerFetch(`${ONER_API}/api/booking/pay/cancel/${cartId}`, { token, method: "PUT" });
   return r.call;
 }
+
+/* ------------------------------------------------------------------ */
+/* Formas de pagamento permitidas para o carrinho (fonte: fornecedor)  */
+/* ------------------------------------------------------------------ */
+
+export type OnerFormaPagamento = {
+  paymentMethodId: number;
+  paymentMethodName: string;
+  /** Quantidade máxima de cartões aceita pelo fornecedor (ex.: 3). */
+  multipleQuantityUsage: number;
+};
+
+/** GET {api}/api/checkout/v1/configuration/{cartId} */
+export async function consultarFormasPagamento(
+  token: string,
+  cartId: string,
+): Promise<{ call: OnerCall; formas: OnerFormaPagamento[] }> {
+  const url = `${ONER_API}/api/checkout/v1/configuration/${cartId}`;
+  const r = await onerFetch<OnerFormaPagamento[] | { data?: OnerFormaPagamento[] }>(url, { token });
+  const body = r.body as { data?: OnerFormaPagamento[] } | OnerFormaPagamento[] | null;
+  const formas = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+  return { call: r.call, formas };
+}
+
+/* ------------------------------------------------------------------ */
+/* Pix do fornecedor                                                    */
+/* ------------------------------------------------------------------ */
+
+export type PixOnerEntrada = {
+  cartId: string;
+  /** Documento do pagador exigido pelo fornecedor. */
+  documentNumber: string;
+  /** 1 = CPF (tabela de documentos do fornecedor). */
+  documentType: number;
+  valor: number;
+  purchaseForCustomer: boolean;
+  acceptedInsuranceTerm?: boolean;
+  coupon?: string;
+};
+
+/**
+ * Solicita o Pix ao fornecedor.
+ * POST {api}/api/booking/pay/combined/pix
+ * O QR/BR Code não vem nesta resposta: ele é publicado no canal de eventos
+ * do fornecedor (ver aguardarQrCodePixOner).
+ */
+export async function solicitarPixOner(
+  token: string,
+  entrada: PixOnerEntrada,
+): Promise<{ call: OnerCall; raw: string; body: unknown }> {
+  const url = `${ONER_API}/api/booking/pay/combined/pix`;
+  const r = await onerFetch(url, {
+    token,
+    method: "POST",
+    timeoutMs: 120_000,
+    body: {
+      payment: {
+        paymentMethod: ONER_PAYMENT_METHOD.Pix,
+        sourceIp: "",
+        creditCardPayments: [],
+        cartId: entrada.cartId,
+        paymentHubId: "null",
+        fingerprint: "",
+        pixPayment: {
+          documentNumber: entrada.documentNumber,
+          documentType: entrada.documentType,
+        },
+        coupon: entrada.coupon ?? "",
+        submitPaymentStr: new Date().toISOString().replace(/\.\d+Z$/, " GMT+00:00"),
+        purchaseForCustomer: entrada.purchaseForCustomer,
+        acceptedTerms: { insuranceCloseCheckIn: entrada.acceptedInsuranceTerm ?? false },
+      },
+      valueToPay: entrada.valor,
+    },
+  });
+  return { call: r.call, raw: r.raw, body: r.body };
+}
+
+export type PixOnerQrCode = {
+  qrCode: string;
+  expiraEm: string | null;
+  status: string | null;
+};
+
+const ONER_EVENTOS_WS = "wss://event.onertravel.com/production";
+
+/**
+ * Escuta o canal de eventos do fornecedor e devolve o BR Code do Pix.
+ * Chave de assinatura real: `PAY-{cartId}`.
+ */
+export async function aguardarQrCodePixOner(
+  cartId: string,
+  timeoutMs = 90_000,
+): Promise<{ ok: boolean; pix: PixOnerQrCode | null; mensagem?: string }> {
+  return new Promise((resolve) => {
+    let encerrado = false;
+    let ws: WebSocket | null = null;
+
+    const terminar = (r: { ok: boolean; pix: PixOnerQrCode | null; mensagem?: string }) => {
+      if (encerrado) return;
+      encerrado = true;
+      try {
+        ws?.close();
+      } catch {
+        /* ignora */
+      }
+      resolve(r);
+    };
+
+    const relogio = setTimeout(
+      () => terminar({ ok: false, pix: null, mensagem: "tempo esgotado aguardando o Pix" }),
+      timeoutMs,
+    );
+
+    try {
+      ws = new WebSocket(ONER_EVENTOS_WS);
+    } catch (e) {
+      clearTimeout(relogio);
+      return terminar({
+        ok: false,
+        pix: null,
+        mensagem: e instanceof Error ? e.message : String(e),
+      });
+    }
+
+    ws.addEventListener("open", () => {
+      ws?.send(
+        JSON.stringify({
+          action: "OnSubscribe",
+          SubscriptionKey: `PAY-${cartId}`,
+          GetLastMessage: true,
+        }),
+      );
+    });
+
+    ws.addEventListener("message", (ev: MessageEvent) => {
+      try {
+        const dados = JSON.parse(String(ev.data)) as {
+          PaymentStatus?: string;
+          Payments?: Array<{ Pix?: { QrCode?: string; ExpiratedDate?: string } }>;
+        };
+        const pix = dados?.Payments?.[0]?.Pix;
+        if (pix?.QrCode) {
+          clearTimeout(relogio);
+          terminar({
+            ok: true,
+            pix: {
+              qrCode: pix.QrCode,
+              expiraEm: pix.ExpiratedDate ?? null,
+              status: dados.PaymentStatus ?? null,
+            },
+          });
+        }
+      } catch {
+        /* mensagens fora do formato esperado são ignoradas */
+      }
+    });
+
+    ws.addEventListener("error", () => {
+      clearTimeout(relogio);
+      terminar({ ok: false, pix: null, mensagem: "canal de eventos indisponível" });
+    });
+  });
+}
