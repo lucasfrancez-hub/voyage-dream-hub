@@ -80,8 +80,6 @@ export function instalarGestoVoltar(): () => void {
 
   const aplicar = (deslocamento: number, comTransicao: boolean) => {
     if (!alvo) return;
-    const w = window.innerWidth || 1;
-    const progresso = Math.min(deslocamento / w, 1);
     alvo.style.transition = comTransicao
       ? "transform 220ms cubic-bezier(0.2, 0.8, 0.3, 1), border-radius 220ms, box-shadow 220ms"
       : "none";
@@ -90,7 +88,6 @@ export function instalarGestoVoltar(): () => void {
     alvo.style.boxShadow =
       deslocamento > 2 ? "-18px 0 42px rgba(0,0,0,0.4)" : "none";
     alvo.style.overflow = deslocamento > 2 ? "hidden" : "";
-
   };
 
   const limpar = () => {
@@ -102,23 +99,26 @@ export function instalarGestoVoltar(): () => void {
     alvo.style.boxShadow = "";
     alvo.style.overflow = "";
     alvo.style.willChange = "";
-    document.body.style.backgroundColor = "";
   };
 
-  // Só permite o gesto quando existe pra onde voltar: ou alguma camada aberta
-  // (drawer, conversa, foto ampliada) consome o gesto, ou há histórico.
+  // Só permite o gesto quando REALMENTE existe pra onde voltar: ou alguma
+  // camada aberta (drawer, conversa, foto ampliada) consome o gesto, ou o
+  // usuário já navegou aqui dentro e temos a foto da tela anterior.
+  // Numa primeira tela (link direto, recarregar) o gesto nem começa — assim
+  // nunca aparece fundo vazio nem saímos do app.
   const temPraOndeVoltar = (): boolean => {
     const consulta = new CustomEvent("app:swipe-back-query", { cancelable: true });
     const ninguemTratou = window.dispatchEvent(consulta);
     if (!ninguemTratou) return true;
-    return window.history.length > 1;
+    return Boolean(fotoAnterior) && window.history.length > 1;
   };
 
   const voltar = () => {
     const evento = new CustomEvent("app:swipe-back", { cancelable: true });
     const seguiu = window.dispatchEvent(evento);
-    if (seguiu && window.history.length > 1) window.history.back();
+    if (seguiu && fotoAnterior && window.history.length > 1) window.history.back();
   };
+
 
   const inicio = (e: TouchEvent) => {
     if (animando || e.touches.length !== 1) return;
