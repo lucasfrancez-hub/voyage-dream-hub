@@ -65,6 +65,7 @@ import { Route as AdminMotorFrtRouteImport } from './routes/admin.motor-frt'
 import { Route as AdminMotorPacoteRouteImport } from './routes/admin.motor-pacote'
 import { Route as AdminMotorTremRouteImport } from './routes/admin.motor-trem'
 import { Route as AdminNotasFiscaisRouteImport } from './routes/admin.notas-fiscais'
+import { Route as AdminOnerRouteImport } from './routes/admin.oner'
 import { Route as AdminPacotesRouteImport } from './routes/admin.pacotes'
 import { Route as AdminPacotesCativaRouteImport } from './routes/admin.pacotes-cativa'
 import { Route as AdminPagamentosRouteImport } from './routes/admin.pagamentos'
@@ -146,6 +147,8 @@ import { Route as ApiPublicInstagramWebhookRouteImport } from './routes/api/publ
 import { Route as ApiPublicItauPixWebhookRouteImport } from './routes/api/public/itau-pix-webhook'
 import { Route as ApiPublicMotorBuscaRouteImport } from './routes/api/public/motor-busca'
 import { Route as ApiPublicNfseAtendenetTestRouteImport } from './routes/api/public/nfse-atendenet-test'
+import { Route as ApiPublicOnerOtpInboxRouteImport } from './routes/api/public/oner-otp-inbox'
+import { Route as ApiPublicOnerSyncRouteImport } from './routes/api/public/oner-sync'
 import { Route as ApiPublicOtpInboxRouteImport } from './routes/api/public/otp-inbox'
 import { Route as ApiPublicPromoCardRouteImport } from './routes/api/public/promo-card'
 import { Route as ApiPublicTestFlightAlertRouteImport } from './routes/api/public/test-flight-alert'
@@ -485,6 +488,11 @@ const AdminMotorTremRoute = AdminMotorTremRouteImport.update({
 const AdminNotasFiscaisRoute = AdminNotasFiscaisRouteImport.update({
   id: '/notas-fiscais',
   path: '/notas-fiscais',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOnerRoute = AdminOnerRouteImport.update({
+  id: '/oner',
+  path: '/oner',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPacotesRoute = AdminPacotesRouteImport.update({
@@ -899,6 +907,16 @@ const ApiPublicNfseAtendenetTestRoute =
     path: '/api/public/nfse-atendenet-test',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicOnerOtpInboxRoute = ApiPublicOnerOtpInboxRouteImport.update({
+  id: '/api/public/oner-otp-inbox',
+  path: '/api/public/oner-otp-inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOnerSyncRoute = ApiPublicOnerSyncRouteImport.update({
+  id: '/api/public/oner-sync',
+  path: '/api/public/oner-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicOtpInboxRoute = ApiPublicOtpInboxRouteImport.update({
   id: '/api/public/otp-inbox',
   path: '/api/public/otp-inbox',
@@ -1294,6 +1312,7 @@ export interface FileRoutesByFullPath {
   '/admin/motor-pacote': typeof AdminMotorPacoteRouteWithChildren
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
+  '/admin/oner': typeof AdminOnerRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pacotes-cativa': typeof AdminPacotesCativaRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1370,6 +1389,8 @@ export interface FileRoutesByFullPath {
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
+  '/api/public/oner-otp-inbox': typeof ApiPublicOnerOtpInboxRoute
+  '/api/public/oner-sync': typeof ApiPublicOnerSyncRoute
   '/api/public/otp-inbox': typeof ApiPublicOtpInboxRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
@@ -1490,6 +1511,7 @@ export interface FileRoutesByTo {
   '/admin/motor-frt': typeof AdminMotorFrtRoute
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
+  '/admin/oner': typeof AdminOnerRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pacotes-cativa': typeof AdminPacotesCativaRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1566,6 +1588,8 @@ export interface FileRoutesByTo {
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
+  '/api/public/oner-otp-inbox': typeof ApiPublicOnerOtpInboxRoute
+  '/api/public/oner-sync': typeof ApiPublicOnerSyncRoute
   '/api/public/otp-inbox': typeof ApiPublicOtpInboxRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
@@ -1690,6 +1714,7 @@ export interface FileRoutesById {
   '/admin/motor-pacote': typeof AdminMotorPacoteRouteWithChildren
   '/admin/motor-trem': typeof AdminMotorTremRoute
   '/admin/notas-fiscais': typeof AdminNotasFiscaisRoute
+  '/admin/oner': typeof AdminOnerRoute
   '/admin/pacotes': typeof AdminPacotesRoute
   '/admin/pacotes-cativa': typeof AdminPacotesCativaRoute
   '/admin/pagamentos': typeof AdminPagamentosRoute
@@ -1766,6 +1791,8 @@ export interface FileRoutesById {
   '/api/public/itau-pix-webhook': typeof ApiPublicItauPixWebhookRoute
   '/api/public/motor-busca': typeof ApiPublicMotorBuscaRoute
   '/api/public/nfse-atendenet-test': typeof ApiPublicNfseAtendenetTestRoute
+  '/api/public/oner-otp-inbox': typeof ApiPublicOnerOtpInboxRoute
+  '/api/public/oner-sync': typeof ApiPublicOnerSyncRoute
   '/api/public/otp-inbox': typeof ApiPublicOtpInboxRoute
   '/api/public/promo-card': typeof ApiPublicPromoCardRoute
   '/api/public/test-flight-alert': typeof ApiPublicTestFlightAlertRoute
@@ -1891,6 +1918,7 @@ export interface FileRouteTypes {
     | '/admin/motor-pacote'
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
+    | '/admin/oner'
     | '/admin/pacotes'
     | '/admin/pacotes-cativa'
     | '/admin/pagamentos'
@@ -1967,6 +1995,8 @@ export interface FileRouteTypes {
     | '/api/public/itau-pix-webhook'
     | '/api/public/motor-busca'
     | '/api/public/nfse-atendenet-test'
+    | '/api/public/oner-otp-inbox'
+    | '/api/public/oner-sync'
     | '/api/public/otp-inbox'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
@@ -2087,6 +2117,7 @@ export interface FileRouteTypes {
     | '/admin/motor-frt'
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
+    | '/admin/oner'
     | '/admin/pacotes'
     | '/admin/pacotes-cativa'
     | '/admin/pagamentos'
@@ -2163,6 +2194,8 @@ export interface FileRouteTypes {
     | '/api/public/itau-pix-webhook'
     | '/api/public/motor-busca'
     | '/api/public/nfse-atendenet-test'
+    | '/api/public/oner-otp-inbox'
+    | '/api/public/oner-sync'
     | '/api/public/otp-inbox'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
@@ -2286,6 +2319,7 @@ export interface FileRouteTypes {
     | '/admin/motor-pacote'
     | '/admin/motor-trem'
     | '/admin/notas-fiscais'
+    | '/admin/oner'
     | '/admin/pacotes'
     | '/admin/pacotes-cativa'
     | '/admin/pagamentos'
@@ -2362,6 +2396,8 @@ export interface FileRouteTypes {
     | '/api/public/itau-pix-webhook'
     | '/api/public/motor-busca'
     | '/api/public/nfse-atendenet-test'
+    | '/api/public/oner-otp-inbox'
+    | '/api/public/oner-sync'
     | '/api/public/otp-inbox'
     | '/api/public/promo-card'
     | '/api/public/test-flight-alert'
@@ -2481,6 +2517,8 @@ export interface RootRouteChildren {
   ApiPublicItauPixWebhookRoute: typeof ApiPublicItauPixWebhookRoute
   ApiPublicMotorBuscaRoute: typeof ApiPublicMotorBuscaRoute
   ApiPublicNfseAtendenetTestRoute: typeof ApiPublicNfseAtendenetTestRoute
+  ApiPublicOnerOtpInboxRoute: typeof ApiPublicOnerOtpInboxRoute
+  ApiPublicOnerSyncRoute: typeof ApiPublicOnerSyncRoute
   ApiPublicOtpInboxRoute: typeof ApiPublicOtpInboxRoute
   ApiPublicPromoCardRoute: typeof ApiPublicPromoCardRoute
   ApiPublicTestFlightAlertRoute: typeof ApiPublicTestFlightAlertRoute
@@ -2926,6 +2964,13 @@ declare module '@tanstack/react-router' {
       path: '/notas-fiscais'
       fullPath: '/admin/notas-fiscais'
       preLoaderRoute: typeof AdminNotasFiscaisRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/oner': {
+      id: '/admin/oner'
+      path: '/oner'
+      fullPath: '/admin/oner'
+      preLoaderRoute: typeof AdminOnerRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/pacotes': {
@@ -3495,6 +3540,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicNfseAtendenetTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/oner-otp-inbox': {
+      id: '/api/public/oner-otp-inbox'
+      path: '/api/public/oner-otp-inbox'
+      fullPath: '/api/public/oner-otp-inbox'
+      preLoaderRoute: typeof ApiPublicOnerOtpInboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/oner-sync': {
+      id: '/api/public/oner-sync'
+      path: '/api/public/oner-sync'
+      fullPath: '/api/public/oner-sync'
+      preLoaderRoute: typeof ApiPublicOnerSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/otp-inbox': {
       id: '/api/public/otp-inbox'
       path: '/api/public/otp-inbox'
@@ -3978,6 +4037,7 @@ interface AdminRouteChildren {
   AdminMotorPacoteRoute: typeof AdminMotorPacoteRouteWithChildren
   AdminMotorTremRoute: typeof AdminMotorTremRoute
   AdminNotasFiscaisRoute: typeof AdminNotasFiscaisRoute
+  AdminOnerRoute: typeof AdminOnerRoute
   AdminPacotesRoute: typeof AdminPacotesRoute
   AdminPacotesCativaRoute: typeof AdminPacotesCativaRoute
   AdminPagamentosRoute: typeof AdminPagamentosRoute
@@ -4050,6 +4110,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMotorPacoteRoute: AdminMotorPacoteRouteWithChildren,
   AdminMotorTremRoute: AdminMotorTremRoute,
   AdminNotasFiscaisRoute: AdminNotasFiscaisRoute,
+  AdminOnerRoute: AdminOnerRoute,
   AdminPacotesRoute: AdminPacotesRoute,
   AdminPacotesCativaRoute: AdminPacotesCativaRoute,
   AdminPagamentosRoute: AdminPagamentosRoute,
@@ -4233,6 +4294,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicItauPixWebhookRoute: ApiPublicItauPixWebhookRoute,
   ApiPublicMotorBuscaRoute: ApiPublicMotorBuscaRoute,
   ApiPublicNfseAtendenetTestRoute: ApiPublicNfseAtendenetTestRoute,
+  ApiPublicOnerOtpInboxRoute: ApiPublicOnerOtpInboxRoute,
+  ApiPublicOnerSyncRoute: ApiPublicOnerSyncRoute,
   ApiPublicOtpInboxRoute: ApiPublicOtpInboxRoute,
   ApiPublicPromoCardRoute: ApiPublicPromoCardRoute,
   ApiPublicTestFlightAlertRoute: ApiPublicTestFlightAlertRoute,
