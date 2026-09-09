@@ -1,17 +1,16 @@
 /**
  * Fluxo padrão da Comprar Viagem / Oner — sempre na mesma ordem.
  *
- * A operação NUNCA pula etapa: a tela de pagamento só é aberta depois do
- * carrinho lido, da sessão autenticada (código por e-mail) e dos passageiros
- * gravados no fornecedor. Isso evita carrinho expirado, passageiro faltando e
- * pagamento em cima de reserva inválida.
+ * Não existe "fazer login" no começo: o código do e-mail só é pedido no
+ * momento de ir para o pagamento, que é onde o fornecedor pede. Assim a
+ * sessão não expira enquanto o carrinho e os passageiros são preparados.
  *
  * Ordem fixa:
  *   1. carrinho gerado no nosso motor de busca ("Comprar agora")
- *   2. sessão da conta operacional (login + código do e-mail)
- *   3. leitura/validação do carrinho
+ *   2. leitura/validação do carrinho
+ *   3. ir para o pagamento — é aqui que entra o código do e-mail
  *   4. passageiros (primeira etapa do checkout)
- *   5. tela de pagamento (outro link, já com formas e parcelas do fornecedor)
+ *   5. tela de pagamento (formas e parcelas do fornecedor)
  *
  * SERVER-ONLY.
  */
@@ -27,11 +26,12 @@ export type ChaveEtapa = "carrinho_link" | "sessao" | "carrinho" | "passageiros"
 
 export const ONER_FLOW_STEPS: Array<{ chave: ChaveEtapa; titulo: string }> = [
   { chave: "carrinho_link", titulo: "Carrinho do nosso portal" },
-  { chave: "sessao", titulo: "Login e código do e-mail" },
   { chave: "carrinho", titulo: "Conferência do carrinho" },
+  { chave: "sessao", titulo: "Ir para o pagamento (código do e-mail)" },
   { chave: "passageiros", titulo: "Dados do passageiro" },
   { chave: "pagamento", titulo: "Tela de pagamento" },
 ];
+
 
 export type EtapaResultado = {
   chave: ChaveEtapa;
@@ -198,29 +198,34 @@ export async function executarFluxoOner(entrada: EntradaFluxo): Promise<Resultad
   }
   etapas.push(etapa("carrinho_link", true, `Carrinho ${cartId}`, { cartId, site: ONER_SITE }));
 
-  // 2 — sessão: login com código do e-mail
-  const token = entrada.semNovoLogin
-    ? await tokenAtual()
-    : await obterToken({
-        integrationOrderId: entrada.integrationOrderId ?? null,
-        ...(entrada.esperarCodigoMs === undefined ? {} : { esperarCodigoMs: entrada.esperarCodigoMs }),
-      });
-  if (!token) {
-    etapas.push(
-      etapa(
-        "sessao",
-        false,
-        entrada.semNovoLogin
-          ? "Não há sessão ativa. Peça o código de acesso para entrar."
-          : "O código do e-mail não chegou a tempo.",
-      ),
-    );
-    return parar("sessao", cartId);
-  }
-  etapas.push(etapa("sessao", true, "Conta operacional conectada"));
+  // 2 — conferência do carrinho (sem pedir código ainda)
+  const sessaoExistente = await tokenAtual();
+  let carrinho = await lerCarrinho(cartId, sessaoExistente ?? "", entrada.integrationOrderId ?? undefined);
 
-  // 3 — conferência do carrinho
-  const carrinho = await lerCarrinho(cartId, token, entrada.integrationOrderId ?? undefined);
+  // 3 — ir para o pagamento: é aqui que o fornecedor pede o código do e-mail
+  let token = sessaoExistente;
+  if (!token || !carrinho.call.ok) {
+    token = entrada.semNovoLogin
+      ? await tokenAtual()
+      : await obterToken({
+          integrationOrderId: entrada.integrationOrderId ?? null,
+          ...(entrada.esperarCodigoMs === undefined ? {} : { esperarCodigoMs: entrada.esperarCodigoMs }),
+        });
+    if (!token) {
+      etapas.push(
+        etapa(
+          "sessao",
+          false,
+          entrada.semNovoLogin
+            ? "Não há sessão ativa. Peça o código de acesso para seguir ao pagamento."
+            : "O código do e-mail não chegou a tempo.",
+        ),
+      );
+      return parar("sessao", cartId);
+    }
+    carrinho = await lerCarrinho(cartId, token, entrada.integrationOrderId ?? undefined);
+  }
+
   const resumo = carrinho.resumo;
   if (!carrinho.call.ok || !resumo) {
     etapas.push(etapa("carrinho", false, `Não consegui ler o carrinho (${carrinho.call.status}).`));
@@ -237,6 +242,8 @@ export async function executarFluxoOner(entrada: EntradaFluxo): Promise<Resultad
   etapas.push(
     etapa("carrinho", true, `Carrinho válido — total ${resumo.total} ${resumo.moeda ?? "BRL"}`, resumo),
   );
+  etapas.push(etapa("sessao", true, "Pagamento liberado com a conta operacional"));
+
 
   // 4 — passageiros (primeira etapa do checkout)
   if (entrada.passageiros?.length) {

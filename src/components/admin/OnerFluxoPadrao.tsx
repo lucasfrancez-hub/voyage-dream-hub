@@ -1,7 +1,8 @@
 /**
  * Fluxo padrão da Comprar Viagem, sempre na mesma ordem:
- * carrinho do nosso portal → login com código do e-mail → dados do passageiro
- * → tela de pagamento. Nada é pulado, para não dar erro no meio do caminho.
+ * carrinho do nosso portal → ir para o pagamento (é aí que entra o código do
+ * e-mail) → dados do passageiro → tela de pagamento. Nada é pulado.
+
  */
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -57,7 +58,9 @@ export function OnerFluxoPadrao() {
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         Cole o endereço do carrinho que o nosso buscador gera no “Comprar agora”. O caminho é sempre
-        o mesmo: carrinho, entrada com o código do e-mail, dados do passageiro e só então a tela de
+        o mesmo: carrinho, ir para o pagamento (é aí que chega o código do e-mail), dados do
+        passageiro e então a tela de
+
         pagamento.
       </p>
 
