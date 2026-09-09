@@ -114,7 +114,10 @@ export async function guardarCartaoNoCofre(
   return { ok: false, cofre: null, mensagem: "cofre indisponível" };
 }
 
-/** Parcelas do carrinho inteiro (sem cartão informado). */
+/**
+ * Parcelas do carrinho inteiro. Observação: o fornecedor responde 405 em GET
+ * neste caminho — a consulta válida é a por cartão (consultarParcelasDoCartao).
+ */
 export async function consultarParcelas(
   token: string,
   cartId: string,
