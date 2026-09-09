@@ -4,6 +4,7 @@
  * SERVER-ONLY.
  */
 import {
+  ONER_MANUAL_STATES,
   ONER_PROVIDER,
   proximoIntervaloSegundos,
   type OnerPaymentMethod,
@@ -42,6 +43,16 @@ export type IntegrationOrder = {
   manual_checklist: Partial<Record<OnerPixStep, MarcaEtapaManual>>;
   manual_notes: string | null;
   manual_owner_user_id: string | null;
+  original_cart_id: string | null;
+  fulfillment_cart_id: string | null;
+  customer_total: number | null;
+  provider_original_total: number | null;
+  viaair_margin: number | null;
+  commission_final: number | null;
+  provider_pix_expires_at: string | null;
+  provider_payment_authorized_at: string | null;
+  provider_payment_authorized_by: string | null;
+  provider_payment_reference: string | null;
   customer_name: string | null;
   customer_email: string | null;
   customer_payment_id: string | null;
@@ -254,7 +265,7 @@ export async function operacoesPendentes(limite = 20): Promise<IntegrationOrder[
     .select("*")
     .eq("provider", ONER_PROVIDER)
     // O Pix manual não entra no acompanhamento automático: quem conduz é a equipe.
-    .not("state", "in", "(COMPLETE,CANCELLED,MANUAL_REVIEW,FAILED,PIX_MANUAL_PREPARATION)")
+    .not("state", "in", `(COMPLETE,CANCELLED,MANUAL_REVIEW,FAILED,${ONER_MANUAL_STATES.join(",")})`)
 
     .or(`next_poll_at.is.null,next_poll_at.lte.${agora}`)
     .order("updated_at", { ascending: true })
@@ -383,4 +394,80 @@ export async function listarEventos(integrationOrderId: string, limite = 200) {
     .order("created_at", { ascending: false })
     .limit(limite);
   return data ?? [];
+}
+
+
+/* ---------------------------------------------------------------------------
+ * Histórico de carrinhos usados no fornecedor.
+ * Um mesmo pedido VIA AIR pode passar por vários carrinhos na Oner (o original
+ * e outro recriado para zerar a comissão no Pix). Nada é sobrescrito.
+ * ------------------------------------------------------------------------- */
+
+export type ProviderAttemptPurpose = "ORIGINAL_QUOTE" | "CARD_CHECKOUT" | "PIX_REBOOK";
+
+export type ProviderAttempt = {
+  id: string;
+  viaair_order_id: string | null;
+  integration_order_id: string | null;
+  provider: string;
+  cart_id: string | null;
+  purpose: ProviderAttemptPurpose;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function registrarTentativaCarrinho(input: {
+  viaairOrderId?: string | null;
+  integrationOrderId?: string | null;
+  cartId?: string | null;
+  purpose: ProviderAttemptPurpose;
+  status?: string;
+  notes?: string | null;
+}): Promise<ProviderAttempt | null> {
+  const db = await admin();
+  const { data, error } = await db
+    .from("provider_attempts")
+    .insert({
+      viaair_order_id: input.viaairOrderId ?? null,
+      integration_order_id: input.integrationOrderId ?? null,
+      provider: ONER_PROVIDER,
+      cart_id: input.cartId ?? null,
+      purpose: input.purpose,
+      status: input.status ?? "open",
+      notes: input.notes ?? null,
+    } as never)
+    .select("*")
+    .maybeSingle();
+  if (error) throw new Error(`Não foi possível registrar o carrinho: ${error.message}`);
+  return (data as unknown as ProviderAttempt) ?? null;
+}
+
+export async function listarTentativasCarrinho(
+  integrationOrderId: string,
+): Promise<ProviderAttempt[]> {
+  const db = await admin();
+  const { data } = await db
+    .from("provider_attempts")
+    .select("*")
+    .eq("integration_order_id", integrationOrderId)
+    .order("created_at", { ascending: true });
+  return (data as unknown as ProviderAttempt[]) ?? [];
+}
+
+/** Operação Oner ligada a um pedido VIA AIR (a tela de Pedidos usa isto). */
+export async function buscarOperacaoPorPedido(
+  viaairOrderId: string,
+): Promise<IntegrationOrder | null> {
+  const db = await admin();
+  const { data } = await db
+    .from("integration_orders")
+    .select("*")
+    .eq("provider", ONER_PROVIDER)
+    .eq("viaair_order_id", viaairOrderId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as unknown as IntegrationOrder) ?? null;
 }
