@@ -13,6 +13,7 @@ import {
   onerStatusConexao,
 } from "@/lib/integrations/oner/admin.functions";
 import { OnerPixManual } from "@/components/admin/OnerPixManual";
+import { OnerFluxoPadrao } from "@/components/admin/OnerFluxoPadrao";
 
 
 export const Route = createFileRoute("/admin/oner")({
@@ -138,6 +139,9 @@ function PainelOner() {
           </span>
         </div>
       </section>
+
+      {/* Fluxo padrão: carrinho → pagamento */}
+      <OnerFluxoPadrao />
 
       {/* Pix manual */}
       <OnerPixManual />
