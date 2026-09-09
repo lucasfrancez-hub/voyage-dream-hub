@@ -253,7 +253,9 @@ export async function operacoesPendentes(limite = 20): Promise<IntegrationOrder[
     .from("integration_orders")
     .select("*")
     .eq("provider", ONER_PROVIDER)
-    .not("state", "in", "(COMPLETE,CANCELLED,MANUAL_REVIEW,FAILED)")
+    // O Pix manual não entra no acompanhamento automático: quem conduz é a equipe.
+    .not("state", "in", "(COMPLETE,CANCELLED,MANUAL_REVIEW,FAILED,PIX_MANUAL_PREPARATION)")
+
     .or(`next_poll_at.is.null,next_poll_at.lte.${agora}`)
     .order("updated_at", { ascending: true })
     .limit(limite);
