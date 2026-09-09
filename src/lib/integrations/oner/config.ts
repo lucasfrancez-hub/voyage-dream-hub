@@ -116,13 +116,34 @@ export const ONER_ATTENTION_STATES: OnerState[] = [
   "PRICE_CHANGED",
   "ONER_AUTH_REQUIRED",
   "PIX_MANUAL_PREPARATION",
+  "ONER_MANUAL_PREPARATION",
+  "PROVIDER_PAYMENT_AUTHORIZATION_REQUIRED",
 ];
 
+/** Estados conduzidos pela equipe: o acompanhamento automático não mexe neles. */
+export const ONER_MANUAL_STATES: OnerState[] = [
+  "PIX_MANUAL_PREPARATION",
+  "ONER_MANUAL_PREPARATION",
+  "ONER_CART_READY",
+  "ONER_COMMISSION_ZEROED",
+  "ONER_PIX_READY",
+  "PROVIDER_PAYMENT_AUTHORIZATION_REQUIRED",
+];
 
 /** Texto amigável de cada etapa, para telas internas. */
 export const ONER_STATE_LABEL: Record<OnerState, string> = {
   CART_CREATED: "Oferta guardada",
   PIX_MANUAL_PREPARATION: "Pix — preparar manualmente",
+  PAYMENT_RECEIVED: "Pagamento recebido — confirmando sua reserva",
+  ONER_MANUAL_PREPARATION: "Preparando carrinho Oner",
+  ONER_CART_READY: "Carrinho Oner pronto",
+  ONER_COMMISSION_ZEROED: "Comissão zerada",
+  ONER_PIX_READY: "Pix Oner gerado",
+  PROVIDER_PAYMENT_AUTHORIZATION_REQUIRED: "Aguardando autorização de pagamento",
+  PROVIDER_PAYMENT_PROCESSING: "Pagando o fornecedor",
+  PROVIDER_PAID: "Fornecedor pago",
+  ONER_ORDER_FOUND: "Pedido F-… localizado",
+
 
   PASSENGERS_PENDING: "Aguardando passageiros",
   PASSENGERS_COMPLETED: "Passageiros preenchidos",
