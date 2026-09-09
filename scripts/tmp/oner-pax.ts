@@ -15,6 +15,6 @@ const r = await enviarPassageiros(cartId, [{
   title: "MR",
   contact: { emailAddress: "lucas@voeair.com", ddi: 55, phoneNumber: "44999093642" },
 }], token);
-console.log("envio", r.ok, r.call.status, r.call.message);
+console.log("envio", r.ok, r.call.status); console.log(String(r.call.message));
 const c = await lerCarrinho(cartId, token);
 console.log("passageirosPersistidos", c.resumo?.passageirosPersistidos, "total", c.resumo?.total);
