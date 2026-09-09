@@ -302,7 +302,6 @@ export function OnerOrderSection({ orderId }: { orderId: string }) {
               Autorizar pagamento
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </Card>
