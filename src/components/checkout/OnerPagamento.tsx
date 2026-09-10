@@ -92,6 +92,25 @@ export function OnerPagamento({
   const [gerandoPix, setGerandoPix] = useState(false);
   const [documentoPix, setDocumentoPix] = useState("");
 
+  const [pagador, setPagador] = useState({
+    nome: "",
+    sobrenome: "",
+    documentoNumero: "",
+    nascimento: "",
+    email: "",
+    telefone: "",
+    cep: "",
+    rua: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
+  });
+  const mudarPagador = (patch: Partial<typeof pagador>) =>
+    setPagador((prev) => ({ ...prev, ...patch }));
+
+
   useEffect(() => {
     let ativo = true;
     void (async () => {
