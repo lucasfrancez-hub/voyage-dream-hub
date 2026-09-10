@@ -5,9 +5,9 @@ export const Route = createFileRoute("/admin/checkout/$cartId")({
   component: CheckoutInterno,
   head: () => ({
     meta: [
-      { title: "Checkout de voos | Admin Via Air" },
+      { title: "Checkout de voos | Admin VIA AIR" },
       { name: "description", content: "Checkout interno: passageiros e pagamento da reserva aérea." },
-      { property: "og:title", content: "Checkout de voos | Admin Via Air" },
+      { property: "og:title", content: "Checkout de voos | Admin VIA AIR" },
       { property: "og:description", content: "Checkout interno: passageiros e pagamento da reserva aérea." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

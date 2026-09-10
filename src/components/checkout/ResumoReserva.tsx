@@ -83,7 +83,7 @@ export function ResumoReserva({
 
   return (
     <aside className="h-fit lg:sticky lg:top-6">
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-none">
         <h3 className="font-semibold">Resumo da reserva</h3>
 
         {resumo.voos.map((v, i) => (

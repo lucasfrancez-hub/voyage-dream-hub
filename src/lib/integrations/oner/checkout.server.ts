@@ -92,6 +92,7 @@ export type ResumoCarrinho = {
   voos: VooResumo[];
   precos: Array<{ tipo: string; quantidade: number; total: number }>;
   parcelas: ParcelaResumo[];
+  passageiros: Array<{ nome: string; tipo: string }>;
   passageirosPersistidos: boolean;
 };
 
@@ -100,9 +101,11 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 function ponto(origem: unknown): PontoVoo {
   const d = (pick(origem, "date") ?? {}) as { year?: number; month?: number; day?: number };
   const t = (pick(origem, "time") ?? {}) as { hour?: number; minute?: number };
+  const iata = String(pick(origem, "iata") ?? "");
+  const cidadeOriginal = String(pick(origem, "city") ?? "").trim();
   return {
-    iata: String(pick(origem, "iata") ?? ""),
-    cidade: String(pick(origem, "city") ?? "").trim(),
+    iata,
+    cidade: iata.toUpperCase() === "MGF" ? "Paranavaí" : cidadeOriginal,
     aeroporto: String(pick(origem, "name") ?? "").trim(),
     data: d?.year ? `${pad2(d.day ?? 1)}/${pad2(d.month ?? 1)}/${d.year}` : "",
     hora: t?.hour != null ? `${pad2(t.hour)}:${pad2(t.minute ?? 0)}` : "",
@@ -207,6 +210,14 @@ export function resumirCarrinho(payload: unknown): ResumoCarrinho {
       total: num(pick(o, "total")) ?? 0,
       interestRate: num(pick(o, "interestRate")) ?? 0,
       hasRate: Boolean(pick(o, "hasRate")),
+    })),
+    passageiros: passageiros.map((p) => ({
+      nome: [pick(p, "firstName", "name"), pick(p, "lastName", "surname")]
+        .filter(Boolean)
+        .map(String)
+        .join(" ")
+        .trim(),
+      tipo: String(pick(p, "passengerTypeCode", "typeCode", "type") ?? "ADT"),
     })),
     passageirosPersistidos:
       passageiros.length > 0 && passageiros.every((p) => Boolean(pick(p, "firstName", "name"))),
