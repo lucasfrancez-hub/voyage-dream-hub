@@ -1343,6 +1343,7 @@ function SummaryCard({
   const cond =
     condIn && condIn.interestFree.installments < condOut.interestFree.installments ? condIn : condOut;
   const [orderOpen, setOrderOpen] = useState(false);
+  const irParaCheckout = useNavigate();
   const [cartUrl, setCartUrl] = useState<string | null>(null);
   const createCart = useServerFn(publicMode ? onerCreateFlightCartPublic : onerCreateFlightCart);
   const logLead = useServerFn(createPublicFlightLead);
