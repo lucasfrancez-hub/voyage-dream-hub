@@ -1663,7 +1663,24 @@ function SummaryCard({
             <Button
               variant="outline"
               disabled={!searchKey || cartMut.isPending}
-              onClick={() => cartMut.mutate()}
+              onClick={async () => {
+                try {
+                  const r = await cartMut.mutateAsync();
+                  const id = r.url.match(
+                    /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/,
+                  )?.[0];
+                  if (!id) {
+                    toast.error("Não foi possível abrir o checkout desta reserva.");
+                    return;
+                  }
+                  void irParaCheckout({
+                    to: "/admin/checkout/$cartId",
+                    params: { cartId: id.toLowerCase() },
+                  });
+                } catch {
+                  /* erro já sinalizado pela mutação */
+                }
+              }}
               className="w-full py-5 text-[10px] font-black uppercase tracking-[0.15em]"
             >
               {cartMut.isPending ? (
