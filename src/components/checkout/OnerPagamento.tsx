@@ -345,7 +345,7 @@ export function OnerPagamento({
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-6">
         {erro ? (
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
@@ -353,15 +353,16 @@ export function OnerPagamento({
           </div>
         ) : null}
 
-        <section className="rounded-2xl border border-border bg-card p-6">
+        <section className="rounded-xl border border-border bg-card p-6">
           <h2 className="mb-4 font-semibold">Pagamento</h2>
           <p className="mb-4 text-sm text-muted-foreground">Como prefere pagar?</p>
 
           <div className="grid grid-cols-2 gap-3">
-            <button
+            <Button
+              variant="outline"
               type="button"
               onClick={() => setMetodo("cartao")}
-              className={`rounded-xl border p-4 text-left transition ${
+              className={`h-auto justify-start rounded-xl border p-4 text-left transition ${
                 metodo === "cartao" ? "border-primary bg-primary/5" : "border-border bg-background"
               }`}
             >
@@ -372,13 +373,14 @@ export function OnerPagamento({
               <p className="mt-2 text-xs text-muted-foreground">
                 {maxCartoes > 1 ? `Pague com até ${maxCartoes} cartões.` : "Pagamento em um cartão."}
               </p>
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="outline"
               type="button"
               disabled={!aceitaPix}
               onClick={() => setMetodo("pix")}
-              className={`rounded-xl border p-4 text-left transition disabled:opacity-50 ${
+              className={`h-auto justify-start rounded-xl border p-4 text-left transition disabled:opacity-50 ${
                 metodo === "pix" ? "border-primary bg-primary/5" : "border-border bg-background"
               }`}
             >
@@ -387,7 +389,7 @@ export function OnerPagamento({
                 <span className="font-semibold">Pix</span>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">Pagamento por QR Code.</p>
-            </button>
+            </Button>
           </div>
 
           {metodo === "cartao" ? (
@@ -397,18 +399,19 @@ export function OnerPagamento({
                   <div className="mb-2 text-xs text-muted-foreground">Quantos cartões deseja usar?</div>
                   <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-border bg-background p-1.5">
                     {Array.from({ length: Math.min(3, maxCartoes) }, (_, i) => i + 1).map((n) => (
-                      <button
+                      <Button
+                        variant="ghost"
                         key={n}
                         type="button"
                         onClick={() => void escolherQuantidade(n)}
-                        className={`rounded-lg px-3 py-2.5 text-xs font-semibold transition ${
+                        className={`h-auto rounded-lg px-3 py-2.5 text-xs font-semibold transition ${
                           quantidade === n
                             ? "bg-primary text-primary-foreground shadow-sm"
                             : "text-muted-foreground hover:bg-card hover:text-foreground"
                         }`}
                       >
                         {n} {n === 1 ? "cartão" : "cartões"}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -453,15 +456,29 @@ export function OnerPagamento({
                         {["VISA", "MASTERCARD", "ELO", "AMEX", "DINERS", "HIPER"].map((bandeira) => {
                           const ativa = c.bandeira?.toUpperCase().includes(bandeira === "MASTERCARD" ? "MASTER" : bandeira);
                           return (
-                            <div
+                            <Button
+                              type="button"
+                              variant="outline"
                               key={bandeira}
-                              className={`flex h-11 min-w-16 items-center justify-center rounded-xl border p-1.5 transition ${ativa ? "border-primary bg-primary/5" : "border-border opacity-60 grayscale"}`}
+                              onClick={() => atualizar(i, { bandeira, opcoes: null, parcela: null })}
+                              className={`h-11 min-w-16 rounded-xl border p-1.5 transition ${ativa ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border bg-background opacity-80"}`}
                               aria-label={bandeira}
+                              aria-pressed={Boolean(ativa)}
                             >
-                              <span className="flex h-8 min-w-14 items-center justify-center rounded-md bg-background px-2 text-[9px] font-black">
-                                {bandeira === "MASTERCARD" ? "● ●" : bandeira}
-                              </span>
-                            </div>
+                              {bandeira === "MASTERCARD" ? (
+                                <span className="flex min-w-14 flex-col items-center justify-center text-[7px] font-bold leading-none" aria-hidden="true">
+                                  <span className="relative mb-0.5 h-5 w-8">
+                                    <span className="absolute left-0 top-0 h-5 w-5 rounded-full bg-destructive" />
+                                    <span className="absolute right-0 top-0 h-5 w-5 rounded-full bg-primary opacity-90" />
+                                  </span>
+                                  mastercard
+                                </span>
+                              ) : (
+                                <span className="flex h-8 min-w-14 items-center justify-center rounded-md bg-background px-2 text-[9px] font-black">
+                                  {bandeira}
+                                </span>
+                              )}
+                            </Button>
                           );
                         })}
                       </div>
@@ -617,7 +634,7 @@ export function OnerPagamento({
         </section>
 
         {metodo === "cartao" ? (
-          <section className="rounded-2xl border border-border bg-card p-6">
+          <section className="rounded-xl border border-border bg-card p-6">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 className="font-semibold">Dados de pagamento</h2>

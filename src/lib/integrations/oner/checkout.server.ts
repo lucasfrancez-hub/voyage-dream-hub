@@ -92,6 +92,7 @@ export type ResumoCarrinho = {
   voos: VooResumo[];
   precos: Array<{ tipo: string; quantidade: number; total: number }>;
   parcelas: ParcelaResumo[];
+  passageiros: Array<{ nome: string; tipo: string }>;
   passageirosPersistidos: boolean;
 };
 
@@ -207,6 +208,14 @@ export function resumirCarrinho(payload: unknown): ResumoCarrinho {
       total: num(pick(o, "total")) ?? 0,
       interestRate: num(pick(o, "interestRate")) ?? 0,
       hasRate: Boolean(pick(o, "hasRate")),
+    })),
+    passageiros: passageiros.map((p) => ({
+      nome: [pick(p, "firstName", "name"), pick(p, "lastName", "surname")]
+        .filter(Boolean)
+        .map(String)
+        .join(" ")
+        .trim(),
+      tipo: String(pick(p, "passengerTypeCode", "typeCode", "type") ?? "ADT"),
     })),
     passageirosPersistidos:
       passageiros.length > 0 && passageiros.every((p) => Boolean(pick(p, "firstName", "name"))),

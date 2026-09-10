@@ -151,8 +151,11 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
   }
 
   const listaPassageiros = passageiros.map((p, i) => ({
-    nome: [p.nome, p.sobrenome].filter(Boolean).join(" ").trim() || `Passageiro ${i + 1}`,
-    tipo: p.tipo,
+    nome:
+      [p.nome, p.sobrenome].filter(Boolean).join(" ").trim() ||
+      dados?.resumo.passageiros[i]?.nome ||
+      `Passageiro ${i + 1}`,
+    tipo: p.tipo || dados?.resumo.passageiros[i]?.tipo,
   }));
 
   const resumoLateral = dados ? (
@@ -164,7 +167,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
   ) : null;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <div className="via-checkout mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <h1 className="text-3xl font-bold md:text-4xl">
         Falta pouco para concluir <span className="text-primary">sua reserva</span>
       </h1>
@@ -199,10 +202,10 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
       </div>
 
       {etapa === 1 ? (
-        <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_360px]">
+        <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
             {passageiros.map((p, i) => (
-              <section key={i} className="rounded-2xl border border-border bg-card p-6">
+              <section key={i} className="rounded-xl border border-border bg-card p-6">
                 <h2 className="mb-4 font-semibold">
                   Passageiro {i + 1} — {rotuloTipo[p.tipo]}
                   {i === 0 ? " (responsável pela reserva)" : ""}
