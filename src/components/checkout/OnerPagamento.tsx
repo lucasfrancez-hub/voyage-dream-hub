@@ -19,7 +19,22 @@ import {
 } from "@/lib/integrations/oner/payment.functions";
 import { onerConcluirPedidoCheckout } from "@/lib/integrations/oner/checkout-order.functions";
 import { ResumoReserva } from "@/components/checkout/ResumoReserva";
+import { CARD_BRANDS, BrandLogo, detectBrand, type CardBrand } from "@/components/CardForm";
 import type { ResumoCarrinho } from "@/lib/integrations/oner/checkout.server";
+
+/** Rótulos que a operadora espera para cada bandeira. */
+const BANDEIRA_ONER: Record<CardBrand, string> = {
+  Visa: "VISA",
+  Mastercard: "MASTERCARD",
+  Elo: "ELO",
+  Amex: "AMEX",
+  Diners: "DINERS",
+  Hipercard: "HIPER",
+};
+
+/** Altura/estilo único para todos os campos da tela. */
+const CAMPO = "h-12 rounded-xl";
+
 
 export type DadosCheckoutOner = {
   resumo: ResumoCarrinho;
