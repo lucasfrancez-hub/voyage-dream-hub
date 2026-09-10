@@ -19,7 +19,22 @@ import {
 } from "@/lib/integrations/oner/payment.functions";
 import { onerConcluirPedidoCheckout } from "@/lib/integrations/oner/checkout-order.functions";
 import { ResumoReserva } from "@/components/checkout/ResumoReserva";
+import { CARD_BRANDS, BrandLogo, detectBrand, type CardBrand } from "@/components/CardForm";
 import type { ResumoCarrinho } from "@/lib/integrations/oner/checkout.server";
+
+/** Rótulos que a operadora espera para cada bandeira. */
+const BANDEIRA_ONER: Record<CardBrand, string> = {
+  Visa: "VISA",
+  Mastercard: "MASTERCARD",
+  Elo: "ELO",
+  Amex: "AMEX",
+  Diners: "DINERS",
+  Hipercard: "HIPER",
+};
+
+/** Altura/estilo único para todos os campos da tela. */
+const CAMPO = "h-12 rounded-xl";
+
 
 export type DadosCheckoutOner = {
   resumo: ResumoCarrinho;
@@ -129,6 +144,29 @@ export function OnerPagamento({
   });
   const mudarPagador = (patch: Partial<typeof pagador>) =>
     setPagador((prev) => ({ ...prev, ...patch }));
+
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  async function buscarCep(valor: string) {
+    const cep = somenteNumeros(valor);
+    if (cep.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`).then((x) => x.json());
+      if (r && !r.erro) {
+        mudarPagador({
+          rua: r.logradouro || "",
+          bairro: r.bairro || "",
+          cidade: r.localidade || "",
+          estado: (r.uf || "").toUpperCase(),
+        });
+      }
+    } catch {
+      /* CEP indisponível: o usuário preenche manualmente */
+    } finally {
+      setBuscandoCep(false);
+    }
+  }
+
 
   const limparPagador = () =>
     setPagador({
@@ -464,7 +502,7 @@ export function OnerPagamento({
                             erroParcelas: false,
                           })
                         }
-                        className="w-full"
+                        className={`w-full ${CAMPO}`}
                         placeholder="0,00"
                       />
                     </div>
@@ -472,45 +510,45 @@ export function OnerPagamento({
                     <div>
                       <div className="mb-2 text-xs uppercase text-muted-foreground">Bandeira do cartão *</div>
                       <div className="flex flex-wrap gap-2">
-                        {["VISA", "MASTERCARD", "ELO", "AMEX", "DINERS", "HIPER"].map((bandeira) => {
-                          const ativa = c.bandeira?.toUpperCase().includes(bandeira === "MASTERCARD" ? "MASTER" : bandeira);
+                        {CARD_BRANDS.map((marca) => {
+                          const rotulo = BANDEIRA_ONER[marca];
+                          const ativa = c.bandeira === rotulo;
                           return (
-                            <Button
+                            <button
                               type="button"
-                              variant="outline"
-                              key={bandeira}
-                              onClick={() => atualizar(i, { bandeira, opcoes: null, parcela: null })}
-                              className={`h-11 min-w-16 rounded-xl border p-1.5 transition ${ativa ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border bg-background opacity-80"}`}
-                              aria-label={bandeira}
-                              aria-pressed={Boolean(ativa)}
+                              key={marca}
+                              title={marca}
+                              onClick={() => atualizar(i, { bandeira: rotulo, opcoes: null, parcela: null })}
+                              className={`rounded-xl border p-1.5 transition ${ativa ? "border-brand-orange bg-brand-orange/5 ring-2 ring-brand-orange/30" : "border-border hover:border-brand-orange/50"}`}
+                              aria-label={marca}
+                              aria-pressed={ativa}
                             >
-                              {bandeira === "MASTERCARD" ? (
-                                <span className="flex min-w-14 flex-col items-center justify-center text-[7px] font-bold leading-none" aria-hidden="true">
-                                  <span className="relative mb-0.5 h-5 w-8">
-                                    <span className="absolute left-0 top-0 h-5 w-5 rounded-full bg-destructive" />
-                                    <span className="absolute right-0 top-0 h-5 w-5 rounded-full bg-primary opacity-90" />
-                                  </span>
-                                  mastercard
-                                </span>
-                              ) : (
-                                <span className="flex h-8 min-w-14 items-center justify-center rounded-md bg-background px-2 text-[9px] font-black">
-                                  {bandeira}
-                                </span>
-                              )}
-                            </Button>
+                              <BrandLogo brand={marca} active={ativa} />
+                            </button>
                           );
                         })}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+                    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
                       <div className="md:col-span-2">
                         <Label className="mb-1 block text-xs uppercase text-muted-foreground">Número do cartão *</Label>
                         <Input
                           value={c.numero}
                           inputMode="numeric"
                           placeholder="0000 0000 0000 0000"
-                          onChange={(e) => atualizar(i, { numero: e.target.value, opcoes: null, parcela: null })}
+                          className={CAMPO}
+                          onChange={(e) => {
+                            const numero = e.target.value;
+                            const marca = detectBrand(numero);
+                            atualizar(i, {
+                              numero,
+                              opcoes: null,
+                              parcela: null,
+                              ...(marca ? { bandeira: BANDEIRA_ONER[marca] } : {}),
+                            });
+                          }}
                           autoComplete="off"
                         />
                       </div>
@@ -520,6 +558,7 @@ export function OnerPagamento({
                           value={[c.mes, c.ano].filter(Boolean).join("/")}
                           inputMode="numeric"
                           placeholder="MM/AA"
+                          className={CAMPO}
                           onChange={(e) => {
                             const valor = somenteNumeros(e.target.value).slice(0, 6);
                             atualizar(i, { mes: valor.slice(0, 2), ano: valor.slice(2), opcoes: null, parcela: null });
@@ -532,6 +571,7 @@ export function OnerPagamento({
                           value={c.cvv}
                           inputMode="numeric"
                           placeholder="•••"
+                          className={CAMPO}
                           onChange={(e) => atualizar(i, { cvv: e.target.value, opcoes: null, parcela: null })}
                           autoComplete="off"
                         />
@@ -541,6 +581,7 @@ export function OnerPagamento({
                         <Input
                           value={c.nome}
                           placeholder="Como está no cartão"
+                          className={CAMPO}
                           onChange={(e) => atualizar(i, { nome: e.target.value.toUpperCase(), opcoes: null, parcela: null })}
                           autoComplete="off"
                         />
@@ -551,28 +592,15 @@ export function OnerPagamento({
                           value={c.documentoNumero}
                           inputMode="numeric"
                           placeholder="000.000.000-00"
+                          className={CAMPO}
                           onChange={(e) => atualizar(i, { documentoNumero: e.target.value })}
                         />
                       </div>
                       <div>
                         <Label className="mb-1 block text-xs uppercase text-muted-foreground">Parcelas</Label>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={c.carregando}
-                          onClick={() => void consultarParcelas(i)}
-                          className="w-full"
-                        >
-                          {c.carregando ? "Carregando..." : "Carregar parcelas"}
-                        </Button>
-                        {c.carregando ? (
-                          <p className="mt-2 text-xs text-muted-foreground">Carregando opções de parcelamento...</p>
-                        ) : c.erroParcelas ? (
-                          <p className="mt-2 text-xs text-destructive">Não foi possível carregar o parcelamento para este cartão.</p>
-                        ) : c.opcoes && c.opcoes.length > 0 ? (
+                        {c.opcoes && c.opcoes.length > 0 ? (
                           <select
-                            className="mt-2 w-full rounded-lg border border-border bg-background px-4 py-3 text-sm"
+                            className={`w-full border border-border bg-background px-4 text-sm ${CAMPO}`}
                             value={c.parcela ?? ""}
                             onChange={(e) => atualizar(i, { parcela: Number(e.target.value) })}
                           >
@@ -584,10 +612,24 @@ export function OnerPagamento({
                             ))}
                           </select>
                         ) : (
-                          <p className="mt-2 text-xs text-muted-foreground">Informe o cartão para carregar as parcelas.</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={c.carregando}
+                            onClick={() => void consultarParcelas(i)}
+                            className={`w-full ${CAMPO}`}
+                          >
+                            {c.carregando ? "Carregando..." : "Carregar parcelas"}
+                          </Button>
                         )}
+                        {c.erroParcelas ? (
+                          <p className="mt-2 text-xs text-destructive">Não foi possível carregar o parcelamento para este cartão.</p>
+                        ) : !c.opcoes || c.opcoes.length === 0 ? (
+                          <p className="mt-2 text-xs text-muted-foreground">Informe o cartão para carregar as parcelas.</p>
+                        ) : null}
                       </div>
                     </div>
+
                   </div>
                 ))}
               </div>
@@ -665,14 +707,14 @@ export function OnerPagamento({
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nome *</Label><Input value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Sobrenome *</Label><Input value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} /></div>
-                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">E-mail *</Label><Input type="email" value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Data de nascimento *</Label><Input type="date" value={pagador.nascimento} onChange={(e) => mudarPagador({ nascimento: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nacionalidade *</Label><select className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm" value="Brasil" disabled><option>Brasil</option></select></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Tipo de documento *</Label><select className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm" value="CPF" disabled><option>CPF</option></select></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nº do documento *</Label><Input value={pagador.documentoNumero} inputMode="numeric" onChange={(e) => mudarPagador({ documentoNumero: e.target.value })} /></div>
-                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Celular *</Label><Input value={pagador.telefone} inputMode="numeric" placeholder="(00) 00000-0000" onChange={(e) => mudarPagador({ telefone: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nome *</Label><Input className={CAMPO} value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Sobrenome *</Label><Input className={CAMPO} value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">E-mail *</Label><Input className={CAMPO} type="email" value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Data de nascimento *</Label><Input className={CAMPO} type="date" value={pagador.nascimento} onChange={(e) => mudarPagador({ nascimento: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nacionalidade *</Label><select className={`w-full border border-border bg-background px-4 text-sm ${CAMPO}`} value="Brasil" disabled><option>Brasil</option></select></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Tipo de documento *</Label><select className={`w-full border border-border bg-background px-4 text-sm ${CAMPO}`} value="CPF" disabled><option>CPF</option></select></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nº do documento *</Label><Input className={CAMPO} value={pagador.documentoNumero} inputMode="numeric" onChange={(e) => mudarPagador({ documentoNumero: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Celular *</Label><Input className={CAMPO} value={pagador.telefone} inputMode="numeric" placeholder="(00) 00000-0000" onChange={(e) => mudarPagador({ telefone: e.target.value })} /></div>
               </div>
             </section>
 
@@ -684,13 +726,28 @@ export function OnerPagamento({
                 Endereço de cobrança
               </h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">CEP *</Label><Input value={pagador.cep} inputMode="numeric" placeholder="00000-000" onChange={(e) => mudarPagador({ cep: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Estado (UF) *</Label><Input value={pagador.estado} maxLength={2} placeholder="PR" onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })} /></div>
-                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Cidade *</Label><Input value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} /></div>
-                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Endereço *</Label><Input value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Número *</Label><Input value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Complemento</Label><Input value={pagador.complemento} onChange={(e) => mudarPagador({ complemento: e.target.value })} /></div>
-                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Bairro *</Label><Input value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} /></div>
+                <div>
+                  <Label className="mb-1 block text-xs uppercase text-muted-foreground">CEP *</Label>
+                  <Input
+                    className={CAMPO}
+                    value={pagador.cep}
+                    inputMode="numeric"
+                    placeholder="00000-000"
+                    onChange={(e) => {
+                      const cep = e.target.value;
+                      mudarPagador({ cep });
+                      void buscarCep(cep);
+                    }}
+                  />
+                  {buscandoCep ? <p className="mt-1 text-xs text-muted-foreground">Buscando endereço...</p> : null}
+                </div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Estado (UF) *</Label><Input className={CAMPO} value={pagador.estado} maxLength={2} placeholder="PR" onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Cidade *</Label><Input className={CAMPO} value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Endereço *</Label><Input className={CAMPO} value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Número *</Label><Input className={CAMPO} value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Complemento</Label><Input className={CAMPO} value={pagador.complemento} onChange={(e) => mudarPagador({ complemento: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Bairro *</Label><Input className={CAMPO} value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} /></div>
+
               </div>
             </section>
           </>
