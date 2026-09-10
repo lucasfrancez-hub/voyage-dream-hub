@@ -650,41 +650,50 @@ export function OnerPagamento({
         </section>
 
         {metodo === "cartao" ? (
-          <section className="rounded-xl border border-border bg-card p-6">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
-                <h2 className="font-semibold">Dados de pagamento</h2>
-                <p className="mt-1 text-xs text-muted-foreground">Responsável financeiro pela compra.</p>
+          <>
+            <section className="rounded-2xl border border-border bg-card/50 p-6">
+              <div className="mb-6 flex items-start justify-between gap-4">
+                <h2 className="flex items-center gap-2 text-xl font-semibold">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground">
+                    <User className="h-4 w-4" />
+                  </span>
+                  Dados de quem paga
+                </h2>
+                <Button type="button" variant="ghost" size="sm" onClick={limparPagador} className="text-primary">
+                  <Eraser className="h-3.5 w-3.5" /> Limpar campos
+                </Button>
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={limparPagador} className="text-primary">
-                <Eraser className="h-3.5 w-3.5" /> Limpar campos
-              </Button>
-            </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div><Label className="text-xs">Nome *</Label><Input value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} /></div>
-              <div><Label className="text-xs">Sobrenome *</Label><Input value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} /></div>
-              <div className="sm:col-span-2"><Label className="text-xs">E-mail *</Label><Input value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} /></div>
-              <div><Label className="text-xs">Data de nascimento *</Label><Input type="date" value={pagador.nascimento} onChange={(e) => mudarPagador({ nascimento: e.target.value })} /></div>
-              <div><Label className="text-xs">Nacionalidade *</Label><select className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm" value="Brasil" disabled><option>Brasil</option></select></div>
-              <div><Label className="text-xs">Tipo de documento *</Label><select className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm" value="CPF" disabled><option>CPF</option></select></div>
-              <div><Label className="text-xs">Nº do documento *</Label><Input value={pagador.documentoNumero} inputMode="numeric" onChange={(e) => mudarPagador({ documentoNumero: e.target.value })} /></div>
-              <div><Label className="text-xs">Celular *</Label><Input value={pagador.telefone} inputMode="numeric" onChange={(e) => mudarPagador({ telefone: e.target.value })} /></div>
-            </div>
-
-            <div className="mt-6 border-t border-border pt-6">
-              <h3 className="mb-4 text-sm font-semibold">Endereço de cobrança</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2"><Label className="text-xs">CEP *</Label><Input value={pagador.cep} inputMode="numeric" placeholder="00000-000" onChange={(e) => mudarPagador({ cep: e.target.value })} /></div>
-                <div><Label className="text-xs">Endereço *</Label><Input value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} /></div>
-                <div><Label className="text-xs">Número *</Label><Input value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} /></div>
-                <div><Label className="text-xs">Complemento</Label><Input value={pagador.complemento} onChange={(e) => mudarPagador({ complemento: e.target.value })} /></div>
-                <div><Label className="text-xs">Bairro *</Label><Input value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} /></div>
-                <div><Label className="text-xs">Cidade *</Label><Input value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} /></div>
-                <div><Label className="text-xs">Estado *</Label><Input value={pagador.estado} maxLength={2} placeholder="PR" onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })} /></div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nome *</Label><Input value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Sobrenome *</Label><Input value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">E-mail *</Label><Input type="email" value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Data de nascimento *</Label><Input type="date" value={pagador.nascimento} onChange={(e) => mudarPagador({ nascimento: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nacionalidade *</Label><select className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm" value="Brasil" disabled><option>Brasil</option></select></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Tipo de documento *</Label><select className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm" value="CPF" disabled><option>CPF</option></select></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nº do documento *</Label><Input value={pagador.documentoNumero} inputMode="numeric" onChange={(e) => mudarPagador({ documentoNumero: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Celular *</Label><Input value={pagador.telefone} inputMode="numeric" placeholder="(00) 00000-0000" onChange={(e) => mudarPagador({ telefone: e.target.value })} /></div>
               </div>
-            </div>
-          </section>
+            </section>
+
+            <section className="rounded-2xl border border-border bg-card/50 p-6">
+              <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4" />
+                </span>
+                Endereço de cobrança
+              </h2>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">CEP *</Label><Input value={pagador.cep} inputMode="numeric" placeholder="00000-000" onChange={(e) => mudarPagador({ cep: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Estado (UF) *</Label><Input value={pagador.estado} maxLength={2} placeholder="PR" onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Cidade *</Label><Input value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Endereço *</Label><Input value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Número *</Label><Input value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Complemento</Label><Input value={pagador.complemento} onChange={(e) => mudarPagador({ complemento: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Bairro *</Label><Input value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} /></div>
+              </div>
+            </section>
+          </>
         ) : null}
       </div>
 
