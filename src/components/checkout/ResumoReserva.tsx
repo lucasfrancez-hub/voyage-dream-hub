@@ -4,7 +4,7 @@
  * derivado dos horários informados pelo próprio fornecedor).
  */
 import { useState } from "react";
-import { ChevronDown, Clock, Plane } from "lucide-react";
+import { Briefcase, ChevronDown, Clock, Luggage, Plane, ShoppingBag } from "lucide-react";
 import type { ResumoCarrinho, SegmentoVoo } from "@/lib/integrations/oner/checkout.server";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
