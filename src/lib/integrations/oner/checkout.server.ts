@@ -121,8 +121,11 @@ export function resumirCarrinho(payload: unknown): ResumoCarrinho {
   jornadas.forEach((j, indice) => {
     const segmentos: SegmentoVoo[] = arr(pick(j, "segments", "flightSegments", "legs")).map((s) => ({
       voo: String(pick(s, "flightNumber", "number") ?? ""),
+      ciaIata: String(pick(s, "marketingAirline.iata", "airline.iata") ?? "").trim(),
       cia: String(pick(s, "marketingAirline.name", "airline.name") ?? "").trim(),
       logo: (pick(s, "marketingAirline.pathLogo") as string | undefined) ?? null,
+      familia:
+        (pick(s, "fareClass.airlineFareFamily", "airlineFareFamily", "cabin.name") as string | undefined) ?? null,
       saida: ponto(pick(s, "departure")),
       chegada: ponto(pick(s, "destination", "arrival")),
     }));
