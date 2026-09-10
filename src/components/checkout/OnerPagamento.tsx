@@ -432,41 +432,45 @@ export function OnerPagamento({
                 </div>
               ) : null}
 
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {cartoes.map((c, i) => (
-                  <div key={i} className={i === 0 ? "mt-6" : "border-t border-border pt-6"}>
-                    <div className="mb-4 flex items-start justify-between gap-4">
+                  <div key={i} className="space-y-6 rounded-xl border border-border/60 bg-muted/20 p-6">
+                    <div className="flex items-center justify-between gap-4">
                       <div>
-                        <div className="font-semibold">Cartão {i + 1}</div>
-                        {c.bandeira ? (
+                        <span className="text-sm font-bold uppercase tracking-wider text-sky-400">
+                          Cartão {String(i + 1).padStart(2, "0")}
+                        </span>
+                        {c.bandeira && c.finalCartao ? (
                           <div className="mt-1 text-xs text-muted-foreground">
                             {c.bandeira} •••• {c.finalCartao}
                           </div>
-                        ) : (
-                          <div className="mt-1 text-xs text-muted-foreground">{i === 0 ? "Principal" : i === 1 ? "Segundo cartão" : "Terceiro cartão"}</div>
-                        )}
+                        ) : null}
                       </div>
-                      <label className="shrink-0 text-right">
-                        <span className="mb-1 block text-[10px] text-muted-foreground">Valor neste cartão</span>
-                        <Input
-                          value={c.valor}
-                          inputMode="decimal"
-                          onChange={(e) =>
-                            atualizar(i, {
-                              valor: e.target.value,
-                              opcoes: null,
-                              parcela: null,
-                              erroParcelas: false,
-                            })
-                          }
-                          className="w-32 text-right"
-                          placeholder="0,00"
-                        />
-                      </label>
+                      <span className="text-xs text-muted-foreground">
+                        {i === 0 ? "Principal" : i === 1 ? "Segundo cartão" : "Terceiro cartão"}
+                      </span>
                     </div>
 
                     <div>
-                      <div className="mb-2 text-xs text-muted-foreground">Bandeira do cartão *</div>
+                      <div className="mb-1 block text-xs uppercase text-muted-foreground">Valor neste cartão</div>
+                      <Input
+                        value={c.valor}
+                        inputMode="decimal"
+                        onChange={(e) =>
+                          atualizar(i, {
+                            valor: e.target.value,
+                            opcoes: null,
+                            parcela: null,
+                            erroParcelas: false,
+                          })
+                        }
+                        className="w-full"
+                        placeholder="0,00"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="mb-2 text-xs uppercase text-muted-foreground">Bandeira do cartão *</div>
                       <div className="flex flex-wrap gap-2">
                         {["VISA", "MASTERCARD", "ELO", "AMEX", "DINERS", "HIPER"].map((bandeira) => {
                           const ativa = c.bandeira?.toUpperCase().includes(bandeira === "MASTERCARD" ? "MASTER" : bandeira);
