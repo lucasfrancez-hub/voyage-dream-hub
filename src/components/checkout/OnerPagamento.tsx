@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CreditCard, QrCode, Loader2, Check, Copy, Eraser } from "lucide-react";
+import { CreditCard, QrCode, Loader2, Check, Copy, Eraser, MapPin, User } from "lucide-react";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 import { Button } from "@/components/ui/button";
@@ -360,34 +360,35 @@ export function OnerPagamento({
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="space-y-6">
+    <div className="grid gap-8 lg:grid-cols-3">
+      <div className="space-y-8 lg:col-span-2">
         {erro ? (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
             {erro}
           </div>
         ) : null}
 
-        <section className="rounded-xl border border-border bg-card p-6">
-          <h2 className="mb-4 font-semibold">Pagamento</h2>
-          <p className="mb-4 text-sm text-muted-foreground">Como prefere pagar?</p>
+        <section className="rounded-2xl border border-border bg-card/50 p-6">
+          <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm text-primary-foreground">
+              2
+            </span>
+            Forma de pagamento
+          </h2>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="mb-8 flex gap-4">
             <Button
               variant="outline"
               type="button"
               onClick={() => setMetodo("cartao")}
-              className={`h-auto justify-start rounded-xl border p-4 text-left transition ${
-                metodo === "cartao" ? "border-primary bg-primary/5" : "border-border bg-background"
+              className={`h-auto flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium transition ${
+                metodo === "cartao"
+                  ? "border-2 border-primary bg-primary/10 text-foreground"
+                  : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-primary" />
-                <span className="font-semibold">Cartão de crédito</span>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {maxCartoes > 1 ? `Pague com até ${maxCartoes} cartões.` : "Pagamento em um cartão."}
-              </p>
+              <CreditCard className="h-5 w-5" />
+              Cartão de crédito
             </Button>
 
             <Button
@@ -395,78 +396,81 @@ export function OnerPagamento({
               type="button"
               disabled={!aceitaPix}
               onClick={() => setMetodo("pix")}
-              className={`h-auto justify-start rounded-xl border p-4 text-left transition disabled:opacity-50 ${
-                metodo === "pix" ? "border-primary bg-primary/5" : "border-border bg-background"
+              className={`h-auto flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium transition disabled:opacity-50 ${
+                metodo === "pix"
+                  ? "border-2 border-primary bg-primary/10 text-foreground"
+                  : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <QrCode className="h-4 w-4 text-primary" />
-                <span className="font-semibold">Pix</span>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">Pagamento por QR Code.</p>
+              <QrCode className="h-5 w-5" />
+              Pix
             </Button>
           </div>
 
           {metodo === "cartao" ? (
-            <div className="mt-6 border-t border-border pt-6">
+            <div>
               {maxCartoes > 1 ? (
                 <div className="mb-6">
-                  <div className="mb-2 text-xs text-muted-foreground">Quantos cartões deseja usar?</div>
-                  <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-border bg-background p-1.5">
+                  <div className="mb-3 block text-sm text-muted-foreground">Quantidade de cartões</div>
+                  <div className="flex gap-2">
                     {Array.from({ length: Math.min(3, maxCartoes) }, (_, i) => i + 1).map((n) => (
                       <Button
                         variant="ghost"
                         key={n}
                         type="button"
                         onClick={() => void escolherQuantidade(n)}
-                        className={`h-auto rounded-lg px-3 py-2.5 text-xs font-semibold transition ${
+                        className={`h-auto rounded-lg px-6 py-2 font-bold transition ${
                           quantidade === n
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-muted-foreground hover:bg-card hover:text-foreground"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        {n} {n === 1 ? "cartão" : "cartões"}
+                        {n}
                       </Button>
                     ))}
                   </div>
                 </div>
               ) : null}
 
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {cartoes.map((c, i) => (
-                  <div key={i} className={i === 0 ? "mt-6" : "border-t border-border pt-6"}>
-                    <div className="mb-4 flex items-start justify-between gap-4">
+                  <div key={i} className="space-y-6 rounded-xl border border-border/60 bg-muted/20 p-6">
+                    <div className="flex items-center justify-between gap-4">
                       <div>
-                        <div className="font-semibold">Cartão {i + 1}</div>
-                        {c.bandeira ? (
+                        <span className="text-sm font-bold uppercase tracking-wider text-sky-400">
+                          Cartão {String(i + 1).padStart(2, "0")}
+                        </span>
+                        {c.bandeira && c.finalCartao ? (
                           <div className="mt-1 text-xs text-muted-foreground">
                             {c.bandeira} •••• {c.finalCartao}
                           </div>
-                        ) : (
-                          <div className="mt-1 text-xs text-muted-foreground">{i === 0 ? "Principal" : i === 1 ? "Segundo cartão" : "Terceiro cartão"}</div>
-                        )}
+                        ) : null}
                       </div>
-                      <label className="shrink-0 text-right">
-                        <span className="mb-1 block text-[10px] text-muted-foreground">Valor neste cartão</span>
-                        <Input
-                          value={c.valor}
-                          inputMode="decimal"
-                          onChange={(e) =>
-                            atualizar(i, {
-                              valor: e.target.value,
-                              opcoes: null,
-                              parcela: null,
-                              erroParcelas: false,
-                            })
-                          }
-                          className="w-32 text-right"
-                          placeholder="0,00"
-                        />
-                      </label>
+                      <span className="text-xs text-muted-foreground">
+                        {i === 0 ? "Principal" : i === 1 ? "Segundo cartão" : "Terceiro cartão"}
+                      </span>
                     </div>
 
                     <div>
-                      <div className="mb-2 text-xs text-muted-foreground">Bandeira do cartão *</div>
+                      <div className="mb-1 block text-xs uppercase text-muted-foreground">Valor neste cartão</div>
+                      <Input
+                        value={c.valor}
+                        inputMode="decimal"
+                        onChange={(e) =>
+                          atualizar(i, {
+                            valor: e.target.value,
+                            opcoes: null,
+                            parcela: null,
+                            erroParcelas: false,
+                          })
+                        }
+                        className="w-full"
+                        placeholder="0,00"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="mb-2 text-xs uppercase text-muted-foreground">Bandeira do cartão *</div>
                       <div className="flex flex-wrap gap-2">
                         {["VISA", "MASTERCARD", "ELO", "AMEX", "DINERS", "HIPER"].map((bandeira) => {
                           const ativa = c.bandeira?.toUpperCase().includes(bandeira === "MASTERCARD" ? "MASTER" : bandeira);
@@ -499,9 +503,9 @@ export function OnerPagamento({
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_120px]">
-                      <div>
-                        <Label className="text-xs">Número do cartão *</Label>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="md:col-span-2">
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">Número do cartão *</Label>
                         <Input
                           value={c.numero}
                           inputMode="numeric"
@@ -511,20 +515,7 @@ export function OnerPagamento({
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">CVV *</Label>
-                        <Input
-                          value={c.cvv}
-                          inputMode="numeric"
-                          placeholder="•••"
-                          onChange={(e) => atualizar(i, { cvv: e.target.value, opcoes: null, parcela: null })}
-                          autoComplete="off"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <Label className="text-xs">Validade (MM/AA) *</Label>
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">Validade (MM/AA) *</Label>
                         <Input
                           value={[c.mes, c.ano].filter(Boolean).join("/")}
                           inputMode="numeric"
@@ -536,16 +527,26 @@ export function OnerPagamento({
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Nome como está no cartão *</Label>
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">CVV *</Label>
+                        <Input
+                          value={c.cvv}
+                          inputMode="numeric"
+                          placeholder="•••"
+                          onChange={(e) => atualizar(i, { cvv: e.target.value, opcoes: null, parcela: null })}
+                          autoComplete="off"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">Nome impresso no cartão *</Label>
                         <Input
                           value={c.nome}
-                          placeholder="LUCAS S SILVA"
+                          placeholder="Como está no cartão"
                           onChange={(e) => atualizar(i, { nome: e.target.value.toUpperCase(), opcoes: null, parcela: null })}
                           autoComplete="off"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">CPF do titular do cartão *</Label>
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">CPF do titular *</Label>
                         <Input
                           value={c.documentoNumero}
                           inputMode="numeric"
@@ -554,14 +555,14 @@ export function OnerPagamento({
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Parcelas deste cartão</Label>
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">Parcelas</Label>
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
                           disabled={c.carregando}
                           onClick={() => void consultarParcelas(i)}
-                          className="mt-1.5 w-full"
+                          className="w-full"
                         >
                           {c.carregando ? "Carregando..." : "Carregar parcelas"}
                         </Button>
@@ -571,7 +572,7 @@ export function OnerPagamento({
                           <p className="mt-2 text-xs text-destructive">Não foi possível carregar o parcelamento para este cartão.</p>
                         ) : c.opcoes && c.opcoes.length > 0 ? (
                           <select
-                            className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+                            className="mt-2 w-full rounded-lg border border-border bg-background px-4 py-3 text-sm"
                             value={c.parcela ?? ""}
                             onChange={(e) => atualizar(i, { parcela: Number(e.target.value) })}
                           >
@@ -649,41 +650,50 @@ export function OnerPagamento({
         </section>
 
         {metodo === "cartao" ? (
-          <section className="rounded-xl border border-border bg-card p-6">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
-                <h2 className="font-semibold">Dados de pagamento</h2>
-                <p className="mt-1 text-xs text-muted-foreground">Responsável financeiro pela compra.</p>
+          <>
+            <section className="rounded-2xl border border-border bg-card/50 p-6">
+              <div className="mb-6 flex items-start justify-between gap-4">
+                <h2 className="flex items-center gap-2 text-xl font-semibold">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground">
+                    <User className="h-4 w-4" />
+                  </span>
+                  Dados de quem paga
+                </h2>
+                <Button type="button" variant="ghost" size="sm" onClick={limparPagador} className="text-primary">
+                  <Eraser className="h-3.5 w-3.5" /> Limpar campos
+                </Button>
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={limparPagador} className="text-primary">
-                <Eraser className="h-3.5 w-3.5" /> Limpar campos
-              </Button>
-            </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div><Label className="text-xs">Nome *</Label><Input value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} /></div>
-              <div><Label className="text-xs">Sobrenome *</Label><Input value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} /></div>
-              <div className="sm:col-span-2"><Label className="text-xs">E-mail *</Label><Input value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} /></div>
-              <div><Label className="text-xs">Data de nascimento *</Label><Input type="date" value={pagador.nascimento} onChange={(e) => mudarPagador({ nascimento: e.target.value })} /></div>
-              <div><Label className="text-xs">Nacionalidade *</Label><select className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm" value="Brasil" disabled><option>Brasil</option></select></div>
-              <div><Label className="text-xs">Tipo de documento *</Label><select className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm" value="CPF" disabled><option>CPF</option></select></div>
-              <div><Label className="text-xs">Nº do documento *</Label><Input value={pagador.documentoNumero} inputMode="numeric" onChange={(e) => mudarPagador({ documentoNumero: e.target.value })} /></div>
-              <div><Label className="text-xs">Celular *</Label><Input value={pagador.telefone} inputMode="numeric" onChange={(e) => mudarPagador({ telefone: e.target.value })} /></div>
-            </div>
-
-            <div className="mt-6 border-t border-border pt-6">
-              <h3 className="mb-4 text-sm font-semibold">Endereço de cobrança</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2"><Label className="text-xs">CEP *</Label><Input value={pagador.cep} inputMode="numeric" placeholder="00000-000" onChange={(e) => mudarPagador({ cep: e.target.value })} /></div>
-                <div><Label className="text-xs">Endereço *</Label><Input value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} /></div>
-                <div><Label className="text-xs">Número *</Label><Input value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} /></div>
-                <div><Label className="text-xs">Complemento</Label><Input value={pagador.complemento} onChange={(e) => mudarPagador({ complemento: e.target.value })} /></div>
-                <div><Label className="text-xs">Bairro *</Label><Input value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} /></div>
-                <div><Label className="text-xs">Cidade *</Label><Input value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} /></div>
-                <div><Label className="text-xs">Estado *</Label><Input value={pagador.estado} maxLength={2} placeholder="PR" onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })} /></div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nome *</Label><Input value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Sobrenome *</Label><Input value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">E-mail *</Label><Input type="email" value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Data de nascimento *</Label><Input type="date" value={pagador.nascimento} onChange={(e) => mudarPagador({ nascimento: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nacionalidade *</Label><select className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm" value="Brasil" disabled><option>Brasil</option></select></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Tipo de documento *</Label><select className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm" value="CPF" disabled><option>CPF</option></select></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nº do documento *</Label><Input value={pagador.documentoNumero} inputMode="numeric" onChange={(e) => mudarPagador({ documentoNumero: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Celular *</Label><Input value={pagador.telefone} inputMode="numeric" placeholder="(00) 00000-0000" onChange={(e) => mudarPagador({ telefone: e.target.value })} /></div>
               </div>
-            </div>
-          </section>
+            </section>
+
+            <section className="rounded-2xl border border-border bg-card/50 p-6">
+              <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4" />
+                </span>
+                Endereço de cobrança
+              </h2>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">CEP *</Label><Input value={pagador.cep} inputMode="numeric" placeholder="00000-000" onChange={(e) => mudarPagador({ cep: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Estado (UF) *</Label><Input value={pagador.estado} maxLength={2} placeholder="PR" onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Cidade *</Label><Input value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Endereço *</Label><Input value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Número *</Label><Input value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Complemento</Label><Input value={pagador.complemento} onChange={(e) => mudarPagador({ complemento: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Bairro *</Label><Input value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} /></div>
+              </div>
+            </section>
+          </>
         ) : null}
       </div>
 
@@ -715,7 +725,7 @@ export function OnerPagamento({
 
             <Button
               type="button"
-              className="mt-5 w-full"
+              className="mt-5 h-auto w-full rounded-xl bg-primary py-4 font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={enviando || metodo === "pix" || Boolean(erro)}
               onClick={() => void finalizar()}
             >

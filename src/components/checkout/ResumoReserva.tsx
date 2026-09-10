@@ -87,9 +87,11 @@ export function ResumoReserva({
 
   return (
     <aside className="h-fit lg:sticky lg:top-6">
-      <div className="rounded-xl border border-border bg-card p-6 shadow-none">
-        <h3 className="font-semibold">Resumo da reserva</h3>
-
+      <div className="overflow-hidden rounded-2xl border border-border bg-card/50 shadow-none">
+        <div className="border-b border-border bg-muted/40 px-6 py-4">
+          <h3 className="font-bold">Resumo da reserva</h3>
+        </div>
+        <div className="p-6">
         {resumo.voos.map((v, i) => (
           <div key={i} className={i === 0 ? "mt-4" : "mt-5 border-t border-border pt-4"}>
             <div className="flex items-center justify-between gap-3">
@@ -254,6 +256,7 @@ export function ResumoReserva({
         ) : null}
 
         {rodape}
+        </div>
       </div>
     </aside>
   );
