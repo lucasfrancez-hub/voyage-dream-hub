@@ -130,8 +130,10 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
           cartId,
           passageiros: passageiros.map((p) => ({
             ...p,
+            tratamento: tratamentoDe(p),
             email: p.email.trim() || contato.email,
             telefone: p.telefone.trim() || contato.telefone,
+
           })),
         },
       });
