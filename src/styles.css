@@ -134,13 +134,13 @@ html:root {
 
 /* Checkout interno — aparência aprovada do fluxo de reserva, estável em qualquer tema do admin. */
 .via-checkout {
-  --background: rgb(9, 26, 36);
+  --background: rgb(3, 16, 23);
   --foreground: oklch(0.96 0.005 230);
-  --card: rgb(3, 16, 23);
+  --card: rgb(9, 26, 36);
   --card-foreground: oklch(0.96 0.005 230);
-  --popover: rgb(3, 16, 23);
+  --popover: rgb(9, 26, 36);
   --popover-foreground: oklch(0.96 0.005 230);
-  --muted: rgb(9, 26, 36);
+  --muted: rgb(13, 34, 46);
   --muted-foreground: oklch(0.72 0.015 230);
   --accent: rgb(13, 34, 46);
   --accent-foreground: oklch(0.96 0.005 230);
@@ -149,12 +149,14 @@ html:root {
   color: var(--foreground);
 }
 
+/* Campos digitáveis: mesmo fundo do checkout de pacotes (mais escuro que o card). */
 .via-checkout input,
 .via-checkout select,
 .via-checkout textarea {
   background-color: rgb(3, 16, 23);
   color: var(--foreground);
 }
+
 
 
 
