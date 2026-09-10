@@ -139,12 +139,12 @@ export function ResumoReserva({
                           {v.saida.iata}
                         </div>
                         {v.saida.cidade ? (
-                          <div className="mt-1 max-w-[90px] text-[11px] leading-tight text-muted-foreground">
+                          <div className="mt-1 max-w-[120px] text-[11px] leading-snug text-muted-foreground">
                             {v.saida.cidade}
                           </div>
                         ) : null}
                       </div>
-                      <div className="min-w-0 pt-2 text-center">
+                      <div className="min-w-0 px-1 pt-2 text-center">
                         <div className="text-[10px] text-muted-foreground">{v.duracao ?? ""}</div>
                         <div className="my-1.5 flex items-center gap-1">
                           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
@@ -165,7 +165,7 @@ export function ResumoReserva({
                           {v.chegada.iata}
                         </div>
                         {v.chegada.cidade ? (
-                          <div className="mt-1 ml-auto max-w-[90px] text-[11px] leading-tight text-muted-foreground">
+                          <div className="mt-1 ml-auto max-w-[120px] text-[11px] leading-snug text-muted-foreground">
                             {v.chegada.cidade}
                           </div>
                         ) : null}
