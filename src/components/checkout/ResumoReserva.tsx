@@ -55,18 +55,19 @@ function LogoCia({ logo, cia, grande }: { logo: string | null; cia: string; gran
     <div
       className={
         grande
-          ? "flex h-9 min-w-[82px] items-center justify-center rounded-lg bg-white px-2.5 py-1.5"
-          : "flex h-8 min-w-[78px] items-center justify-center rounded-md bg-white px-2 py-1.5"
+          ? "flex h-12 min-w-[104px] items-center justify-center rounded-xl bg-white px-2 py-1"
+          : "flex h-9 min-w-[86px] items-center justify-center rounded-lg bg-white px-2 py-1"
       }
     >
       <img
         src={logo}
         alt={cia}
-        className={grande ? "h-5 w-auto max-w-[70px] object-contain" : "h-4 w-auto max-w-[66px] object-contain"}
+        className={grande ? "h-9 w-auto max-w-[96px] object-contain" : "h-6 w-auto max-w-[78px] object-contain"}
       />
     </div>
   );
 }
+
 
 export function ResumoReserva({
   resumo,
@@ -87,7 +88,7 @@ export function ResumoReserva({
 
   return (
     <aside className="h-fit lg:sticky lg:top-6">
-      <div className="overflow-hidden rounded-2xl border border-border bg-card/50 shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-none">
         <div className="border-b border-border bg-muted/40 px-6 py-4">
           <h3 className="font-bold">Resumo da reserva</h3>
         </div>
@@ -111,59 +112,65 @@ export function ResumoReserva({
                 </div>
               </div>
 
-              {resumo.voos.map((v, i) => (
-                <div key={i} className="mt-5 rounded-2xl border border-brand-orange/25 bg-background/50 p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-brand-orange">
-                      {v.rotulo}
-                      {v.saida.data ? ` · ${v.saida.data.slice(0, 5)}` : ""}
-                    </span>
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                      {v.paradas > 0
-                        ? `${v.paradas} ${v.paradas === 1 ? "conexão" : "conexões"}`
-                        : "Direto"}
-                    </span>
-                  </div>
+              <div className="mt-4 space-y-4">
+                {resumo.voos.map((v, i) => (
+                  <div
+                    key={i}
+                    className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_0_0_rgba(255,255,255,0.03)]"
+                  >
+                    <div className="flex items-center justify-between gap-3 border-b border-border bg-brand-orange/10 px-4 py-2.5">
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-brand-orange">
+                        {v.rotulo}
+                        {v.saida.data ? ` · ${v.saida.data.slice(0, 5)}` : ""}
+                      </span>
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        {v.paradas > 0
+                          ? `${v.paradas} ${v.paradas === 1 ? "conexão" : "conexões"}`
+                          : "Direto"}
+                      </span>
+                    </div>
 
-                  <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-4">
-                    <div className="min-w-0">
-                      <div className="font-display text-[30px] font-bold leading-none tracking-tight">
-                        {v.saida.hora}
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-4 px-5 py-5">
+                      <div className="min-w-0">
+                        <div className="font-display text-[28px] font-bold leading-none tracking-tight">
+                          {v.saida.hora}
+                        </div>
+                        <div className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                          {v.saida.iata}
+                        </div>
+                        {v.saida.cidade ? (
+                          <div className="mt-1 truncate text-[11px] text-muted-foreground">{v.saida.cidade}</div>
+                        ) : null}
                       </div>
-                      <div className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                        {v.saida.iata}
+                      <div className="w-24 pt-2 text-center">
+                        <div className="text-[10px] text-muted-foreground">{v.duracao ?? ""}</div>
+                        <div className="my-1.5 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
+                          <span className="h-px flex-1 bg-border" />
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
+                        </div>
+                        <div className="truncate text-[9px] uppercase tracking-wide text-muted-foreground">
+                          {v.conexoes.length
+                            ? v.conexoes.join(" · ")
+                            : (v.segmentos[0]?.familia ?? "")}
+                        </div>
                       </div>
-                      {v.saida.cidade ? (
-                        <div className="mt-1 truncate text-[11px] text-muted-foreground">{v.saida.cidade}</div>
-                      ) : null}
-                    </div>
-                    <div className="w-24 pt-2 text-center">
-                      <div className="text-[10px] text-muted-foreground">{v.duracao ?? ""}</div>
-                      <div className="my-1.5 flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
-                        <span className="h-px flex-1 bg-border" />
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
+                      <div className="min-w-0 text-right">
+                        <div className="font-display text-[28px] font-bold leading-none tracking-tight">
+                          {v.chegada.hora}
+                        </div>
+                        <div className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                          {v.chegada.iata}
+                        </div>
+                        {v.chegada.cidade ? (
+                          <div className="mt-1 truncate text-[11px] text-muted-foreground">{v.chegada.cidade}</div>
+                        ) : null}
                       </div>
-                      <div className="truncate text-[9px] uppercase tracking-wide text-muted-foreground">
-                        {v.conexoes.length
-                          ? v.conexoes.join(" · ")
-                          : (v.segmentos[0]?.familia ?? "")}
-                      </div>
-                    </div>
-                    <div className="min-w-0 text-right">
-                      <div className="font-display text-[30px] font-bold leading-none tracking-tight">
-                        {v.chegada.hora}
-                      </div>
-                      <div className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                        {v.chegada.iata}
-                      </div>
-                      {v.chegada.cidade ? (
-                        <div className="mt-1 truncate text-[11px] text-muted-foreground">{v.chegada.cidade}</div>
-                      ) : null}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
 
               <div className="mt-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">

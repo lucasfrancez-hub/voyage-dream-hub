@@ -37,6 +37,13 @@ const rotuloTipo: Record<PassageiroCheckout["tipo"], string> = {
   INF: "Bebê",
 };
 
+/** Tratamento é deduzido do sexo/tipo — o cliente não precisa escolher. */
+function tratamentoDe(p: PassageiroCheckout) {
+  if (p.sexo === "F") return p.tipo === "ADT" ? "Sra." : "Srta.";
+  return "Sr.";
+}
+
+
 const campo =
   "h-12 w-full appearance-none rounded-xl border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/30";
 
@@ -123,8 +130,10 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
           cartId,
           passageiros: passageiros.map((p) => ({
             ...p,
+            tratamento: tratamentoDe(p),
             email: p.email.trim() || contato.email,
             telefone: p.telefone.trim() || contato.telefone,
+
           })),
         },
       });
@@ -234,18 +243,6 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                 <div className="space-y-5">
                   <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <label className="block">
-                      <Rotulo>Tratamento</Rotulo>
-                      <select
-                        className={campo}
-                        value={p.tratamento}
-                        onChange={(e) => mudar(i, { tratamento: e.target.value })}
-                      >
-                        <option>Sr.</option>
-                        <option>Sra.</option>
-                        <option>Srta.</option>
-                      </select>
-                    </label>
-                    <label className="block">
                       <Rotulo>Sexo</Rotulo>
                       <select
                         className={campo}
@@ -256,7 +253,9 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                         <option value="F">Feminino</option>
                       </select>
                     </label>
+                    <div className="hidden md:block" />
                   </div>
+
 
                   <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <label className="block">
