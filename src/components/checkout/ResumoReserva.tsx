@@ -55,18 +55,19 @@ function LogoCia({ logo, cia, grande }: { logo: string | null; cia: string; gran
     <div
       className={
         grande
-          ? "flex h-9 min-w-[82px] items-center justify-center rounded-lg bg-white px-2.5 py-1.5"
-          : "flex h-8 min-w-[78px] items-center justify-center rounded-md bg-white px-2 py-1.5"
+          ? "flex h-12 min-w-[104px] items-center justify-center rounded-xl bg-white px-2 py-1"
+          : "flex h-9 min-w-[86px] items-center justify-center rounded-lg bg-white px-2 py-1"
       }
     >
       <img
         src={logo}
         alt={cia}
-        className={grande ? "h-5 w-auto max-w-[70px] object-contain" : "h-4 w-auto max-w-[66px] object-contain"}
+        className={grande ? "h-9 w-auto max-w-[96px] object-contain" : "h-6 w-auto max-w-[78px] object-contain"}
       />
     </div>
   );
 }
+
 
 export function ResumoReserva({
   resumo,
