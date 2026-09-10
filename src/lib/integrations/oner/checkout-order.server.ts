@@ -121,7 +121,7 @@ export async function abrirPedidoDoCarrinho(input: {
     searchReference: { cartId: input.cartId },
     trechos,
     passageiros,
-    adults: resumo.adultos ?? passageiros.length || 1,
+    adults: resumo.adultos ?? (passageiros.length || 1),
     children: (resumo.criancas ?? 0) + (resumo.bebes ?? 0),
   });
 
