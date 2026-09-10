@@ -360,34 +360,35 @@ export function OnerPagamento({
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="space-y-6">
+    <div className="grid gap-8 lg:grid-cols-3">
+      <div className="space-y-8 lg:col-span-2">
         {erro ? (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
             {erro}
           </div>
         ) : null}
 
-        <section className="rounded-xl border border-border bg-card p-6">
-          <h2 className="mb-4 font-semibold">Pagamento</h2>
-          <p className="mb-4 text-sm text-muted-foreground">Como prefere pagar?</p>
+        <section className="rounded-2xl border border-border bg-card/50 p-6">
+          <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm text-primary-foreground">
+              2
+            </span>
+            Forma de pagamento
+          </h2>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="mb-8 flex gap-4">
             <Button
               variant="outline"
               type="button"
               onClick={() => setMetodo("cartao")}
-              className={`h-auto justify-start rounded-xl border p-4 text-left transition ${
-                metodo === "cartao" ? "border-primary bg-primary/5" : "border-border bg-background"
+              className={`h-auto flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium transition ${
+                metodo === "cartao"
+                  ? "border-2 border-primary bg-primary/10 text-foreground"
+                  : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-primary" />
-                <span className="font-semibold">Cartão de crédito</span>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {maxCartoes > 1 ? `Pague com até ${maxCartoes} cartões.` : "Pagamento em um cartão."}
-              </p>
+              <CreditCard className="h-5 w-5" />
+              Cartão de crédito
             </Button>
 
             <Button
@@ -395,37 +396,36 @@ export function OnerPagamento({
               type="button"
               disabled={!aceitaPix}
               onClick={() => setMetodo("pix")}
-              className={`h-auto justify-start rounded-xl border p-4 text-left transition disabled:opacity-50 ${
-                metodo === "pix" ? "border-primary bg-primary/5" : "border-border bg-background"
+              className={`h-auto flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium transition disabled:opacity-50 ${
+                metodo === "pix"
+                  ? "border-2 border-primary bg-primary/10 text-foreground"
+                  : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <QrCode className="h-4 w-4 text-primary" />
-                <span className="font-semibold">Pix</span>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">Pagamento por QR Code.</p>
+              <QrCode className="h-5 w-5" />
+              Pix
             </Button>
           </div>
 
           {metodo === "cartao" ? (
-            <div className="mt-6 border-t border-border pt-6">
+            <div>
               {maxCartoes > 1 ? (
                 <div className="mb-6">
-                  <div className="mb-2 text-xs text-muted-foreground">Quantos cartões deseja usar?</div>
-                  <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-border bg-background p-1.5">
+                  <div className="mb-3 block text-sm text-muted-foreground">Quantidade de cartões</div>
+                  <div className="flex gap-2">
                     {Array.from({ length: Math.min(3, maxCartoes) }, (_, i) => i + 1).map((n) => (
                       <Button
                         variant="ghost"
                         key={n}
                         type="button"
                         onClick={() => void escolherQuantidade(n)}
-                        className={`h-auto rounded-lg px-3 py-2.5 text-xs font-semibold transition ${
+                        className={`h-auto rounded-lg px-6 py-2 font-bold transition ${
                           quantidade === n
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-muted-foreground hover:bg-card hover:text-foreground"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        {n} {n === 1 ? "cartão" : "cartões"}
+                        {n}
                       </Button>
                     ))}
                   </div>
