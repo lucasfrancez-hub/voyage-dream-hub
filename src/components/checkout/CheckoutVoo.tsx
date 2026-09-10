@@ -150,28 +150,12 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
     );
   }
 
-  const resumoLateral = (
-    <aside className="h-fit space-y-4 rounded-2xl border border-border bg-card p-6">
-      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-        <Plane className="h-3.5 w-3.5 text-primary" /> Sua viagem
-      </div>
-      <div className="space-y-3">
-        {trechos.map((t, i) => (
-          <div key={i} className="rounded-xl border border-border/60 bg-background/40 p-3 text-sm">
-            <div className="font-semibold">{t.trecho}</div>
-            <div className="text-xs text-muted-foreground">
-              {[t.data, t.cia, t.voo ? `Voo ${t.voo}` : null].filter(Boolean).join(" • ")}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center justify-between border-t border-border pt-4">
-        <span className="text-sm text-muted-foreground">Total</span>
-        <span className="text-xl font-bold text-primary">{brl(total)}</span>
-      </div>
-      {erro ? <p className="text-xs text-destructive">{erro}</p> : null}
-    </aside>
-  );
+  const resumoLateral = dados ? (
+    <ResumoReserva
+      resumo={dados.resumo}
+      rodape={erro ? <p className="text-xs text-destructive">{erro}</p> : null}
+    />
+  ) : null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
