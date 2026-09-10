@@ -159,6 +159,7 @@ import { Route as ApiPublicUazapiWebhookRouteImport } from './routes/api/public/
 import { Route as ApiPublicWaDiagRouteImport } from './routes/api/public/wa-diag'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
 import { Route as ChatAppTokenRouteImport } from './routes/chat.app.$token'
+import { Route as CheckoutVooCartIdRouteImport } from './routes/checkout.voo.$cartId'
 import { Route as CruzeirosUiPreviewIndexRouteImport } from './routes/cruzeiros_.ui-preview.index'
 import { Route as DocTipoIdRouteImport } from './routes/doc.$tipo.$id'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
@@ -972,6 +973,11 @@ const ChatAppTokenRoute = ChatAppTokenRouteImport.update({
   path: '/app/$token',
   getParentRoute: () => ChatRoute,
 } as any)
+const CheckoutVooCartIdRoute = CheckoutVooCartIdRouteImport.update({
+  id: '/checkout/voo/$cartId',
+  path: '/checkout/voo/$cartId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CruzeirosUiPreviewIndexRoute = CruzeirosUiPreviewIndexRouteImport.update({
   id: '/cruzeiros_/ui-preview/',
   path: '/cruzeiros/ui-preview/',
@@ -1419,6 +1425,7 @@ export interface FileRoutesByFullPath {
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
+  '/checkout/voo/$cartId': typeof CheckoutVooCartIdRoute
   '/doc/$tipo/$id': typeof DocTipoIdRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
@@ -1621,6 +1628,7 @@ export interface FileRoutesByTo {
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
+  '/checkout/voo/$cartId': typeof CheckoutVooCartIdRoute
   '/doc/$tipo/$id': typeof DocTipoIdRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
@@ -1827,6 +1835,7 @@ export interface FileRoutesById {
   '/api/public/wa-diag': typeof ApiPublicWaDiagRoute
   '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/chat/app/$token': typeof ChatAppTokenRoute
+  '/checkout/voo/$cartId': typeof CheckoutVooCartIdRoute
   '/doc/$tipo/$id': typeof DocTipoIdRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/multitrecho/cotacao/$token': typeof MultitrechoCotacaoTokenRoute
@@ -2034,6 +2043,7 @@ export interface FileRouteTypes {
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
+    | '/checkout/voo/$cartId'
     | '/doc/$tipo/$id'
     | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
@@ -2236,6 +2246,7 @@ export interface FileRouteTypes {
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
+    | '/checkout/voo/$cartId'
     | '/doc/$tipo/$id'
     | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
@@ -2441,6 +2452,7 @@ export interface FileRouteTypes {
     | '/api/public/wa-diag'
     | '/api/public/whatsapp-webhook'
     | '/chat/app/$token'
+    | '/checkout/voo/$cartId'
     | '/doc/$tipo/$id'
     | '/lovable/email/events'
     | '/multitrecho/cotacao/$token'
@@ -2562,6 +2574,7 @@ export interface RootRouteChildren {
   ApiPublicUazapiWebhookRoute: typeof ApiPublicUazapiWebhookRoute
   ApiPublicWaDiagRoute: typeof ApiPublicWaDiagRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
+  CheckoutVooCartIdRoute: typeof CheckoutVooCartIdRoute
   DocTipoIdRoute: typeof DocTipoIdRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   MultitrechoCotacaoTokenRoute: typeof MultitrechoCotacaoTokenRoute
@@ -3661,6 +3674,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatAppTokenRouteImport
       parentRoute: typeof ChatRoute
     }
+    '/checkout/voo/$cartId': {
+      id: '/checkout/voo/$cartId'
+      path: '/checkout/voo/$cartId'
+      fullPath: '/checkout/voo/$cartId'
+      preLoaderRoute: typeof CheckoutVooCartIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cruzeiros_/ui-preview/': {
       id: '/cruzeiros_/ui-preview/'
       path: '/cruzeiros/ui-preview'
@@ -4365,6 +4385,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicUazapiWebhookRoute: ApiPublicUazapiWebhookRoute,
   ApiPublicWaDiagRoute: ApiPublicWaDiagRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
+  CheckoutVooCartIdRoute: CheckoutVooCartIdRoute,
   DocTipoIdRoute: DocTipoIdRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   MultitrechoCotacaoTokenRoute: MultitrechoCotacaoTokenRoute,
