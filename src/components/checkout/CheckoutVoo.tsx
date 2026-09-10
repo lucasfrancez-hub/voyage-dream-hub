@@ -330,7 +330,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
 
             <div className="flex justify-end pt-2">
               <Button
-                className="w-full rounded-xl px-12 py-6 text-sm font-bold md:w-auto"
+                className="w-full rounded-xl bg-sky-600 px-12 py-6 text-sm font-bold text-white hover:bg-sky-500 md:w-auto"
                 disabled={enviando}
                 onClick={() => void continuar()}
               >
