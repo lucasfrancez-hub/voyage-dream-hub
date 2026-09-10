@@ -251,16 +251,37 @@ export type OnerFormaPagamento = {
   multipleQuantityUsage: number;
 };
 
-/** GET {api}/api/checkout/v1/configuration/{cartId} */
+/**
+ * Formas liberadas/bloqueadas para este carrinho.
+ * GET {api}/api/checkout/v1/configuration/{cartId}
+ * -> data.allowedPaymentMethods / data.deniedPaymentMethods
+ */
 export async function consultarFormasPagamento(
   token: string,
   cartId: string,
-): Promise<{ call: OnerCall; formas: OnerFormaPagamento[] }> {
+): Promise<{
+  call: OnerCall;
+  formas: OnerFormaPagamento[];
+  documentoTitularObrigatorio: boolean;
+}> {
   const url = `${ONER_API}/api/checkout/v1/configuration/${cartId}`;
-  const r = await onerFetch<OnerFormaPagamento[] | { data?: OnerFormaPagamento[] }>(url, { token });
-  const body = r.body as { data?: OnerFormaPagamento[] } | OnerFormaPagamento[] | null;
-  const formas = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
-  return { call: r.call, formas };
+  const r = await onerFetch<{
+    data?: {
+      allowedPaymentMethods?: OnerFormaPagamento[];
+      deniedPaymentMethods?: Array<{ paymentMethodId: number }>;
+      documentCardHolderRequired?: boolean;
+    };
+  }>(url, { token });
+  const d = r.body?.data;
+  const negados = new Set((d?.deniedPaymentMethods ?? []).map((x) => Number(x.paymentMethodId)));
+  const formas = (d?.allowedPaymentMethods ?? []).filter(
+    (f) => !negados.has(Number(f.paymentMethodId)),
+  );
+  return {
+    call: r.call,
+    formas,
+    documentoTitularObrigatorio: Boolean(d?.documentCardHolderRequired),
+  };
 }
 
 /* ------------------------------------------------------------------ */

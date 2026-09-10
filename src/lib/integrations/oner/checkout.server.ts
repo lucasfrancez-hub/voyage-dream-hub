@@ -55,14 +55,35 @@ export function resumirCarrinho(payload: unknown): ResumoCarrinho {
   const price = (pick(flight, "price") ?? {}) as Record<string, unknown>;
   const trechos: ResumoCarrinho["trechos"] = [];
 
+  /** A data do fornecedor vem como { year, month, day } (+ time opcional). */
+  const dataLegivel = (valor: unknown, hora: unknown): string => {
+    if (!valor) return "";
+    if (typeof valor === "string") return valor;
+    const d = valor as { year?: number; month?: number; day?: number };
+    if (!d?.year || !d?.month || !d?.day) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const t = hora as { hour?: number; minute?: number } | undefined;
+    const relogio = t?.hour != null ? ` ${pad(t.hour)}:${pad(t.minute ?? 0)}` : "";
+    return `${pad(d.day)}/${pad(d.month)}/${d.year}${relogio}`;
+  };
+
   for (const j of arr(pick(flight, "journeys"))) {
     for (const s of arr(pick(j, "segments", "flightSegments", "legs"))) {
-      const de = String(pick(s, "departureAirport.iata", "departure.iata", "origin", "from") ?? "");
-      const para = String(pick(s, "arrivalAirport.iata", "arrival.iata", "destination", "to") ?? "");
+      const de = String(
+        pick(s, "departure.iata", "departureAirport.iata", "origin", "from") ?? "",
+      );
+      const para = String(
+        pick(s, "destination.iata", "arrivalAirport.iata", "arrival.iata", "to") ?? "",
+      );
       trechos.push({
         trecho: `${de || "?"} → ${para || "?"}`,
-        data: String(pick(s, "departure.date", "departureDate", "departureDateTime") ?? ""),
-        cia: String(pick(s, "airline.name", "airlineName", "marketingAirline.name") ?? ""),
+        data: dataLegivel(
+          pick(s, "departure.date", "departureDate", "departureDateTime"),
+          pick(s, "departure.time"),
+        ),
+        cia: String(
+          pick(s, "marketingAirline.name", "airline.name", "airlineName") ?? "",
+        ).trim(),
         voo: String(pick(s, "flightNumber", "number") ?? ""),
       });
     }

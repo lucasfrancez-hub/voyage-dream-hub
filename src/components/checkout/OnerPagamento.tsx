@@ -528,8 +528,13 @@ export function OnerPagamento({
         <div className="mt-4 space-y-2 text-sm">
           {trechos.map((t, i) => (
             <div key={i} className="flex justify-between gap-2">
-              <span>{t.trecho}</span>
-              <span className="text-xs text-muted-foreground">{t.cia} {t.voo}</span>
+              <span>
+                {t.trecho}
+                {t.data ? <span className="block text-xs text-muted-foreground">{t.data}</span> : null}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {t.cia} {t.voo}
+              </span>
             </div>
           ))}
         </div>
