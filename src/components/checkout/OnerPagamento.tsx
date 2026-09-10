@@ -34,7 +34,7 @@ const BANDEIRA_ONER: Record<CardBrand, string> = {
 };
 
 /** Altura/estilo único para todos os campos da tela. */
-const CAMPO = "h-12 rounded-xl";
+const CAMPO = "h-12 rounded-xl border border-border bg-background";
 
 
 export type DadosCheckoutOner = {
@@ -416,7 +416,7 @@ export function OnerPagamento({
           </div>
         ) : null}
 
-        <section className="rounded-2xl border border-border bg-card/50 p-6">
+        <section className="rounded-2xl border border-border bg-card p-6">
           <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm text-primary-foreground">
               2
@@ -720,7 +720,7 @@ export function OnerPagamento({
 
         {metodo === "cartao" ? (
           <>
-            <section className="rounded-2xl border border-border bg-card/50 p-6">
+            <section className="rounded-2xl border border-border bg-card p-6">
               <div className="mb-6 flex items-start justify-between gap-4">
                 <h2 className="flex items-center gap-2 text-xl font-semibold">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground">
@@ -745,7 +745,7 @@ export function OnerPagamento({
               </div>
             </section>
 
-            <section className="rounded-2xl border border-border bg-card/50 p-6">
+            <section className="rounded-2xl border border-border bg-card p-6">
               <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4" />

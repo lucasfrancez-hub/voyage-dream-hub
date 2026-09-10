@@ -87,7 +87,7 @@ export function ResumoReserva({
 
   return (
     <aside className="h-fit lg:sticky lg:top-6">
-      <div className="overflow-hidden rounded-2xl border border-border bg-card/50 shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-none">
         <div className="border-b border-border bg-muted/40 px-6 py-4">
           <h3 className="font-bold">Resumo da reserva</h3>
         </div>
