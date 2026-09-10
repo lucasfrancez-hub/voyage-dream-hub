@@ -503,9 +503,9 @@ export function OnerPagamento({
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_120px]">
-                      <div>
-                        <Label className="text-xs">Número do cartão *</Label>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div className="md:col-span-2">
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">Número do cartão *</Label>
                         <Input
                           value={c.numero}
                           inputMode="numeric"
@@ -515,20 +515,7 @@ export function OnerPagamento({
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">CVV *</Label>
-                        <Input
-                          value={c.cvv}
-                          inputMode="numeric"
-                          placeholder="•••"
-                          onChange={(e) => atualizar(i, { cvv: e.target.value, opcoes: null, parcela: null })}
-                          autoComplete="off"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <Label className="text-xs">Validade (MM/AA) *</Label>
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">Validade (MM/AA) *</Label>
                         <Input
                           value={[c.mes, c.ano].filter(Boolean).join("/")}
                           inputMode="numeric"
@@ -540,16 +527,26 @@ export function OnerPagamento({
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Nome como está no cartão *</Label>
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">CVV *</Label>
+                        <Input
+                          value={c.cvv}
+                          inputMode="numeric"
+                          placeholder="•••"
+                          onChange={(e) => atualizar(i, { cvv: e.target.value, opcoes: null, parcela: null })}
+                          autoComplete="off"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">Nome impresso no cartão *</Label>
                         <Input
                           value={c.nome}
-                          placeholder="LUCAS S SILVA"
+                          placeholder="Como está no cartão"
                           onChange={(e) => atualizar(i, { nome: e.target.value.toUpperCase(), opcoes: null, parcela: null })}
                           autoComplete="off"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">CPF do titular do cartão *</Label>
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">CPF do titular *</Label>
                         <Input
                           value={c.documentoNumero}
                           inputMode="numeric"
@@ -558,14 +555,14 @@ export function OnerPagamento({
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Parcelas deste cartão</Label>
+                        <Label className="mb-1 block text-xs uppercase text-muted-foreground">Parcelas</Label>
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
                           disabled={c.carregando}
                           onClick={() => void consultarParcelas(i)}
-                          className="mt-1.5 w-full"
+                          className="w-full"
                         >
                           {c.carregando ? "Carregando..." : "Carregar parcelas"}
                         </Button>
@@ -575,7 +572,7 @@ export function OnerPagamento({
                           <p className="mt-2 text-xs text-destructive">Não foi possível carregar o parcelamento para este cartão.</p>
                         ) : c.opcoes && c.opcoes.length > 0 ? (
                           <select
-                            className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+                            className="mt-2 w-full rounded-lg border border-border bg-background px-4 py-3 text-sm"
                             value={c.parcela ?? ""}
                             onChange={(e) => atualizar(i, { parcela: Number(e.target.value) })}
                           >
