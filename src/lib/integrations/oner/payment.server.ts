@@ -217,7 +217,7 @@ export async function pagarComCartoes(
   const r = await onerFetch<{ purchase?: OnerPurchaseResult } & OnerPurchaseResult>(url, {
     token,
     method: "POST",
-    body: { payment: montarPagamento(entrada) },
+    body: montarPagamento(entrada),
     timeoutMs: 120_000,
   });
   const compra = (r.body?.purchase ?? r.body ?? null) as OnerPurchaseResult | null;
@@ -238,6 +238,63 @@ export async function pagarPixMaisCartoes(
   });
   const compra = (r.body?.purchase ?? r.body ?? null) as OnerPurchaseResult | null;
   return { call: r.call, compra, raw: r.raw };
+}
+
+/** Dados do pagador exigidos pelo fornecedor antes do pagamento com cartão. */
+export type PagadorOner = {
+  cartId: string;
+  firstName: string;
+  lastName: string;
+  documentNumber: string;
+  documentTypeId: number;
+  birthDate: string; // YYYY-MM-DD
+  email: string;
+  mobilePhone: string;
+  mobilePhoneCountryCode: number;
+  countryId: number;
+  city: string;
+  stateOrProvice: string;
+  street: string;
+  neighborhood: string;
+  houseNumber: string;
+  complement?: string;
+  zipCode: string;
+};
+
+/**
+ * Grava o pagador no fornecedor (mesma etapa que o site faz antes de pagar).
+ * POST {api}/api/client/save-as-payer
+ */
+export async function salvarPagador(token: string, p: PagadorOner) {
+  const body = {
+    name: `${p.firstName} ${p.lastName}`.trim(),
+    firstName: p.firstName,
+    lastName: p.lastName,
+    birthDate: p.birthDate,
+    cartId: p.cartId,
+    documentNumber: p.documentNumber,
+    documentTypeId: p.documentTypeId,
+    email: p.email,
+    mobilePhone: p.mobilePhone,
+    mobilePhoneCountryCode: p.mobilePhoneCountryCode,
+    country: p.countryId,
+    city: p.city,
+    stateOrProvice: p.stateOrProvice,
+    street: p.street,
+    neighborhood: p.neighborhood,
+    houseNumber: p.houseNumber,
+    complement: p.complement ?? "",
+    zipCode: p.zipCode,
+    acceptOptIn: false,
+    notUpdateAddress: false,
+    purchaseForCustomer: true,
+  };
+  const r = await onerFetch(`${ONER_API}/api/client/save-as-payer`, {
+    token,
+    method: "POST",
+    body,
+  });
+  return { call: r.call, raw: r.raw };
 }
 
 /** Cancela um pagamento pendente do carrinho. */
