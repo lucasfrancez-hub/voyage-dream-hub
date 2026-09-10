@@ -39,10 +39,14 @@ const rotuloTipo: Record<PassageiroCheckout["tipo"], string> = {
 };
 
 const campo =
-  "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40";
+  "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground transition-colors focus:border-primary focus:outline-none";
 
 function Rotulo({ children }: { children: React.ReactNode }) {
-  return <span className="mb-1.5 block text-xs text-muted-foreground">{children}</span>;
+  return (
+    <span className="mb-2 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+      {children}
+    </span>
+  );
 }
 
 export function CheckoutVoo({ cartId }: { cartId: string }) {
@@ -185,53 +189,50 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
   ) : null;
 
   return (
-    <div className="via-checkout mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <h1 className="text-3xl font-bold md:text-4xl">
-        Falta pouco para concluir <span className="text-primary">sua reserva</span>
-      </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {etapa === 1
-          ? "Preencha os dados dos passageiros. Na próxima etapa você escolhe a forma de pagamento."
-          : "Escolha a forma de pagamento para concluir a reserva."}
-      </p>
-
-      <div className="mt-5 flex items-center gap-3 text-xs">
-        <div
-          className={`inline-flex items-center gap-2 font-semibold ${etapa === 1 ? "text-foreground" : "text-muted-foreground"}`}
-        >
-          <span
-            className={`flex h-7 w-7 items-center justify-center rounded-full ${etapa === 1 ? "bg-foreground text-background" : "border border-border bg-background"}`}
-          >
-            1
-          </span>
-          Passageiros
+    <div className="via-checkout mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {etapa === 1 ? "Dados dos passageiros" : "Pagamento"}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {etapa === 1
+              ? "Preencha os dados conforme o documento de viagem."
+              : "Escolha a forma de pagamento para concluir a reserva."}
+          </p>
         </div>
-        <div className="h-px w-12 bg-border" />
-        <div
-          className={`inline-flex items-center gap-2 font-semibold ${etapa === 2 ? "text-foreground" : "text-muted-foreground"}`}
-        >
-          <span
-            className={`flex h-7 w-7 items-center justify-center rounded-full ${etapa === 2 ? "bg-foreground text-background" : "border border-border bg-background"}`}
-          >
-            2
+        <div className="text-right">
+          <span className="text-xs font-semibold uppercase tracking-widest text-primary">
+            Passo {etapa} de 2
           </span>
-          Pagamento
+          <div className="mt-2 flex gap-1">
+            <div className="h-1.5 w-12 rounded-full bg-primary" />
+            <div className={`h-1.5 w-12 rounded-full ${etapa === 2 ? "bg-primary" : "bg-muted"}`} />
+          </div>
         </div>
       </div>
 
       {etapa === 1 ? (
-        <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-6">
+        <div className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-8">
             {passageiros.map((p, i) => (
-              <section key={i} className="rounded-xl border border-border bg-card p-6">
-                <h2 className="mb-4 font-semibold">
-                  Passageiro {i + 1} — {rotuloTipo[p.tipo]}
-                  {i === 0 ? " (responsável pela reserva)" : ""}
-                </h2>
+              <section
+                key={i}
+                className="space-y-8 rounded-2xl border border-border bg-card p-6 lg:p-8"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                    {i + 1}
+                  </div>
+                  <h2 className="text-lg font-semibold">
+                    Passageiro {rotuloTipo[p.tipo]}
+                    {i === 0 ? " (responsável pela reserva)" : ""}
+                  </h2>
+                </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block">
-                    <Rotulo>Tratamento *</Rotulo>
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-6">
+                  <label className="block md:col-span-2">
+                    <Rotulo>Tratamento</Rotulo>
                     <select
                       className={campo}
                       value={p.tratamento}
@@ -242,42 +243,45 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                     </select>
                   </label>
 
-                  <label className="block">
-                    <Rotulo>Nacionalidade *</Rotulo>
+                  <label className="block md:col-span-4">
+                    <Rotulo>Nacionalidade</Rotulo>
                     <select className={campo} value={30} disabled>
                       <option value={30}>Brasil</option>
                     </select>
                   </label>
 
-                  <label className="block">
-                    <Rotulo>Primeiro nome *</Rotulo>
+                  <label className="block md:col-span-3">
+                    <Rotulo>Primeiro nome</Rotulo>
                     <Input
+                      className={campo}
                       value={p.nome}
                       onChange={(e) => mudar(i, { nome: e.target.value })}
-                      placeholder="Primeiro nome"
+                      placeholder="Ex: João"
                     />
                   </label>
 
-                  <label className="block">
-                    <Rotulo>Último sobrenome *</Rotulo>
+                  <label className="block md:col-span-3">
+                    <Rotulo>Último sobrenome</Rotulo>
                     <Input
+                      className={campo}
                       value={p.sobrenome}
                       onChange={(e) => mudar(i, { sobrenome: e.target.value })}
-                      placeholder="Último sobrenome"
+                      placeholder="Ex: Silva"
                     />
                   </label>
 
-                  <label className="block">
-                    <Rotulo>Data de nascimento *</Rotulo>
+                  <label className="block md:col-span-2">
+                    <Rotulo>Nascimento</Rotulo>
                     <Input
+                      className={campo}
                       type="date"
                       value={p.nascimento}
                       onChange={(e) => mudar(i, { nascimento: e.target.value })}
                     />
                   </label>
 
-                  <label className="block">
-                    <Rotulo>Sexo *</Rotulo>
+                  <label className="block md:col-span-2">
+                    <Rotulo>Sexo</Rotulo>
                     <select
                       className={campo}
                       value={p.sexo}
@@ -288,28 +292,28 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                     </select>
                   </label>
 
-                  <label className="block">
-                    <Rotulo>E-mail {i === 0 ? "*" : "(opcional)"}</Rotulo>
+                  <label className="block md:col-span-2">
+                    <Rotulo>Telefone {i === 0 ? "" : "(opcional)"}</Rotulo>
                     <Input
-                      value={p.email}
-                      onChange={(e) => mudar(i, { email: e.target.value })}
-                      placeholder="voce@email.com"
-                    />
-                  </label>
-
-                  <label className="block">
-                    <Rotulo>Telefone / WhatsApp {i === 0 ? "*" : "(opcional)"}</Rotulo>
-                    <Input
+                      className={campo}
                       value={p.telefone}
                       onChange={(e) => mudar(i, { telefone: e.target.value })}
                       placeholder="(00) 00000-0000"
                     />
                   </label>
-                </div>
 
-                <div className="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
-                  <label className="block">
-                    <Rotulo>Tipo de documento *</Rotulo>
+                  <label className="block md:col-span-6">
+                    <Rotulo>E-mail para envio do bilhete {i === 0 ? "" : "(opcional)"}</Rotulo>
+                    <Input
+                      className={campo}
+                      value={p.email}
+                      onChange={(e) => mudar(i, { email: e.target.value })}
+                      placeholder="exemplo@email.com"
+                    />
+                  </label>
+
+                  <label className="block md:col-span-3">
+                    <Rotulo>Tipo de documento</Rotulo>
                     <select
                       className={campo}
                       value={p.documentoTipo}
@@ -322,9 +326,10 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                     </select>
                   </label>
 
-                  <label className="block">
-                    <Rotulo>Número do documento *</Rotulo>
+                  <label className="block md:col-span-3">
+                    <Rotulo>Número do documento</Rotulo>
                     <Input
+                      className={campo}
                       value={p.documento}
                       onChange={(e) => mudar(i, { documento: e.target.value })}
                       placeholder={p.documentoTipo === "CPF" ? "000.000.000-00" : "AB123456"}
@@ -334,17 +339,19 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
               </section>
             ))}
 
-            <Button
-              className="w-full py-6 text-xs font-black uppercase tracking-[0.15em]"
-              disabled={enviando}
-              onClick={() => void continuar()}
-            >
-              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Ir para o pagamento
-            </Button>
+            <div className="flex justify-end pt-2">
+              <Button
+                className="w-full rounded-xl px-12 py-6 text-sm font-bold md:w-auto"
+                disabled={enviando}
+                onClick={() => void continuar()}
+              >
+                {enviando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Ir para o pagamento
+              </Button>
+            </div>
           </div>
 
-          {resumoLateral}
+          <div className="lg:sticky lg:top-8 lg:col-span-4">{resumoLateral}</div>
         </div>
       ) : (
         <div className="mt-6 space-y-4">
