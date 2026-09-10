@@ -209,7 +209,13 @@ export const onerPagarCartao = createServerFn({ method: "POST" })
       zipCode: p.cep.replace(/\D/g, ""),
     });
     if (!salvo.call.ok) {
-      return { ok: false as const, erro: "Não foi possível registrar os dados do pagador. Confira o endereço." };
+      const detalhe = detalheOperadora(salvo.call.message);
+      return {
+        ok: false as const,
+        erro: detalhe
+          ? `Não foi possível registrar os dados do pagador (operadora: ${detalhe}).`
+          : "Não foi possível registrar os dados do pagador. Confira o endereço.",
+      };
     }
 
 
