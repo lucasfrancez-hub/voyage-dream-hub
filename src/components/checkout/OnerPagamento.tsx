@@ -479,7 +479,7 @@ export function OnerPagamento({
                             erroParcelas: false,
                           })
                         }
-                        className="w-full"
+                        className={`w-full ${CAMPO}`}
                         placeholder="0,00"
                       />
                     </div>
@@ -487,36 +487,26 @@ export function OnerPagamento({
                     <div>
                       <div className="mb-2 text-xs uppercase text-muted-foreground">Bandeira do cartão *</div>
                       <div className="flex flex-wrap gap-2">
-                        {["VISA", "MASTERCARD", "ELO", "AMEX", "DINERS", "HIPER"].map((bandeira) => {
-                          const ativa = c.bandeira?.toUpperCase().includes(bandeira === "MASTERCARD" ? "MASTER" : bandeira);
+                        {CARD_BRANDS.map((marca) => {
+                          const rotulo = BANDEIRA_ONER[marca];
+                          const ativa = c.bandeira === rotulo;
                           return (
-                            <Button
+                            <button
                               type="button"
-                              variant="outline"
-                              key={bandeira}
-                              onClick={() => atualizar(i, { bandeira, opcoes: null, parcela: null })}
-                              className={`h-11 min-w-16 rounded-xl border p-1.5 transition ${ativa ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border bg-background opacity-80"}`}
-                              aria-label={bandeira}
-                              aria-pressed={Boolean(ativa)}
+                              key={marca}
+                              title={marca}
+                              onClick={() => atualizar(i, { bandeira: rotulo, opcoes: null, parcela: null })}
+                              className={`rounded-xl border p-1.5 transition ${ativa ? "border-brand-orange bg-brand-orange/5 ring-2 ring-brand-orange/30" : "border-border hover:border-brand-orange/50"}`}
+                              aria-label={marca}
+                              aria-pressed={ativa}
                             >
-                              {bandeira === "MASTERCARD" ? (
-                                <span className="flex min-w-14 flex-col items-center justify-center text-[7px] font-bold leading-none" aria-hidden="true">
-                                  <span className="relative mb-0.5 h-5 w-8">
-                                    <span className="absolute left-0 top-0 h-5 w-5 rounded-full bg-destructive" />
-                                    <span className="absolute right-0 top-0 h-5 w-5 rounded-full bg-primary opacity-90" />
-                                  </span>
-                                  mastercard
-                                </span>
-                              ) : (
-                                <span className="flex h-8 min-w-14 items-center justify-center rounded-md bg-background px-2 text-[9px] font-black">
-                                  {bandeira}
-                                </span>
-                              )}
-                            </Button>
+                              <BrandLogo brand={marca} active={ativa} />
+                            </button>
                           );
                         })}
                       </div>
                     </div>
+
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div className="md:col-span-2">
