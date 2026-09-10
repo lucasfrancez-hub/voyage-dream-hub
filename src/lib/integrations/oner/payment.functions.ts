@@ -287,12 +287,17 @@ export const onerPagarPix = createServerFn({ method: "POST" })
       valor: Number(data.valor.toFixed(2)),
       purchaseForCustomer: false,
     });
+
+    // Mesmo quando a operadora responde erro, o carrinho pode já ter um Pix
+    // válido publicado no canal de eventos (tentativa anterior). Aproveitamos
+    // esse código em vez de obrigar uma nova reserva.
+    const qr = await escuta;
+    if (qr.ok && qr.pix) return { ok: true as const, pix: qr.pix };
+
     if (!envio.call.ok) {
       return { ok: false as const, erro: mensagemAmigavel(envio.call.status, envio.call.message) };
     }
-    const qr = await escuta;
-    if (!qr.ok || !qr.pix) return { ok: false as const, erro: "O código Pix não foi gerado a tempo." };
-    return { ok: true as const, pix: qr.pix };
+    return { ok: false as const, erro: "O código Pix não foi gerado a tempo." };
   });
 
 export type PassageiroCheckout = {
