@@ -151,7 +151,7 @@ export function ResumoReserva({
                           <span className="h-px flex-1 bg-border" />
                           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
                         </div>
-                        <div className="truncate text-[9px] uppercase tracking-wide text-muted-foreground">
+                        <div className="text-[9px] uppercase leading-tight tracking-wide text-muted-foreground">
                           {v.conexoes.length
                             ? v.conexoes.join(" · ")
                             : (v.segmentos[0]?.familia ?? "")}
