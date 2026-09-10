@@ -4,7 +4,7 @@
  * derivado dos horários informados pelo próprio fornecedor).
  */
 import { useState } from "react";
-import { ChevronDown, Clock, Plane } from "lucide-react";
+import { Briefcase, ChevronDown, Clock, Luggage, Plane, ShoppingBag } from "lucide-react";
 import type { ResumoCarrinho, SegmentoVoo } from "@/lib/integrations/oner/checkout.server";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -92,120 +92,175 @@ export function ResumoReserva({
           <h3 className="font-bold">Resumo da reserva</h3>
         </div>
         <div className="p-6">
-        {resumo.voos.map((v, i) => (
-          <div key={i} className={i === 0 ? "" : "mt-4"}>
-            <div className="rounded-xl border border-border bg-background/40 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-brand-orange">
-                  {v.rotulo}
-                  {v.saida.data ? ` · ${v.saida.data}` : ""}
-                </span>
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {v.paradas > 0
-                    ? `${v.paradas} ${v.paradas === 1 ? "conexão" : "conexões"}`
-                    : "Direto"}
-                </span>
-              </div>
-
-              <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                <div>
-                  <div className="font-display text-2xl font-bold leading-none">{v.saida.hora}</div>
-                  <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-orange">
-                    {v.saida.iata} · saída
-                  </div>
-                </div>
-                <div className="min-w-[70px] text-center">
-                  <div className="text-[10px] text-muted-foreground">{v.duracao ?? ""}</div>
-                  <div className="my-1 flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
-                    <span className="h-px flex-1 bg-border" />
-                    <Plane className="h-3 w-3 text-muted-foreground" />
-                    <span className="h-px flex-1 bg-border" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
-                  </div>
-                  <div className="text-[9px] uppercase text-muted-foreground">
-                    {v.conexoes.length ? v.conexoes.join(" · ") : (v.cia ?? "")}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-display text-2xl font-bold leading-none">{v.chegada.hora}</div>
-                  <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-orange">
-                    {v.chegada.iata} · chegada
-                  </div>
+        {(() => {
+          const primeiro = resumo.voos[0];
+          const numeros = resumo.voos
+            .flatMap((v) => v.segmentos.map((s) => (s.voo ? `${s.ciaIata}${s.voo}` : null)))
+            .filter(Boolean)
+            .join(" / ");
+          if (!primeiro) return null;
+          return (
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-3">
+                <LogoCia logo={primeiro.logo} cia={primeiro.cia} grande />
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{primeiro.cia}</div>
+                  {numeros ? (
+                    <div className="truncate text-[11px] text-muted-foreground">{numeros}</div>
+                  ) : null}
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
+              {resumo.voos.map((v, i) => (
+                <div key={i} className="mt-4 rounded-xl border border-brand-orange/25 bg-background/50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-brand-orange">
+                      {v.rotulo}
+                      {v.saida.data ? ` · ${v.saida.data.slice(0, 5)}` : ""}
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      {v.paradas > 0
+                        ? `${v.paradas} ${v.paradas === 1 ? "conexão" : "conexões"}`
+                        : "Direto"}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-[auto_1fr_auto] items-center gap-3">
+                    <div>
+                      <div className="font-display text-[28px] font-bold leading-none tracking-tight">
+                        {v.saida.hora}
+                      </div>
+                      <div className="mt-2 text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">
+                        {v.saida.iata}
+                      </div>
+                    </div>
+                    <div className="px-1 text-center">
+                      <div className="text-[10px] text-muted-foreground">{v.duracao ?? ""}</div>
+                      <div className="my-1 flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
+                        <span className="h-px flex-1 bg-border" />
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
+                      </div>
+                      <div className="truncate text-[9px] uppercase tracking-wide text-muted-foreground">
+                        {v.conexoes.length
+                          ? v.conexoes.join(" · ")
+                          : (v.segmentos[0]?.familia ?? "")}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-display text-[28px] font-bold leading-none tracking-tight">
+                        {v.chegada.hora}
+                      </div>
+                      <div className="mt-2 text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">
+                        {v.chegada.iata}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="mt-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <LogoCia logo={v.logo} cia={v.cia} />
-                  <span className="text-[11px] text-muted-foreground">{v.bagagemMao ?? ""}</span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-brand-orange/40 text-brand-orange">
+                    <Briefcase className="h-4 w-4" />
+                  </span>
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg border ${
+                      primeiro.bagagemMao
+                        ? "border-brand-orange/40 text-brand-orange"
+                        : "border-border text-muted-foreground/50"
+                    }`}
+                    title={primeiro.bagagemMao ?? "Sem bagagem de mão"}
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                  </span>
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground/50"
+                    title="Bagagem despachada não inclusa"
+                  >
+                    <Luggage className="h-4 w-4" />
+                  </span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setAberto(aberto === i ? null : i)}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-brand-orange hover:underline"
+                  onClick={() => setAberto(aberto === 0 ? null : 0)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground transition hover:text-brand-orange"
                 >
                   Ver mais
-                  <ChevronDown className={`h-3 w-3 transition ${aberto === i ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`h-3 w-3 transition ${aberto === 0 ? "rotate-180" : ""}`} />
                 </button>
               </div>
-            </div>
 
-
-            {aberto === i ? (
-              <div className="mt-4 border-t border-border pt-4">
-                {v.segmentos.map((s, j) => (
-                  <div key={j}>
-                    {j > 0 ? (
-                      <div className="my-4 flex items-center gap-2 border-y border-border py-3 text-[11px] text-muted-foreground">
-                        <Clock className="h-4 w-4 shrink-0 text-brand-orange" />
-                        <span>
-                          <strong className="font-medium text-foreground">
-                            Conexão em {s.saida.cidade || s.saida.iata} ({s.saida.iata})
-                          </strong>
-                          {duracaoEntre(v.segmentos[j - 1]!, s) ? ` · ${duracaoEntre(v.segmentos[j - 1]!, s)} entre os voos` : ""}
-                        </span>
+              {aberto === 0 ? (
+                <div className="mt-4 space-y-4 border-t border-border pt-4">
+                  {resumo.voos.map((v, i) => (
+                    <div key={i}>
+                      <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-brand-orange">
+                        {v.rotulo}
+                        {v.saida.data ? ` · ${v.saida.data}` : ""}
                       </div>
-                    ) : null}
-
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <LogoCia logo={s.logo ?? v.logo} cia={s.cia || v.cia} />
-                        <div>
-                          <div className="text-xs font-medium">
-                            {[s.cia || v.cia, s.voo ? `${s.ciaIata}${s.voo}` : null].filter(Boolean).join(" · ")}
-                          </div>
-                          {s.familia ? (
-                            <div className="text-[10px] text-muted-foreground">{s.familia}</div>
+                      {v.segmentos.map((s, j) => (
+                        <div key={j}>
+                          {j > 0 ? (
+                            <div className="my-3 flex items-center gap-2 border-y border-border py-2 text-[11px] text-muted-foreground">
+                              <Clock className="h-4 w-4 shrink-0 text-brand-orange" />
+                              <span>
+                                <strong className="font-medium text-foreground">
+                                  Conexão em {s.saida.cidade || s.saida.iata} ({s.saida.iata})
+                                </strong>
+                                {duracaoEntre(v.segmentos[j - 1]!, s)
+                                  ? ` · ${duracaoEntre(v.segmentos[j - 1]!, s)} entre os voos`
+                                  : ""}
+                              </span>
+                            </div>
                           ) : null}
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">{duracaoSegmento(s) ?? ""}</span>
-                    </div>
 
-                    <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                      <div>
-                        <div className="text-sm font-semibold">{s.saida.hora}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {s.saida.iata}
-                          {s.saida.cidade ? ` · ${s.saida.cidade}` : ""}
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <LogoCia logo={s.logo ?? v.logo} cia={s.cia || v.cia} />
+                              <div>
+                                <div className="text-xs font-medium">
+                                  {[s.cia || v.cia, s.voo ? `${s.ciaIata}${s.voo}` : null]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </div>
+                                {s.familia ? (
+                                  <div className="text-[10px] text-muted-foreground">{s.familia}</div>
+                                ) : null}
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">
+                              {duracaoSegmento(s) ?? ""}
+                            </span>
+                          </div>
+
+                          <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                            <div>
+                              <div className="text-sm font-semibold">{s.saida.hora}</div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {s.saida.iata}
+                                {s.saida.cidade ? ` · ${s.saida.cidade}` : ""}
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground">→</div>
+                            <div className="text-right">
+                              <div className="text-sm font-semibold">{s.chegada.hora}</div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {s.chegada.iata}
+                                {s.chegada.cidade ? ` · ${s.chegada.cidade}` : ""}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">→</div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold">{s.chegada.hora}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {s.chegada.iata}
-                          {s.chegada.cidade ? ` · ${s.chegada.cidade}` : ""}
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ))}
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          );
+        })()}
+
 
         {passageiros && passageiros.length ? (
           <div className="mt-5 border-t border-border pt-4">
