@@ -256,6 +256,7 @@ export function ResumoReserva({
         ) : null}
 
         {rodape}
+        </div>
       </div>
     </aside>
   );
