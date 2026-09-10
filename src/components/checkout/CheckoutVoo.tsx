@@ -5,18 +5,17 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plane, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { OnerPagamento } from "@/components/checkout/OnerPagamento";
+import { OnerPagamento, type DadosCheckoutOner } from "@/components/checkout/OnerPagamento";
+import { ResumoReserva } from "@/components/checkout/ResumoReserva";
 import {
   onerCheckoutResumo,
   onerSalvarPassageiros,
   type PassageiroCheckout,
 } from "@/lib/integrations/oner/payment.functions";
-
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const vazio = (tipo: PassageiroCheckout["tipo"]): PassageiroCheckout => ({
   tratamento: "Sr.",
@@ -51,11 +50,12 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [trechos, setTrechos] = useState<Array<{ trecho: string; data: string; cia: string; voo: string }>>([]);
+  const [dados, setDados] = useState<DadosCheckoutOner | null>(null);
   const [passageiros, setPassageiros] = useState<PassageiroCheckout[]>([]);
   const [etapa, setEtapa] = useState<1 | 2>(1);
   const [enviando, setEnviando] = useState(false);
+
+  const total = dados?.resumo.total ?? 0;
 
   useEffect(() => {
     let ativo = true;
@@ -67,8 +67,12 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
         setErro(r.erro);
         return;
       }
-      setTotal(r.resumo.total ?? 0);
-      setTrechos(r.resumo.trechos);
+      setDados({
+        resumo: r.resumo,
+        aceitaCartao: r.aceitaCartao,
+        aceitaPix: r.aceitaPix,
+        maxCartoes: r.maxCartoes,
+      });
       const lista: PassageiroCheckout[] = [
         ...Array.from({ length: Math.max(1, r.resumo.adultos ?? 1) }, () => vazio("ADT")),
         ...Array.from({ length: r.resumo.criancas ?? 0 }, () => vazio("CHD")),
