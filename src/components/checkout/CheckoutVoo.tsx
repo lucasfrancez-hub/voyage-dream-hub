@@ -39,10 +39,14 @@ const rotuloTipo: Record<PassageiroCheckout["tipo"], string> = {
 };
 
 const campo =
-  "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40";
+  "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground transition-colors focus:border-primary focus:outline-none";
 
 function Rotulo({ children }: { children: React.ReactNode }) {
-  return <span className="mb-1.5 block text-xs text-muted-foreground">{children}</span>;
+  return (
+    <span className="mb-2 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+      {children}
+    </span>
+  );
 }
 
 export function CheckoutVoo({ cartId }: { cartId: string }) {
