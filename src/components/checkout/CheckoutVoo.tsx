@@ -234,18 +234,6 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                 <div className="space-y-5">
                   <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <label className="block">
-                      <Rotulo>Tratamento</Rotulo>
-                      <select
-                        className={campo}
-                        value={p.tratamento}
-                        onChange={(e) => mudar(i, { tratamento: e.target.value })}
-                      >
-                        <option>Sr.</option>
-                        <option>Sra.</option>
-                        <option>Srta.</option>
-                      </select>
-                    </label>
-                    <label className="block">
                       <Rotulo>Sexo</Rotulo>
                       <select
                         className={campo}
@@ -256,7 +244,9 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                         <option value="F">Feminino</option>
                       </select>
                     </label>
+                    <div className="hidden md:block" />
                   </div>
+
 
                   <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <label className="block">
