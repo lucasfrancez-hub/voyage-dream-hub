@@ -72,14 +72,18 @@ export function ResumoReserva({
   resumo,
   passageiros,
   rodape,
+  mostrarParcelas = true,
 }: {
   resumo: Pick<ResumoCarrinho, "voos" | "precos" | "total" | "taxas" | "tarifa" | "parcelas">;
   passageiros?: Array<{ nome: string; tipo?: string }>;
   rodape?: React.ReactNode;
+  mostrarParcelas?: boolean;
 }) {
   const [aberto, setAberto] = useState<number | null>(null);
   const total = resumo.total ?? 0;
-  const melhorParcela = resumo.parcelas.filter((p) => !p.hasRate).at(-1) ?? null;
+  const melhorParcela = mostrarParcelas
+    ? (resumo.parcelas.filter((p) => !p.hasRate).at(-1) ?? null)
+    : null;
 
   return (
     <aside className="h-fit lg:sticky lg:top-6">
