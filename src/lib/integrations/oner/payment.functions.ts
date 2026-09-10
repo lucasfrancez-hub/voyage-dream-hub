@@ -250,7 +250,9 @@ export const onerPagarCartao = createServerFn({ method: "POST" })
     const r = await pagarComCartoes(token, {
       cartId: data.cartId,
       cartoes: prontos,
-      purchaseForCustomer: true,
+      // Cartão = compra no cartão do cliente. Se o carrinho não aceitou esse
+      // modo ao gravar o pagador, o pagamento segue no mesmo modo aceito.
+      purchaseForCustomer: salvo.purchaseForCustomer,
     });
 
     if (!r.call.ok || !r.compra) {
