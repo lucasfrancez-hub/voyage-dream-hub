@@ -208,6 +208,11 @@ function montarPagamento(entrada: PagamentoCartaoEntrada) {
   };
 }
 
+function extrairCompra(body: unknown): OnerPurchaseResult | null {
+  const b = body as { data?: unknown; purchase?: unknown } | null;
+  return ((b?.data ?? b?.purchase ?? b) ?? null) as OnerPurchaseResult | null;
+}
+
 /** Pagamento com 1, 2 ou 3 cartões (sem Pix combinado). */
 export async function pagarComCartoes(
   token: string,
@@ -220,7 +225,7 @@ export async function pagarComCartoes(
     body: montarPagamento(entrada),
     timeoutMs: 120_000,
   });
-  const compra = (r.body?.purchase ?? r.body ?? null) as OnerPurchaseResult | null;
+  const compra = extrairCompra(r.body);
   return { call: r.call, compra, raw: r.raw };
 }
 
@@ -236,7 +241,7 @@ export async function pagarPixMaisCartoes(
     body: { payment: montarPagamento(entrada), valueToPay: entrada.valorPix },
     timeoutMs: 120_000,
   });
-  const compra = (r.body?.purchase ?? r.body ?? null) as OnerPurchaseResult | null;
+  const compra = extrairCompra(r.body);
   return { call: r.call, compra, raw: r.raw };
 }
 
@@ -277,7 +282,7 @@ export async function salvarPagador(token: string, p: PagadorOner) {
     email: p.email,
     mobilePhone: p.mobilePhone,
     mobilePhoneCountryCode: p.mobilePhoneCountryCode,
-    country: p.countryId,
+    country: { id: p.countryId },
     city: p.city,
     stateOrProvice: p.stateOrProvice,
     street: p.street,
