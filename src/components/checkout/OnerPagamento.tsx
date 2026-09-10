@@ -115,6 +115,9 @@ export function OnerPagamento({
   const [resumo, setResumo] = useState<ResumoCarrinho | null>(dados?.resumo ?? null);
   const [maxCartoes, setMaxCartoes] = useState(dados?.maxCartoes || 1);
   const [aceitaPix, setAceitaPix] = useState(dados?.aceitaPix ?? false);
+  const [aceitaCartao, setAceitaCartao] = useState(dados?.aceitaCartao ?? true);
+  const [somentePix72h, setSomentePix72h] = useState(dados?.somentePix72h ?? false);
+
 
 
   const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
