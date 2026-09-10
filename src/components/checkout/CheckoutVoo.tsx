@@ -361,7 +361,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
           </button>
           <OnerPagamento
             cartId={cartId}
-            modoAdmin
+            modoAdmin={!publico}
             dados={dados ?? undefined}
             passageiros={listaPassageiros}
           />
