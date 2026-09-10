@@ -328,7 +328,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
           >
             <ArrowLeft className="h-4 w-4" /> Voltar aos passageiros
           </button>
-          <OnerPagamento cartId={cartId} modoAdmin />
+          <OnerPagamento cartId={cartId} modoAdmin dados={dados ?? undefined} />
         </div>
       )}
     </div>
