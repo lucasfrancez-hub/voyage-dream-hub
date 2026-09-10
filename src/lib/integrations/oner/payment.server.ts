@@ -294,22 +294,25 @@ export async function salvarPagador(token: string, p: PagadorOner) {
     notUpdateAddress: false,
     purchaseForCustomer: true,
   };
+  let purchaseForCustomer = true;
   let r = await onerFetch(`${ONER_API}/api/client/save-as-payer`, {
     token,
     method: "POST",
     body,
   });
-  // Alguns carrinhos ainda não têm cliente vinculado; o fornecedor responde
-  // NEED-EMAIL-CLIENT/NEED-DOCUMENT-CLIENT. Repetimos gravando o pagador
-  // diretamente (mesmos dados do formulário, sem trocar o endereço).
-  if (!r.call.ok && /NEED-EMAIL-CLIENT|NEED-DOCUMENT-CLIENT/i.test(r.call.message ?? "")) {
+  // Carrinhos sem cliente vinculado respondem NEED-EMAIL-CLIENT /
+  // NEED-DOCUMENT-CLIENT (e às vezes outros erros de validação). Repetimos
+  // gravando o pagador diretamente — mesmos dados do formulário, mesmo
+  // endereço — e informamos qual modo funcionou para o pagamento seguir igual.
+  if (!r.call.ok) {
+    purchaseForCustomer = false;
     r = await onerFetch(`${ONER_API}/api/client/save-as-payer`, {
       token,
       method: "POST",
       body: { ...body, purchaseForCustomer: false },
     });
   }
-  return { call: r.call, raw: r.raw };
+  return { call: r.call, raw: r.raw, purchaseForCustomer };
 }
 
 /** Cancela um pagamento pendente do carrinho. */
