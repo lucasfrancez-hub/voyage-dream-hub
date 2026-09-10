@@ -677,53 +677,42 @@ export function OnerPagamento({
         </section>
       </div>
 
-      <aside className="h-fit rounded-2xl border border-border bg-card p-6">
-        <h3 className="font-semibold">Resumo</h3>
-        <div className="mt-4 space-y-2 text-sm">
-          {trechos.map((t, i) => (
-            <div key={i} className="flex justify-between gap-2">
-              <span>
-                {t.trecho}
-                {t.data ? <span className="block text-xs text-muted-foreground">{t.data}</span> : null}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {t.cia} {t.voo}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
-          <span className="text-sm text-muted-foreground">Total</span>
-          <span className="text-2xl font-bold text-primary">{brl(total)}</span>
-        </div>
-        {metodo === "cartao" ? (
-          <div className="mt-1 text-right text-xs text-muted-foreground">
-            {cartoes.every((c) => c.parcela)
-              ? cartoes
-                  .map((c, i) => {
-                    const o = c.opcoes?.find((x) => x.installment === c.parcela);
-                    return o ? `Cartão ${i + 1}: ${o.installment}x de ${brl(o.installmentsValue)}` : "";
-                  })
-                  .filter(Boolean)
-                  .join(" · ")
-              : "Parcelamento não selecionado"}
-          </div>
-        ) : null}
-        {metodo === "cartao" && !somaConfere ? (
-          <div className="mt-3 rounded-md bg-muted p-2 text-xs text-muted-foreground">
-            Soma dos cartões: {brl(soma)} — precisa ficar igual ao total.
-          </div>
-        ) : null}
+      <ResumoReserva
+        resumo={
+          resumo ?? { voos: [], precos: [], parcelas: [], total, taxas: null, tarifa: null }
+        }
+        rodape={
+          <div>
+            {metodo === "cartao" ? (
+              <div className="text-right text-xs text-muted-foreground">
+                {cartoes.every((c) => c.parcela)
+                  ? cartoes
+                      .map((c, i) => {
+                        const o = c.opcoes?.find((x) => x.installment === c.parcela);
+                        return o ? `Cartão ${i + 1}: ${o.installment}x de ${brl(o.installmentsValue)}` : "";
+                      })
+                      .filter(Boolean)
+                      .join(" · ")
+                  : "Parcelamento não selecionado"}
+              </div>
+            ) : null}
+            {metodo === "cartao" && !somaConfere ? (
+              <div className="mt-3 rounded-md bg-muted p-2 text-xs text-muted-foreground">
+                Soma dos cartões: {brl(soma)} — precisa ficar igual ao total.
+              </div>
+            ) : null}
 
-        <Button
-          type="button"
-          className="mt-5 w-full"
-          disabled={enviando || metodo === "pix" || Boolean(erro)}
-          onClick={() => void finalizar()}
-        >
-          {enviando ? "Processando..." : "Fazer pedido"}
-        </Button>
-      </aside>
+            <Button
+              type="button"
+              className="mt-5 w-full"
+              disabled={enviando || metodo === "pix" || Boolean(erro)}
+              onClick={() => void finalizar()}
+            >
+              {enviando ? "Processando..." : "Fazer pedido"}
+            </Button>
+          </div>
+        }
+      />
     </div>
   );
 }
