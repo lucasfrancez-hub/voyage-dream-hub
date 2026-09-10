@@ -310,7 +310,7 @@ export function OnerPagamento({
     void concluirPedido({
       data: { cartId, metodo: "CARD", localizador: r.localizador ?? null },
     });
-    toast.success("Pagamento aprovado.");
+    toast.success("Pedido realizado.");
   }
 
   async function gerarPixFornecedor() {
@@ -351,7 +351,7 @@ export function OnerPagamento({
     return (
       <div className="rounded-2xl border border-border bg-card p-8 text-center">
         <Check className="mx-auto mb-3 h-8 w-8 text-primary" />
-        <h2 className="text-lg font-semibold">Pagamento aprovado</h2>
+        <h2 className="text-lg font-semibold">Pedido realizado</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Código da reserva: <span className="font-semibold text-foreground">{localizador}</span>
         </p>
