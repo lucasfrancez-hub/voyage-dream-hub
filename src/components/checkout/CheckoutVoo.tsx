@@ -8,7 +8,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { OnerPagamento, type DadosCheckoutOner } from "@/components/checkout/OnerPagamento";
 import { ResumoReserva } from "@/components/checkout/ResumoReserva";
 import {
@@ -39,7 +38,7 @@ const rotuloTipo: Record<PassageiroCheckout["tipo"], string> = {
 };
 
 const campo =
-  "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground transition-colors focus:border-primary focus:outline-none";
+  "h-12 w-full appearance-none rounded-xl border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/30";
 
 function Rotulo({ children }: { children: React.ReactNode }) {
   return (
@@ -203,12 +202,12 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
           </p>
         </div>
         <div className="text-right">
-          <span className="text-xs font-semibold uppercase tracking-widest text-sky-500">
+          <span className="text-xs font-semibold uppercase tracking-widest text-brand-orange">
             Passo {etapa} de 2
           </span>
           <div className="mt-2 flex gap-1">
-            <div className="h-1.5 w-12 rounded-full bg-sky-500" />
-            <div className={`h-1.5 w-12 rounded-full ${etapa === 2 ? "bg-sky-500" : "bg-muted"}`} />
+            <div className="h-1.5 w-12 rounded-full bg-brand-orange" />
+            <div className={`h-1.5 w-12 rounded-full ${etapa === 2 ? "bg-brand-orange" : "bg-muted"}`} />
           </div>
         </div>
       </div>
@@ -231,106 +230,113 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-6">
-                  <label className="block md:col-span-2">
-                    <Rotulo>Tratamento</Rotulo>
-                    <select
-                      className={campo}
-                      value={p.tratamento}
-                      onChange={(e) => mudar(i, { tratamento: e.target.value })}
-                    >
-                      <option>Sr.</option>
-                      <option>Sra.</option>
-                      <option>Srta.</option>
-                    </select>
-                  </label>
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <label className="block">
+                      <Rotulo>Tratamento</Rotulo>
+                      <select
+                        className={campo}
+                        value={p.tratamento}
+                        onChange={(e) => mudar(i, { tratamento: e.target.value })}
+                      >
+                        <option>Sr.</option>
+                        <option>Sra.</option>
+                        <option>Srta.</option>
+                      </select>
+                    </label>
+                    <label className="block">
+                      <Rotulo>Sexo</Rotulo>
+                      <select
+                        className={campo}
+                        value={p.sexo}
+                        onChange={(e) => mudar(i, { sexo: e.target.value as "M" | "F" })}
+                      >
+                        <option value="M">Masculino</option>
+                        <option value="F">Feminino</option>
+                      </select>
+                    </label>
+                  </div>
 
-                  <label className="block md:col-span-4">
-                    <Rotulo>Sexo</Rotulo>
-                    <select
-                      className={campo}
-                      value={p.sexo}
-                      onChange={(e) => mudar(i, { sexo: e.target.value as "M" | "F" })}
-                    >
-                      <option value="M">Masculino</option>
-                      <option value="F">Feminino</option>
-                    </select>
-                  </label>
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <label className="block">
+                      <Rotulo>Nome</Rotulo>
+                      <input
+                        className={campo}
+                        value={p.nome}
+                        onChange={(e) => mudar(i, { nome: e.target.value })}
+                        placeholder="Ex: João"
+                      />
+                    </label>
+                    <label className="block">
+                      <Rotulo>Sobrenome</Rotulo>
+                      <input
+                        className={campo}
+                        value={p.sobrenome}
+                        onChange={(e) => mudar(i, { sobrenome: e.target.value })}
+                        placeholder="Ex: Silva"
+                      />
+                    </label>
+                  </div>
 
-                  <label className="block md:col-span-3">
-                    <Rotulo>Nome</Rotulo>
-                    <Input
-                      className={campo}
-                      value={p.nome}
-                      onChange={(e) => mudar(i, { nome: e.target.value })}
-                      placeholder="Ex: João"
-                    />
-                  </label>
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <label className="block">
+                      <Rotulo>Data de nascimento</Rotulo>
+                      <input
+                        className={campo}
+                        type="date"
+                        value={p.nascimento}
+                        onChange={(e) => mudar(i, { nascimento: e.target.value })}
+                      />
+                    </label>
+                    <div className="hidden md:block" />
+                  </div>
 
-                  <label className="block md:col-span-3">
-                    <Rotulo>Sobrenome</Rotulo>
-                    <Input
-                      className={campo}
-                      value={p.sobrenome}
-                      onChange={(e) => mudar(i, { sobrenome: e.target.value })}
-                      placeholder="Ex: Silva"
-                    />
-                  </label>
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <label className="block">
+                      <Rotulo>Nacionalidade</Rotulo>
+                      <select className={campo} value={30} disabled>
+                        <option value={30}>Brasil</option>
+                      </select>
+                    </label>
+                    <label className="block">
+                      <Rotulo>{p.documentoTipo === "CPF" ? "CPF" : "Passaporte"}</Rotulo>
+                      <input
+                        className={campo}
+                        value={p.documento}
+                        onChange={(e) => mudar(i, { documento: e.target.value })}
+                        placeholder={p.documentoTipo === "CPF" ? "000.000.000-00" : "AB123456"}
+                      />
+                    </label>
+                  </div>
 
-                  <label className="block md:col-span-2">
-                    <Rotulo>Data de nascimento</Rotulo>
-                    <Input
-                      className={campo}
-                      type="date"
-                      value={p.nascimento}
-                      onChange={(e) => mudar(i, { nascimento: e.target.value })}
-                    />
-                  </label>
-
-                  <label className="block md:col-span-2">
-                    <Rotulo>Nacionalidade</Rotulo>
-                    <select className={campo} value={30} disabled>
-                      <option value={30}>Brasil</option>
-                    </select>
-                  </label>
-
-                  <label className="block md:col-span-2">
-                    <Rotulo>{p.documentoTipo === "CPF" ? "CPF" : "Passaporte"}</Rotulo>
-                    <Input
-                      className={campo}
-                      value={p.documento}
-                      onChange={(e) => mudar(i, { documento: e.target.value })}
-                      placeholder={p.documentoTipo === "CPF" ? "000.000.000-00" : "AB123456"}
-                    />
-                  </label>
-
-                  <label className="block md:col-span-3">
-                    <Rotulo>Telefone {i === 0 ? "" : "(opcional)"}</Rotulo>
-                    <Input
-                      className={campo}
-                      value={p.telefone}
-                      onChange={(e) => mudar(i, { telefone: e.target.value })}
-                      placeholder="(00) 00000-0000"
-                    />
-                  </label>
-
-                  <label className="block md:col-span-3">
-                    <Rotulo>E-mail {i === 0 ? "" : "(opcional)"}</Rotulo>
-                    <Input
-                      className={campo}
-                      type="email"
-                      value={p.email}
-                      onChange={(e) => mudar(i, { email: e.target.value })}
-                      placeholder="exemplo@email.com"
-                    />
-                  </label>
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <label className="block">
+                      <Rotulo>Telefone {i === 0 ? "" : "(opcional)"}</Rotulo>
+                      <input
+                        className={campo}
+                        value={p.telefone}
+                        onChange={(e) => mudar(i, { telefone: e.target.value })}
+                        placeholder="(00) 00000-0000"
+                      />
+                    </label>
+                    <label className="block">
+                      <Rotulo>E-mail {i === 0 ? "" : "(opcional)"}</Rotulo>
+                      <input
+                        className={campo}
+                        type="email"
+                        value={p.email}
+                        onChange={(e) => mudar(i, { email: e.target.value })}
+                        placeholder="exemplo@email.com"
+                      />
+                    </label>
+                  </div>
                 </div>
               </section>
             ))}
 
             <div className="flex justify-end pt-2">
               <Button
-                className="w-full rounded-xl bg-sky-600 px-12 py-6 text-sm font-bold text-white hover:bg-sky-500 md:w-auto"
+                className="w-full rounded-xl bg-brand-orange px-12 py-6 text-sm font-bold uppercase tracking-wide text-white hover:bg-brand-orange/90 md:w-auto"
                 disabled={enviando}
                 onClick={() => void continuar()}
               >
