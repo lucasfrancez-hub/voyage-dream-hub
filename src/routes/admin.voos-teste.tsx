@@ -1376,7 +1376,6 @@ function SummaryCard({
     },
     onSuccess: (r) => {
       setCartUrl(r.url);
-      if (!publicMode) window.open(r.url, "_blank", "noopener");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao gerar carrinho"),
   });
