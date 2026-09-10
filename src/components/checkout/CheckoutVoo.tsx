@@ -39,7 +39,7 @@ const rotuloTipo: Record<PassageiroCheckout["tipo"], string> = {
 };
 
 const campo =
-  "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground transition-colors focus:border-primary focus:outline-none";
+  "h-12 w-full appearance-none rounded-xl border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/30";
 
 function Rotulo({ children }: { children: React.ReactNode }) {
   return (
