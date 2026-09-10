@@ -47,8 +47,10 @@ export type PontoVoo = {
 
 export type SegmentoVoo = {
   voo: string;
+  ciaIata: string;
   cia: string;
   logo: string | null;
+  familia: string | null;
   saida: PontoVoo;
   chegada: PontoVoo;
 };
