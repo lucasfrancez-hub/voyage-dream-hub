@@ -99,12 +99,35 @@ export const onerParcelasCartao = createServerFn({ method: "POST" })
     };
   });
 
+export type PagadorFormulario = {
+  nome: string;
+  sobrenome: string;
+  documentoNumero: string;
+  nascimento: string; // YYYY-MM-DD
+  email: string;
+  telefone: string;
+  cep: string;
+  rua: string;
+  numero: string;
+  complemento?: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+};
+
 /** Pagamento com 1, 2 ou 3 cartões. */
 export const onerPagarCartao = createServerFn({ method: "POST" })
-  .inputValidator((d: { cartId: string; cartoes: CartaoParaEnvio[]; totalEsperado: number }) => d)
+  .inputValidator(
+    (d: {
+      cartId: string;
+      cartoes: CartaoParaEnvio[];
+      totalEsperado: number;
+      pagador: PagadorFormulario;
+    }) => d,
+  )
   .handler(async ({ data }) => {
     const { obterToken } = await import("./session.server");
-    const { guardarCartaoNoCofre, pagarComCartoes } = await import("./payment.server");
+    const { guardarCartaoNoCofre, pagarComCartoes, salvarPagador } = await import("./payment.server");
 
     if (data.cartoes.length < 1 || data.cartoes.length > 3) {
       return { ok: false as const, erro: "Escolha de 1 a 3 cartões." };
@@ -117,8 +140,51 @@ export const onerPagarCartao = createServerFn({ method: "POST" })
       return { ok: false as const, erro: "Escolha o parcelamento de cada cartão." };
     }
 
+    const p = data.pagador;
+    const faltando =
+      !p?.nome?.trim() ||
+      !p?.sobrenome?.trim() ||
+      !p?.documentoNumero ||
+      !p?.nascimento ||
+      !p?.email?.trim() ||
+      !p?.telefone ||
+      !p?.cep ||
+      !p?.rua?.trim() ||
+      !p?.numero?.trim() ||
+      !p?.bairro?.trim() ||
+      !p?.cidade?.trim() ||
+      !p?.estado?.trim();
+    if (faltando) {
+      return { ok: false as const, erro: "Preencha todos os dados e o endereço do pagador." };
+    }
+
     const token = await obterToken({});
     if (!token) return { ok: false as const, erro: "Sessão de pagamento indisponível." };
+
+    // No cartão, o endereço/dados enviados são sempre os do formulário (nunca os da agência).
+    const salvo = await salvarPagador(token, {
+      cartId: data.cartId,
+      firstName: p.nome.trim(),
+      lastName: p.sobrenome.trim(),
+      documentNumber: p.documentoNumero.replace(/\D/g, ""),
+      documentTypeId: 1,
+      birthDate: p.nascimento,
+      email: p.email.trim(),
+      mobilePhone: p.telefone.replace(/\D/g, ""),
+      mobilePhoneCountryCode: 55,
+      countryId: 30,
+      city: p.cidade.trim(),
+      stateOrProvice: p.estado.trim(),
+      street: p.rua.trim(),
+      neighborhood: p.bairro.trim(),
+      houseNumber: p.numero.trim(),
+      complement: p.complemento?.trim() ?? "",
+      zipCode: p.cep.replace(/\D/g, ""),
+    });
+    if (!salvo.call.ok) {
+      return { ok: false as const, erro: "Não foi possível registrar os dados do pagador. Confira o endereço." };
+    }
+
 
     const prontos: CartaoParaPagamento[] = [];
     for (const c of data.cartoes) {
