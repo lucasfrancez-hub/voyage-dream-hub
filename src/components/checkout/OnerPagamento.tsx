@@ -306,6 +306,10 @@ export function OnerPagamento({
       return;
     }
     setLocalizador(r.localizador ?? null);
+    // O pedido VIA AIR é finalizado com o localizador, na tela de Pedidos.
+    void concluirPedido({
+      data: { cartId, metodo: "CARD", localizador: r.localizador ?? null },
+    });
     toast.success("Pagamento aprovado.");
   }
 
@@ -324,6 +328,15 @@ export function OnerPagamento({
       return;
     }
     setPixFornecedor({ qrCode: r.pix.qrCode, expiraEm: r.pix.expiraEm });
+    // Pix sobe para a Oner: abre a tarefa de refazer o carrinho sem comissão.
+    void concluirPedido({
+      data: {
+        cartId,
+        metodo: "PIX",
+        pixBrcode: r.pix.qrCode,
+        pixExpiraEm: r.pix.expiraEm,
+      },
+    });
   }
 
   if (carregando) {
