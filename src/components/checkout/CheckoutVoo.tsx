@@ -150,9 +150,15 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
     );
   }
 
+  const listaPassageiros = passageiros.map((p, i) => ({
+    nome: [p.nome, p.sobrenome].filter(Boolean).join(" ").trim() || `Passageiro ${i + 1}`,
+    tipo: p.tipo,
+  }));
+
   const resumoLateral = dados ? (
     <ResumoReserva
       resumo={dados.resumo}
+      passageiros={listaPassageiros}
       rodape={erro ? <p className="text-xs text-destructive">{erro}</p> : null}
     />
   ) : null;
