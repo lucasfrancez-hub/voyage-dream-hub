@@ -184,6 +184,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
     <ResumoReserva
       resumo={dados.resumo}
       passageiros={listaPassageiros}
+      mostrarParcelas={etapa === 2}
       rodape={erro ? <p className="text-xs text-destructive">{erro}</p> : null}
     />
   ) : null;
@@ -202,12 +203,12 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
           </p>
         </div>
         <div className="text-right">
-          <span className="text-xs font-semibold uppercase tracking-widest text-primary">
+          <span className="text-xs font-semibold uppercase tracking-widest text-sky-500">
             Passo {etapa} de 2
           </span>
           <div className="mt-2 flex gap-1">
-            <div className="h-1.5 w-12 rounded-full bg-primary" />
-            <div className={`h-1.5 w-12 rounded-full ${etapa === 2 ? "bg-primary" : "bg-muted"}`} />
+            <div className="h-1.5 w-12 rounded-full bg-sky-500" />
+            <div className={`h-1.5 w-12 rounded-full ${etapa === 2 ? "bg-sky-500" : "bg-muted"}`} />
           </div>
         </div>
       </div>
@@ -240,47 +241,11 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                     >
                       <option>Sr.</option>
                       <option>Sra.</option>
+                      <option>Srta.</option>
                     </select>
                   </label>
 
                   <label className="block md:col-span-4">
-                    <Rotulo>Nacionalidade</Rotulo>
-                    <select className={campo} value={30} disabled>
-                      <option value={30}>Brasil</option>
-                    </select>
-                  </label>
-
-                  <label className="block md:col-span-3">
-                    <Rotulo>Primeiro nome</Rotulo>
-                    <Input
-                      className={campo}
-                      value={p.nome}
-                      onChange={(e) => mudar(i, { nome: e.target.value })}
-                      placeholder="Ex: João"
-                    />
-                  </label>
-
-                  <label className="block md:col-span-3">
-                    <Rotulo>Último sobrenome</Rotulo>
-                    <Input
-                      className={campo}
-                      value={p.sobrenome}
-                      onChange={(e) => mudar(i, { sobrenome: e.target.value })}
-                      placeholder="Ex: Silva"
-                    />
-                  </label>
-
-                  <label className="block md:col-span-2">
-                    <Rotulo>Nascimento</Rotulo>
-                    <Input
-                      className={campo}
-                      type="date"
-                      value={p.nascimento}
-                      onChange={(e) => mudar(i, { nascimento: e.target.value })}
-                    />
-                  </label>
-
-                  <label className="block md:col-span-2">
                     <Rotulo>Sexo</Rotulo>
                     <select
                       className={campo}
@@ -292,7 +257,54 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                     </select>
                   </label>
 
+                  <label className="block md:col-span-3">
+                    <Rotulo>Nome</Rotulo>
+                    <Input
+                      className={campo}
+                      value={p.nome}
+                      onChange={(e) => mudar(i, { nome: e.target.value })}
+                      placeholder="Ex: João"
+                    />
+                  </label>
+
+                  <label className="block md:col-span-3">
+                    <Rotulo>Sobrenome</Rotulo>
+                    <Input
+                      className={campo}
+                      value={p.sobrenome}
+                      onChange={(e) => mudar(i, { sobrenome: e.target.value })}
+                      placeholder="Ex: Silva"
+                    />
+                  </label>
+
                   <label className="block md:col-span-2">
+                    <Rotulo>Data de nascimento</Rotulo>
+                    <Input
+                      className={campo}
+                      type="date"
+                      value={p.nascimento}
+                      onChange={(e) => mudar(i, { nascimento: e.target.value })}
+                    />
+                  </label>
+
+                  <label className="block md:col-span-2">
+                    <Rotulo>Nacionalidade</Rotulo>
+                    <select className={campo} value={30} disabled>
+                      <option value={30}>Brasil</option>
+                    </select>
+                  </label>
+
+                  <label className="block md:col-span-2">
+                    <Rotulo>{p.documentoTipo === "CPF" ? "CPF" : "Passaporte"}</Rotulo>
+                    <Input
+                      className={campo}
+                      value={p.documento}
+                      onChange={(e) => mudar(i, { documento: e.target.value })}
+                      placeholder={p.documentoTipo === "CPF" ? "000.000.000-00" : "AB123456"}
+                    />
+                  </label>
+
+                  <label className="block md:col-span-3">
                     <Rotulo>Telefone {i === 0 ? "" : "(opcional)"}</Rotulo>
                     <Input
                       className={campo}
@@ -302,37 +314,14 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                     />
                   </label>
 
-                  <label className="block md:col-span-6">
-                    <Rotulo>E-mail para envio do bilhete {i === 0 ? "" : "(opcional)"}</Rotulo>
+                  <label className="block md:col-span-3">
+                    <Rotulo>E-mail {i === 0 ? "" : "(opcional)"}</Rotulo>
                     <Input
                       className={campo}
+                      type="email"
                       value={p.email}
                       onChange={(e) => mudar(i, { email: e.target.value })}
                       placeholder="exemplo@email.com"
-                    />
-                  </label>
-
-                  <label className="block md:col-span-3">
-                    <Rotulo>Tipo de documento</Rotulo>
-                    <select
-                      className={campo}
-                      value={p.documentoTipo}
-                      onChange={(e) =>
-                        mudar(i, { documentoTipo: e.target.value as "CPF" | "PASSAPORTE" })
-                      }
-                    >
-                      <option value="CPF">CPF</option>
-                      <option value="PASSAPORTE">Passaporte</option>
-                    </select>
-                  </label>
-
-                  <label className="block md:col-span-3">
-                    <Rotulo>Número do documento</Rotulo>
-                    <Input
-                      className={campo}
-                      value={p.documento}
-                      onChange={(e) => mudar(i, { documento: e.target.value })}
-                      placeholder={p.documentoTipo === "CPF" ? "000.000.000-00" : "AB123456"}
                     />
                   </label>
                 </div>
@@ -341,7 +330,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
 
             <div className="flex justify-end pt-2">
               <Button
-                className="w-full rounded-xl px-12 py-6 text-sm font-bold md:w-auto"
+                className="w-full rounded-xl bg-sky-600 px-12 py-6 text-sm font-bold text-white hover:bg-sky-500 md:w-auto"
                 disabled={enviando}
                 onClick={() => void continuar()}
               >
