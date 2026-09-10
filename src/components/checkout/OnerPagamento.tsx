@@ -455,6 +455,13 @@ export function OnerPagamento({
             </Button>
           </div>
 
+          {somentePix72h ? (
+            <p className="mb-6 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+              Partida em até 72 horas: a operadora libera somente pagamento via Pix para esta
+              reserva.
+            </p>
+          ) : null}
+
           {metodo === "cartao" ? (
             <div>
               {maxCartoes > 1 ? (
