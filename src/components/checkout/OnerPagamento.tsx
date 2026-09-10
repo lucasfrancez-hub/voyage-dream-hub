@@ -400,6 +400,49 @@ export function OnerPagamento({
     });
   }
 
+  /** Gera o QR Code Pix da VIA AIR para o cliente pagar. */
+  async function gerarPixNosso() {
+    if (pagadorPix.nome.trim().length < 2) {
+      toast.error("Informe o nome de quem vai pagar.");
+      return;
+    }
+    if (somenteNumeros(pagadorPix.documento).length < 11) {
+      toast.error("Informe o CPF de quem vai pagar.");
+      return;
+    }
+    setGerandoNosso(true);
+    const r = await gerarPixViaAir({
+      data: {
+        cartId,
+        valor: total,
+        nome: pagadorPix.nome.trim(),
+        documentoNumero: somenteNumeros(pagadorPix.documento),
+        ...(pagadorPix.email.trim() ? { email: pagadorPix.email.trim() } : {}),
+      },
+    });
+    setGerandoNosso(false);
+    if (!r.ok) {
+      toast.error(r.erro);
+      return;
+    }
+    setPixNosso(r.pix);
+  }
+
+  // Confirmação automática do Pix da VIA AIR.
+  useEffect(() => {
+    if (!pixNosso?.txid || pixPago) return;
+    const id = setInterval(() => {
+      void (async () => {
+        const s = await consultarPix({ data: { txid: pixNosso.txid } });
+        if (s.status === "paga" || s.pagoEm) {
+          setPixPago(true);
+          clearInterval(id);
+        }
+      })();
+    }, 8000);
+    return () => clearInterval(id);
+  }, [pixNosso?.txid, pixPago, consultarPix]);
+
   if (carregando) {
     return (
       <div className="flex items-center gap-2 p-8 text-sm text-muted-foreground">
