@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CreditCard, QrCode, Loader2, Check, Copy, Eraser } from "lucide-react";
+import { CreditCard, QrCode, Loader2, Check, Copy, Eraser, MapPin, User } from "lucide-react";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 import { Button } from "@/components/ui/button";
