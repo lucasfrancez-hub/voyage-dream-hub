@@ -684,6 +684,7 @@ export function OnerPagamento({
         resumo={
           resumo ?? { voos: [], precos: [], parcelas: [], total, taxas: null, tarifa: null }
         }
+        passageiros={passageiros}
         rodape={
           <div>
             {metodo === "cartao" ? (
