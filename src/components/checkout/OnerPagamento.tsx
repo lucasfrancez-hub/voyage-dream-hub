@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CreditCard, QrCode, Loader2, Check, Copy } from "lucide-react";
+import { CreditCard, QrCode, Loader2, Check, Copy, Eraser } from "lucide-react";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 import { Button } from "@/components/ui/button";
@@ -127,6 +127,23 @@ export function OnerPagamento({
   });
   const mudarPagador = (patch: Partial<typeof pagador>) =>
     setPagador((prev) => ({ ...prev, ...patch }));
+
+  const limparPagador = () =>
+    setPagador({
+      nome: "",
+      sobrenome: "",
+      documentoNumero: "",
+      nascimento: "",
+      email: "",
+      telefone: "",
+      cep: "",
+      rua: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
+      cidade: "",
+      estado: "",
+    });
 
 
   useEffect(() => {
@@ -337,7 +354,7 @@ export function OnerPagamento({
         ) : null}
 
         <section className="rounded-2xl border border-border bg-card p-6">
-          <h2 className="font-semibold">Pagamento</h2>
+          <h2 className="mb-4 font-semibold">Pagamento</h2>
           <p className="mb-4 text-sm text-muted-foreground">Como prefere pagar?</p>
 
           <div className="grid grid-cols-2 gap-3">
@@ -397,99 +414,9 @@ export function OnerPagamento({
                 </div>
               ) : null}
 
-              <div className="mb-8 rounded-xl border border-border p-4">
-                <div className="font-semibold">Dados de quem está pagando</div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Use o nome, documento e endereço do titular do cartão.
-                </p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <Label className="text-xs">Nome</Label>
-                    <Input value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Sobrenome</Label>
-                    <Input value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">CPF</Label>
-                    <Input
-                      value={pagador.documentoNumero}
-                      inputMode="numeric"
-                      onChange={(e) => mudarPagador({ documentoNumero: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Nascimento</Label>
-                    <Input
-                      type="date"
-                      value={pagador.nascimento}
-                      onChange={(e) => mudarPagador({ nascimento: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">E-mail</Label>
-                    <Input value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Telefone</Label>
-                    <Input
-                      value={pagador.telefone}
-                      inputMode="numeric"
-                      placeholder="DDD + número"
-                      onChange={(e) => mudarPagador({ telefone: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">CEP</Label>
-                    <Input
-                      value={pagador.cep}
-                      inputMode="numeric"
-                      onChange={(e) => mudarPagador({ cep: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Endereço</Label>
-                    <Input value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Número</Label>
-                      <Input value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Complemento</Label>
-                      <Input
-                        value={pagador.complemento}
-                        onChange={(e) => mudarPagador({ complemento: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Bairro</Label>
-                    <Input value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Cidade</Label>
-                      <Input value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Estado (UF)</Label>
-                      <Input
-                        value={pagador.estado}
-                        maxLength={2}
-                        onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <div className="space-y-8">
-
                 {cartoes.map((c, i) => (
-                  <div key={i} className="rounded-xl border border-border p-4">
+                  <div key={i} className={i === 0 ? "mt-6" : "border-t border-border pt-6"}>
                     <div className="mb-4 flex items-start justify-between gap-4">
                       <div>
                         <div className="font-semibold">Cartão {i + 1}</div>
@@ -498,9 +425,7 @@ export function OnerPagamento({
                             {c.bandeira} •••• {c.finalCartao}
                           </div>
                         ) : (
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            A bandeira é identificada pela operadora
-                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">{i === 0 ? "Principal" : i === 1 ? "Segundo cartão" : "Terceiro cartão"}</div>
                         )}
                       </div>
                       <label className="shrink-0 text-right">
@@ -522,101 +447,113 @@ export function OnerPagamento({
                       </label>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <div className="mb-2 text-xs text-muted-foreground">Bandeira do cartão *</div>
+                      <div className="flex flex-wrap gap-2">
+                        {["VISA", "MASTERCARD", "ELO", "AMEX", "DINERS", "HIPER"].map((bandeira) => {
+                          const ativa = c.bandeira?.toUpperCase().includes(bandeira === "MASTERCARD" ? "MASTER" : bandeira);
+                          return (
+                            <div
+                              key={bandeira}
+                              className={`flex h-11 min-w-16 items-center justify-center rounded-xl border p-1.5 transition ${ativa ? "border-primary bg-primary/5" : "border-border opacity-60 grayscale"}`}
+                              aria-label={bandeira}
+                            >
+                              <span className="flex h-8 min-w-14 items-center justify-center rounded-md bg-background px-2 text-[9px] font-black">
+                                {bandeira === "MASTERCARD" ? "● ●" : bandeira}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_120px]">
                       <div>
-                        <Label className="text-xs">Nome impresso no cartão</Label>
+                        <Label className="text-xs">Número do cartão *</Label>
+                        <Input
+                          value={c.numero}
+                          inputMode="numeric"
+                          placeholder="0000 0000 0000 0000"
+                          onChange={(e) => atualizar(i, { numero: e.target.value, opcoes: null, parcela: null })}
+                          autoComplete="off"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">CVV *</Label>
+                        <Input
+                          value={c.cvv}
+                          inputMode="numeric"
+                          placeholder="•••"
+                          onChange={(e) => atualizar(i, { cvv: e.target.value, opcoes: null, parcela: null })}
+                          autoComplete="off"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <Label className="text-xs">Validade (MM/AA) *</Label>
+                        <Input
+                          value={[c.mes, c.ano].filter(Boolean).join("/")}
+                          inputMode="numeric"
+                          placeholder="MM/AA"
+                          onChange={(e) => {
+                            const valor = somenteNumeros(e.target.value).slice(0, 6);
+                            atualizar(i, { mes: valor.slice(0, 2), ano: valor.slice(2), opcoes: null, parcela: null });
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Nome como está no cartão *</Label>
                         <Input
                           value={c.nome}
+                          placeholder="LUCAS S SILVA"
                           onChange={(e) => atualizar(i, { nome: e.target.value.toUpperCase(), opcoes: null, parcela: null })}
                           autoComplete="off"
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Número do cartão</Label>
-                        <Input
-                          value={c.numero}
-                          inputMode="numeric"
-                          onChange={(e) => atualizar(i, { numero: e.target.value, opcoes: null, parcela: null })}
-                          autoComplete="off"
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <Label className="text-xs">Mês</Label>
-                          <Input
-                            value={c.mes}
-                            inputMode="numeric"
-                            placeholder="MM"
-                            onChange={(e) => atualizar(i, { mes: e.target.value, opcoes: null, parcela: null })}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Ano</Label>
-                          <Input
-                            value={c.ano}
-                            inputMode="numeric"
-                            placeholder="AAAA"
-                            onChange={(e) => atualizar(i, { ano: e.target.value, opcoes: null, parcela: null })}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">CVV</Label>
-                          <Input
-                            value={c.cvv}
-                            inputMode="numeric"
-                            onChange={(e) => atualizar(i, { cvv: e.target.value, opcoes: null, parcela: null })}
-                            autoComplete="off"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-xs">CPF do titular</Label>
+                        <Label className="text-xs">CPF do titular do cartão *</Label>
                         <Input
                           value={c.documentoNumero}
                           inputMode="numeric"
+                          placeholder="000.000.000-00"
                           onChange={(e) => atualizar(i, { documentoNumero: e.target.value })}
                         />
                       </div>
-                    </div>
-
-                    <div className="mt-4">
-                      <div className="mb-2 flex items-center justify-between">
-                        <Label className="text-xs">Parcelamento</Label>
+                      <div>
+                        <Label className="text-xs">Parcelas deste cartão</Label>
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
                           disabled={c.carregando}
                           onClick={() => void consultarParcelas(i)}
+                          className="mt-1.5 w-full"
                         >
                           {c.carregando ? "Carregando..." : "Carregar parcelas"}
                         </Button>
+                        {c.carregando ? (
+                          <p className="mt-2 text-xs text-muted-foreground">Carregando opções de parcelamento...</p>
+                        ) : c.erroParcelas ? (
+                          <p className="mt-2 text-xs text-destructive">Não foi possível carregar o parcelamento para este cartão.</p>
+                        ) : c.opcoes && c.opcoes.length > 0 ? (
+                          <select
+                            className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+                            value={c.parcela ?? ""}
+                            onChange={(e) => atualizar(i, { parcela: Number(e.target.value) })}
+                          >
+                            <option value="">Selecione</option>
+                            {c.opcoes.map((o) => (
+                              <option key={o.installment} value={o.installment}>
+                                {o.installment}x de {brl(o.installmentsValue)} {o.hasRate ? "com juros" : "sem juros"}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <p className="mt-2 text-xs text-muted-foreground">Informe o cartão para carregar as parcelas.</p>
+                        )}
                       </div>
-                      {c.carregando ? (
-                        <p className="text-xs text-muted-foreground">Carregando opções de parcelamento...</p>
-                      ) : c.erroParcelas ? (
-                        <p className="text-xs text-destructive">
-                          Não foi possível carregar o parcelamento para este cartão.
-                        </p>
-                      ) : c.opcoes && c.opcoes.length > 0 ? (
-                        <select
-                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                          value={c.parcela ?? ""}
-                          onChange={(e) => atualizar(i, { parcela: Number(e.target.value) })}
-                        >
-                          <option value="">Selecione</option>
-                          {c.opcoes.map((o) => (
-                            <option key={o.installment} value={o.installment}>
-                              {o.installment}x de {brl(o.installmentsValue)}
-                              {o.hasRate ? " com juros" : " sem juros"} — total {brl(o.total)}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Informe o cartão para carregar as parcelas.
-                        </p>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -678,6 +615,44 @@ export function OnerPagamento({
             </div>
           )}
         </section>
+
+        {metodo === "cartao" ? (
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-semibold">Dados de pagamento</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Responsável financeiro pela compra.</p>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={limparPagador} className="text-primary">
+                <Eraser className="h-3.5 w-3.5" /> Limpar campos
+              </Button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div><Label className="text-xs">Nome *</Label><Input value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} /></div>
+              <div><Label className="text-xs">Sobrenome *</Label><Input value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} /></div>
+              <div className="sm:col-span-2"><Label className="text-xs">E-mail *</Label><Input value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} /></div>
+              <div><Label className="text-xs">Data de nascimento *</Label><Input type="date" value={pagador.nascimento} onChange={(e) => mudarPagador({ nascimento: e.target.value })} /></div>
+              <div><Label className="text-xs">Nacionalidade *</Label><select className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm" value="Brasil" disabled><option>Brasil</option></select></div>
+              <div><Label className="text-xs">Tipo de documento *</Label><select className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm" value="CPF" disabled><option>CPF</option></select></div>
+              <div><Label className="text-xs">Nº do documento *</Label><Input value={pagador.documentoNumero} inputMode="numeric" onChange={(e) => mudarPagador({ documentoNumero: e.target.value })} /></div>
+              <div><Label className="text-xs">Celular *</Label><Input value={pagador.telefone} inputMode="numeric" onChange={(e) => mudarPagador({ telefone: e.target.value })} /></div>
+            </div>
+
+            <div className="mt-6 border-t border-border pt-6">
+              <h3 className="mb-4 text-sm font-semibold">Endereço de cobrança</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2"><Label className="text-xs">CEP *</Label><Input value={pagador.cep} inputMode="numeric" placeholder="00000-000" onChange={(e) => mudarPagador({ cep: e.target.value })} /></div>
+                <div><Label className="text-xs">Endereço *</Label><Input value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} /></div>
+                <div><Label className="text-xs">Número *</Label><Input value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} /></div>
+                <div><Label className="text-xs">Complemento</Label><Input value={pagador.complemento} onChange={(e) => mudarPagador({ complemento: e.target.value })} /></div>
+                <div><Label className="text-xs">Bairro *</Label><Input value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} /></div>
+                <div><Label className="text-xs">Cidade *</Label><Input value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} /></div>
+                <div><Label className="text-xs">Estado *</Label><Input value={pagador.estado} maxLength={2} placeholder="PR" onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })} /></div>
+              </div>
+            </div>
+          </section>
+        ) : null}
       </div>
 
       <ResumoReserva
