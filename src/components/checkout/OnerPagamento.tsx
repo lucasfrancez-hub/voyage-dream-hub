@@ -211,11 +211,36 @@ export function OnerPagamento({
       toast.error("Escolha o parcelamento de cada cartão.");
       return;
     }
+    const obrigatorios: Array<keyof typeof pagador> = [
+      "nome",
+      "sobrenome",
+      "documentoNumero",
+      "nascimento",
+      "email",
+      "telefone",
+      "cep",
+      "rua",
+      "numero",
+      "bairro",
+      "cidade",
+      "estado",
+    ];
+    if (obrigatorios.some((k) => !String(pagador[k] ?? "").trim())) {
+      toast.error("Preencha todos os dados e o endereço do pagador.");
+      return;
+    }
     setEnviando(true);
     const r = await pagarCartao({
       data: {
         cartId,
         totalEsperado: total,
+        pagador: {
+          ...pagador,
+          documentoNumero: somenteNumeros(pagador.documentoNumero),
+          telefone: somenteNumeros(pagador.telefone),
+          cep: somenteNumeros(pagador.cep),
+        },
+
         cartoes: cartoes.map((c) => {
           const opcao = c.opcoes?.find((o) => o.installment === c.parcela);
           return {
