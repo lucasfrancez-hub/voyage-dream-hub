@@ -310,27 +310,29 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    <label className="block">
-                      <Rotulo>Telefone {i === 0 ? "" : "(opcional)"}</Rotulo>
-                      <input
-                        className={campo}
-                        value={p.telefone}
-                        onChange={(e) => mudar(i, { telefone: e.target.value })}
-                        placeholder="(00) 00000-0000"
-                      />
-                    </label>
-                    <label className="block">
-                      <Rotulo>E-mail {i === 0 ? "" : "(opcional)"}</Rotulo>
-                      <input
-                        className={campo}
-                        type="email"
-                        value={p.email}
-                        onChange={(e) => mudar(i, { email: e.target.value })}
-                        placeholder="exemplo@email.com"
-                      />
-                    </label>
-                  </div>
+                  {i === 0 ? (
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      <label className="block">
+                        <Rotulo>Telefone</Rotulo>
+                        <input
+                          className={campo}
+                          value={p.telefone}
+                          onChange={(e) => mudar(i, { telefone: e.target.value })}
+                          placeholder="(00) 00000-0000"
+                        />
+                      </label>
+                      <label className="block">
+                        <Rotulo>E-mail</Rotulo>
+                        <input
+                          className={campo}
+                          type="email"
+                          value={p.email}
+                          onChange={(e) => mudar(i, { email: e.target.value })}
+                          placeholder="exemplo@email.com"
+                        />
+                      </label>
+                    </div>
+                  ) : null}
                 </div>
               </section>
             ))}

@@ -105,7 +105,7 @@ function ponto(origem: unknown): PontoVoo {
   const cidadeOriginal = String(pick(origem, "city") ?? "").trim();
   return {
     iata,
-    cidade: iata.toUpperCase() === "MGF" ? "Paranavaí" : cidadeOriginal,
+    cidade: cidadeOriginal,
     aeroporto: String(pick(origem, "name") ?? "").trim(),
     data: d?.year ? `${pad2(d.day ?? 1)}/${pad2(d.month ?? 1)}/${d.year}` : "",
     hora: t?.hour != null ? `${pad2(t.hour)}:${pad2(t.minute ?? 0)}` : "",
