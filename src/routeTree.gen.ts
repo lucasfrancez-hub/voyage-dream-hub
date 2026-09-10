@@ -118,6 +118,7 @@ import { Route as ReservaTokenRouteImport } from './routes/reserva.$token'
 import { Route as VistoAmericanoTokenRouteImport } from './routes/visto-americano.$token'
 import { Route as WSlugRouteImport } from './routes/w.$slug'
 import { Route as AdminAppTokenRouteImport } from './routes/admin.app.$token'
+import { Route as AdminCheckoutCartIdRouteImport } from './routes/admin.checkout.$cartId'
 import { Route as AdminCobrancaCartaoIndexRouteImport } from './routes/admin.cobranca-cartao.index'
 import { Route as AdminCobrancaCartaoIdRouteImport } from './routes/admin.cobranca-cartao.$id'
 import { Route as AdminCruzeirosIndexRouteImport } from './routes/admin.cruzeiros.index'
@@ -757,6 +758,11 @@ const AdminAppTokenRoute = AdminAppTokenRouteImport.update({
   path: '/app/$token',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCheckoutCartIdRoute = AdminCheckoutCartIdRouteImport.update({
+  id: '/checkout/$cartId',
+  path: '/checkout/$cartId',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCobrancaCartaoIndexRoute =
   AdminCobrancaCartaoIndexRouteImport.update({
     id: '/cobranca-cartao/',
@@ -1377,6 +1383,7 @@ export interface FileRoutesByFullPath {
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
+  '/admin/checkout/$cartId': typeof AdminCheckoutCartIdRoute
   '/admin/cobranca-cartao/$id': typeof AdminCobrancaCartaoIdRoute
   '/admin/motor-pacote/modelos': typeof AdminMotorPacoteModelosRoute
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
@@ -1578,6 +1585,7 @@ export interface FileRoutesByTo {
   '/editair': typeof EditairIndexRoute
   '/pacotes': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
+  '/admin/checkout/$cartId': typeof AdminCheckoutCartIdRoute
   '/admin/cobranca-cartao/$id': typeof AdminCobrancaCartaoIdRoute
   '/admin/motor-pacote/modelos': typeof AdminMotorPacoteModelosRoute
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
@@ -1783,6 +1791,7 @@ export interface FileRoutesById {
   '/editair/': typeof EditairIndexRoute
   '/pacotes/': typeof PacotesIndexRoute
   '/admin/app/$token': typeof AdminAppTokenRoute
+  '/admin/checkout/$cartId': typeof AdminCheckoutCartIdRoute
   '/admin/cobranca-cartao/$id': typeof AdminCobrancaCartaoIdRoute
   '/admin/motor-pacote/modelos': typeof AdminMotorPacoteModelosRoute
   '/admin/orcamentos/$id': typeof AdminOrcamentosIdRoute
@@ -1989,6 +1998,7 @@ export interface FileRouteTypes {
     | '/editair/'
     | '/pacotes/'
     | '/admin/app/$token'
+    | '/admin/checkout/$cartId'
     | '/admin/cobranca-cartao/$id'
     | '/admin/motor-pacote/modelos'
     | '/admin/orcamentos/$id'
@@ -2190,6 +2200,7 @@ export interface FileRouteTypes {
     | '/editair'
     | '/pacotes'
     | '/admin/app/$token'
+    | '/admin/checkout/$cartId'
     | '/admin/cobranca-cartao/$id'
     | '/admin/motor-pacote/modelos'
     | '/admin/orcamentos/$id'
@@ -2394,6 +2405,7 @@ export interface FileRouteTypes {
     | '/editair/'
     | '/pacotes/'
     | '/admin/app/$token'
+    | '/admin/checkout/$cartId'
     | '/admin/cobranca-cartao/$id'
     | '/admin/motor-pacote/modelos'
     | '/admin/orcamentos/$id'
@@ -3362,6 +3374,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAppTokenRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/checkout/$cartId': {
+      id: '/admin/checkout/$cartId'
+      path: '/checkout/$cartId'
+      fullPath: '/admin/checkout/$cartId'
+      preLoaderRoute: typeof AdminCheckoutCartIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/cobranca-cartao/': {
       id: '/admin/cobranca-cartao/'
       path: '/cobranca-cartao'
@@ -4098,6 +4117,7 @@ interface AdminRouteChildren {
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminVoosTesteRoute: typeof AdminVoosTesteRoute
   AdminAppTokenRoute: typeof AdminAppTokenRoute
+  AdminCheckoutCartIdRoute: typeof AdminCheckoutCartIdRoute
   AdminCobrancaCartaoIdRoute: typeof AdminCobrancaCartaoIdRoute
   AdminOrcamentosIdRoute: typeof AdminOrcamentosIdRoute
   AdminPedidosIdRoute: typeof AdminPedidosIdRoute
@@ -4172,6 +4192,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminVoosTesteRoute: AdminVoosTesteRoute,
   AdminAppTokenRoute: AdminAppTokenRoute,
+  AdminCheckoutCartIdRoute: AdminCheckoutCartIdRoute,
   AdminCobrancaCartaoIdRoute: AdminCobrancaCartaoIdRoute,
   AdminOrcamentosIdRoute: AdminOrcamentosIdRoute,
   AdminPedidosIdRoute: AdminPedidosIdRoute,

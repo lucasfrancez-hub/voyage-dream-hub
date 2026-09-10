@@ -1343,6 +1343,7 @@ function SummaryCard({
   const cond =
     condIn && condIn.interestFree.installments < condOut.interestFree.installments ? condIn : condOut;
   const [orderOpen, setOrderOpen] = useState(false);
+  const irParaCheckout = useNavigate();
   const [cartUrl, setCartUrl] = useState<string | null>(null);
   const createCart = useServerFn(publicMode ? onerCreateFlightCartPublic : onerCreateFlightCart);
   const logLead = useServerFn(createPublicFlightLead);
@@ -1376,7 +1377,6 @@ function SummaryCard({
     },
     onSuccess: (r) => {
       setCartUrl(r.url);
-      if (!publicMode) window.open(r.url, "_blank", "noopener");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao gerar carrinho"),
   });
@@ -1664,7 +1664,24 @@ function SummaryCard({
             <Button
               variant="outline"
               disabled={!searchKey || cartMut.isPending}
-              onClick={() => cartMut.mutate()}
+              onClick={async () => {
+                try {
+                  const r = await cartMut.mutateAsync();
+                  const id = r.url.match(
+                    /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/,
+                  )?.[0];
+                  if (!id) {
+                    toast.error("Não foi possível abrir o checkout desta reserva.");
+                    return;
+                  }
+                  void irParaCheckout({
+                    to: "/admin/checkout/$cartId",
+                    params: { cartId: id.toLowerCase() },
+                  });
+                } catch {
+                  /* erro já sinalizado pela mutação */
+                }
+              }}
               className="w-full py-5 text-[10px] font-black uppercase tracking-[0.15em]"
             >
               {cartMut.isPending ? (

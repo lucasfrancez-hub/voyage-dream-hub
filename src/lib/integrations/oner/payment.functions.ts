@@ -260,3 +260,58 @@ export const onerPagarPix = createServerFn({ method: "POST" })
     if (!qr.ok || !qr.pix) return { ok: false as const, erro: "O código Pix não foi gerado a tempo." };
     return { ok: true as const, pix: qr.pix };
   });
+
+export type PassageiroCheckout = {
+  tratamento: string;
+  nome: string;
+  sobrenome: string;
+  nascimento: string; // YYYY-MM-DD
+  sexo: "M" | "F";
+  tipo: "ADT" | "CHD" | "INF";
+  documentoTipo: "CPF" | "PASSAPORTE";
+  documento: string;
+  nacionalidade: number;
+  email: string;
+  telefone: string;
+};
+
+/** Passageiros preenchidos na nossa tela e enviados ao fornecedor. */
+export const onerSalvarPassageiros = createServerFn({ method: "POST" })
+  .inputValidator((d: { cartId: string; passageiros: PassageiroCheckout[] }) => d)
+  .handler(async ({ data }) => {
+    const { obterToken } = await import("./session.server");
+    const { enviarPassageiros } = await import("./checkout.server");
+
+    if (!data.passageiros.length) {
+      return { ok: false as const, erro: "Informe os dados dos passageiros." };
+    }
+    const token = await obterToken({});
+    if (!token) return { ok: false as const, erro: "Sessão indisponível. Recarregue a página." };
+
+    const lista = data.passageiros.map((p) => ({
+      firstName: p.nome.trim().toUpperCase(),
+      lastName: p.sobrenome.trim().toUpperCase(),
+      documentNumber: p.documento.replace(/[^0-9A-Za-z]/g, ""),
+      documentTypeId: p.documentoTipo === "PASSAPORTE" ? 2 : 1,
+      dateOfBirth: p.nascimento,
+      gender: p.sexo === "F" ? 2 : 1,
+      nationalityCountryId: p.nacionalidade || 30,
+      passengerTypeCode: p.tipo,
+      typeCode: p.tipo,
+      title: p.tratamento === "Sra." ? "MRS" : "MR",
+      contact: {
+        emailAddress: p.email.trim(),
+        ddi: 55,
+        phoneNumber: p.telefone.replace(/\D/g, ""),
+      },
+    }));
+
+    const r = await enviarPassageiros(data.cartId, lista, token);
+    if (!r.ok) {
+      return {
+        ok: false as const,
+        erro: r.call.message || "O fornecedor não aceitou os dados dos passageiros.",
+      };
+    }
+    return { ok: true as const };
+  });
