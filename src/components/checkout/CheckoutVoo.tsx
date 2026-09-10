@@ -16,6 +16,7 @@ import {
   onerSalvarPassageiros,
   type PassageiroCheckout,
 } from "@/lib/integrations/oner/payment.functions";
+import { onerAbrirPedidoCheckout } from "@/lib/integrations/oner/checkout-order.functions";
 
 const vazio = (tipo: PassageiroCheckout["tipo"]): PassageiroCheckout => ({
   tratamento: "Sr.",
@@ -47,6 +48,7 @@ function Rotulo({ children }: { children: React.ReactNode }) {
 export function CheckoutVoo({ cartId }: { cartId: string }) {
   const carregarResumo = useServerFn(onerCheckoutResumo);
   const salvarPassageiros = useServerFn(onerSalvarPassageiros);
+  const abrirPedido = useServerFn(onerAbrirPedidoCheckout);
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
