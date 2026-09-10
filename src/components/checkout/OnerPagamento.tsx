@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { CreditCard, QrCode, Loader2, Check, Copy, Eraser, MapPin, User } from "lucide-react";
+import { whatsappUrl } from "@/lib/checkout-config";
 import { toast } from "sonner";
 import { confirm } from "@/lib/confirm";
 import { Button } from "@/components/ui/button";
@@ -457,8 +458,17 @@ export function OnerPagamento({
 
           {somentePix72h ? (
             <p className="mb-6 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
-              Partida em até 72 horas: a operadora libera somente pagamento via Pix para esta
-              reserva.
+              Voo com embarque próximo: forma de pagamento liberada somente em Pix. Para
+              parcelamento no cartão, entre em contato conosco no{" "}
+              <a
+                href={whatsappUrl("Olá! Vi que meu voo tem embarque próximo e gostaria de pagar no cartão parcelado.")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary underline hover:text-primary/80"
+              >
+                WhatsApp
+              </a>
+              .
             </p>
           ) : null}
 
