@@ -118,6 +118,12 @@ export async function guardarCartaoNoCofre(
  * Parcelas do carrinho inteiro. Observação: o fornecedor responde 405 em GET
  * neste caminho — a consulta válida é a por cartão (consultarParcelasDoCartao).
  */
+function extrairOpcoes(body: unknown): OnerInstallmentOption[] {
+  if (Array.isArray(body)) return body as OnerInstallmentOption[];
+  const data = (body as { data?: unknown } | null)?.data;
+  return Array.isArray(data) ? (data as OnerInstallmentOption[]) : [];
+}
+
 export async function consultarParcelas(
   token: string,
   cartId: string,
@@ -125,8 +131,8 @@ export async function consultarParcelas(
   paymentMethodId: number = ONER_PAYMENT_METHOD.CreditCard,
 ): Promise<{ call: OnerCall; opcoes: OnerInstallmentOption[] }> {
   const url = `${ONER_API}/api/booking/installments/${cartId}?total=${total}&paymentMethodId=${paymentMethodId}`;
-  const r = await onerFetch<OnerInstallmentOption[]>(url, { token });
-  return { call: r.call, opcoes: Array.isArray(r.body) ? r.body : [] };
+  const r = await onerFetch<unknown>(url, { token });
+  return { call: r.call, opcoes: extrairOpcoes(r.body) };
 }
 
 /**
@@ -139,7 +145,7 @@ export async function consultarParcelasDoCartao(
   entrada: { totalValue: number; vaultToken: string; vaultKey: string; multiplosCartoes: boolean },
 ): Promise<{ call: OnerCall; opcoes: OnerInstallmentOption[] }> {
   const url = `${ONER_API}/api/booking/installments/${cartId}`;
-  const r = await onerFetch<OnerInstallmentOption[]>(url, {
+  const r = await onerFetch<unknown>(url, {
     token,
     method: "POST",
     body: {
@@ -150,7 +156,7 @@ export async function consultarParcelasDoCartao(
       vaultKey: entrada.vaultKey,
     },
   });
-  return { call: r.call, opcoes: Array.isArray(r.body) ? r.body : [] };
+  return { call: r.call, opcoes: extrairOpcoes(r.body) };
 }
 
 /** Um cartão já protegido pelo cofre, pronto para o pagamento. */
