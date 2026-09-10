@@ -184,6 +184,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
     <ResumoReserva
       resumo={dados.resumo}
       passageiros={listaPassageiros}
+      mostrarParcelas={etapa === 2}
       rodape={erro ? <p className="text-xs text-destructive">{erro}</p> : null}
     />
   ) : null;
