@@ -41,6 +41,8 @@ export type DadosCheckoutOner = {
   aceitaCartao: boolean;
   aceitaPix: boolean;
   maxCartoes: number;
+  /** Partida em até 72h: operadora só libera Pix. */
+  somentePix72h?: boolean;
 };
 
 type Opcao = {
@@ -113,6 +115,9 @@ export function OnerPagamento({
   const [resumo, setResumo] = useState<ResumoCarrinho | null>(dados?.resumo ?? null);
   const [maxCartoes, setMaxCartoes] = useState(dados?.maxCartoes || 1);
   const [aceitaPix, setAceitaPix] = useState(dados?.aceitaPix ?? false);
+  const [aceitaCartao, setAceitaCartao] = useState(dados?.aceitaCartao ?? true);
+  const [somentePix72h, setSomentePix72h] = useState(dados?.somentePix72h ?? false);
+
 
 
   const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
@@ -188,6 +193,8 @@ export function OnerPagamento({
 
   useEffect(() => {
     if (dados) {
+      setAceitaCartao(dados.aceitaCartao);
+      setSomentePix72h(Boolean(dados.somentePix72h));
       if (!dados.aceitaCartao && dados.aceitaPix) setMetodo("pix");
       if (dados.resumo.expirado) setErro("Esta reserva expirou. Refaça a busca para continuar.");
       return;
@@ -205,6 +212,8 @@ export function OnerPagamento({
       setResumo(r.resumo);
       setMaxCartoes(r.maxCartoes || 1);
       setAceitaPix(r.aceitaPix);
+      setAceitaCartao(r.aceitaCartao);
+      setSomentePix72h(Boolean(r.somentePix72h));
       setCartoes([cartaoVazio(String((r.resumo.total ?? 0).toFixed(2)))]);
       if (!r.aceitaCartao && r.aceitaPix) setMetodo("pix");
       if (r.resumo.expirado) setErro("Esta reserva expirou. Refaça a busca para continuar.");
@@ -418,8 +427,9 @@ export function OnerPagamento({
             <Button
               variant="outline"
               type="button"
+              disabled={!aceitaCartao}
               onClick={() => setMetodo("cartao")}
-              className={`h-auto flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium transition ${
+              className={`h-auto flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium transition disabled:opacity-50 ${
                 metodo === "cartao"
                   ? "border-2 border-primary bg-primary/10 text-foreground"
                   : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
@@ -444,6 +454,13 @@ export function OnerPagamento({
               Pix
             </Button>
           </div>
+
+          {somentePix72h ? (
+            <p className="mb-6 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+              Partida em até 72 horas: a operadora libera somente pagamento via Pix para esta
+              reserva.
+            </p>
+          ) : null}
 
           {metodo === "cartao" ? (
             <div>

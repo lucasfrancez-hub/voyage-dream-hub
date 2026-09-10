@@ -81,12 +81,23 @@ export const onerCheckoutResumo = createServerFn({ method: "POST" })
     const cartao = formas.find((f) => f.paymentMethodId === 1);
     const pix = formas.find((f) => f.paymentMethodId === 4);
 
+    // Regra operacional: partida em até 72h -> somente Pix (cartão não é liberado).
+    const partida = carrinho.resumo.voos[0]?.saida;
+    const m = partida?.data?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    let somentePix72h = false;
+    if (m) {
+      const [hh, mm] = (partida?.hora || "00:00").split(":").map(Number);
+      const partidaMs = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), hh || 0, mm || 0).getTime();
+      somentePix72h = partidaMs - Date.now() < 72 * 60 * 60 * 1000;
+    }
+
     return {
       ok: true as const,
       resumo: carrinho.resumo,
-      aceitaCartao: Boolean(cartao),
-      maxCartoes: cartao?.multipleQuantityUsage ?? 0,
+      aceitaCartao: Boolean(cartao) && !somentePix72h,
+      maxCartoes: somentePix72h ? 0 : (cartao?.multipleQuantityUsage ?? 0),
       aceitaPix: Boolean(pix),
+      somentePix72h,
     };
   });
 
