@@ -118,6 +118,12 @@ export async function guardarCartaoNoCofre(
  * Parcelas do carrinho inteiro. Observação: o fornecedor responde 405 em GET
  * neste caminho — a consulta válida é a por cartão (consultarParcelasDoCartao).
  */
+function extrairOpcoes(body: unknown): OnerInstallmentOption[] {
+  if (Array.isArray(body)) return body as OnerInstallmentOption[];
+  const data = (body as { data?: unknown } | null)?.data;
+  return Array.isArray(data) ? (data as OnerInstallmentOption[]) : [];
+}
+
 export async function consultarParcelas(
   token: string,
   cartId: string,
@@ -125,8 +131,8 @@ export async function consultarParcelas(
   paymentMethodId: number = ONER_PAYMENT_METHOD.CreditCard,
 ): Promise<{ call: OnerCall; opcoes: OnerInstallmentOption[] }> {
   const url = `${ONER_API}/api/booking/installments/${cartId}?total=${total}&paymentMethodId=${paymentMethodId}`;
-  const r = await onerFetch<OnerInstallmentOption[]>(url, { token });
-  return { call: r.call, opcoes: Array.isArray(r.body) ? r.body : [] };
+  const r = await onerFetch<unknown>(url, { token });
+  return { call: r.call, opcoes: extrairOpcoes(r.body) };
 }
 
 /**
@@ -139,7 +145,7 @@ export async function consultarParcelasDoCartao(
   entrada: { totalValue: number; vaultToken: string; vaultKey: string; multiplosCartoes: boolean },
 ): Promise<{ call: OnerCall; opcoes: OnerInstallmentOption[] }> {
   const url = `${ONER_API}/api/booking/installments/${cartId}`;
-  const r = await onerFetch<OnerInstallmentOption[]>(url, {
+  const r = await onerFetch<unknown>(url, {
     token,
     method: "POST",
     body: {
@@ -150,7 +156,7 @@ export async function consultarParcelasDoCartao(
       vaultKey: entrada.vaultKey,
     },
   });
-  return { call: r.call, opcoes: Array.isArray(r.body) ? r.body : [] };
+  return { call: r.call, opcoes: extrairOpcoes(r.body) };
 }
 
 /** Um cartão já protegido pelo cofre, pronto para o pagamento. */
@@ -202,6 +208,11 @@ function montarPagamento(entrada: PagamentoCartaoEntrada) {
   };
 }
 
+function extrairCompra(body: unknown): OnerPurchaseResult | null {
+  const b = body as { data?: unknown; purchase?: unknown } | null;
+  return ((b?.data ?? b?.purchase ?? b) ?? null) as OnerPurchaseResult | null;
+}
+
 /** Pagamento com 1, 2 ou 3 cartões (sem Pix combinado). */
 export async function pagarComCartoes(
   token: string,
@@ -211,10 +222,10 @@ export async function pagarComCartoes(
   const r = await onerFetch<{ purchase?: OnerPurchaseResult } & OnerPurchaseResult>(url, {
     token,
     method: "POST",
-    body: { payment: montarPagamento(entrada) },
+    body: montarPagamento(entrada),
     timeoutMs: 120_000,
   });
-  const compra = (r.body?.purchase ?? r.body ?? null) as OnerPurchaseResult | null;
+  const compra = extrairCompra(r.body);
   return { call: r.call, compra, raw: r.raw };
 }
 
@@ -230,8 +241,65 @@ export async function pagarPixMaisCartoes(
     body: { payment: montarPagamento(entrada), valueToPay: entrada.valorPix },
     timeoutMs: 120_000,
   });
-  const compra = (r.body?.purchase ?? r.body ?? null) as OnerPurchaseResult | null;
+  const compra = extrairCompra(r.body);
   return { call: r.call, compra, raw: r.raw };
+}
+
+/** Dados do pagador exigidos pelo fornecedor antes do pagamento com cartão. */
+export type PagadorOner = {
+  cartId: string;
+  firstName: string;
+  lastName: string;
+  documentNumber: string;
+  documentTypeId: number;
+  birthDate: string; // YYYY-MM-DD
+  email: string;
+  mobilePhone: string;
+  mobilePhoneCountryCode: number;
+  countryId: number;
+  city: string;
+  stateOrProvice: string;
+  street: string;
+  neighborhood: string;
+  houseNumber: string;
+  complement?: string;
+  zipCode: string;
+};
+
+/**
+ * Grava o pagador no fornecedor (mesma etapa que o site faz antes de pagar).
+ * POST {api}/api/client/save-as-payer
+ */
+export async function salvarPagador(token: string, p: PagadorOner) {
+  const body = {
+    name: `${p.firstName} ${p.lastName}`.trim(),
+    firstName: p.firstName,
+    lastName: p.lastName,
+    birthDate: p.birthDate,
+    cartId: p.cartId,
+    documentNumber: p.documentNumber,
+    documentTypeId: p.documentTypeId,
+    email: p.email,
+    mobilePhone: p.mobilePhone,
+    mobilePhoneCountryCode: p.mobilePhoneCountryCode,
+    country: { id: p.countryId },
+    city: p.city,
+    stateOrProvice: p.stateOrProvice,
+    street: p.street,
+    neighborhood: p.neighborhood,
+    houseNumber: p.houseNumber,
+    complement: p.complement ?? "",
+    zipCode: p.zipCode,
+    acceptOptIn: false,
+    notUpdateAddress: false,
+    purchaseForCustomer: true,
+  };
+  const r = await onerFetch(`${ONER_API}/api/client/save-as-payer`, {
+    token,
+    method: "POST",
+    body,
+  });
+  return { call: r.call, raw: r.raw };
 }
 
 /** Cancela um pagamento pendente do carrinho. */
