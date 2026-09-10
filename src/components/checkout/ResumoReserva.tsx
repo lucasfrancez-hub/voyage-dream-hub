@@ -130,40 +130,44 @@ export function ResumoReserva({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-4 px-5 py-5">
+                    <div className="grid grid-cols-[auto_1fr_auto] items-start gap-3 px-5 py-5">
                       <div className="min-w-0">
-                        <div className="font-display text-[28px] font-bold leading-none tracking-tight">
+                        <div className="font-display text-[26px] font-bold leading-none tracking-tight">
                           {v.saida.hora}
                         </div>
                         <div className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                           {v.saida.iata}
                         </div>
                         {v.saida.cidade ? (
-                          <div className="mt-1 truncate text-[11px] text-muted-foreground">{v.saida.cidade}</div>
+                          <div className="mt-1 max-w-[120px] text-[11px] leading-snug text-muted-foreground">
+                            {v.saida.cidade}
+                          </div>
                         ) : null}
                       </div>
-                      <div className="w-24 pt-2 text-center">
+                      <div className="min-w-0 px-1 pt-2 text-center">
                         <div className="text-[10px] text-muted-foreground">{v.duracao ?? ""}</div>
                         <div className="my-1.5 flex items-center gap-1">
                           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
                           <span className="h-px flex-1 bg-border" />
                           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-orange" />
                         </div>
-                        <div className="truncate text-[9px] uppercase tracking-wide text-muted-foreground">
+                        <div className="text-[9px] uppercase leading-tight tracking-wide text-muted-foreground">
                           {v.conexoes.length
                             ? v.conexoes.join(" · ")
                             : (v.segmentos[0]?.familia ?? "")}
                         </div>
                       </div>
                       <div className="min-w-0 text-right">
-                        <div className="font-display text-[28px] font-bold leading-none tracking-tight">
+                        <div className="font-display text-[26px] font-bold leading-none tracking-tight">
                           {v.chegada.hora}
                         </div>
                         <div className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                           {v.chegada.iata}
                         </div>
                         {v.chegada.cidade ? (
-                          <div className="mt-1 truncate text-[11px] text-muted-foreground">{v.chegada.cidade}</div>
+                          <div className="mt-1 ml-auto max-w-[120px] text-[11px] leading-snug text-muted-foreground">
+                            {v.chegada.cidade}
+                          </div>
                         ) : null}
                       </div>
                     </div>
