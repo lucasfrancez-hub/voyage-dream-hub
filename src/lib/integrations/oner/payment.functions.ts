@@ -25,14 +25,41 @@ export type CartaoParaEnvio = EntradaCartaoSensivel & {
   juros: number;
 };
 
+/** Extrai a mensagem real que a operadora devolveu (sem expor JSON cru). */
+function detalheOperadora(texto?: string | null): string | null {
+  const bruto = (texto ?? "").trim();
+  if (!bruto) return null;
+  try {
+    const j = JSON.parse(bruto) as {
+      Message?: string;
+      message?: string;
+      Validations?: Array<{ Message?: string; message?: string }> | null;
+    };
+    const validacoes = (j.Validations ?? [])
+      .map((v) => v?.Message ?? v?.message)
+      .filter(Boolean)
+      .join(" · ");
+    const msg = validacoes || j.Message || j.message || "";
+    return msg ? String(msg).slice(0, 300) : null;
+  } catch {
+    return bruto.slice(0, 300);
+  }
+}
+
 function mensagemAmigavel(status: number, texto?: string | null): string {
+  const detalhe = detalheOperadora(texto);
+  const comDetalhe = (base: string) => (detalhe ? `${base} (operadora: ${detalhe})` : base);
   if (status === 0) return "Não foi possível falar com a operadora agora. Tente novamente.";
   if (status === 401 || status === 403) return "Sessão de pagamento expirada. Recarregue a página.";
   if (status === 409 || (texto ?? "").includes("Expired")) {
     return "Esta reserva expirou. Refaça a busca para continuar.";
   }
-  if (status >= 500) return "A operadora está instável neste momento. Tente novamente em instantes.";
-  return "Não foi possível concluir o pagamento. Confira os dados e tente novamente.";
+  if (status >= 500) {
+    return comDetalhe(
+      "A operadora recusou este pedido de pagamento. Se já houve uma tentativa neste carrinho, gere um carrinho novo.",
+    );
+  }
+  return comDetalhe("Não foi possível concluir o pagamento. Confira os dados e tente novamente.");
 }
 
 /** Resumo da compra + formas de pagamento reais liberadas para este carrinho. */
@@ -182,7 +209,13 @@ export const onerPagarCartao = createServerFn({ method: "POST" })
       zipCode: p.cep.replace(/\D/g, ""),
     });
     if (!salvo.call.ok) {
-      return { ok: false as const, erro: "Não foi possível registrar os dados do pagador. Confira o endereço." };
+      const detalhe = detalheOperadora(salvo.call.message);
+      return {
+        ok: false as const,
+        erro: detalhe
+          ? `Não foi possível registrar os dados do pagador (operadora: ${detalhe}).`
+          : "Não foi possível registrar os dados do pagador. Confira o endereço.",
+      };
     }
 
 
@@ -254,12 +287,29 @@ export const onerPagarPix = createServerFn({ method: "POST" })
       valor: Number(data.valor.toFixed(2)),
       purchaseForCustomer: false,
     });
+
+    // Mesmo quando a operadora responde erro, o carrinho pode já ter um Pix
+    // válido publicado no canal de eventos (tentativa anterior). Aproveitamos
+    // esse código em vez de obrigar uma nova reserva — mas só se ainda estiver
+    // dentro da validade. Com erro, esperamos pouco; com sucesso, o tempo todo.
+    const qr = envio.call.ok
+      ? await escuta
+      : await Promise.race([
+          escuta,
+          new Promise<{ ok: boolean; pix: null }>((r) =>
+            setTimeout(() => r({ ok: false, pix: null }), 10_000),
+          ),
+        ]);
+    const valido =
+      qr.ok &&
+      qr.pix &&
+      (!qr.pix.expiraEm || new Date(qr.pix.expiraEm).getTime() > Date.now() + 30_000);
+    if (valido && qr.pix) return { ok: true as const, pix: qr.pix };
+
     if (!envio.call.ok) {
       return { ok: false as const, erro: mensagemAmigavel(envio.call.status, envio.call.message) };
     }
-    const qr = await escuta;
-    if (!qr.ok || !qr.pix) return { ok: false as const, erro: "O código Pix não foi gerado a tempo." };
-    return { ok: true as const, pix: qr.pix };
+    return { ok: false as const, erro: "O código Pix não foi gerado a tempo." };
   });
 
 export type PassageiroCheckout = {
