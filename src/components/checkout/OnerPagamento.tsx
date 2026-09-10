@@ -725,7 +725,7 @@ export function OnerPagamento({
 
             <Button
               type="button"
-              className="mt-5 w-full"
+              className="mt-5 h-auto w-full rounded-xl bg-primary py-4 font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
               disabled={enviando || metodo === "pix" || Boolean(erro)}
               onClick={() => void finalizar()}
             >
