@@ -37,6 +37,13 @@ const rotuloTipo: Record<PassageiroCheckout["tipo"], string> = {
   INF: "Bebê",
 };
 
+/** Tratamento é deduzido do sexo/tipo — o cliente não precisa escolher. */
+function tratamentoDe(p: PassageiroCheckout) {
+  if (p.sexo === "F") return p.tipo === "ADT" ? "Sra." : "Srta.";
+  return "Sr.";
+}
+
+
 const campo =
   "h-12 w-full appearance-none rounded-xl border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-brand-orange focus:outline-none focus:ring-2 focus:ring-brand-orange/30";
 
