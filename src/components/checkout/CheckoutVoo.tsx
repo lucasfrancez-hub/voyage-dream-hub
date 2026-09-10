@@ -8,7 +8,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { OnerPagamento, type DadosCheckoutOner } from "@/components/checkout/OnerPagamento";
 import { ResumoReserva } from "@/components/checkout/ResumoReserva";
 import {
@@ -203,12 +202,12 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
           </p>
         </div>
         <div className="text-right">
-          <span className="text-xs font-semibold uppercase tracking-widest text-sky-500">
+          <span className="text-xs font-semibold uppercase tracking-widest text-brand-orange">
             Passo {etapa} de 2
           </span>
           <div className="mt-2 flex gap-1">
-            <div className="h-1.5 w-12 rounded-full bg-sky-500" />
-            <div className={`h-1.5 w-12 rounded-full ${etapa === 2 ? "bg-sky-500" : "bg-muted"}`} />
+            <div className="h-1.5 w-12 rounded-full bg-brand-orange" />
+            <div className={`h-1.5 w-12 rounded-full ${etapa === 2 ? "bg-brand-orange" : "bg-muted"}`} />
           </div>
         </div>
       </div>
@@ -337,7 +336,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
 
             <div className="flex justify-end pt-2">
               <Button
-                className="w-full rounded-xl bg-sky-600 px-12 py-6 text-sm font-bold text-white hover:bg-sky-500 md:w-auto"
+                className="w-full rounded-xl bg-sky-600 px-12 py-6 text-sm font-bold text-white hover:bg-brand-orange md:w-auto"
                 disabled={enviando}
                 onClick={() => void continuar()}
               >
