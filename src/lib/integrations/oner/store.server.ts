@@ -471,3 +471,19 @@ export async function buscarOperacaoPorPedido(
     .maybeSingle();
   return (data as unknown as IntegrationOrder) ?? null;
 }
+
+/** Operação Oner ligada a um carrinho do fornecedor (evita pedido duplicado). */
+export async function buscarOperacaoPorCarrinho(
+  cartId: string,
+): Promise<IntegrationOrder | null> {
+  const db = await admin();
+  const { data } = await db
+    .from("integration_orders")
+    .select("*")
+    .eq("provider", ONER_PROVIDER)
+    .or(`provider_cart_id.eq.${cartId},original_cart_id.eq.${cartId}`)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as unknown as IntegrationOrder) ?? null;
+}
