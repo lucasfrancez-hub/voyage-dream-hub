@@ -145,6 +145,29 @@ export function OnerPagamento({
   const mudarPagador = (patch: Partial<typeof pagador>) =>
     setPagador((prev) => ({ ...prev, ...patch }));
 
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  async function buscarCep(valor: string) {
+    const cep = somenteNumeros(valor);
+    if (cep.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`).then((x) => x.json());
+      if (r && !r.erro) {
+        mudarPagador({
+          rua: r.logradouro || "",
+          bairro: r.bairro || "",
+          cidade: r.localidade || "",
+          estado: (r.uf || "").toUpperCase(),
+        });
+      }
+    } catch {
+      /* CEP indisponível: o usuário preenche manualmente */
+    } finally {
+      setBuscandoCep(false);
+    }
+  }
+
+
   const limparPagador = () =>
     setPagador({
       nome: "",
