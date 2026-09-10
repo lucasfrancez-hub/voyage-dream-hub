@@ -508,14 +508,24 @@ export function OnerPagamento({
                     </div>
 
 
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
                       <div className="md:col-span-2">
                         <Label className="mb-1 block text-xs uppercase text-muted-foreground">Número do cartão *</Label>
                         <Input
                           value={c.numero}
                           inputMode="numeric"
                           placeholder="0000 0000 0000 0000"
-                          onChange={(e) => atualizar(i, { numero: e.target.value, opcoes: null, parcela: null })}
+                          className={CAMPO}
+                          onChange={(e) => {
+                            const numero = e.target.value;
+                            const marca = detectBrand(numero);
+                            atualizar(i, {
+                              numero,
+                              opcoes: null,
+                              parcela: null,
+                              ...(marca ? { bandeira: BANDEIRA_ONER[marca] } : {}),
+                            });
+                          }}
                           autoComplete="off"
                         />
                       </div>
@@ -525,6 +535,7 @@ export function OnerPagamento({
                           value={[c.mes, c.ano].filter(Boolean).join("/")}
                           inputMode="numeric"
                           placeholder="MM/AA"
+                          className={CAMPO}
                           onChange={(e) => {
                             const valor = somenteNumeros(e.target.value).slice(0, 6);
                             atualizar(i, { mes: valor.slice(0, 2), ano: valor.slice(2), opcoes: null, parcela: null });
@@ -537,6 +548,7 @@ export function OnerPagamento({
                           value={c.cvv}
                           inputMode="numeric"
                           placeholder="•••"
+                          className={CAMPO}
                           onChange={(e) => atualizar(i, { cvv: e.target.value, opcoes: null, parcela: null })}
                           autoComplete="off"
                         />
@@ -546,6 +558,7 @@ export function OnerPagamento({
                         <Input
                           value={c.nome}
                           placeholder="Como está no cartão"
+                          className={CAMPO}
                           onChange={(e) => atualizar(i, { nome: e.target.value.toUpperCase(), opcoes: null, parcela: null })}
                           autoComplete="off"
                         />
@@ -556,28 +569,15 @@ export function OnerPagamento({
                           value={c.documentoNumero}
                           inputMode="numeric"
                           placeholder="000.000.000-00"
+                          className={CAMPO}
                           onChange={(e) => atualizar(i, { documentoNumero: e.target.value })}
                         />
                       </div>
                       <div>
                         <Label className="mb-1 block text-xs uppercase text-muted-foreground">Parcelas</Label>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={c.carregando}
-                          onClick={() => void consultarParcelas(i)}
-                          className="w-full"
-                        >
-                          {c.carregando ? "Carregando..." : "Carregar parcelas"}
-                        </Button>
-                        {c.carregando ? (
-                          <p className="mt-2 text-xs text-muted-foreground">Carregando opções de parcelamento...</p>
-                        ) : c.erroParcelas ? (
-                          <p className="mt-2 text-xs text-destructive">Não foi possível carregar o parcelamento para este cartão.</p>
-                        ) : c.opcoes && c.opcoes.length > 0 ? (
+                        {c.opcoes && c.opcoes.length > 0 ? (
                           <select
-                            className="mt-2 w-full rounded-lg border border-border bg-background px-4 py-3 text-sm"
+                            className={`w-full border border-border bg-background px-4 text-sm ${CAMPO}`}
                             value={c.parcela ?? ""}
                             onChange={(e) => atualizar(i, { parcela: Number(e.target.value) })}
                           >
@@ -589,10 +589,24 @@ export function OnerPagamento({
                             ))}
                           </select>
                         ) : (
-                          <p className="mt-2 text-xs text-muted-foreground">Informe o cartão para carregar as parcelas.</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={c.carregando}
+                            onClick={() => void consultarParcelas(i)}
+                            className={`w-full ${CAMPO}`}
+                          >
+                            {c.carregando ? "Carregando..." : "Carregar parcelas"}
+                          </Button>
                         )}
+                        {c.erroParcelas ? (
+                          <p className="mt-2 text-xs text-destructive">Não foi possível carregar o parcelamento para este cartão.</p>
+                        ) : !c.opcoes || c.opcoes.length === 0 ? (
+                          <p className="mt-2 text-xs text-muted-foreground">Informe o cartão para carregar as parcelas.</p>
+                        ) : null}
                       </div>
                     </div>
+
                   </div>
                 ))}
               </div>
