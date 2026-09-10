@@ -193,6 +193,8 @@ export function OnerPagamento({
 
   useEffect(() => {
     if (dados) {
+      setAceitaCartao(dados.aceitaCartao);
+      setSomentePix72h(Boolean(dados.somentePix72h));
       if (!dados.aceitaCartao && dados.aceitaPix) setMetodo("pix");
       if (dados.resumo.expirado) setErro("Esta reserva expirou. Refaça a busca para continuar.");
       return;
@@ -210,6 +212,8 @@ export function OnerPagamento({
       setResumo(r.resumo);
       setMaxCartoes(r.maxCartoes || 1);
       setAceitaPix(r.aceitaPix);
+      setAceitaCartao(r.aceitaCartao);
+      setSomentePix72h(Boolean(r.somentePix72h));
       setCartoes([cartaoVazio(String((r.resumo.total ?? 0).toFixed(2)))]);
       if (!r.aceitaCartao && r.aceitaPix) setMetodo("pix");
       if (r.resumo.expirado) setErro("Esta reserva expirou. Refaça a busca para continuar.");
