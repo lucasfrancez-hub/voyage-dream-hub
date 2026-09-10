@@ -16,6 +16,7 @@ import {
   onerSalvarPassageiros,
   type PassageiroCheckout,
 } from "@/lib/integrations/oner/payment.functions";
+import { onerAbrirPedidoCheckout } from "@/lib/integrations/oner/checkout-order.functions";
 
 const vazio = (tipo: PassageiroCheckout["tipo"]): PassageiroCheckout => ({
   tratamento: "Sr.",
@@ -47,6 +48,7 @@ function Rotulo({ children }: { children: React.ReactNode }) {
 export function CheckoutVoo({ cartId }: { cartId: string }) {
   const carregarResumo = useServerFn(onerCheckoutResumo);
   const salvarPassageiros = useServerFn(onerSalvarPassageiros);
+  const abrirPedido = useServerFn(onerAbrirPedidoCheckout);
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -126,6 +128,22 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
         toast.error(r.erro);
         return;
       }
+      // O pedido já nasce em "Meus pedidos", com voos, passageiros e valor.
+      void abrirPedido({
+        data: {
+          cartId,
+          metodo: "CARD",
+          passageiros: passageiros.map((p) => ({
+            nome: p.nome.trim(),
+            sobrenome: p.sobrenome.trim(),
+            tipo: p.tipo,
+            nascimento: p.nascimento || null,
+            documento: p.documento || null,
+            email: p.email.trim() || contato.email,
+            telefone: p.telefone.trim() || contato.telefone,
+          })),
+        },
+      });
       setEtapa(2);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar os passageiros.");

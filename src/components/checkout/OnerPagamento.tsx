@@ -17,6 +17,7 @@ import {
   onerPagarCartao,
   onerPagarPix,
 } from "@/lib/integrations/oner/payment.functions";
+import { onerConcluirPedidoCheckout } from "@/lib/integrations/oner/checkout-order.functions";
 import { ResumoReserva } from "@/components/checkout/ResumoReserva";
 import type { ResumoCarrinho } from "@/lib/integrations/oner/checkout.server";
 
@@ -89,6 +90,7 @@ export function OnerPagamento({
   const buscarParcelas = useServerFn(onerParcelasCartao);
   const pagarCartao = useServerFn(onerPagarCartao);
   const pagarPix = useServerFn(onerPagarPix);
+  const concluirPedido = useServerFn(onerConcluirPedidoCheckout);
 
   const [carregando, setCarregando] = useState(!dados);
   const [erro, setErro] = useState<string | null>(null);
@@ -304,6 +306,10 @@ export function OnerPagamento({
       return;
     }
     setLocalizador(r.localizador ?? null);
+    // O pedido VIA AIR é finalizado com o localizador, na tela de Pedidos.
+    void concluirPedido({
+      data: { cartId, metodo: "CARD", localizador: r.localizador ?? null },
+    });
     toast.success("Pagamento aprovado.");
   }
 
@@ -322,6 +328,15 @@ export function OnerPagamento({
       return;
     }
     setPixFornecedor({ qrCode: r.pix.qrCode, expiraEm: r.pix.expiraEm });
+    // Pix sobe para a Oner: abre a tarefa de refazer o carrinho sem comissão.
+    void concluirPedido({
+      data: {
+        cartId,
+        metodo: "PIX",
+        pixBrcode: r.pix.qrCode,
+        pixExpiraEm: r.pix.expiraEm,
+      },
+    });
   }
 
   if (carregando) {
