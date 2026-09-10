@@ -17,6 +17,15 @@ import {
   onerPagarCartao,
   onerPagarPix,
 } from "@/lib/integrations/oner/payment.functions";
+import { ResumoReserva } from "@/components/checkout/ResumoReserva";
+import type { ResumoCarrinho } from "@/lib/integrations/oner/checkout.server";
+
+export type DadosCheckoutOner = {
+  resumo: ResumoCarrinho;
+  aceitaCartao: boolean;
+  aceitaPix: boolean;
+  maxCartoes: number;
+};
 
 type Opcao = {
   installment: number;
@@ -66,21 +75,25 @@ const somenteNumeros = (v: string) => v.replace(/\D/g, "");
 export function OnerPagamento({
   cartId,
   modoAdmin = false,
+  dados,
 }: {
   cartId: string;
   modoAdmin?: boolean;
+  /** Quando a etapa anterior já carregou o carrinho, evita nova consulta (e total zerado). */
+  dados?: DadosCheckoutOner;
 }) {
   const carregarResumo = useServerFn(onerCheckoutResumo);
   const buscarParcelas = useServerFn(onerParcelasCartao);
   const pagarCartao = useServerFn(onerPagarCartao);
   const pagarPix = useServerFn(onerPagarPix);
 
-  const [carregando, setCarregando] = useState(true);
+  const [carregando, setCarregando] = useState(!dados);
   const [erro, setErro] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [trechos, setTrechos] = useState<Array<{ trecho: string; data: string; cia: string; voo: string }>>([]);
-  const [maxCartoes, setMaxCartoes] = useState(1);
-  const [aceitaPix, setAceitaPix] = useState(false);
+  const [total, setTotal] = useState(dados?.resumo.total ?? 0);
+  const [resumo, setResumo] = useState<ResumoCarrinho | null>(dados?.resumo ?? null);
+  const [maxCartoes, setMaxCartoes] = useState(dados?.maxCartoes || 1);
+  const [aceitaPix, setAceitaPix] = useState(dados?.aceitaPix ?? false);
+
 
   const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
   const [quantidade, setQuantidade] = useState(1);
