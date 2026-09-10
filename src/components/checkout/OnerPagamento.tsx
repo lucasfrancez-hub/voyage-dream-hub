@@ -684,14 +684,14 @@ export function OnerPagamento({
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nome *</Label><Input value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Sobrenome *</Label><Input value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} /></div>
-                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">E-mail *</Label><Input type="email" value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Data de nascimento *</Label><Input type="date" value={pagador.nascimento} onChange={(e) => mudarPagador({ nascimento: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nacionalidade *</Label><select className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm" value="Brasil" disabled><option>Brasil</option></select></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Tipo de documento *</Label><select className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm" value="CPF" disabled><option>CPF</option></select></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nº do documento *</Label><Input value={pagador.documentoNumero} inputMode="numeric" onChange={(e) => mudarPagador({ documentoNumero: e.target.value })} /></div>
-                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Celular *</Label><Input value={pagador.telefone} inputMode="numeric" placeholder="(00) 00000-0000" onChange={(e) => mudarPagador({ telefone: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nome *</Label><Input className={CAMPO} value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Sobrenome *</Label><Input className={CAMPO} value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">E-mail *</Label><Input className={CAMPO} type="email" value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Data de nascimento *</Label><Input className={CAMPO} type="date" value={pagador.nascimento} onChange={(e) => mudarPagador({ nascimento: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nacionalidade *</Label><select className={`w-full border border-border bg-background px-4 text-sm ${CAMPO}`} value="Brasil" disabled><option>Brasil</option></select></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Tipo de documento *</Label><select className={`w-full border border-border bg-background px-4 text-sm ${CAMPO}`} value="CPF" disabled><option>CPF</option></select></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Nº do documento *</Label><Input className={CAMPO} value={pagador.documentoNumero} inputMode="numeric" onChange={(e) => mudarPagador({ documentoNumero: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Celular *</Label><Input className={CAMPO} value={pagador.telefone} inputMode="numeric" placeholder="(00) 00000-0000" onChange={(e) => mudarPagador({ telefone: e.target.value })} /></div>
               </div>
             </section>
 
@@ -703,13 +703,28 @@ export function OnerPagamento({
                 Endereço de cobrança
               </h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">CEP *</Label><Input value={pagador.cep} inputMode="numeric" placeholder="00000-000" onChange={(e) => mudarPagador({ cep: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Estado (UF) *</Label><Input value={pagador.estado} maxLength={2} placeholder="PR" onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })} /></div>
-                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Cidade *</Label><Input value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} /></div>
-                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Endereço *</Label><Input value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Número *</Label><Input value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} /></div>
-                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Complemento</Label><Input value={pagador.complemento} onChange={(e) => mudarPagador({ complemento: e.target.value })} /></div>
-                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Bairro *</Label><Input value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} /></div>
+                <div>
+                  <Label className="mb-1 block text-xs uppercase text-muted-foreground">CEP *</Label>
+                  <Input
+                    className={CAMPO}
+                    value={pagador.cep}
+                    inputMode="numeric"
+                    placeholder="00000-000"
+                    onChange={(e) => {
+                      const cep = e.target.value;
+                      mudarPagador({ cep });
+                      void buscarCep(cep);
+                    }}
+                  />
+                  {buscandoCep ? <p className="mt-1 text-xs text-muted-foreground">Buscando endereço...</p> : null}
+                </div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Estado (UF) *</Label><Input className={CAMPO} value={pagador.estado} maxLength={2} placeholder="PR" onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Cidade *</Label><Input className={CAMPO} value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Endereço *</Label><Input className={CAMPO} value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Número *</Label><Input className={CAMPO} value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} /></div>
+                <div><Label className="mb-1 block text-xs uppercase text-muted-foreground">Complemento</Label><Input className={CAMPO} value={pagador.complemento} onChange={(e) => mudarPagador({ complemento: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="mb-1 block text-xs uppercase text-muted-foreground">Bairro *</Label><Input className={CAMPO} value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} /></div>
+
               </div>
             </section>
           </>
