@@ -374,7 +374,97 @@ export function OnerPagamento({
                 </div>
               ) : null}
 
+              <div className="mb-8 rounded-xl border border-border p-4">
+                <div className="font-semibold">Dados de quem está pagando</div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Use o nome, documento e endereço do titular do cartão.
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label className="text-xs">Nome</Label>
+                    <Input value={pagador.nome} onChange={(e) => mudarPagador({ nome: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Sobrenome</Label>
+                    <Input value={pagador.sobrenome} onChange={(e) => mudarPagador({ sobrenome: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">CPF</Label>
+                    <Input
+                      value={pagador.documentoNumero}
+                      inputMode="numeric"
+                      onChange={(e) => mudarPagador({ documentoNumero: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Nascimento</Label>
+                    <Input
+                      type="date"
+                      value={pagador.nascimento}
+                      onChange={(e) => mudarPagador({ nascimento: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">E-mail</Label>
+                    <Input value={pagador.email} onChange={(e) => mudarPagador({ email: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Telefone</Label>
+                    <Input
+                      value={pagador.telefone}
+                      inputMode="numeric"
+                      placeholder="DDD + número"
+                      onChange={(e) => mudarPagador({ telefone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">CEP</Label>
+                    <Input
+                      value={pagador.cep}
+                      inputMode="numeric"
+                      onChange={(e) => mudarPagador({ cep: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Endereço</Label>
+                    <Input value={pagador.rua} onChange={(e) => mudarPagador({ rua: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Número</Label>
+                      <Input value={pagador.numero} onChange={(e) => mudarPagador({ numero: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Complemento</Label>
+                      <Input
+                        value={pagador.complemento}
+                        onChange={(e) => mudarPagador({ complemento: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Bairro</Label>
+                    <Input value={pagador.bairro} onChange={(e) => mudarPagador({ bairro: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Cidade</Label>
+                      <Input value={pagador.cidade} onChange={(e) => mudarPagador({ cidade: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Estado (UF)</Label>
+                      <Input
+                        value={pagador.estado}
+                        maxLength={2}
+                        onChange={(e) => mudarPagador({ estado: e.target.value.toUpperCase() })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-8">
+
                 {cartoes.map((c, i) => (
                   <div key={i} className="rounded-xl border border-border p-4">
                     <div className="mb-4 flex items-start justify-between gap-4">
