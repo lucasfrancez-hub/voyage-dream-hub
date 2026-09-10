@@ -97,7 +97,9 @@ export function OnerPagamento({
 
   const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
   const [quantidade, setQuantidade] = useState(1);
-  const [cartoes, setCartoes] = useState<CartaoForm[]>([cartaoVazio()]);
+  const [cartoes, setCartoes] = useState<CartaoForm[]>([
+    cartaoVazio(dados?.resumo.total ? String(dados.resumo.total.toFixed(2)) : ""),
+  ]);
   const [enviando, setEnviando] = useState(false);
   const [localizador, setLocalizador] = useState<string | null>(null);
 
@@ -125,6 +127,11 @@ export function OnerPagamento({
 
 
   useEffect(() => {
+    if (dados) {
+      if (!dados.aceitaCartao && dados.aceitaPix) setMetodo("pix");
+      if (dados.resumo.expirado) setErro("Esta reserva expirou. Refaça a busca para continuar.");
+      return;
+    }
     let ativo = true;
     void (async () => {
       const r = await carregarResumo({ data: { cartId } });
@@ -135,7 +142,7 @@ export function OnerPagamento({
         return;
       }
       setTotal(r.resumo.total ?? 0);
-      setTrechos(r.resumo.trechos);
+      setResumo(r.resumo);
       setMaxCartoes(r.maxCartoes || 1);
       setAceitaPix(r.aceitaPix);
       setCartoes([cartaoVazio(String((r.resumo.total ?? 0).toFixed(2)))]);
@@ -145,7 +152,7 @@ export function OnerPagamento({
     return () => {
       ativo = false;
     };
-  }, [cartId, carregarResumo]);
+  }, [cartId, carregarResumo, dados]);
 
   const soma = useMemo(
     () => cartoes.reduce((s, c) => s + (Number(c.valor.replace(",", ".")) || 0), 0),
