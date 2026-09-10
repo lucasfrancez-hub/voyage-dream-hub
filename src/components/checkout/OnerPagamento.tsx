@@ -19,6 +19,9 @@ import {
   onerPagarPix,
 } from "@/lib/integrations/oner/payment.functions";
 import { onerConcluirPedidoCheckout } from "@/lib/integrations/oner/checkout-order.functions";
+import { onerPixViaAir } from "@/lib/integrations/oner/pix-viaair.functions";
+import { consultarPixCobranca } from "@/lib/pix.functions";
+import { PixQrPanel } from "@/components/pix/PixQrPanel";
 import { ResumoReserva } from "@/components/checkout/ResumoReserva";
 import { CARD_BRANDS, BrandLogo, detectBrand, type CardBrand } from "@/components/CardForm";
 import type { ResumoCarrinho } from "@/lib/integrations/oner/checkout.server";
