@@ -19,6 +19,9 @@ import {
   onerPagarPix,
 } from "@/lib/integrations/oner/payment.functions";
 import { onerConcluirPedidoCheckout } from "@/lib/integrations/oner/checkout-order.functions";
+import { onerPixViaAir } from "@/lib/integrations/oner/pix-viaair.functions";
+import { consultarPixCobranca } from "@/lib/pix.functions";
+import { PixQrPanel } from "@/components/pix/PixQrPanel";
 import { ResumoReserva } from "@/components/checkout/ResumoReserva";
 import { CARD_BRANDS, BrandLogo, detectBrand, type CardBrand } from "@/components/CardForm";
 import type { ResumoCarrinho } from "@/lib/integrations/oner/checkout.server";
@@ -132,6 +135,16 @@ export function OnerPagamento({
   const [pixFornecedor, setPixFornecedor] = useState<{ qrCode: string; expiraEm: string | null } | null>(null);
   const [gerandoPix, setGerandoPix] = useState(false);
   const [documentoPix, setDocumentoPix] = useState("");
+
+  // Pix da VIA AIR (o QR mostrado ao cliente é sempre o nosso).
+  const gerarPixViaAir = useServerFn(onerPixViaAir);
+  const consultarPix = useServerFn(consultarPixCobranca);
+  const [pixNosso, setPixNosso] = useState<
+    { txid: string; qrCode: string; valor: number; expiraEm: string | null } | null
+  >(null);
+  const [gerandoNosso, setGerandoNosso] = useState(false);
+  const [pixPago, setPixPago] = useState(false);
+  const [pagadorPix, setPagadorPix] = useState({ nome: "", documento: "", email: "" });
 
   const [pagador, setPagador] = useState({
     nome: "",
@@ -386,6 +399,49 @@ export function OnerPagamento({
       },
     });
   }
+
+  /** Gera o QR Code Pix da VIA AIR para o cliente pagar. */
+  async function gerarPixNosso() {
+    if (pagadorPix.nome.trim().length < 2) {
+      toast.error("Informe o nome de quem vai pagar.");
+      return;
+    }
+    if (somenteNumeros(pagadorPix.documento).length < 11) {
+      toast.error("Informe o CPF de quem vai pagar.");
+      return;
+    }
+    setGerandoNosso(true);
+    const r = await gerarPixViaAir({
+      data: {
+        cartId,
+        valor: total,
+        nome: pagadorPix.nome.trim(),
+        documentoNumero: somenteNumeros(pagadorPix.documento),
+        ...(pagadorPix.email.trim() ? { email: pagadorPix.email.trim() } : {}),
+      },
+    });
+    setGerandoNosso(false);
+    if (!r.ok) {
+      toast.error(r.erro);
+      return;
+    }
+    setPixNosso(r.pix);
+  }
+
+  // Confirmação automática do Pix da VIA AIR.
+  useEffect(() => {
+    if (!pixNosso?.txid || pixPago) return;
+    const id = setInterval(() => {
+      void (async () => {
+        const s = await consultarPix({ data: { txid: pixNosso.txid } });
+        if (s.status === "paga" || s.pagoEm) {
+          setPixPago(true);
+          clearInterval(id);
+        }
+      })();
+    }, 8000);
+    return () => clearInterval(id);
+  }, [pixNosso?.txid, pixPago, consultarPix]);
 
   if (carregando) {
     return (
@@ -664,8 +720,84 @@ export function OnerPagamento({
           ) : (
             <div className="mt-6 space-y-4 border-t border-border pt-6">
               <p className="text-sm text-muted-foreground">
-                Ao fazer o pedido, será gerado o QR Code Pix da VIA AIR.
+                O QR Code Pix é gerado pela VIA AIR e a confirmação é automática.
               </p>
+
+              {pixPago ? (
+                <div className="rounded-2xl border border-primary/40 bg-primary/5 p-6 text-center">
+                  <Check className="mx-auto mb-2 h-7 w-7 text-primary" />
+                  <p className="text-sm font-semibold">Pagamento confirmado!</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Já estamos emitindo sua reserva. Você recebe tudo por e-mail.
+                  </p>
+                </div>
+              ) : pixNosso ? (
+                <div className="mx-auto w-full max-w-sm">
+                  <PixQrPanel
+                    qrCode={pixNosso.qrCode}
+                    valor={pixNosso.valor}
+                    expiraEm={pixNosso.expiraEm ?? new Date(Date.now() + 30 * 60_000).toISOString()}
+                    variant="anel"
+                  />
+                  <p className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Aguardando confirmação do
+                    pagamento…
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <Label className="mb-1 block text-xs uppercase text-muted-foreground">
+                      Nome de quem vai pagar *
+                    </Label>
+                    <Input
+                      className={CAMPO}
+                      value={pagadorPix.nome}
+                      onChange={(e) => setPagadorPix((p) => ({ ...p, nome: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="mb-1 block text-xs uppercase text-muted-foreground">
+                      CPF *
+                    </Label>
+                    <Input
+                      className={CAMPO}
+                      inputMode="numeric"
+                      value={pagadorPix.documento}
+                      onChange={(e) => setPagadorPix((p) => ({ ...p, documento: e.target.value }))}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="mb-1 block text-xs uppercase text-muted-foreground">
+                      E-mail para receber o QR Code
+                    </Label>
+                    <Input
+                      className={CAMPO}
+                      type="email"
+                      value={pagadorPix.email}
+                      onChange={(e) => setPagadorPix((p) => ({ ...p, email: e.target.value }))}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button
+                      type="button"
+                      className="h-12 w-full rounded-xl font-bold"
+                      disabled={gerandoNosso || Boolean(erro)}
+                      onClick={() => void gerarPixNosso()}
+                    >
+                      {gerandoNosso ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando QR Code…
+                        </>
+                      ) : (
+                        <>
+                          <QrCode className="mr-2 h-4 w-4" /> Gerar QR Code Pix ({brl(total)})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
               {modoAdmin ? (
                 <div className="rounded-xl border border-dashed border-border p-4">
                   <div className="text-xs font-semibold uppercase text-muted-foreground">

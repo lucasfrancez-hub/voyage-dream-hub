@@ -55,7 +55,7 @@ function Rotulo({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function CheckoutVoo({ cartId }: { cartId: string }) {
+export function CheckoutVoo({ cartId, publico = false }: { cartId: string; publico?: boolean }) {
   const carregarResumo = useServerFn(onerCheckoutResumo);
   const salvarPassageiros = useServerFn(onerSalvarPassageiros);
   const abrirPedido = useServerFn(onerAbrirPedidoCheckout);
@@ -361,7 +361,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
           </button>
           <OnerPagamento
             cartId={cartId}
-            modoAdmin
+            modoAdmin={!publico}
             dados={dados ?? undefined}
             passageiros={listaPassageiros}
           />

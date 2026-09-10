@@ -1602,16 +1602,20 @@ function SummaryCard({
                   onClick={async () => {
                     if (!searchKey) return;
                     setBuyingPublic(true);
-                    // abre a aba ANTES do await pra não ser bloqueada pelo navegador
-                    const tab = window.open("", "_blank", "noopener");
                     try {
                       const r = await cartMut.mutateAsync();
                       registrarLead(r.url);
-                      if (tab) tab.location.href = r.url;
-                      else window.open(r.url, "_blank", "noopener");
+                      const id = r.url.match(
+                        /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/,
+                      )?.[0];
                       setBuyingPublic(false);
+                      if (id) {
+                        // Checkout da VIA AIR (o QR do Pix é sempre nosso).
+                        window.location.href = `/checkout/voo/${id.toLowerCase()}`;
+                      } else {
+                        window.open(r.url, "_blank", "noopener");
+                      }
                     } catch {
-                      tab?.close();
                       setBuyingPublic(false);
                     }
                   }}
