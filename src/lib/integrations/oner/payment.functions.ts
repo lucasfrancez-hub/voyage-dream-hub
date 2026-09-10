@@ -290,9 +290,21 @@ export const onerPagarPix = createServerFn({ method: "POST" })
 
     // Mesmo quando a operadora responde erro, o carrinho pode já ter um Pix
     // válido publicado no canal de eventos (tentativa anterior). Aproveitamos
-    // esse código em vez de obrigar uma nova reserva.
-    const qr = await escuta;
-    if (qr.ok && qr.pix) return { ok: true as const, pix: qr.pix };
+    // esse código em vez de obrigar uma nova reserva — mas só se ainda estiver
+    // dentro da validade. Com erro, esperamos pouco; com sucesso, o tempo todo.
+    const qr = envio.call.ok
+      ? await escuta
+      : await Promise.race([
+          escuta,
+          new Promise<{ ok: boolean; pix: null }>((r) =>
+            setTimeout(() => r({ ok: false, pix: null }), 10_000),
+          ),
+        ]);
+    const valido =
+      qr.ok &&
+      qr.pix &&
+      (!qr.pix.expiraEm || new Date(qr.pix.expiraEm).getTime() > Date.now() + 30_000);
+    if (valido && qr.pix) return { ok: true as const, pix: qr.pix };
 
     if (!envio.call.ok) {
       return { ok: false as const, erro: mensagemAmigavel(envio.call.status, envio.call.message) };
