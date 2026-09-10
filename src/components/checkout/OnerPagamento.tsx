@@ -427,8 +427,9 @@ export function OnerPagamento({
             <Button
               variant="outline"
               type="button"
+              disabled={!aceitaCartao}
               onClick={() => setMetodo("cartao")}
-              className={`h-auto flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium transition ${
+              className={`h-auto flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium transition disabled:opacity-50 ${
                 metodo === "cartao"
                   ? "border-2 border-primary bg-primary/10 text-foreground"
                   : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
