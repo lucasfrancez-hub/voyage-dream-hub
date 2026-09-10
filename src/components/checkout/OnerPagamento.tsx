@@ -17,6 +17,7 @@ import {
   onerPagarCartao,
   onerPagarPix,
 } from "@/lib/integrations/oner/payment.functions";
+import { onerConcluirPedidoCheckout } from "@/lib/integrations/oner/checkout-order.functions";
 import { ResumoReserva } from "@/components/checkout/ResumoReserva";
 import type { ResumoCarrinho } from "@/lib/integrations/oner/checkout.server";
 
@@ -89,6 +90,7 @@ export function OnerPagamento({
   const buscarParcelas = useServerFn(onerParcelasCartao);
   const pagarCartao = useServerFn(onerPagarCartao);
   const pagarPix = useServerFn(onerPagarPix);
+  const concluirPedido = useServerFn(onerConcluirPedidoCheckout);
 
   const [carregando, setCarregando] = useState(!dados);
   const [erro, setErro] = useState<string | null>(null);
