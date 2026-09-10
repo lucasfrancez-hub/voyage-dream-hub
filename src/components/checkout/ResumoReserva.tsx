@@ -93,65 +93,64 @@ export function ResumoReserva({
         </div>
         <div className="p-6">
         {resumo.voos.map((v, i) => (
-          <div key={i} className={i === 0 ? "mt-4" : "mt-5 border-t border-border pt-4"}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-brand-orange">
+          <div key={i} className={i === 0 ? "" : "mt-4"}>
+            <div className="rounded-xl border border-border bg-background/40 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-brand-orange">
                   {v.rotulo}
                   {v.saida.data ? ` · ${v.saida.data}` : ""}
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
+                </span>
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   {v.paradas > 0
-                    ? `${v.paradas} ${v.paradas === 1 ? "conexão" : "conexões"}${
-                        v.conexoes.length ? ` em ${v.conexoes.join(", ")}` : ""
-                      }`
-                    : "Voo direto"}
-                </div>
+                    ? `${v.paradas} ${v.paradas === 1 ? "conexão" : "conexões"}`
+                    : "Direto"}
+                </span>
               </div>
-              <LogoCia logo={v.logo} cia={v.cia} grande />
-            </div>
 
-            <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-              <div>
-                <div className="text-xl font-semibold">{v.saida.hora}</div>
-                <div className="text-xs text-muted-foreground">
-                  {v.saida.iata}
-                  {v.saida.cidade ? ` · ${v.saida.cidade}` : ""}
-                </div>
-              </div>
-              <div className="min-w-[82px] text-center">
-                <div className="text-xs text-muted-foreground">→</div>
-                <div className="mt-1 text-[9px] font-medium">
-                  {v.paradas > 0 ? `${v.paradas} ${v.paradas === 1 ? "conexão" : "conexões"}` : "Direto"}
-                </div>
-                {v.conexoes.length ? (
-                  <div className="text-[9px] text-muted-foreground">
-                    {v.segmentos.slice(0, -1).map((s) => s.chegada.iata).join(" · ")}
+              <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <div>
+                  <div className="font-display text-2xl font-bold leading-none">{v.saida.hora}</div>
+                  <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-orange">
+                    {v.saida.iata} · saída
                   </div>
-                ) : null}
-              </div>
-              <div className="text-right">
-                <div className="text-xl font-semibold">{v.chegada.hora}</div>
-                <div className="text-xs text-muted-foreground">
-                  {v.chegada.iata}
-                  {v.chegada.cidade ? ` · ${v.chegada.cidade}` : ""}
+                </div>
+                <div className="min-w-[70px] text-center">
+                  <div className="text-[10px] text-muted-foreground">{v.duracao ?? ""}</div>
+                  <div className="my-1 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
+                    <span className="h-px flex-1 bg-border" />
+                    <Plane className="h-3 w-3 text-muted-foreground" />
+                    <span className="h-px flex-1 bg-border" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-orange" />
+                  </div>
+                  <div className="text-[9px] uppercase text-muted-foreground">
+                    {v.conexoes.length ? v.conexoes.join(" · ") : (v.cia ?? "")}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-display text-2xl font-bold leading-none">{v.chegada.hora}</div>
+                  <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-orange">
+                    {v.chegada.iata} · chegada
+                  </div>
                 </div>
               </div>
+
+              <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
+                <div className="flex items-center gap-2">
+                  <LogoCia logo={v.logo} cia={v.cia} />
+                  <span className="text-[11px] text-muted-foreground">{v.bagagemMao ?? ""}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAberto(aberto === i ? null : i)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-brand-orange hover:underline"
+                >
+                  Ver mais
+                  <ChevronDown className={`h-3 w-3 transition ${aberto === i ? "rotate-180" : ""}`} />
+                </button>
+              </div>
             </div>
 
-            <div className="mt-2 flex items-center justify-between gap-3 text-[10px] text-muted-foreground">
-              <span>{v.duracao ? `Duração total: ${v.duracao}` : ""}</span>
-              <span>{v.bagagemMao ?? ""}</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setAberto(aberto === i ? null : i)}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs text-brand-orange hover:underline"
-            >
-              Ver detalhes do voo
-              <ChevronDown className={`h-3 w-3 transition ${aberto === i ? "rotate-180" : ""}`} />
-            </button>
 
             {aberto === i ? (
               <div className="mt-4 border-t border-border pt-4">
