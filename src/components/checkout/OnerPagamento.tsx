@@ -136,6 +136,16 @@ export function OnerPagamento({
   const [gerandoPix, setGerandoPix] = useState(false);
   const [documentoPix, setDocumentoPix] = useState("");
 
+  // Pix da VIA AIR (o QR mostrado ao cliente é sempre o nosso).
+  const gerarPixViaAir = useServerFn(onerPixViaAir);
+  const consultarPix = useServerFn(consultarPixCobranca);
+  const [pixNosso, setPixNosso] = useState<
+    { txid: string; qrCode: string; valor: number; expiraEm: string | null } | null
+  >(null);
+  const [gerandoNosso, setGerandoNosso] = useState(false);
+  const [pixPago, setPixPago] = useState(false);
+  const [pagadorPix, setPagadorPix] = useState({ nome: "", documento: "", email: "" });
+
   const [pagador, setPagador] = useState({
     nome: "",
     sobrenome: "",
