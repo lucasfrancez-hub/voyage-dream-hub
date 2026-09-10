@@ -77,6 +77,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
         aceitaCartao: r.aceitaCartao,
         aceitaPix: r.aceitaPix,
         maxCartoes: r.maxCartoes,
+        somentePix72h: r.somentePix72h,
       });
       const lista: PassageiroCheckout[] = [
         ...Array.from({ length: Math.max(1, r.resumo.adultos ?? 1) }, () => vazio("ADT")),

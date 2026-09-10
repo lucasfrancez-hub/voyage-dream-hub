@@ -41,6 +41,8 @@ export type DadosCheckoutOner = {
   aceitaCartao: boolean;
   aceitaPix: boolean;
   maxCartoes: number;
+  /** Partida em até 72h: operadora só libera Pix. */
+  somentePix72h?: boolean;
 };
 
 type Opcao = {
