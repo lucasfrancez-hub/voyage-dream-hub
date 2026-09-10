@@ -76,11 +76,14 @@ export function OnerPagamento({
   cartId,
   modoAdmin = false,
   dados,
+  passageiros,
 }: {
   cartId: string;
   modoAdmin?: boolean;
   /** Quando a etapa anterior já carregou o carrinho, evita nova consulta (e total zerado). */
   dados?: DadosCheckoutOner;
+  /** Passageiros já preenchidos na etapa 1, exibidos no resumo lateral. */
+  passageiros?: Array<{ nome: string; tipo?: string }>;
 }) {
   const carregarResumo = useServerFn(onerCheckoutResumo);
   const buscarParcelas = useServerFn(onerParcelasCartao);
@@ -681,6 +684,7 @@ export function OnerPagamento({
         resumo={
           resumo ?? { voos: [], precos: [], parcelas: [], total, taxas: null, tarifa: null }
         }
+        passageiros={passageiros}
         rodape={
           <div>
             {metodo === "cartao" ? (
