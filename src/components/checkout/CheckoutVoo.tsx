@@ -5,18 +5,17 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plane, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { OnerPagamento } from "@/components/checkout/OnerPagamento";
+import { OnerPagamento, type DadosCheckoutOner } from "@/components/checkout/OnerPagamento";
+import { ResumoReserva } from "@/components/checkout/ResumoReserva";
 import {
   onerCheckoutResumo,
   onerSalvarPassageiros,
   type PassageiroCheckout,
 } from "@/lib/integrations/oner/payment.functions";
-
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const vazio = (tipo: PassageiroCheckout["tipo"]): PassageiroCheckout => ({
   tratamento: "Sr.",
@@ -51,11 +50,12 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [trechos, setTrechos] = useState<Array<{ trecho: string; data: string; cia: string; voo: string }>>([]);
+  const [dados, setDados] = useState<DadosCheckoutOner | null>(null);
   const [passageiros, setPassageiros] = useState<PassageiroCheckout[]>([]);
   const [etapa, setEtapa] = useState<1 | 2>(1);
   const [enviando, setEnviando] = useState(false);
+
+  const total = dados?.resumo.total ?? 0;
 
   useEffect(() => {
     let ativo = true;
@@ -67,8 +67,12 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
         setErro(r.erro);
         return;
       }
-      setTotal(r.resumo.total ?? 0);
-      setTrechos(r.resumo.trechos);
+      setDados({
+        resumo: r.resumo,
+        aceitaCartao: r.aceitaCartao,
+        aceitaPix: r.aceitaPix,
+        maxCartoes: r.maxCartoes,
+      });
       const lista: PassageiroCheckout[] = [
         ...Array.from({ length: Math.max(1, r.resumo.adultos ?? 1) }, () => vazio("ADT")),
         ...Array.from({ length: r.resumo.criancas ?? 0 }, () => vazio("CHD")),
@@ -146,28 +150,12 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
     );
   }
 
-  const resumoLateral = (
-    <aside className="h-fit space-y-4 rounded-2xl border border-border bg-card p-6">
-      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-        <Plane className="h-3.5 w-3.5 text-primary" /> Sua viagem
-      </div>
-      <div className="space-y-3">
-        {trechos.map((t, i) => (
-          <div key={i} className="rounded-xl border border-border/60 bg-background/40 p-3 text-sm">
-            <div className="font-semibold">{t.trecho}</div>
-            <div className="text-xs text-muted-foreground">
-              {[t.data, t.cia, t.voo ? `Voo ${t.voo}` : null].filter(Boolean).join(" • ")}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center justify-between border-t border-border pt-4">
-        <span className="text-sm text-muted-foreground">Total</span>
-        <span className="text-xl font-bold text-primary">{brl(total)}</span>
-      </div>
-      {erro ? <p className="text-xs text-destructive">{erro}</p> : null}
-    </aside>
-  );
+  const resumoLateral = dados ? (
+    <ResumoReserva
+      resumo={dados.resumo}
+      rodape={erro ? <p className="text-xs text-destructive">{erro}</p> : null}
+    />
+  ) : null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -340,7 +328,7 @@ export function CheckoutVoo({ cartId }: { cartId: string }) {
           >
             <ArrowLeft className="h-4 w-4" /> Voltar aos passageiros
           </button>
-          <OnerPagamento cartId={cartId} modoAdmin />
+          <OnerPagamento cartId={cartId} modoAdmin dados={dados ?? undefined} />
         </div>
       )}
     </div>

@@ -37,70 +37,172 @@ export function normalizarNascimento(data: string): string {
   return d;
 }
 
+export type PontoVoo = {
+  iata: string;
+  cidade: string;
+  aeroporto: string;
+  data: string; // dd/mm/aaaa
+  hora: string; // hh:mm
+};
+
+export type SegmentoVoo = {
+  voo: string;
+  cia: string;
+  logo: string | null;
+  saida: PontoVoo;
+  chegada: PontoVoo;
+};
+
+export type VooResumo = {
+  rotulo: string;
+  cia: string;
+  logo: string | null;
+  voo: string;
+  duracao: string;
+  paradas: number;
+  conexoes: string[];
+  bagagemMao: string | null;
+  saida: PontoVoo;
+  chegada: PontoVoo;
+  segmentos: SegmentoVoo[];
+};
+
+export type ParcelaResumo = {
+  installment: number;
+  installmentsValue: number;
+  total: number;
+  interestRate: number;
+  hasRate: boolean;
+};
+
 export type ResumoCarrinho = {
   cartId: string | null;
   expirado: boolean | null;
   total: number | null;
+  tarifa: number | null;
+  taxas: number | null;
   moeda: string | null;
   adultos: number | null;
   criancas: number | null;
   bebes: number | null;
+  /** Compatibilidade: lista simples de trechos. */
   trechos: Array<{ trecho: string; data: string; cia: string; voo: string }>;
+  voos: VooResumo[];
+  precos: Array<{ tipo: string; quantidade: number; total: number }>;
+  parcelas: ParcelaResumo[];
   passageirosPersistidos: boolean;
 };
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+function ponto(origem: unknown): PontoVoo {
+  const d = (pick(origem, "date") ?? {}) as { year?: number; month?: number; day?: number };
+  const t = (pick(origem, "time") ?? {}) as { hour?: number; minute?: number };
+  return {
+    iata: String(pick(origem, "iata") ?? ""),
+    cidade: String(pick(origem, "city") ?? "").trim(),
+    aeroporto: String(pick(origem, "name") ?? "").trim(),
+    data: d?.year ? `${pad2(d.day ?? 1)}/${pad2(d.month ?? 1)}/${d.year}` : "",
+    hora: t?.hour != null ? `${pad2(t.hour)}:${pad2(t.minute ?? 0)}` : "",
+  };
+}
 
 export function resumirCarrinho(payload: unknown): ResumoCarrinho {
   const d = (pick(payload, "data") ?? payload) as Record<string, unknown>;
   const flight = (pick(d, "flight") ?? {}) as Record<string, unknown>;
   const price = (pick(flight, "price") ?? {}) as Record<string, unknown>;
+  const resumoPedido = (pick(d, "orderSummary") ?? {}) as Record<string, unknown>;
   const trechos: ResumoCarrinho["trechos"] = [];
+  const voos: VooResumo[] = [];
 
-  /** A data do fornecedor vem como { year, month, day } (+ time opcional). */
-  const dataLegivel = (valor: unknown, hora: unknown): string => {
-    if (!valor) return "";
-    if (typeof valor === "string") return valor;
-    const d = valor as { year?: number; month?: number; day?: number };
-    if (!d?.year || !d?.month || !d?.day) return "";
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const t = hora as { hour?: number; minute?: number } | undefined;
-    const relogio = t?.hour != null ? ` ${pad(t.hour)}:${pad(t.minute ?? 0)}` : "";
-    return `${pad(d.day)}/${pad(d.month)}/${d.year}${relogio}`;
-  };
+  const jornadas = arr(pick(flight, "journeys"));
+  jornadas.forEach((j, indice) => {
+    const segmentos: SegmentoVoo[] = arr(pick(j, "segments", "flightSegments", "legs")).map((s) => ({
+      voo: String(pick(s, "flightNumber", "number") ?? ""),
+      cia: String(pick(s, "marketingAirline.name", "airline.name") ?? "").trim(),
+      logo: (pick(s, "marketingAirline.pathLogo") as string | undefined) ?? null,
+      saida: ponto(pick(s, "departure")),
+      chegada: ponto(pick(s, "destination", "arrival")),
+    }));
 
-  for (const j of arr(pick(flight, "journeys"))) {
-    for (const s of arr(pick(j, "segments", "flightSegments", "legs"))) {
-      const de = String(
-        pick(s, "departure.iata", "departureAirport.iata", "origin", "from") ?? "",
-      );
-      const para = String(
-        pick(s, "destination.iata", "arrivalAirport.iata", "arrival.iata", "to") ?? "",
-      );
+    for (const s of segmentos) {
       trechos.push({
-        trecho: `${de || "?"} → ${para || "?"}`,
-        data: dataLegivel(
-          pick(s, "departure.date", "departureDate", "departureDateTime"),
-          pick(s, "departure.time"),
-        ),
-        cia: String(
-          pick(s, "marketingAirline.name", "airline.name", "airlineName") ?? "",
-        ).trim(),
-        voo: String(pick(s, "flightNumber", "number") ?? ""),
+        trecho: `${s.saida.iata || "?"} → ${s.chegada.iata || "?"}`,
+        data: [s.saida.data, s.saida.hora].filter(Boolean).join(" "),
+        cia: s.cia,
+        voo: s.voo,
       });
     }
-  }
 
-  const contagem = (pick(price, "passengerCount") ?? {}) as Record<string, unknown>;
-  const passageiros = arr(pick(flight, "passengers", "passengers"));
+    const tempo = (pick(j, "flyingTime") ?? {}) as { hour?: number; minute?: number };
+    const bagagens = arr(pick(j, "baggagesAllowance"));
+    const mao = bagagens.find((b) => Number(pick(b, "type")) === 1);
+    const primeiro = segmentos[0];
+    const ultimo = segmentos[segmentos.length - 1];
+
+    voos.push({
+      rotulo:
+        jornadas.length === 2 ? (indice === 0 ? "Ida" : "Volta") : jornadas.length === 1 ? "Ida" : `Trecho ${indice + 1}`,
+      cia: String(pick(j, "marketingAirline.name") ?? primeiro?.cia ?? "").trim(),
+      logo: (pick(j, "marketingAirline.pathLogo") as string | undefined) ?? primeiro?.logo ?? null,
+      voo: primeiro?.voo ?? "",
+      duracao:
+        tempo?.hour != null || tempo?.minute != null ? `${tempo.hour ?? 0}h${pad2(tempo.minute ?? 0)}` : "",
+      paradas: Number(pick(j, "numberOfStops") ?? Math.max(0, segmentos.length - 1)) || 0,
+      conexoes: segmentos.slice(0, -1).map((s) => s.chegada.cidade || s.chegada.iata).filter(Boolean),
+      bagagemMao: mao
+        ? `${pick(mao, "quantity") ?? 1} item de mão${pick(mao, "weight") ? ` até ${pick(mao, "weight")}kg` : ""}`
+        : null,
+      saida: primeiro?.saida ?? ponto(pick(j, "departure")),
+      chegada: ultimo?.chegada ?? ponto(pick(j, "destination")),
+      segmentos,
+    });
+  });
+
+  const contagemBruta = pick(price, "passengerCount");
+  const contagem = (typeof contagemBruta === "object" && contagemBruta ? contagemBruta : {}) as Record<
+    string,
+    unknown
+  >;
+  const porTipo = arr(pick(price, "farePassengerPrices"));
+  const quantidadeDe = (tipo: string) => {
+    const item = porTipo.find((p) => String(pick(p, "passengerTypeCode") ?? "") === tipo);
+    return num(item ? pick(item, "count") : undefined) ?? num(contagem[tipo]) ?? null;
+  };
+  const adultos =
+    quantidadeDe("ADT") ??
+    (typeof contagemBruta === "number" ? Number(contagemBruta) : null) ??
+    null;
+
+  const passageiros = arr(pick(flight, "passengers"));
 
   return {
     cartId: (pick(d, "cartId", "id") as string | undefined) ?? null,
     expirado: (pick(d, "cartExpired", "expired") as boolean | undefined) ?? null,
-    total: num(pick(price, "totalPrice", "total", "totalAmount")) ?? num(pick(d, "totalPrice")),
+    total:
+      num(pick(resumoPedido, "totalWithDiscount")) ??
+      num(pick(price, "totalPrice", "total", "totalAmount")) ??
+      num(pick(d, "totalPrice")),
+    tarifa: num(pick(price, "price")),
+    taxas: num(pick(price, "tax")),
     moeda: (pick(d, "currency", "currencyCode") as string | undefined) ?? "BRL",
-    adultos: num(contagem["ADT"]),
-    criancas: num(contagem["CHD"]),
-    bebes: num(contagem["INF"]),
+    adultos,
+    criancas: quantidadeDe("CHD"),
+    bebes: quantidadeDe("INF"),
     trechos,
+    voos,
+    precos: porTipo.map((p) => ({
+      tipo: String(pick(p, "passengerTypeCode") ?? ""),
+      quantidade: num(pick(p, "count")) ?? 1,
+      total: num(pick(p, "totalByType")) ?? 0,
+    })),
+    parcelas: arr(pick(resumoPedido, "installments")).map((o) => ({
+      installment: num(pick(o, "installment")) ?? 1,
+      installmentsValue: num(pick(o, "installmentsValue")) ?? 0,
+      total: num(pick(o, "total")) ?? 0,
+      interestRate: num(pick(o, "interestRate")) ?? 0,
+      hasRate: Boolean(pick(o, "hasRate")),
+    })),
     passageirosPersistidos:
       passageiros.length > 0 && passageiros.every((p) => Boolean(pick(p, "firstName", "name"))),
   };

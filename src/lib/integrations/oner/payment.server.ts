@@ -294,11 +294,21 @@ export async function salvarPagador(token: string, p: PagadorOner) {
     notUpdateAddress: false,
     purchaseForCustomer: true,
   };
-  const r = await onerFetch(`${ONER_API}/api/client/save-as-payer`, {
+  let r = await onerFetch(`${ONER_API}/api/client/save-as-payer`, {
     token,
     method: "POST",
     body,
   });
+  // Alguns carrinhos ainda não têm cliente vinculado; o fornecedor responde
+  // NEED-EMAIL-CLIENT/NEED-DOCUMENT-CLIENT. Repetimos gravando o pagador
+  // diretamente (mesmos dados do formulário, sem trocar o endereço).
+  if (!r.call.ok && /NEED-EMAIL-CLIENT|NEED-DOCUMENT-CLIENT/i.test(r.call.message ?? "")) {
+    r = await onerFetch(`${ONER_API}/api/client/save-as-payer`, {
+      token,
+      method: "POST",
+      body: { ...body, purchaseForCustomer: false },
+    });
+  }
   return { call: r.call, raw: r.raw };
 }
 
@@ -369,12 +379,43 @@ export type PixOnerEntrada = {
 };
 
 /**
- * Solicita o Pix ao fornecedor.
- * POST {api}/api/booking/pay/combined/pix
+ * Solicita o Pix puro ao fornecedor.
+ * POST {api}/api/booking/payNotification com paymentMethod = Pix.
+ * (o endpoint /pay/combined/pix serve apenas para Pix + cartão)
  * O QR/BR Code não vem nesta resposta: ele é publicado no canal de eventos
  * do fornecedor (ver aguardarQrCodePixOner).
  */
 export async function solicitarPixOner(
+  token: string,
+  entrada: PixOnerEntrada,
+): Promise<{ call: OnerCall; raw: string; body: unknown }> {
+  const url = `${ONER_API}/api/booking/payNotification`;
+  const r = await onerFetch(url, {
+    token,
+    method: "POST",
+    timeoutMs: 120_000,
+    body: {
+      paymentMethod: ONER_PAYMENT_METHOD.Pix,
+      sourceIp: "",
+      creditCardPayments: [],
+      cartId: entrada.cartId,
+      paymentHubId: "null",
+      fingerprint: "",
+      pixPayment: {
+        documentNumber: entrada.documentNumber,
+        documentType: entrada.documentType,
+      },
+      coupon: entrada.coupon ?? "",
+      submitPaymentStr: new Date().toISOString().replace(/\.\d+Z$/, " GMT+00:00"),
+      purchaseForCustomer: entrada.purchaseForCustomer,
+      acceptedTerms: { insuranceCloseCheckIn: entrada.acceptedInsuranceTerm ?? false },
+    },
+  });
+  return { call: r.call, raw: r.raw, body: r.body };
+}
+
+/** Pix combinado com cartão (retenção) — mantido para o fluxo misto. */
+export async function solicitarPixCombinadoOner(
   token: string,
   entrada: PixOnerEntrada,
 ): Promise<{ call: OnerCall; raw: string; body: unknown }> {

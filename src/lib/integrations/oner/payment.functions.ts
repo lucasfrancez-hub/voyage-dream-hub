@@ -246,12 +246,13 @@ export const onerPagarPix = createServerFn({ method: "POST" })
     if (!token) return { ok: false as const, erro: "Sessão de pagamento indisponível." };
 
     const escuta = aguardarQrCodePixOner(data.cartId, 90_000);
+    // Pix é sempre pago pela agência/representante (regra do produto).
     const envio = await solicitarPixOner(token, {
       cartId: data.cartId,
       documentNumber: data.documentoNumero,
       documentType: data.documentoTipo ?? 1,
       valor: Number(data.valor.toFixed(2)),
-      purchaseForCustomer: true,
+      purchaseForCustomer: false,
     });
     if (!envio.call.ok) {
       return { ok: false as const, erro: mensagemAmigavel(envio.call.status, envio.call.message) };

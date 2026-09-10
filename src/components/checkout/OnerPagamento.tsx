@@ -17,6 +17,15 @@ import {
   onerPagarCartao,
   onerPagarPix,
 } from "@/lib/integrations/oner/payment.functions";
+import { ResumoReserva } from "@/components/checkout/ResumoReserva";
+import type { ResumoCarrinho } from "@/lib/integrations/oner/checkout.server";
+
+export type DadosCheckoutOner = {
+  resumo: ResumoCarrinho;
+  aceitaCartao: boolean;
+  aceitaPix: boolean;
+  maxCartoes: number;
+};
 
 type Opcao = {
   installment: number;
@@ -66,25 +75,31 @@ const somenteNumeros = (v: string) => v.replace(/\D/g, "");
 export function OnerPagamento({
   cartId,
   modoAdmin = false,
+  dados,
 }: {
   cartId: string;
   modoAdmin?: boolean;
+  /** Quando a etapa anterior já carregou o carrinho, evita nova consulta (e total zerado). */
+  dados?: DadosCheckoutOner;
 }) {
   const carregarResumo = useServerFn(onerCheckoutResumo);
   const buscarParcelas = useServerFn(onerParcelasCartao);
   const pagarCartao = useServerFn(onerPagarCartao);
   const pagarPix = useServerFn(onerPagarPix);
 
-  const [carregando, setCarregando] = useState(true);
+  const [carregando, setCarregando] = useState(!dados);
   const [erro, setErro] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [trechos, setTrechos] = useState<Array<{ trecho: string; data: string; cia: string; voo: string }>>([]);
-  const [maxCartoes, setMaxCartoes] = useState(1);
-  const [aceitaPix, setAceitaPix] = useState(false);
+  const [total, setTotal] = useState(dados?.resumo.total ?? 0);
+  const [resumo, setResumo] = useState<ResumoCarrinho | null>(dados?.resumo ?? null);
+  const [maxCartoes, setMaxCartoes] = useState(dados?.maxCartoes || 1);
+  const [aceitaPix, setAceitaPix] = useState(dados?.aceitaPix ?? false);
+
 
   const [metodo, setMetodo] = useState<"cartao" | "pix">("cartao");
   const [quantidade, setQuantidade] = useState(1);
-  const [cartoes, setCartoes] = useState<CartaoForm[]>([cartaoVazio()]);
+  const [cartoes, setCartoes] = useState<CartaoForm[]>([
+    cartaoVazio(dados?.resumo.total ? String(dados.resumo.total.toFixed(2)) : ""),
+  ]);
   const [enviando, setEnviando] = useState(false);
   const [localizador, setLocalizador] = useState<string | null>(null);
 
@@ -112,6 +127,11 @@ export function OnerPagamento({
 
 
   useEffect(() => {
+    if (dados) {
+      if (!dados.aceitaCartao && dados.aceitaPix) setMetodo("pix");
+      if (dados.resumo.expirado) setErro("Esta reserva expirou. Refaça a busca para continuar.");
+      return;
+    }
     let ativo = true;
     void (async () => {
       const r = await carregarResumo({ data: { cartId } });
@@ -122,7 +142,7 @@ export function OnerPagamento({
         return;
       }
       setTotal(r.resumo.total ?? 0);
-      setTrechos(r.resumo.trechos);
+      setResumo(r.resumo);
       setMaxCartoes(r.maxCartoes || 1);
       setAceitaPix(r.aceitaPix);
       setCartoes([cartaoVazio(String((r.resumo.total ?? 0).toFixed(2)))]);
@@ -132,7 +152,7 @@ export function OnerPagamento({
     return () => {
       ativo = false;
     };
-  }, [cartId, carregarResumo]);
+  }, [cartId, carregarResumo, dados]);
 
   const soma = useMemo(
     () => cartoes.reduce((s, c) => s + (Number(c.valor.replace(",", ".")) || 0), 0),
@@ -657,53 +677,42 @@ export function OnerPagamento({
         </section>
       </div>
 
-      <aside className="h-fit rounded-2xl border border-border bg-card p-6">
-        <h3 className="font-semibold">Resumo</h3>
-        <div className="mt-4 space-y-2 text-sm">
-          {trechos.map((t, i) => (
-            <div key={i} className="flex justify-between gap-2">
-              <span>
-                {t.trecho}
-                {t.data ? <span className="block text-xs text-muted-foreground">{t.data}</span> : null}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {t.cia} {t.voo}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
-          <span className="text-sm text-muted-foreground">Total</span>
-          <span className="text-2xl font-bold text-primary">{brl(total)}</span>
-        </div>
-        {metodo === "cartao" ? (
-          <div className="mt-1 text-right text-xs text-muted-foreground">
-            {cartoes.every((c) => c.parcela)
-              ? cartoes
-                  .map((c, i) => {
-                    const o = c.opcoes?.find((x) => x.installment === c.parcela);
-                    return o ? `Cartão ${i + 1}: ${o.installment}x de ${brl(o.installmentsValue)}` : "";
-                  })
-                  .filter(Boolean)
-                  .join(" · ")
-              : "Parcelamento não selecionado"}
-          </div>
-        ) : null}
-        {metodo === "cartao" && !somaConfere ? (
-          <div className="mt-3 rounded-md bg-muted p-2 text-xs text-muted-foreground">
-            Soma dos cartões: {brl(soma)} — precisa ficar igual ao total.
-          </div>
-        ) : null}
+      <ResumoReserva
+        resumo={
+          resumo ?? { voos: [], precos: [], parcelas: [], total, taxas: null, tarifa: null }
+        }
+        rodape={
+          <div>
+            {metodo === "cartao" ? (
+              <div className="text-right text-xs text-muted-foreground">
+                {cartoes.every((c) => c.parcela)
+                  ? cartoes
+                      .map((c, i) => {
+                        const o = c.opcoes?.find((x) => x.installment === c.parcela);
+                        return o ? `Cartão ${i + 1}: ${o.installment}x de ${brl(o.installmentsValue)}` : "";
+                      })
+                      .filter(Boolean)
+                      .join(" · ")
+                  : "Parcelamento não selecionado"}
+              </div>
+            ) : null}
+            {metodo === "cartao" && !somaConfere ? (
+              <div className="mt-3 rounded-md bg-muted p-2 text-xs text-muted-foreground">
+                Soma dos cartões: {brl(soma)} — precisa ficar igual ao total.
+              </div>
+            ) : null}
 
-        <Button
-          type="button"
-          className="mt-5 w-full"
-          disabled={enviando || metodo === "pix" || Boolean(erro)}
-          onClick={() => void finalizar()}
-        >
-          {enviando ? "Processando..." : "Fazer pedido"}
-        </Button>
-      </aside>
+            <Button
+              type="button"
+              className="mt-5 w-full"
+              disabled={enviando || metodo === "pix" || Boolean(erro)}
+              onClick={() => void finalizar()}
+            >
+              {enviando ? "Processando..." : "Fazer pedido"}
+            </Button>
+          </div>
+        }
+      />
     </div>
   );
 }
