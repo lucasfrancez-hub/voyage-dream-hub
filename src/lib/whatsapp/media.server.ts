@@ -116,11 +116,13 @@ async function transcribeOnce(
  * Registra provider/modelo, tentativas, duração e resultado no log estruturado.
  */
 export async function transcribeAudio(blob: Blob, mimeType: string): Promise<string | null> {
+  // Gemini aceita OGG/Opus (formato padrão do WhatsApp); OpenAI fica de reserva.
   const tentativas: Array<{ model: string }> = [
-    { model: "openai/gpt-4o-transcribe" },
+    ...(blob.size <= 14 * 1024 * 1024 ? [{ model: "google/gemini-3.5-transcribe" }] : []),
     { model: "openai/gpt-4o-transcribe" },
     { model: "openai/gpt-4o-mini-transcribe" },
   ];
+
   const inicio = Date.now();
   for (let i = 0; i < tentativas.length; i++) {
     const { model } = tentativas[i]!;
