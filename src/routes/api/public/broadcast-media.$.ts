@@ -9,7 +9,14 @@ const BUCKET = "broadcast-media";
 export const Route = createFileRoute("/api/public/broadcast-media/$")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      HEAD: async ({ params }) => servir(params, true),
+      GET: async ({ params }) => servir(params, false),
+    },
+  },
+});
+
+async function servir(params: { _splat?: string }, apenasCabecalho: boolean) {
+  {
         let path = decodeURIComponent(params._splat ?? "");
         // Tolerância: quando o link é clicado a partir de um texto, o WhatsApp
         // costuma grudar o que vem depois da extensão (ex.: "|arquivo.png]]").
@@ -24,14 +31,15 @@ export const Route = createFileRoute("/api/public/broadcast-media/$")({
         const { data, error } = await supabaseAdmin.storage.from(BUCKET).download(path);
         if (error || !data) return new Response("Not found", { status: 404 });
 
-        return new Response(await data.arrayBuffer(), {
-          headers: {
-            "Content-Type": data.type || "application/octet-stream",
-            "Cache-Control": "public, max-age=31536000, immutable",
-            "X-Content-Type-Options": "nosniff",
-          },
-        });
-      },
-    },
-  },
-});
+        const buf = await data.arrayBuffer();
+        const headers = {
+          "Content-Type": data.type || "application/octet-stream",
+          "Content-Length": String(buf.byteLength),
+          "Accept-Ranges": "bytes",
+          "Cache-Control": "public, max-age=31536000, immutable",
+          "X-Content-Type-Options": "nosniff",
+        };
+        if (apenasCabecalho) return new Response(null, { headers });
+        return new Response(buf, { headers });
+  }
+}

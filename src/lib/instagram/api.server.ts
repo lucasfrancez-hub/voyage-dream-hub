@@ -547,6 +547,77 @@ export async function sendDirectAttachment(params: {
 }
 
 /**
+ * Sobe o arquivo direto pra Meta (multipart) e devolve um attachment_id.
+ *
+ * Quando mandamos só a URL, a Meta baixa o arquivo por conta dela e às vezes
+ * falha com "Upload failed" (subcode 2018007) — típico com áudio. Subindo os
+ * bytes nós mesmos, o áudio chega como áudio na DM em vez de virar link.
+ */
+export async function uploadInstagramAttachment(params: {
+  igUserId: string;
+  token: string;
+  bytes: ArrayBuffer;
+  mime: string;
+  filename: string;
+  type: "image" | "audio" | "video" | "file";
+}): Promise<string> {
+  const form = new FormData();
+  form.append(
+    "message",
+    JSON.stringify({ attachment: { type: params.type, payload: { is_reusable: true } } }),
+  );
+  form.append("filedata", new Blob([params.bytes], { type: params.mime }), params.filename);
+
+  const started = Date.now();
+  const res = await fetch(`${GRAPH}/${params.igUserId}/message_attachments`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${params.token}` },
+    body: form,
+  });
+  const body = await res.text();
+  let parsed: Record<string, unknown> | null = null;
+  try { parsed = JSON.parse(body) as Record<string, unknown>; } catch { parsed = null; }
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("instagram_api_logs").insert({
+      operation: `upload_attachment_${params.type}`,
+      endpoint: `/${params.igUserId}/message_attachments`,
+      method: "POST",
+      response_body: parsed as Json | null,
+      response_raw: parsed ? null : body.slice(0, 20_000),
+      http_status: res.status,
+      success: res.ok,
+      error_message: !res.ok ? body.slice(0, 2_000) : null,
+      duration_ms: Date.now() - started,
+    });
+  } catch { /* log é best-effort */ }
+  const id = parsed?.attachment_id;
+  if (!res.ok || typeof id !== "string") {
+    throw new Error(`Instagram upload ${res.status}: ${body.slice(0, 500)}`);
+  }
+  return id;
+}
+
+/** Envia uma DM usando um attachment_id já subido pra Meta. */
+export async function sendDirectAttachmentId(params: {
+  igUserId: string;
+  token: string;
+  recipientIgId: string;
+  attachmentId: string;
+  type: "image" | "audio" | "video" | "file";
+}) {
+  return fetchGraph(`/${params.igUserId}/messages`, {
+    method: "POST",
+    token: params.token,
+    operation: `send_dm_${params.type}_id`,
+    body: JSON.stringify({
+      recipient: { id: params.recipientIgId },
+      message: { attachment: { type: params.type, payload: { attachment_id: params.attachmentId } } },
+    }),
+  });
+}
+
+/**
  * Publicações em que a conta foi MARCADA — inclui os posts em colaboração
  * (collab) publicados por outro perfil. A Meta NÃO manda webhook de comentário
  * pra quem é só coautor, então buscamos os comentários por aqui.
