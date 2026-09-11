@@ -284,6 +284,7 @@ export const getPublicQuote = createServerFn({ method: "GET" })
           photo_url: str("photo_url"),
           room_type: str("room_type") ?? str("room_category"),
           room_category: str("room_category"),
+          rooms: num("rooms"),
           bed_type: str("bed_type"),
           notes: str("notes"),
         };
