@@ -118,6 +118,8 @@ export type NormalizedQuote = {
   title?: string | null;
   /** Título comercial exibido no orçamento público (editável no admin). */
   headline?: string | null;
+  /** URL da imagem do banner (hero), definida manualmente no admin. */
+  heroImage?: string | null;
   agency?: string | null;
   agent?: string | null;
   client?: { name?: string | null; phone?: string | null; email?: string | null } | null;
