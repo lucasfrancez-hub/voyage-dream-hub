@@ -489,6 +489,7 @@ export async function buildPublicQuoteFromImported(params: {
     type,
     title,
     headline: params.headline ?? normalized.headline ?? null,
+    heroImage: normalized.heroImage ?? null,
     subtitle:
       publicOptions.length > 1
         ? `${publicOptions.length} opções para você escolher`
