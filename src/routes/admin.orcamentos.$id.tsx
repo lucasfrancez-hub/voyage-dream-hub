@@ -22,6 +22,7 @@ import { displayAgentName } from "@/lib/public-quote/agents";
 import { quoteHeadline } from "@/lib/public-quote/headline";
 import {
   converterOrcamentoEmPedido, gerarLinkOrcamento, reprocessarImportacao, definirTituloOrcamento,
+  definirImagemOrcamento,
 } from "@/lib/quotes/quotes.functions";
 import type { NormalizedOption, NormalizedQuote } from "@/lib/quotes/types";
 import { confirmThen } from "@/lib/confirm";
