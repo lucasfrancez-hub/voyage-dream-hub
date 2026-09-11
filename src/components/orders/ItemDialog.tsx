@@ -612,7 +612,19 @@ export function ItemDialog({
                 <div><Label>Check-out</Label><Input type="date" value={String(details.check_out ?? details.checkout ?? "")} onChange={(e) => setField("check_out", e.target.value)} /></div>
                 <div><Label>Noites</Label><Input type="number" value={String(details.nights ?? "")} onChange={(e) => setField("nights", e.target.value)} /></div>
               </div>
-              <div><Label>Hóspedes</Label><Input value={String(details.guests ?? "")} onChange={(e) => setField("guests", e.target.value)} placeholder="2 adultos, 1 criança..." /></div>
+              <div className="grid grid-cols-[110px_1fr] gap-3">
+                <div>
+                  <Label>Quartos</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={String(details.rooms ?? "")}
+                    onChange={(e) => setField("rooms", e.target.value)}
+                    placeholder="2"
+                  />
+                </div>
+                <div><Label>Hóspedes</Label><Input value={String(details.guests ?? "")} onChange={(e) => setField("guests", e.target.value)} placeholder="2 adultos, 1 criança..." /></div>
+              </div>
               <div>
                 <Label>URL da foto do hotel (opcional)</Label>
                 <Input
