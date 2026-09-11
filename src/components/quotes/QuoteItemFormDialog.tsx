@@ -11,6 +11,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { ItemDialog, type ItemDialogSavePayload } from "@/components/orders/ItemDialog";
+import { parseBaggage } from "@/lib/quotes/baggage";
+import { iataCity } from "@/lib/iata-lookup";
 import { salvarItemOrcamento } from "@/lib/quotes/items.functions";
 import type {
   NormalizedFlight, NormalizedFlightSegment, NormalizedGenericItem, NormalizedHotel,
@@ -88,17 +90,28 @@ function flightParaItem(f: NormalizedFlight | null | undefined): { main: OrderIt
         departure: f.departure ?? null,
         arrival: f.arrival ?? null,
       }];
-  const paraDetails = (s: NormalizedFlightSegment, primeiro: boolean): Dict => ({
-    direction,
-    airline: txt(s.airline ?? f.airline),
-    flight_number: txt(s.flightNumber),
-    from_iata: txt(s.fromIata).toUpperCase(),
-    to_iata: txt(s.toIata).toUpperCase(),
-    depart_at: paraInputDateTime(s.departure),
-    arrive_at: paraInputDateTime(s.arrival),
-    cabin_class: txt(s.cabin),
-    ...(primeiro && f.total != null ? { value: String(f.total) } : {}),
-  });
+  const paraDetails = (s: NormalizedFlightSegment, primeiro: boolean): Dict => {
+    const bags = parseBaggage(s.baggage ?? null);
+    const from = txt(s.fromIata).toUpperCase();
+    const to = txt(s.toIata).toUpperCase();
+    return {
+      direction,
+      airline: txt(s.airline ?? f.airline),
+      flight_number: txt(s.flightNumber),
+      from_iata: from,
+      to_iata: to,
+      from_city: txt(s.fromCity) || iataCity(from) || "",
+      to_city: txt(s.toCity) || iataCity(to) || "",
+      depart_at: paraInputDateTime(s.departure),
+      arrive_at: paraInputDateTime(s.arrival),
+      cabin_class: txt(s.cabin),
+      fare_class: txt(s.fareClass),
+      personal_item: bags.personalItem,
+      carry_on: bags.carryOn,
+      checked_bag: bags.checkedBaggage,
+      ...(primeiro && f.total != null ? { value: String(f.total) } : {}),
+    };
+  };
   const item = (details: Dict, i: number): OrderItem => ({
     id: `seg-${i}`,
     order_id: "",
@@ -204,17 +217,31 @@ export function QuoteItemFormDialog(props: Props) {
         const todos: Dict[] = [main, ...((p.siblings ?? []).map((s) => d(s.details)))];
         const segs = todos
           .filter((s) => txt(s.from_iata) || txt(s.to_iata) || txt(s.flight_number))
-          .map((s) => ({
-            airline: txt(s.airline).trim() || null,
-            flightNumber: txt(s.flight_number).trim() || null,
-            fromIata: txt(s.from_iata).trim().toUpperCase() || null,
-            toIata: txt(s.to_iata).trim().toUpperCase() || null,
-            departure: txt(s.depart_at).trim() || null,
-            arrival: txt(s.arrive_at).trim() || null,
-            duration: null,
-            cabin: txt(s.cabin_class).trim() || null,
-            baggage: null,
-          }));
+          .map((s) => {
+            const from = txt(s.from_iata).trim().toUpperCase() || null;
+            const to = txt(s.to_iata).trim().toUpperCase() || null;
+            // Texto de bagagem escrito a partir dos checkboxes — é ele que o
+            // orçamento lê para exibir "Bagagem despachada".
+            const bag = [
+              s.personal_item === false ? null : "Item pessoal",
+              s.carry_on === false ? "Sem bagagem de mão" : "Bagagem de mão",
+              s.checked_bag === true ? "1x Bagagem despachada" : "Sem bagagem despachada",
+            ].filter(Boolean).join(" • ");
+            return {
+              airline: txt(s.airline).trim() || null,
+              flightNumber: txt(s.flight_number).trim() || null,
+              fromIata: from,
+              toIata: to,
+              fromCity: txt(s.from_city).trim() || (from ? iataCity(from) : null) || null,
+              toCity: txt(s.to_city).trim() || (to ? iataCity(to) : null) || null,
+              departure: txt(s.depart_at).trim() || null,
+              arrival: txt(s.arrive_at).trim() || null,
+              duration: null,
+              cabin: txt(s.cabin_class).trim() || null,
+              fareClass: txt(s.fare_class).trim() || null,
+              baggage: bag,
+            };
+          });
         if (segs.length === 0) throw new Error("Informe ao menos um trecho (origem e destino)");
         return salvar({
           data: {

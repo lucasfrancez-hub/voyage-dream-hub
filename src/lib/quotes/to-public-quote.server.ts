@@ -80,9 +80,9 @@ function toSegments(flight: NormalizedOption["flights"][number]): FlightSegment[
       airlineIata: s.airlineIata ?? null,
       flightNumber: s.flightNumber ?? null,
       fromIata: s.fromIata ?? flight.fromIata ?? "",
-      fromName: cityLabel(s.fromIata ?? "") || null,
+      fromName: s.fromCity || cityLabel(s.fromIata ?? "") || null,
       toIata: s.toIata ?? flight.toIata ?? "",
-      toName: cityLabel(s.toIata ?? "") || null,
+      toName: s.toCity || cityLabel(s.toIata ?? "") || null,
       departure: s.departure ?? flight.departure ?? "",
       arrival: s.arrival ?? flight.arrival ?? "",
       // Duração DO SEGMENTO. Nunca herdar a duração do trecho inteiro:

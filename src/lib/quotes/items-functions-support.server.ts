@@ -19,11 +19,14 @@ const SegmentSchema = z.object({
   flightNumber: z.string().trim().max(12).nullish(),
   fromIata: z.string().trim().max(4).nullish(),
   toIata: z.string().trim().max(4).nullish(),
+  fromCity: z.string().trim().max(80).nullish(),
+  toCity: z.string().trim().max(80).nullish(),
   departure: z.string().trim().max(30).nullish(),
   arrival: z.string().trim().max(30).nullish(),
   duration: z.string().trim().max(20).nullish(),
   cabin: z.string().trim().max(40).nullish(),
-  baggage: z.string().trim().max(80).nullish(),
+  fareClass: z.string().trim().max(20).nullish(),
+  baggage: z.string().trim().max(160).nullish(),
 });
 
 export const FlightSchema = z.object({

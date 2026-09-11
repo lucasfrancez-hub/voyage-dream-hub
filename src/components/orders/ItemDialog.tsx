@@ -317,8 +317,8 @@ export function ItemDialog({
         }} placeholder="GIG" maxLength={4} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Cidade origem</Label><Input value={String(d.from_city ?? "")} onChange={(e) => onChangeField("from_city", e.target.value)} placeholder="São Paulo" /></div>
-        <div><Label>Cidade destino</Label><Input value={String(d.to_city ?? "")} onChange={(e) => onChangeField("to_city", e.target.value)} placeholder="Rio de Janeiro" /></div>
+        <div><Label>Cidade origem</Label><Input value={String(d.from_city ?? iataCity(String(d.from_iata ?? d.origin ?? "")) ?? "")} onChange={(e) => onChangeField("from_city", e.target.value)} placeholder="São Paulo" /></div>
+        <div><Label>Cidade destino</Label><Input value={String(d.to_city ?? iataCity(String(d.to_iata ?? d.destination ?? "")) ?? "")} onChange={(e) => onChangeField("to_city", e.target.value)} placeholder="Rio de Janeiro" /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
