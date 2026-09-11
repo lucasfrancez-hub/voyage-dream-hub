@@ -250,6 +250,8 @@ export type PublicQuote = {
   title: string;
   /** Título comercial do hero, definido manualmente no admin. */
   headline?: string | null;
+  /** Imagem do banner definida manualmente no admin (sobrepõe a foto automática). */
+  heroImage?: string | null;
   subtitle?: string | null;
   origin?: string | null;
   destination?: string | null;

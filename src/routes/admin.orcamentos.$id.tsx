@@ -5,7 +5,10 @@ import { useMemo, useState } from "react";
 import {
   ArrowLeft, Hotel, Plane, Package, DollarSign, Users, ExternalLink, Printer,
   Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2, Plus, CreditCard,
+  Image as ImageIcon,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 
@@ -19,6 +22,7 @@ import { displayAgentName } from "@/lib/public-quote/agents";
 import { quoteHeadline } from "@/lib/public-quote/headline";
 import {
   converterOrcamentoEmPedido, gerarLinkOrcamento, reprocessarImportacao, definirTituloOrcamento,
+  definirImagemOrcamento,
 } from "@/lib/quotes/quotes.functions";
 import type { NormalizedOption, NormalizedQuote } from "@/lib/quotes/types";
 import { confirmThen } from "@/lib/confirm";
@@ -145,6 +149,19 @@ function QuoteDetailPage() {
       void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao reprocessar"),
+  });
+
+  const salvarImagem = useServerFn(definirImagemOrcamento);
+  const [imagemAberta, setImagemAberta] = useState(false);
+  const [imagemUrl, setImagemUrl] = useState("");
+  const imagemMutation = useMutation({
+    mutationFn: (url: string) => salvarImagem({ data: { quoteId: id, imageUrl: url } }),
+    onSuccess: (r) => {
+      toast.success(r.heroImage ? "Imagem do banner atualizada" : "Imagem removida (volta para a automática)");
+      setImagemAberta(false);
+      void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar a imagem"),
   });
 
   const criarOpcao = useServerFn(criarOpcaoOrcamento);
@@ -470,6 +487,17 @@ function QuoteDetailPage() {
                 Reprocessar
               </Button>
             )}
+
+            <Button
+              variant="ghost" size="sm" className="gap-2"
+              onClick={() => {
+                setImagemUrl(normalized?.heroImage ?? "");
+                setImagemAberta(true);
+              }}
+            >
+              <ImageIcon className="h-4 w-4" />
+              Imagem do banner
+            </Button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -1092,6 +1120,44 @@ function QuoteDetailPage() {
       )}
 
 
+
+      <Dialog open={imagemAberta} onOpenChange={setImagemAberta}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Imagem do banner</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>URL da imagem</Label>
+              <Input
+                value={imagemUrl}
+                onChange={(e) => setImagemUrl(e.target.value)}
+                placeholder="https://..."
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Substitui a foto automática no banner do orçamento. Deixe em branco para voltar à automática.
+              </p>
+            </div>
+            {imagemUrl.trim().startsWith("http") && (
+              <img
+                src={imagemUrl.trim()}
+                alt="Prévia do banner"
+                className="h-40 w-full rounded-md object-cover"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setImagemAberta(false)}>Cancelar</Button>
+            <Button
+              disabled={imagemMutation.isPending}
+              onClick={() => imagemMutation.mutate(imagemUrl.trim())}
+            >
+              {imagemMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
