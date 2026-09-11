@@ -302,7 +302,6 @@ export const sendInstagramAttachment = createServerFn({ method: "POST" })
       attachment_url: url,
       attachment_type: tipo,
       status: res.message_id ? "sent" : "failed",
-      ...(res.delivered_as === "link" ? { text: url } : {}),
     });
 
     if (!res.message_id) throw new Error(res.error ?? "O Instagram não confirmou o envio da mídia");
