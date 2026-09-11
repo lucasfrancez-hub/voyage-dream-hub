@@ -321,10 +321,16 @@ export function optionToProducts(option: NormalizedOption, occupancy?: string | 
       sortDate: h.checkin ?? null,
       checkIn: brDate(h.checkin),
       checkOut: brDate(h.checkout),
-      occupancy: occupancy ?? null,
+      occupancy:
+        h.rooms && h.rooms > 1
+          ? [`${h.rooms} quartos`, occupancy].filter(Boolean).join(" • ")
+          : (occupancy ?? null),
       mealPlan: h.board ?? null,
       benefits: h.board ? [h.board] : [],
-      roomName: formatRoom(h.roomDescription).name,
+      roomName:
+        h.rooms && h.rooms > 1 && formatRoom(h.roomDescription).name
+          ? `${h.rooms}x ${formatRoom(h.roomDescription).name}`
+          : formatRoom(h.roomDescription).name,
       roomDescription: formatRoom(h.roomDescription).description,
       location:
         h.latitude != null || h.address
