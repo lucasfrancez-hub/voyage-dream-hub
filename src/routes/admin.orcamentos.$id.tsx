@@ -147,6 +147,19 @@ function QuoteDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao reprocessar"),
   });
 
+  const salvarImagem = useServerFn(definirImagemOrcamento);
+  const [imagemAberta, setImagemAberta] = useState(false);
+  const [imagemUrl, setImagemUrl] = useState("");
+  const imagemMutation = useMutation({
+    mutationFn: (url: string) => salvarImagem({ data: { quoteId: id, imageUrl: url } }),
+    onSuccess: (r) => {
+      toast.success(r.heroImage ? "Imagem do banner atualizada" : "Imagem removida (volta para a automática)");
+      setImagemAberta(false);
+      void qc.invalidateQueries({ queryKey: ["admin", "quoteDetail", id] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erro ao salvar a imagem"),
+  });
+
   const criarOpcao = useServerFn(criarOpcaoOrcamento);
   const renomearOpcao = useServerFn(renomearOpcaoOrcamento);
   const removerOpcao = useServerFn(removerOpcaoOrcamento);
