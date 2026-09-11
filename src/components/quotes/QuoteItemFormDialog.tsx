@@ -217,17 +217,31 @@ export function QuoteItemFormDialog(props: Props) {
         const todos: Dict[] = [main, ...((p.siblings ?? []).map((s) => d(s.details)))];
         const segs = todos
           .filter((s) => txt(s.from_iata) || txt(s.to_iata) || txt(s.flight_number))
-          .map((s) => ({
-            airline: txt(s.airline).trim() || null,
-            flightNumber: txt(s.flight_number).trim() || null,
-            fromIata: txt(s.from_iata).trim().toUpperCase() || null,
-            toIata: txt(s.to_iata).trim().toUpperCase() || null,
-            departure: txt(s.depart_at).trim() || null,
-            arrival: txt(s.arrive_at).trim() || null,
-            duration: null,
-            cabin: txt(s.cabin_class).trim() || null,
-            baggage: null,
-          }));
+          .map((s) => {
+            const from = txt(s.from_iata).trim().toUpperCase() || null;
+            const to = txt(s.to_iata).trim().toUpperCase() || null;
+            // Texto de bagagem escrito a partir dos checkboxes — é ele que o
+            // orçamento lê para exibir "Bagagem despachada".
+            const bag = [
+              s.personal_item === false ? null : "Item pessoal",
+              s.carry_on === false ? "Sem bagagem de mão" : "Bagagem de mão",
+              s.checked_bag === true ? "1x Bagagem despachada" : "Sem bagagem despachada",
+            ].filter(Boolean).join(" • ");
+            return {
+              airline: txt(s.airline).trim() || null,
+              flightNumber: txt(s.flight_number).trim() || null,
+              fromIata: from,
+              toIata: to,
+              fromCity: txt(s.from_city).trim() || (from ? iataCity(from) : null) || null,
+              toCity: txt(s.to_city).trim() || (to ? iataCity(to) : null) || null,
+              departure: txt(s.depart_at).trim() || null,
+              arrival: txt(s.arrive_at).trim() || null,
+              duration: null,
+              cabin: txt(s.cabin_class).trim() || null,
+              fareClass: txt(s.fare_class).trim() || null,
+              baggage: bag,
+            };
+          });
         if (segs.length === 0) throw new Error("Informe ao menos um trecho (origem e destino)");
         return salvar({
           data: {
