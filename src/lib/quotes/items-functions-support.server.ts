@@ -7,6 +7,7 @@ export const HotelSchema = z.object({
   checkin: z.string().trim().max(10).nullish(),
   checkout: z.string().trim().max(10).nullish(),
   nights: z.number().min(0).max(365).nullish(),
+  rooms: z.number().min(0).max(40).nullish(),
   roomDescription: z.string().trim().max(200).nullish(),
   board: z.string().trim().max(120).nullish(),
   photos: z.array(z.string().trim().max(600)).max(12).optional(),
