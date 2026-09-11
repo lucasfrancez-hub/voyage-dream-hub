@@ -91,7 +91,47 @@ export async function sendInstagramMediaSmart(params: {
     }
   };
 
+  const enviarLegenda = async () => {
+    if (!params.caption?.trim()) return;
+    try {
+      await sendDirectMessage({
+        igUserId: params.igUserId,
+        token: params.token,
+        recipientIgId: params.recipientIgId,
+        text: params.caption.trim(),
+      });
+    } catch {
+      /* legenda é opcional */
+    }
+  };
+
   if (tipo === "file") return enviarLink("formato não suportado pelo Instagram — enviado como link");
+
+  // Áudio: sempre pelo upload direto. Link de navegador na DM não serve.
+  if (tipo === "audio") {
+    try {
+      const messageId = await enviarPorUpload();
+      await enviarLegenda();
+      return { message_id: messageId, type: tipo, delivered_as: "attachment" };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn("[instagram] upload de áudio falhou:", msg);
+      try {
+        const r = (await sendDirectAttachment({
+          igUserId: params.igUserId,
+          token: params.token,
+          recipientIgId: params.recipientIgId,
+          url: params.url,
+          type: tipo,
+        })) as { message_id?: string };
+        await enviarLegenda();
+        return { message_id: r.message_id ?? null, type: tipo, delivered_as: "attachment" };
+      } catch (err2) {
+        const msg2 = err2 instanceof Error ? err2.message : String(err2);
+        return { message_id: null, type: tipo, delivered_as: "attachment", error: msg2 };
+      }
+    }
+  }
 
   try {
     const r = (await sendDirectAttachment({
