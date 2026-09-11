@@ -92,6 +92,8 @@ export type PublicQuoteItem = {
   photo_url?: string | null;
   room_type?: string | null;
   room_category?: string | null;
+  /** Quantidade de quartos contratados (ex.: 2 quartos triplos). */
+  rooms?: number | null;
   bed_type?: string | null;
   hotel_info?: HotelInfo | null;
   category?: string | null;
@@ -282,6 +284,7 @@ export const getPublicQuote = createServerFn({ method: "GET" })
           photo_url: str("photo_url"),
           room_type: str("room_type") ?? str("room_category"),
           room_category: str("room_category"),
+          rooms: num("rooms"),
           bed_type: str("bed_type"),
           notes: str("notes"),
         };

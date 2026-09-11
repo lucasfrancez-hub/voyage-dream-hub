@@ -26,6 +26,8 @@ export type NormalizedHotel = {
   checkin?: string | null;
   checkout?: string | null;
   nights?: number | null;
+  /** Quantidade de quartos (ex.: 2 quartos triplos). */
+  rooms?: number | null;
   roomDescription?: string | null;
   board?: string | null;
   photos?: string[];

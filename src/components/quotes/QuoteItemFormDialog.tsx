@@ -137,6 +137,7 @@ function hotelParaItem(h: NormalizedHotel | null | undefined): OrderItem | null 
     check_in: soData(h.checkin),
     check_out: soData(h.checkout),
     nights: txt(h.nights),
+    rooms: txt(h.rooms),
     room: txt(h.roomDescription),
     board: txt(h.board),
   };
@@ -204,6 +205,7 @@ export function QuoteItemFormDialog(props: Props) {
               checkin: soData(txt(main.check_in)) || null,
               checkout: soData(txt(main.check_out)) || null,
               nights: num(main.nights),
+              rooms: num(main.rooms),
               roomDescription: txt(main.room).trim() || null,
               board: txt(main.board).trim() || null,
               photos,

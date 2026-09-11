@@ -186,10 +186,16 @@ function hotelProduct(
     checkIn: brDate(item.check_in),
     checkOut: brDate(item.check_out),
     // Ocupação é gente, não noite: as noites aparecem no cabeçalho da seção.
-    occupancy: occupancyLabel,
+    occupancy:
+      item.rooms && item.rooms > 1
+        ? [`${item.rooms} quartos`, occupancyLabel].filter(Boolean).join(" • ")
+        : occupancyLabel,
     mealPlan: item.meal_plan ?? null,
     benefits: hotelBenefits(item, info?.amenities ?? []),
-    roomName: roomLabel(item, nome),
+    roomName:
+      item.rooms && item.rooms > 1 && roomLabel(item, nome)
+        ? `${item.rooms}x ${roomLabel(item, nome)}`
+        : roomLabel(item, nome),
     roomDescription: null,
     about: info?.description ?? null,
     rating: info?.rating ?? null,
