@@ -92,6 +92,8 @@ export type PublicQuoteItem = {
   photo_url?: string | null;
   room_type?: string | null;
   room_category?: string | null;
+  /** Quantidade de quartos contratados (ex.: 2 quartos triplos). */
+  rooms?: number | null;
   bed_type?: string | null;
   hotel_info?: HotelInfo | null;
   category?: string | null;
