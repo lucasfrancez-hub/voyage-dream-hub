@@ -156,7 +156,14 @@ export async function sendInstagramMediaSmart(params: {
     return { message_id: r.message_id ?? null, type: tipo, delivered_as: "attachment" };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn("[instagram] anexo recusado, caindo pro link:", msg);
-    return enviarLink(msg);
+    console.warn("[instagram] anexo por URL recusado, tentando upload direto:", msg);
+    try {
+      const messageId = await enviarPorUpload();
+      await enviarLegenda();
+      return { message_id: messageId, type: tipo, delivered_as: "attachment" };
+    } catch (err2) {
+      console.warn("[instagram] upload direto falhou, caindo pro link:", err2);
+      return enviarLink(msg);
+    }
   }
 }
