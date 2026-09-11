@@ -5,7 +5,10 @@ import { useMemo, useState } from "react";
 import {
   ArrowLeft, Hotel, Plane, Package, DollarSign, Users, ExternalLink, Printer,
   Link2 as LinkIcon, ArrowRightLeft, RotateCcw, Loader2, Copy, Hash, Star, Pencil, Trash2, Plus, CreditCard,
+  Image as ImageIcon,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 
