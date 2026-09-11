@@ -291,6 +291,7 @@ export const sendInstagramAttachment = createServerFn({ method: "POST" })
       url,
       mime: data.mime,
       filename: data.filename,
+      bytes: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
     });
 
     await supabaseAdmin.from("instagram_messages").insert({
