@@ -33,8 +33,14 @@ export async function downloadWhatsAppMedia(
     return null;
   }
   const blob = await binRes.blob();
-  return { blob, mimeType: meta.mime_type ?? blob.type ?? "application/octet-stream" };
+  const mimeType = meta.mime_type ?? blob.type ?? "application/octet-stream";
+  if (blob.size < 512) {
+    console.error("[wa/media] download vazio/incompleto:", blob.size, mimeType);
+    return null;
+  }
+  return { blob, mimeType };
 }
+
 
 /**
  * Transcreve um áudio via Lovable AI Gateway (openai/gpt-4o-transcribe).
@@ -66,9 +72,19 @@ async function transcribeOnce(
   const baseType = mimeType.split(";")[0].trim().toLowerCase();
   const ext = extMap[baseType] ?? "ogg";
 
+  // Reembala os bytes com o content-type limpo: o Blob vindo do fetch às vezes
+  // carrega o mime com parâmetros (";codecs=opus") e o provedor rejeita.
+  const bytes = await blob.arrayBuffer();
+  if (bytes.byteLength < 512) {
+    console.error("[wa/media] áudio vazio/curto demais:", bytes.byteLength);
+    return null;
+  }
+  const arquivo = new Blob([bytes], { type: baseType || "audio/ogg" });
+
   const form = new FormData();
   form.append("model", model);
-  form.append("file", blob, `audio.${ext}`);
+  form.append("file", arquivo, `audio.${ext}`);
+
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
@@ -100,11 +116,13 @@ async function transcribeOnce(
  * Registra provider/modelo, tentativas, duração e resultado no log estruturado.
  */
 export async function transcribeAudio(blob: Blob, mimeType: string): Promise<string | null> {
+  // Gemini aceita OGG/Opus (formato padrão do WhatsApp); OpenAI fica de reserva.
   const tentativas: Array<{ model: string }> = [
-    { model: "openai/gpt-4o-transcribe" },
+    ...(blob.size <= 14 * 1024 * 1024 ? [{ model: "google/gemini-3.5-transcribe" }] : []),
     { model: "openai/gpt-4o-transcribe" },
     { model: "openai/gpt-4o-mini-transcribe" },
   ];
+
   const inicio = Date.now();
   for (let i = 0; i < tentativas.length; i++) {
     const { model } = tentativas[i]!;
