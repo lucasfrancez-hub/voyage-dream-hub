@@ -137,6 +137,7 @@ function hotelParaItem(h: NormalizedHotel | null | undefined): OrderItem | null 
     check_in: soData(h.checkin),
     check_out: soData(h.checkout),
     nights: txt(h.nights),
+    rooms: txt(h.rooms),
     room: txt(h.roomDescription),
     board: txt(h.board),
   };
