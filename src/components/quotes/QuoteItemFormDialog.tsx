@@ -88,17 +88,28 @@ function flightParaItem(f: NormalizedFlight | null | undefined): { main: OrderIt
         departure: f.departure ?? null,
         arrival: f.arrival ?? null,
       }];
-  const paraDetails = (s: NormalizedFlightSegment, primeiro: boolean): Dict => ({
-    direction,
-    airline: txt(s.airline ?? f.airline),
-    flight_number: txt(s.flightNumber),
-    from_iata: txt(s.fromIata).toUpperCase(),
-    to_iata: txt(s.toIata).toUpperCase(),
-    depart_at: paraInputDateTime(s.departure),
-    arrive_at: paraInputDateTime(s.arrival),
-    cabin_class: txt(s.cabin),
-    ...(primeiro && f.total != null ? { value: String(f.total) } : {}),
-  });
+  const paraDetails = (s: NormalizedFlightSegment, primeiro: boolean): Dict => {
+    const bags = parseBaggage(s.baggage ?? null);
+    const from = txt(s.fromIata).toUpperCase();
+    const to = txt(s.toIata).toUpperCase();
+    return {
+      direction,
+      airline: txt(s.airline ?? f.airline),
+      flight_number: txt(s.flightNumber),
+      from_iata: from,
+      to_iata: to,
+      from_city: txt(s.fromCity) || iataCity(from) || "",
+      to_city: txt(s.toCity) || iataCity(to) || "",
+      depart_at: paraInputDateTime(s.departure),
+      arrive_at: paraInputDateTime(s.arrival),
+      cabin_class: txt(s.cabin),
+      fare_class: txt(s.fareClass),
+      personal_item: bags.personalItem,
+      carry_on: bags.carryOn,
+      checked_bag: bags.checkedBaggage,
+      ...(primeiro && f.total != null ? { value: String(f.total) } : {}),
+    };
+  };
   const item = (details: Dict, i: number): OrderItem => ({
     id: `seg-${i}`,
     order_id: "",
