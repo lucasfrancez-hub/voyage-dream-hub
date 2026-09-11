@@ -1121,6 +1121,44 @@ function QuoteDetailPage() {
 
 
 
+      <Dialog open={imagemAberta} onOpenChange={setImagemAberta}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Imagem do banner</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>URL da imagem</Label>
+              <Input
+                value={imagemUrl}
+                onChange={(e) => setImagemUrl(e.target.value)}
+                placeholder="https://..."
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Substitui a foto automática no banner do orçamento. Deixe em branco para voltar à automática.
+              </p>
+            </div>
+            {imagemUrl.trim().startsWith("http") && (
+              <img
+                src={imagemUrl.trim()}
+                alt="Prévia do banner"
+                className="h-40 w-full rounded-md object-cover"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setImagemAberta(false)}>Cancelar</Button>
+            <Button
+              disabled={imagemMutation.isPending}
+              onClick={() => imagemMutation.mutate(imagemUrl.trim())}
+            >
+              {imagemMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
