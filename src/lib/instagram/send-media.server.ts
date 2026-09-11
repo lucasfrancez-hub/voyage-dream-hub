@@ -34,9 +34,41 @@ export async function sendInstagramMediaSmart(params: {
   mime: string;
   filename?: string;
   caption?: string | null;
+  bytes?: ArrayBuffer;
 }): Promise<{ message_id: string | null; type: IgMediaKind; delivered_as: "attachment" | "link"; error?: string }> {
-  const { sendDirectAttachment, sendDirectMessage } = await import("./api.server");
+  const { sendDirectAttachment, sendDirectMessage, uploadInstagramAttachment, sendDirectAttachmentId } =
+    await import("./api.server");
   const tipo = instagramMediaKind(params.mime, params.filename ?? "");
+
+  /**
+   * Upload direto (multipart) — caminho preferido pra áudio: quando mandamos
+   * só a URL, a Meta às vezes responde "Upload failed" (2018007) e o áudio
+   * acabava virando link de navegador na DM do cliente.
+   */
+  const enviarPorUpload = async (): Promise<string | null> => {
+    let bytes = params.bytes ?? null;
+    if (!bytes) {
+      const r = await fetch(params.url);
+      if (!r.ok) throw new Error(`Não consegui ler a mídia (${r.status})`);
+      bytes = await r.arrayBuffer();
+    }
+    const attachmentId = await uploadInstagramAttachment({
+      igUserId: params.igUserId,
+      token: params.token,
+      bytes,
+      mime: params.mime,
+      filename: params.filename || `midia-${Date.now()}`,
+      type: tipo,
+    });
+    const r = (await sendDirectAttachmentId({
+      igUserId: params.igUserId,
+      token: params.token,
+      recipientIgId: params.recipientIgId,
+      attachmentId,
+      type: tipo,
+    })) as { message_id?: string };
+    return r.message_id ?? null;
+  };
 
   const enviarLink = async (motivo?: string) => {
     const legenda = params.caption?.trim();
