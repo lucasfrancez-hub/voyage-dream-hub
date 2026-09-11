@@ -33,8 +33,14 @@ export async function downloadWhatsAppMedia(
     return null;
   }
   const blob = await binRes.blob();
-  return { blob, mimeType: meta.mime_type ?? blob.type ?? "application/octet-stream" };
+  const mimeType = meta.mime_type ?? blob.type ?? "application/octet-stream";
+  if (blob.size < 512) {
+    console.error("[wa/media] download vazio/incompleto:", blob.size, mimeType);
+    return null;
+  }
+  return { blob, mimeType };
 }
+
 
 /**
  * Transcreve um áudio via Lovable AI Gateway (openai/gpt-4o-transcribe).
