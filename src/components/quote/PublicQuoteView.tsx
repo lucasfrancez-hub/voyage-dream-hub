@@ -1254,8 +1254,10 @@ function QuoteBody({
   const heroTitle = quote.headline?.trim() || quoteHeadline({ ...composicao, title: quote.title });
   const heroTagline = quoteTagline({ ...composicao, seed: quote.publicId });
 
+  const imagemManual = quote.heroImage?.trim() || null;
   const [fotoDestino, setFotoDestino] = useState<string | null>(null);
   useEffect(() => {
+    if (imagemManual) return;
     let ativo = true;
     setFotoDestino(null);
     fotoDoDestino(quote.destination).then((u) => {
@@ -1264,10 +1266,10 @@ function QuoteBody({
     return () => {
       ativo = false;
     };
-  }, [quote.destination]);
+  }, [quote.destination, imagemManual]);
 
-  // Hero sempre é a foto do destino (nunca a foto de um hotel do roteiro).
-  const heroImage = fotoDestino || heroFallback.url;
+  // Imagem manual do admin tem prioridade; senão, foto do destino.
+  const heroImage = imagemManual || fotoDestino || heroFallback.url;
 
 
   const legs = useMemo(() => flights.flatMap((f) => f.legs), [flights]);
