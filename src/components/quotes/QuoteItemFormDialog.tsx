@@ -11,6 +11,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { ItemDialog, type ItemDialogSavePayload } from "@/components/orders/ItemDialog";
+import { parseBaggage } from "@/lib/quotes/baggage";
+import { iataCity } from "@/lib/iata-lookup";
 import { salvarItemOrcamento } from "@/lib/quotes/items.functions";
 import type {
   NormalizedFlight, NormalizedFlightSegment, NormalizedGenericItem, NormalizedHotel,
