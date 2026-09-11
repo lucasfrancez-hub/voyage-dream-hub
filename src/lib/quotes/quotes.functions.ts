@@ -392,3 +392,56 @@ export const definirTituloOrcamento = createServerFn({ method: "POST" })
 
     return { ok: true, headline };
   });
+
+/** Define a imagem do banner (hero) do orçamento público. URL vazia volta para a automática. */
+export const definirImagemOrcamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        quoteId: z.string().uuid(),
+        imageUrl: z
+          .string()
+          .trim()
+          .max(1000)
+          .refine((v) => v === "" || /^https?:\/\/\S+$/i.test(v), "Informe uma URL http(s) válida"),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { buildPublicQuoteFromImported } = await import("./to-public-quote.server");
+    const { refreshPublicQuote } = await import("@/lib/public-quote/store.server");
+
+    const { data: quote } = await supabaseAdmin
+      .from("quotes")
+      .select("*")
+      .eq("id", data.quoteId)
+      .maybeSingle();
+    if (!quote) throw new Error("Orçamento não encontrado");
+
+    const normalized = quote.normalized as unknown as import("./types").NormalizedQuote;
+    const heroImage = data.imageUrl.trim() || null;
+    const atualizado = { ...(normalized ?? {}), heroImage } as import("./types").NormalizedQuote;
+
+    await supabaseAdmin
+      .from("quotes")
+      .update({
+        normalized: atualizado as unknown as never,
+        updated_at: new Date().toISOString(),
+      } as never)
+      .eq("id", quote.id);
+
+    if (quote.public_quote_id && atualizado?.options?.length) {
+      const dto = await buildPublicQuoteFromImported({
+        normalized: atualizado,
+        title: quote.title,
+        headline: atualizado.headline ?? null,
+        clientName: quote.client_name,
+        agentName: displayAgentName(quote.consultant ?? null),
+      });
+      await refreshPublicQuote(String(quote.public_quote_id), dto as never);
+    }
+
+    return { ok: true, heroImage };
+  });
