@@ -487,6 +487,17 @@ function QuoteDetailPage() {
                 Reprocessar
               </Button>
             )}
+
+            <Button
+              variant="ghost" size="sm" className="gap-2"
+              onClick={() => {
+                setImagemUrl(normalized?.heroImage ?? "");
+                setImagemAberta(true);
+              }}
+            >
+              <ImageIcon className="h-4 w-4" />
+              Imagem do banner
+            </Button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
