@@ -19,6 +19,7 @@ export type ApiClientResumo = {
   active: boolean;
   rateLimitPerMin: number;
   webhookUrl: string | null;
+  webhookSecretHint: string | null;
   lastUsedAt: string | null;
   expiresAt: string | null;
   revokedAt: string | null;
@@ -45,6 +46,7 @@ function mapear(r: Record<string, unknown>): ApiClientResumo {
     active: Boolean(r["active"]),
     rateLimitPerMin: Number(r["rate_limit_per_min"] ?? 120),
     webhookUrl: (r["webhook_url"] as string) ?? null,
+    webhookSecretHint: (r["webhook_secret_hint"] as string) ?? null,
     lastUsedAt: (r["last_used_at"] as string) ?? null,
     expiresAt: (r["expires_at"] as string) ?? null,
     revokedAt: (r["revoked_at"] as string) ?? null,
@@ -158,7 +160,8 @@ export const revogarApiClient = createServerFn({ method: "POST" })
 const webhookEntrada = z.object({
   id: z.string().uuid(),
   url: z.string().url().max(500),
-  secret: z.string().min(16).max(200),
+  /** Vazio = manter a senha já guardada. */
+  secret: z.string().max(200).optional().default(""),
   events: z.array(z.string().max(60)).max(30).default([]),
 });
 
@@ -168,18 +171,28 @@ export const definirWebhookApiClient = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await exigirAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: atual } = await supabaseAdmin
+      .from("api_webhook_endpoints")
+      .select("secret")
+      .eq("api_client_id", data.id)
+      .maybeSingle();
+    const anterior = (atual as { secret?: string } | null)?.secret ?? "";
+    const secret = data.secret.trim() || anterior;
+    if (secret.length < 16) {
+      throw new Error("Informe uma senha de assinatura com pelo menos 16 caracteres.");
+    }
     await supabaseAdmin.from("api_webhook_endpoints").delete().eq("api_client_id", data.id);
     const { error } = await supabaseAdmin.from("api_webhook_endpoints").insert({
       api_client_id: data.id,
       url: data.url,
-      secret: data.secret,
+      secret,
       events: data.events,
       active: true,
     } as never);
     if (error) throw new Error(error.message);
     await supabaseAdmin
       .from("api_clients")
-      .update({ webhook_url: data.url, webhook_secret_hint: `••••${data.secret.slice(-4)}` } as never)
+      .update({ webhook_url: data.url, webhook_secret_hint: `••••${secret.slice(-4)}` } as never)
       .eq("id", data.id);
     return { ok: true as const };
   });

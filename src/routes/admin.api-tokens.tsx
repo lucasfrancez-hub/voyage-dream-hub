@@ -249,6 +249,7 @@ function PainelTokens() {
                       onClick={() => {
                         setAberto(aberto === c.id ? null : c.id);
                         setWebhook(c.webhookUrl ?? "");
+                        setWebhookSecret("");
                       }}
                     >
                       Detalhes
@@ -308,16 +309,26 @@ function PainelTokens() {
                         />
                       </label>
                       <label className="flex-1 text-xs">
-                        Senha de assinatura (mínimo 16 caracteres)
+                        {c.webhookSecretHint
+                          ? `Senha de assinatura (guardada: ${c.webhookSecretHint})`
+                          : "Senha de assinatura (mínimo 16 caracteres)"}
                         <input
                           className="mt-1 w-full rounded-lg border bg-card px-3 py-2 text-sm"
+                          placeholder={
+                            c.webhookSecretHint
+                              ? "Já salva — preencha só para trocar"
+                              : "mínimo 16 caracteres"
+                          }
                           value={webhookSecret}
                           onChange={(e) => setWebhookSecret(e.target.value)}
                         />
                       </label>
                       <button
                         type="button"
-                        disabled={webhookSecret.length < 16 || !webhook}
+                        disabled={
+                          !webhook ||
+                          (webhookSecret.length < 16 && !(c.webhookSecretHint && !webhookSecret))
+                        }
                         className="rounded-lg border px-3 py-2 text-xs disabled:opacity-50"
                         onClick={() => mWebhook.mutate(c.id)}
                       >
