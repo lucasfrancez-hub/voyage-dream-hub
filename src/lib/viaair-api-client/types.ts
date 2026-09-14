@@ -18,16 +18,19 @@ export type ApiErrorCode =
   | "payment_declined"
   | "internal_error";
 
+/** Conteúdo do campo `error` devolvido pela API. */
 export type ApiError = {
-  error: {
-    code: ApiErrorCode;
-    message: string;
-    provider: string | null;
-    retryable: boolean;
-    correlationId: string;
-    details?: unknown;
-  };
+  code: ApiErrorCode;
+  message: string;
+  provider: string | null;
+  retryable: boolean;
+  correlationId: string;
+  details?: unknown;
 };
+
+/** Corpo completo de uma resposta de erro. */
+export type ApiErrorResponse = { error: ApiError };
+
 
 /* ------------------------------ Saúde ------------------------------ */
 
