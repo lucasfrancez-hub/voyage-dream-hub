@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/public/internal/v1/orders/$orderId/ti
           if (!id) return fail("not_found", "Pedido não encontrado.", ctx.correlationId);
           const { data } = await supabaseAdmin
             .from("integration_tickets")
-            .select("passenger_name,ticket_number,locator,airline,status")
+            .select("passenger_name,ticket_number,pnr,airline,status")
             .eq("integration_order_id", id);
           return ok(
             {
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/public/internal/v1/orders/$orderId/ti
               tickets: ((data ?? []) as Array<Record<string, unknown>>).map((t) => ({
                 passenger: t["passenger_name"],
                 ticketNumber: t["ticket_number"],
-                pnr: t["locator"],
+                pnr: t["pnr"],
                 airline: t["airline"],
                 status: t["status"],
               })),

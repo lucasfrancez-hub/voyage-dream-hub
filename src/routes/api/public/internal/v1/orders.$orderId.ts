@@ -27,7 +27,7 @@ export const Route = createFileRoute("/api/public/internal/v1/orders/$orderId")(
               .eq("integration_order_id", o["id"] as string),
             supabaseAdmin
               .from("integration_tickets")
-              .select("passenger_name,ticket_number,locator,airline,status")
+              .select("passenger_name,ticket_number,pnr,airline,status")
               .eq("integration_order_id", o["id"] as string),
           ]);
 

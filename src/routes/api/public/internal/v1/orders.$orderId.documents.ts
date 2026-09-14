@@ -1,6 +1,6 @@
 /**
  * GET /api/public/internal/v1/orders/{orderId}/documents
- * Documentos do pedido (vouchers, PDFs) com link temporário.
+ * Documentos do pedido (vouchers, PDFs) com link temporário de 15 minutos.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { withApi, ok, fail } from "@/lib/api/auth.server";
@@ -20,24 +20,25 @@ export const Route = createFileRoute("/api/public/internal/v1/orders/$orderId/do
           if (!linha) return fail("not_found", "Pedido não encontrado.", ctx.correlationId);
           if (!linha.viaair_order_id) return ok({ orderId: linha.id, documents: [] }, ctx.correlationId);
 
-          const { data } = await supabaseAdmin
-            .from("order_documents")
-            .select("id,name,file_path,created_at")
-            .eq("order_id", linha.viaair_order_id);
-          const docs = (data ?? []) as Array<Record<string, unknown>>;
-          const saida = [] as Array<Record<string, unknown>>;
-          for (const d of docs) {
-            const caminho = String(d["file_path"] ?? "");
-            let url: string | null = null;
-            if (caminho) {
-              const { data: assinado } = await supabaseAdmin.storage
-                .from("order-documents")
-                .createSignedUrl(caminho, 900);
-              url = assinado?.signedUrl ?? null;
-            }
-            saida.push({ id: d["id"], name: d["name"], url, expiresInSeconds: 900 });
+          const { data: arquivos } = await supabaseAdmin.storage
+            .from("order-documents")
+            .list(linha.viaair_order_id, { limit: 100 });
+
+          const documents: Array<Record<string, unknown>> = [];
+          for (const f of arquivos ?? []) {
+            if (!f.name || f.name.startsWith(".")) continue;
+            const caminho = `${linha.viaair_order_id}/${f.name}`;
+            const { data: assinado } = await supabaseAdmin.storage
+              .from("order-documents")
+              .createSignedUrl(caminho, 900);
+            documents.push({
+              name: f.name,
+              url: assinado?.signedUrl ?? null,
+              createdAt: f.created_at ?? null,
+              expiresInSeconds: 900,
+            });
           }
-          return ok({ orderId: linha.id, documents: saida }, ctx.correlationId);
+          return ok({ orderId: linha.id, documents }, ctx.correlationId);
         }),
     },
   },
