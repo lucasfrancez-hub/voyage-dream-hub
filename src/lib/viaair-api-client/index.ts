@@ -6,21 +6,35 @@
  *   const busca = await api.searchFlights({ origin: "GRU", destination: "GIG", departureDate: "2026-10-12" });
  */
 import type {
+  Airport,
   ApiError,
+  CancelPaymentResponse,
+  CardPaymentRequest,
+  CardPaymentResponse,
   CardToken,
+  CardTokenRequest,
   Checkout,
+  CreateCheckoutRequest,
+  CreateCheckoutResponse,
+  CreateOrderResponse,
+  DocumentsResponse,
   FlightSearchRequest,
   FlightSearchResponse,
+  HealthResponse,
   InboundResponse,
   InstallmentOption,
+  OnerStatusResponse,
   Order,
-  OrderStatus,
+  OrderStatusResponse,
   Passenger,
-  PaymentMethod,
+  PassengersResponse,
+  PaymentMethodsResponse,
   PixPayment,
+  PixRequest,
   RevalidateResult,
-  Ticket,
+  TicketsResponse,
 } from "./types";
+
 
 export * from "./types";
 
