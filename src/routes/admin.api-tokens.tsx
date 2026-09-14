@@ -42,6 +42,7 @@ function PainelTokens() {
   const [tokenNovo, setTokenNovo] = useState<string | null>(null);
   const [aberto, setAberto] = useState<string | null>(null);
   const [webhook, setWebhook] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
 
   const clientes = useQuery({ queryKey: ["api-clients"], queryFn: () => listar({}) });
 
@@ -91,7 +92,8 @@ function PainelTokens() {
   });
 
   const mWebhook = useMutation({
-    mutationFn: (id: string) => definirWebhook({ data: { id, url: webhook || null } }),
+    mutationFn: (id: string) =>
+      definirWebhook({ data: { id, url: webhook, secret: webhookSecret, events: [] } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["api-clients"] });
       toast.success("Endereço de aviso salvo.");
@@ -302,9 +304,18 @@ function PainelTokens() {
                           onChange={(e) => setWebhook(e.target.value)}
                         />
                       </label>
+                      <label className="flex-1 text-xs">
+                        Senha de assinatura (mínimo 16 caracteres)
+                        <input
+                          className="mt-1 w-full rounded-lg border bg-card px-3 py-2 text-sm"
+                          value={webhookSecret}
+                          onChange={(e) => setWebhookSecret(e.target.value)}
+                        />
+                      </label>
                       <button
                         type="button"
-                        className="rounded-lg border px-3 py-2 text-xs"
+                        disabled={webhookSecret.length < 16 || !webhook}
+                        className="rounded-lg border px-3 py-2 text-xs disabled:opacity-50"
                         onClick={() => mWebhook.mutate(c.id)}
                       >
                         Salvar
