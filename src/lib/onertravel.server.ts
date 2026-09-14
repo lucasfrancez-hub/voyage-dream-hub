@@ -293,6 +293,12 @@ async function poll(
     if (i + 1 < maxRounds) await sleepCancelavel(GAP_MS, signal);
   }
 
+  // Nenhuma resposta válida do fornecedor: erro explícito, nunca lista vazia.
+  if (respostasOk === 0) {
+    throw new Error("indisponivel:motor: o fornecedor não respondeu à pesquisa.");
+  }
+
+
 
   const flights = [...acc.entries()]
     .map(([signature, flight]) => {
