@@ -390,3 +390,125 @@ export type WebhookEvent = {
   createdAt: string;
   data: Record<string, unknown>;
 };
+
+/* --------------------------- Multitrecho --------------------------- */
+
+export type MultiCityLegInput = {
+  origin: string;
+  destination: string;
+  departureDate: string;
+  originIsCity?: boolean;
+  destinationIsCity?: boolean;
+};
+
+export type MultiCitySearchRequest = {
+  legs: MultiCityLegInput[];
+  adults?: number;
+  children?: number;
+  infants?: number;
+  cabinClass?: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST" | null;
+  checkedBaggage?: boolean;
+  maxStops?: number | null;
+  airlines?: string[];
+};
+
+export type MultiCityOffer = FlightOffer;
+
+export type MultiCityLeg = {
+  sequence: number;
+  origin: string;
+  destination: string;
+  departureDate: string;
+  totalCount: number;
+  offers: MultiCityOffer[];
+  error: { code: string; message: string } | null;
+};
+
+export type MultiCitySearchResponse = {
+  searchId: string;
+  type: "MULTICITY";
+  currency: "BRL";
+  passengers: { adults: number; children: number; infants: number };
+  legs: MultiCityLeg[];
+};
+
+export type MultiCityGroupStatus =
+  | "CREATED"
+  | "PARTIALLY_CREATED"
+  | "AWAITING_PAYMENT"
+  | "PARTIALLY_PAID"
+  | "PAID"
+  | "PARTIALLY_ISSUED"
+  | "COMPLETE"
+  | "MANUAL_REVIEW"
+  | "FAILED";
+
+export type MultiCityCheckoutsRequest = {
+  searchId: string;
+  offers: Array<{ sequence: number; offerId: string }>;
+};
+
+export type MultiCityReservation = {
+  sequence: number;
+  checkoutId: string | null;
+  origin?: string;
+  destination?: string;
+  departureDate?: string | null;
+  amount?: number | null;
+  status: string;
+  error?: { code: string; message: string } | null;
+};
+
+export type MultiCityCheckoutsResponse = {
+  groupId: string;
+  type: "MULTICITY";
+  status: MultiCityGroupStatus;
+  reservations: MultiCityReservation[];
+  totalAmount: number;
+  currency: "BRL";
+};
+
+export type MultiCityGroupReservation = MultiCityReservation & {
+  orderId: string | null;
+  paymentStatus: string | null;
+  supplierPaymentStatus: string | null;
+  locator: string | null;
+  providerOrderNumber: string | null;
+  ticketStatus: "ISSUED" | "PENDING";
+};
+
+export type MultiCityGroup = {
+  groupId: string;
+  type: "MULTICITY";
+  status: MultiCityGroupStatus;
+  searchId: string;
+  currency: string;
+  totalAmount: number;
+  reservations: MultiCityGroupReservation[];
+};
+
+export type MultiCityPassengersResponse = {
+  groupId: string;
+  passengersSaved: number;
+  status: "APPLIED" | "PARTIALLY_APPLIED" | "FAILED";
+  reservations: Array<{
+    sequence: number;
+    checkoutId: string | null;
+    status: "APPLIED" | "FAILED";
+    error: { code: string; message: string } | null;
+  }>;
+};
+
+export type MultiCityRevalidateResponse = {
+  groupId: string;
+  status: "VALID" | "PRICE_CHANGED" | "UNAVAILABLE";
+  reservations: Array<{
+    sequence: number;
+    checkoutId: string | null;
+    status: "VALID" | "PRICE_CHANGED" | "UNAVAILABLE";
+    previousAmount: number | null;
+    currentAmount: number | null;
+  }>;
+  previousTotal: number;
+  currentTotal: number;
+};

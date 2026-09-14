@@ -923,6 +923,106 @@ export type Database = {
           },
         ]
       }
+      api_multicity_group_items: {
+        Row: {
+          amount: number | null
+          checkout_id: string | null
+          created_at: string
+          departure_date: string | null
+          destination: string
+          group_id: string
+          id: string
+          last_error: string | null
+          order_id: string | null
+          origin: string
+          sequence: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          checkout_id?: string | null
+          created_at?: string
+          departure_date?: string | null
+          destination: string
+          group_id: string
+          id?: string
+          last_error?: string | null
+          order_id?: string | null
+          origin: string
+          sequence: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          checkout_id?: string | null
+          created_at?: string
+          departure_date?: string | null
+          destination?: string
+          group_id?: string
+          id?: string
+          last_error?: string | null
+          order_id?: string | null
+          origin?: string
+          sequence?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_multicity_group_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "api_multicity_groups"
+            referencedColumns: ["group_id"]
+          },
+        ]
+      }
+      api_multicity_groups: {
+        Row: {
+          api_client_id: string
+          created_at: string
+          currency: string
+          group_id: string
+          id: string
+          search_id: string
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          api_client_id: string
+          created_at?: string
+          currency?: string
+          group_id: string
+          id?: string
+          search_id: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          api_client_id?: string
+          created_at?: string
+          currency?: string
+          group_id?: string
+          id?: string
+          search_id?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_multicity_groups_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "api_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_offer_refs: {
         Row: {
           api_client_id: string | null

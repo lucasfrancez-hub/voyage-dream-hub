@@ -30,6 +30,18 @@ async function db() {
 export async function enfileirarEvento(event: ApiWebhookEvent, payload: Record<string, unknown>) {
   try {
     const supabase = await db();
+    // Multitrecho: quando a reserva pertence a um grupo, o aviso leva groupId e sequence.
+    let corpo = payload;
+    try {
+      const { contextoDeGrupo } = await import("./multicity.server");
+      const grupo = await contextoDeGrupo({
+        orderId: payload["orderId"],
+        checkoutId: payload["checkoutId"],
+      });
+      if (grupo) corpo = { ...payload, groupId: grupo.groupId, sequence: grupo.sequence };
+    } catch {
+      /* sem grupo: segue o aviso normal */
+    }
     const { data } = await supabase
       .from("api_webhook_endpoints")
       .select("api_client_id,events,active")
@@ -40,7 +52,7 @@ export async function enfileirarEvento(event: ApiWebhookEvent, payload: Record<s
       .map((d) => ({
         api_client_id: d.api_client_id,
         event,
-        payload: payload as never,
+        payload: corpo as never,
       }));
     if (linhas.length) await supabase.from("api_webhook_events").insert(linhas as never);
   } catch {

@@ -543,7 +543,7 @@ pode chegar mais de uma vez.
 
 ---
 
-## 11. Exemplo ponta a ponta (SDK TypeScript)
+## 10.1 Exemplo ponta a ponta (SDK TypeScript)
 
 ```ts
 import { ViaAirApi } from "@viaair/api-client";
@@ -610,6 +610,223 @@ const parcelas = await api.getInstallments(checkoutId, {
   cardToken: cartao.cardToken,
   cardKey: cartao.cardKey,
 });
+```
+
+---
+
+## 11. Multitrecho
+
+Multitrecho é uma extensão da v1: os endpoints de busca simples, ida e volta,
+checkout, pagamento e pedidos continuam idênticos.
+
+**Como funciona por baixo:** o fornecedor não tem multitrecho nativo, então cada
+perna é uma pesquisa só-ida e vira **uma reserva independente** — checkout, pedido,
+pagamento, localizador e bilhete próprios. A API agrupa tudo sob um `groupId`
+da VIA AIR. Nunca há uma transação única falsa.
+
+```
+pesquisa multitrecho
+  ↓ escolher uma oferta por perna
+criar grupo (um checkout por perna)
+  ↓
+passageiros do grupo
+  ↓
+revalidar o grupo
+  ↓
+pagar cada reserva (cartão ou Pix, endpoints normais de checkout)
+  ↓
+acompanhar o grupo
+  ↓
+localizador e bilhete de cada reserva
+```
+
+Limites: mínimo de **2** e máximo de **6** pernas (mesma capacidade do portal).
+Validações: origem e destino obrigatórios e diferentes entre si, data no formato
+`AAAA-MM-DD` e em ordem cronológica, ao menos 1 adulto.
+
+### 11.1 Pesquisa
+
+`POST /flights/multicity/search`
+
+```json
+{
+  "adults": 1,
+  "children": 0,
+  "infants": 0,
+  "cabinClass": null,
+  "checkedBaggage": false,
+  "maxStops": null,
+  "airlines": [],
+  "legs": [
+    { "origin": "GRU", "destination": "MIA", "departureDate": "2026-10-10" },
+    { "origin": "MIA", "destination": "JFK", "departureDate": "2026-10-15" }
+  ]
+}
+```
+
+Resposta (as ofertas de cada perna nunca se misturam; cada uma tem seu `offerId`):
+
+```json
+{
+  "searchId": "mcs_7f2c9a1b4d5e6f708192a3b4",
+  "type": "MULTICITY",
+  "currency": "BRL",
+  "passengers": { "adults": 1, "children": 0, "infants": 0 },
+  "legs": [
+    {
+      "sequence": 1,
+      "origin": "GRU",
+      "destination": "MIA",
+      "departureDate": "2026-10-10",
+      "totalCount": 34,
+      "offers": [{ "offerId": "off_...", "airline": { "iata": "LA", "name": "LATAM" }, "flightNumber": "8180", "departureAt": "2026-10-10T22:15:00", "arrivalAt": "2026-10-11T06:05:00", "segments": [], "fares": [] }],
+      "error": null
+    },
+    { "sequence": 2, "origin": "MIA", "destination": "JFK", "departureDate": "2026-10-15", "totalCount": 0, "offers": [], "error": null }
+  ]
+}
+```
+
+Perna sem resultado devolve `offers: []`. Perna que falhou no fornecedor devolve
+`offers: []` **e** `error` preenchido — a falha nunca é escondida.
+
+### 11.2 Criar o grupo (um checkout por perna)
+
+`POST /multicity/checkouts` — aceita `Idempotency-Key`; a mesma chave nunca cria
+checkouts duplicados.
+
+```json
+{
+  "searchId": "mcs_7f2c9a1b4d5e6f708192a3b4",
+  "offers": [
+    { "sequence": 1, "offerId": "off_..." },
+    { "sequence": 2, "offerId": "off_..." }
+  ]
+}
+```
+
+```json
+{
+  "groupId": "grp_1a2b3c4d5e6f7a8b9c0d1e2f",
+  "type": "MULTICITY",
+  "status": "AWAITING_PAYMENT",
+  "totalAmount": 3000.00,
+  "currency": "BRL",
+  "reservations": [
+    { "sequence": 1, "checkoutId": "chk_...", "origin": "GRU", "destination": "MIA", "departureDate": "2026-10-10", "amount": 2100.00, "status": "CREATED", "error": null },
+    { "sequence": 2, "checkoutId": "chk_...", "origin": "MIA", "destination": "JFK", "departureDate": "2026-10-15", "amount": 900.00, "status": "CREATED", "error": null }
+  ]
+}
+```
+
+Se uma perna falhar, as demais permanecem, o grupo fica `PARTIALLY_CREATED` e a
+reserva traz `checkoutId: null` com `error`. Refaça só aquela perna.
+
+### 11.3 Passageiros do grupo
+
+`PUT /multicity/groups/{groupId}/passengers` — mesmo formato de passageiro do
+checkout simples (`type`, `gender`, `birthDate`, `documentType`,
+`nationalityCountryId`); só o primeiro passageiro leva e-mail e telefone.
+A API propaga a lista para cada checkout do grupo.
+
+```json
+{
+  "groupId": "grp_...",
+  "passengersSaved": 1,
+  "status": "PARTIALLY_APPLIED",
+  "reservations": [
+    { "sequence": 1, "checkoutId": "chk_...", "status": "APPLIED", "error": null },
+    { "sequence": 2, "checkoutId": "chk_...", "status": "FAILED", "error": { "code": "provider_error", "message": "O fornecedor recusou os dados nesta perna." } }
+  ]
+}
+```
+
+### 11.4 Revalidar o grupo
+
+`POST /multicity/groups/{groupId}/revalidate` — informe o valor mostrado ao
+cliente em cada perna (ou omita `reservations` para usar o valor guardado).
+
+```json
+{
+  "groupId": "grp_...",
+  "status": "PRICE_CHANGED",
+  "reservations": [
+    { "sequence": 1, "checkoutId": "chk_1", "status": "VALID", "previousAmount": 2100.00, "currentAmount": 2100.00 },
+    { "sequence": 2, "checkoutId": "chk_2", "status": "PRICE_CHANGED", "previousAmount": 900.00, "currentAmount": 940.00 }
+  ],
+  "previousTotal": 3000.00,
+  "currentTotal": 3040.00
+}
+```
+
+Basta uma perna mudar de preço para o grupo deixar de ser `VALID`.
+
+### 11.5 Pagar
+
+Não existe pagamento único do grupo: use os endpoints normais de cada
+`checkoutId` (`/checkouts/{checkoutId}/payments/card` ou `.../payments/pix`) e
+`/checkouts/{checkoutId}/order`. Reserva já paga nunca é recobrada — em falha
+parcial, repita apenas a reserva recusada.
+
+### 11.6 Acompanhar o grupo
+
+`GET /multicity/groups/{groupId}`
+
+```json
+{
+  "groupId": "grp_...",
+  "type": "MULTICITY",
+  "status": "PARTIALLY_PAID",
+  "searchId": "mcs_...",
+  "currency": "BRL",
+  "totalAmount": 3040.00,
+  "reservations": [
+    { "sequence": 1, "checkoutId": "chk_1", "orderId": "...", "origin": "GRU", "destination": "MIA", "amount": 2100.00, "status": "LOCATOR_RECEIVED", "paymentStatus": "PAID", "supplierPaymentStatus": "PAID", "locator": "ABC123", "providerOrderNumber": "F-2026...", "ticketStatus": "PENDING", "error": null },
+    { "sequence": 2, "checkoutId": "chk_2", "orderId": null, "origin": "MIA", "destination": "JFK", "amount": 940.00, "status": "AWAITING_PAYMENT", "paymentStatus": null, "supplierPaymentStatus": null, "locator": null, "providerOrderNumber": null, "ticketStatus": "PENDING", "error": null }
+  ]
+}
+```
+
+Situações do grupo: `CREATED`, `PARTIALLY_CREATED`, `AWAITING_PAYMENT`,
+`PARTIALLY_PAID`, `PAID`, `PARTIALLY_ISSUED`, `COMPLETE`, `MANUAL_REVIEW`,
+`FAILED`. `COMPLETE` só aparece quando todas as reservas estão concluídas.
+
+### 11.7 Avisos do grupo
+
+Quando a reserva pertence a um grupo, o aviso enviado à Sky Hub carrega também
+`groupId` e `sequence`:
+
+```json
+{
+  "id": "evt_...",
+  "event": "order.ticket.received",
+  "createdAt": "2026-10-16T12:03:44Z",
+  "data": { "groupId": "grp_...", "sequence": 2, "checkoutId": "chk_...", "orderId": "ord_...", "locator": "XYZ987" }
+}
+```
+
+### 11.8 SDK
+
+```ts
+const busca = await api.searchMultiCity({
+  adults: 1,
+  legs: [
+    { origin: "GRU", destination: "MIA", departureDate: "2026-10-10" },
+    { origin: "MIA", destination: "JFK", departureDate: "2026-10-15" },
+  ],
+});
+
+const grupo = await api.createMultiCityCheckouts(
+  {
+    searchId: busca.searchId,
+    offers: busca.legs.map((l) => ({ sequence: l.sequence, offerId: l.offers[0]!.offerId })),
+  },
+  "skyhub-mc-0001",
+);
+
+await api.setMultiCityPassengers(grupo.groupId, passageiros, "skyhub-mc-pax-0001");
+await api.revalidateMultiCityGroup(grupo.groupId);
+const situacao = await api.getMultiCityGroup(grupo.groupId);
 ```
 
 ---

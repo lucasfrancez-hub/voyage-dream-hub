@@ -10,6 +10,9 @@ export type OfferPayload = {
   fareId: string;
   itineraryId: string;
   leg: "outbound" | "inbound";
+  /** Multitrecho: número da perna (1, 2, 3...) e pesquisa a que pertence. */
+  sequence?: number;
+  searchId?: string;
   contexto: {
     departureIata: string;
     arrivalIata: string;
@@ -102,4 +105,14 @@ export async function lerCheckoutRef(
 
 export function novoSearchId(): string {
   return id("srh");
+}
+
+/** Pesquisa multitrecho. */
+export function novoSearchIdMulticity(): string {
+  return id("mcs");
+}
+
+/** Grupo multitrecho (conjunto de checkouts). */
+export function novoGroupId(): string {
+  return id("grp");
 }

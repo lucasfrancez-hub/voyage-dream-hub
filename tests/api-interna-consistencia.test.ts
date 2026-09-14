@@ -49,13 +49,18 @@ describe("endpoints publicados", () => {
 
   it("toda rota aparece na documentação e na coleção Postman", () => {
     for (const p of caminhosDaApi) {
-      const semParam = p.replace(/\{checkoutId\}/g, "").replace(/\{orderId\}/g, "").replace(/\{paymentId\}/g, "");
+      const semParam = p
+        .replace(/\{checkoutId\}/g, "")
+        .replace(/\{orderId\}/g, "")
+        .replace(/\{paymentId\}/g, "")
+        .replace(/\{groupId\}/g, "");
       const trecho = semParam.replace(/\/\//g, "/");
       expect(doc.includes(p) || doc.includes(trecho)).toBe(true);
       const postmanPath = p
         .replace("{checkoutId}", "{{checkout_id}}")
         .replace("{orderId}", "{{order_id}}")
-        .replace("{paymentId}", "{{payment_id}}");
+        .replace("{paymentId}", "{{payment_id}}")
+        .replace("{groupId}", "{{group_id}}");
       expect(postman).toContain(postmanPath);
     }
   });
