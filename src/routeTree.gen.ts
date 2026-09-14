@@ -239,6 +239,7 @@ import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRouteImpor
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.card'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.card-token'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.pix'
+import { Route as ApiPublicInternalV1MulticityGroupsGroupIdPassengersRouteImport } from './routes/api/public/internal/v1/multicity.groups.$groupId.passengers'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -1459,6 +1460,12 @@ const ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute =
     path: '/payments/pix',
     getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
   } as any)
+const ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute =
+  ApiPublicInternalV1MulticityGroupsGroupIdPassengersRouteImport.update({
+    id: '/passengers',
+    path: '/passengers',
+    getParentRoute: () => ApiPublicInternalV1MulticityGroupsGroupIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1683,7 +1690,7 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/v1/checkouts/$checkoutId/payment-methods': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute
   '/api/public/internal/v1/checkouts/$checkoutId/revalidate': typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
   '/api/public/internal/v1/flights/multicity/search': typeof ApiPublicInternalV1FlightsMulticitySearchRoute
-  '/api/public/internal/v1/multicity/groups/$groupId': typeof ApiPublicInternalV1MulticityGroupsGroupIdRoute
+  '/api/public/internal/v1/multicity/groups/$groupId': typeof ApiPublicInternalV1MulticityGroupsGroupIdRouteWithChildren
   '/api/public/internal/v1/orders/$orderId/documents': typeof ApiPublicInternalV1OrdersOrderIdDocumentsRoute
   '/api/public/internal/v1/orders/$orderId/status': typeof ApiPublicInternalV1OrdersOrderIdStatusRoute
   '/api/public/internal/v1/orders/$orderId/tickets': typeof ApiPublicInternalV1OrdersOrderIdTicketsRoute
@@ -1691,6 +1698,7 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/pix': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute
+  '/api/public/internal/v1/multicity/groups/$groupId/passengers': typeof ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1912,7 +1920,7 @@ export interface FileRoutesByTo {
   '/api/public/internal/v1/checkouts/$checkoutId/payment-methods': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute
   '/api/public/internal/v1/checkouts/$checkoutId/revalidate': typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
   '/api/public/internal/v1/flights/multicity/search': typeof ApiPublicInternalV1FlightsMulticitySearchRoute
-  '/api/public/internal/v1/multicity/groups/$groupId': typeof ApiPublicInternalV1MulticityGroupsGroupIdRoute
+  '/api/public/internal/v1/multicity/groups/$groupId': typeof ApiPublicInternalV1MulticityGroupsGroupIdRouteWithChildren
   '/api/public/internal/v1/orders/$orderId/documents': typeof ApiPublicInternalV1OrdersOrderIdDocumentsRoute
   '/api/public/internal/v1/orders/$orderId/status': typeof ApiPublicInternalV1OrdersOrderIdStatusRoute
   '/api/public/internal/v1/orders/$orderId/tickets': typeof ApiPublicInternalV1OrdersOrderIdTicketsRoute
@@ -1920,6 +1928,7 @@ export interface FileRoutesByTo {
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/pix': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute
+  '/api/public/internal/v1/multicity/groups/$groupId/passengers': typeof ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -2145,7 +2154,7 @@ export interface FileRoutesById {
   '/api/public/internal/v1/checkouts/$checkoutId/payment-methods': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute
   '/api/public/internal/v1/checkouts/$checkoutId/revalidate': typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
   '/api/public/internal/v1/flights/multicity/search': typeof ApiPublicInternalV1FlightsMulticitySearchRoute
-  '/api/public/internal/v1/multicity/groups/$groupId': typeof ApiPublicInternalV1MulticityGroupsGroupIdRoute
+  '/api/public/internal/v1/multicity/groups/$groupId': typeof ApiPublicInternalV1MulticityGroupsGroupIdRouteWithChildren
   '/api/public/internal/v1/orders/$orderId/documents': typeof ApiPublicInternalV1OrdersOrderIdDocumentsRoute
   '/api/public/internal/v1/orders/$orderId/status': typeof ApiPublicInternalV1OrdersOrderIdStatusRoute
   '/api/public/internal/v1/orders/$orderId/tickets': typeof ApiPublicInternalV1OrdersOrderIdTicketsRoute
@@ -2153,6 +2162,7 @@ export interface FileRoutesById {
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/pix': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute
+  '/api/public/internal/v1/multicity/groups/$groupId/passengers': typeof ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -2387,6 +2397,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
+    | '/api/public/internal/v1/multicity/groups/$groupId/passengers'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -2616,6 +2627,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
+    | '/api/public/internal/v1/multicity/groups/$groupId/passengers'
   id:
     | '__root__'
     | '/'
@@ -2848,6 +2860,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
+    | '/api/public/internal/v1/multicity/groups/$groupId/passengers'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2968,7 +2981,7 @@ export interface RootRouteChildren {
   ApiPublicInternalV1PaymentsPaymentIdRoute: typeof ApiPublicInternalV1PaymentsPaymentIdRoute
   ApiPublicInternalV1WebhooksDispatchRoute: typeof ApiPublicInternalV1WebhooksDispatchRoute
   ApiPublicInternalV1FlightsMulticitySearchRoute: typeof ApiPublicInternalV1FlightsMulticitySearchRoute
-  ApiPublicInternalV1MulticityGroupsGroupIdRoute: typeof ApiPublicInternalV1MulticityGroupsGroupIdRoute
+  ApiPublicInternalV1MulticityGroupsGroupIdRoute: typeof ApiPublicInternalV1MulticityGroupsGroupIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -4583,6 +4596,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRouteImport
       parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
     }
+    '/api/public/internal/v1/multicity/groups/$groupId/passengers': {
+      id: '/api/public/internal/v1/multicity/groups/$groupId/passengers'
+      path: '/passengers'
+      fullPath: '/api/public/internal/v1/multicity/groups/$groupId/passengers'
+      preLoaderRoute: typeof ApiPublicInternalV1MulticityGroupsGroupIdPassengersRouteImport
+      parentRoute: typeof ApiPublicInternalV1MulticityGroupsGroupIdRoute
+    }
   }
 }
 
@@ -4931,6 +4951,21 @@ const ApiPublicInternalV1OrdersOrderIdRouteWithChildren =
     ApiPublicInternalV1OrdersOrderIdRouteChildren,
   )
 
+interface ApiPublicInternalV1MulticityGroupsGroupIdRouteChildren {
+  ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute: typeof ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute
+}
+
+const ApiPublicInternalV1MulticityGroupsGroupIdRouteChildren: ApiPublicInternalV1MulticityGroupsGroupIdRouteChildren =
+  {
+    ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute:
+      ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute,
+  }
+
+const ApiPublicInternalV1MulticityGroupsGroupIdRouteWithChildren =
+  ApiPublicInternalV1MulticityGroupsGroupIdRoute._addFileChildren(
+    ApiPublicInternalV1MulticityGroupsGroupIdRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -5067,7 +5102,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicInternalV1FlightsMulticitySearchRoute:
     ApiPublicInternalV1FlightsMulticitySearchRoute,
   ApiPublicInternalV1MulticityGroupsGroupIdRoute:
-    ApiPublicInternalV1MulticityGroupsGroupIdRoute,
+    ApiPublicInternalV1MulticityGroupsGroupIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
