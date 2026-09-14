@@ -124,5 +124,15 @@ export async function criarPixParaPedido(input: {
     }
   }
 
-  return { txid, qrCode: pix.payload, expiraEm, valor: total, reused: false }
+  return {
+    txid,
+    qrCode: pix.payload,
+    // Data URI pronta para <img src>: data:image/png;base64,…
+    qrCodeImage: pix.encodedImage ? `data:image/png;base64,${pix.encodedImage}` : null,
+    invoiceUrl: pix.invoiceUrl ?? null,
+    expiraEm,
+    valor: total,
+    reused: false,
+  }
+
 }
