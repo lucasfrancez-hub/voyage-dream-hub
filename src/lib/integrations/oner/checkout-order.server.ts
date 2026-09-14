@@ -4,9 +4,10 @@
  * Regras:
  * - Todo checkout feito dentro do portal vira um pedido VIA AIR, com voos,
  *   passageiros, valor e forma de pagamento — nunca um pedido paralelo.
- * - Pix: o pagamento sobe para a Oner, mas o carrinho precisa ser refeito
- *   sem comissão em até 30 minutos. Por isso o pedido nasce como tarefa
- *   manual com prazo visível para a equipe.
+ * - Pix: o cliente paga o Pix da VIA AIR no valor total; quando o banco
+ *   confirma, o fornecedor é pago automaticamente (pix-auto.server.ts).
+ *   A tarefa manual de 30 minutos só permanece como plano B se o
+ *   pagamento automático falhar.
  * SERVER-ONLY.
  */
 import type { OnerPaymentMethod } from "./config";

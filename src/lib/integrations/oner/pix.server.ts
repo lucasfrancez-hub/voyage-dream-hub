@@ -122,8 +122,11 @@ export async function validarQrCode(op: IntegrationOrder) {
  * registrado, consulta o status em vez de pagar de novo.
  */
 export async function pagarFornecedor(op: IntegrationOrder) {
-  const numero = op.provider_order_number;
-  if (!numero) return { ok: false, motivo: "pedido do fornecedor ainda não criado" };
+  // No Pix do checkout o pedido F-... ainda não existe quando pagamos:
+  // a idempotência fica ancorada no carrinho (nunca paga o mesmo carrinho 2x).
+  const numero =
+    op.provider_order_number ?? (op.provider_cart_id ? `CART-${op.provider_cart_id}` : null);
+  if (!numero) return { ok: false, motivo: "pedido/carrinho do fornecedor desconhecido" };
   const chave = chaveIdempotenciaPix(numero);
 
   const { createAsaasPixTransfer, getAsaasTransfer } = await import("@/lib/asaas.server");
