@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "VIA AIR — API interna v1",
-    "description": "Fachada oficial sobre o motor aéreo e o financeiro VIA AIR. Preencha as variáveis base_url e api_token.",
+    "description": "Fachada oficial sobre o motor aéreo e o financeiro VIA AIR. Escopo da v1: somente aéreo (busca, checkout, pagamento, pedidos). Preencha as variáveis base_url e api_token.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -9,25 +9,22 @@
     "bearer": [{ "key": "token", "value": "{{api_token}}", "type": "string" }]
   },
   "variable": [
-    {
-      "key": "base_url",
-      "value": "https://pedidos.viaair.tur.br/api/public/internal/v1"
-    },
+    { "key": "base_url", "value": "https://pedidos.viaair.tur.br/api/public/internal/v1" },
     { "key": "api_token", "value": "vai_live_xxxxxxxxxxxxxxxxx" },
     { "key": "search_id", "value": "" },
     { "key": "offer_id", "value": "" },
+    { "key": "inbound_offer_id", "value": "" },
     { "key": "checkout_id", "value": "" },
     { "key": "order_id", "value": "" },
-    { "key": "payment_id", "value": "" }
+    { "key": "payment_id", "value": "" },
+    { "key": "card_token", "value": "" },
+    { "key": "card_key", "value": "" }
   ],
   "item": [
     {
       "name": "Saúde",
       "item": [
-        {
-          "name": "Health",
-          "request": { "method": "GET", "url": "{{base_url}}/health" }
-        },
+        { "name": "Health", "request": { "method": "GET", "url": "{{base_url}}/health" } },
         {
           "name": "Situação do fornecedor",
           "request": { "method": "GET", "url": "{{base_url}}/oner/status" }
@@ -52,7 +49,7 @@
             "url": "{{base_url}}/flights/search",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"origin\": \"GRU\",\n  \"destination\": \"GIG\",\n  \"departureDate\": \"2026-10-12\",\n  \"returnDate\": \"2026-10-18\",\n  \"adults\": 1,\n  \"children\": 0,\n  \"infants\": 0\n}"
+              "raw": "{\n  \"origin\": \"GRU\",\n  \"destination\": \"GIG\",\n  \"departureDate\": \"2026-10-12\",\n  \"returnDate\": \"2026-10-18\",\n  \"adults\": 1,\n  \"children\": 0,\n  \"infants\": 0,\n  \"checkedBaggage\": false\n}"
             }
           }
         },
@@ -84,7 +81,7 @@
             "url": "{{base_url}}/checkouts",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"offerId\": \"{{offer_id}}\"\n}"
+              "raw": "{\n  \"offerId\": \"{{offer_id}}\",\n  \"inboundOfferId\": \"{{inbound_offer_id}}\"\n}"
             }
           }
         },
@@ -100,13 +97,18 @@
             "url": "{{base_url}}/checkouts/{{checkout_id}}/passengers",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"passengers\": [\n    {\n      \"firstName\": \"Maria\",\n      \"lastName\": \"Souza\",\n      \"passengerType\": \"ADT\",\n      \"birthDate\": \"1990-04-21\",\n      \"gender\": \"F\",\n      \"documentNumber\": \"12345678901\",\n      \"nationality\": \"BR\",\n      \"email\": \"maria@exemplo.com\",\n      \"phone\": \"44999999999\"\n    }\n  ]\n}"
+              "raw": "{\n  \"passengers\": [\n    {\n      \"firstName\": \"Maria\",\n      \"lastName\": \"Souza\",\n      \"type\": \"ADT\",\n      \"gender\": \"F\",\n      \"birthDate\": \"1990-04-21\",\n      \"documentNumber\": \"12345678901\",\n      \"documentType\": 1,\n      \"nationalityCountryId\": 30,\n      \"email\": \"maria@exemplo.com\",\n      \"phone\": \"44999999999\"\n    }\n  ]\n}"
             }
           }
         },
         {
           "name": "Reconferir tarifa",
-          "request": { "method": "POST", "url": "{{base_url}}/checkouts/{{checkout_id}}/revalidate" }
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/checkouts/{{checkout_id}}/revalidate",
+            "body": { "mode": "raw", "raw": "{\n  \"expectedAmount\": 471.00\n}" }
+          }
         },
         {
           "name": "Formas de pagamento",
@@ -121,18 +123,6 @@
       "name": "Pagamentos",
       "item": [
         {
-          "name": "Parcelamento",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/installments",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cardBin\": \"555544\",\n  \"amount\": 471.00\n}"
-            }
-          }
-        },
-        {
           "name": "Tokenizar cartão",
           "request": {
             "method": "POST",
@@ -140,7 +130,19 @@
             "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/card-token",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"holderName\": \"MARIA SOUZA\",\n  \"number\": \"5555444433332222\",\n  \"cvv\": \"123\",\n  \"expirationMonth\": \"12\",\n  \"expirationYear\": \"2029\",\n  \"documentNumber\": \"12345678901\"\n}"
+              "raw": "{\n  \"holderName\": \"MARIA SOUZA\",\n  \"number\": \"5555444433332222\",\n  \"cvv\": \"123\",\n  \"expirationMonth\": \"12\",\n  \"expirationYear\": \"2029\",\n  \"documentType\": 1,\n  \"documentNumber\": \"12345678901\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Parcelamento",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/checkouts/{{checkout_id}}/installments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 471.00,\n  \"cardToken\": \"{{card_token}}\",\n  \"cardKey\": \"{{card_key}}\",\n  \"multipleCards\": false\n}"
             }
           }
         },
@@ -155,7 +157,7 @@
             "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/card",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cards\": [\n    { \"token\": \"...\", \"key\": \"...\", \"amount\": 471.00, \"installments\": 3 }\n  ],\n  \"payer\": {\n    \"name\": \"Maria Souza\",\n    \"document\": \"12345678901\",\n    \"email\": \"maria@exemplo.com\",\n    \"phone\": \"44999999999\",\n    \"zipCode\": \"87700000\",\n    \"street\": \"Rua X\",\n    \"number\": \"100\",\n    \"district\": \"Centro\",\n    \"city\": \"Paranavai\",\n    \"state\": \"PR\"\n  }\n}"
+              "raw": "{\n  \"cards\": [\n    {\n      \"cardToken\": \"{{card_token}}\",\n      \"cardKey\": \"{{card_key}}\",\n      \"brand\": \"MASTERCARD\",\n      \"cardBin\": \"555544\",\n      \"lastDigits\": \"2222\",\n      \"holderName\": \"MARIA SOUZA\",\n      \"documentType\": 1,\n      \"documentNumber\": \"12345678901\",\n      \"expirationMonth\": 12,\n      \"expirationYear\": 2029,\n      \"amount\": 471.00,\n      \"installments\": 3,\n      \"interestRate\": 0\n    }\n  ],\n  \"totalAmount\": 471.00,\n  \"payer\": {\n    \"firstName\": \"Maria\",\n    \"lastName\": \"Souza\",\n    \"documentNumber\": \"12345678901\",\n    \"birthDate\": \"1990-04-21\",\n    \"email\": \"maria@exemplo.com\",\n    \"phone\": \"44999999999\",\n    \"zipCode\": \"87700000\",\n    \"street\": \"Rua X\",\n    \"number\": \"100\",\n    \"complement\": \"\",\n    \"neighborhood\": \"Centro\",\n    \"city\": \"Paranavai\",\n    \"state\": \"PR\"\n  }\n}"
             }
           }
         },
@@ -170,7 +172,7 @@
             "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/pix",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"payer\": {\n    \"name\": \"Maria Souza\",\n    \"document\": \"12345678901\",\n    \"email\": \"maria@exemplo.com\"\n  }\n}"
+              "raw": "{\n  \"amount\": 471.00,\n  \"payer\": {\n    \"name\": \"Maria Souza\",\n    \"documentNumber\": \"12345678901\",\n    \"email\": \"maria@exemplo.com\"\n  }\n}"
             }
           }
         },

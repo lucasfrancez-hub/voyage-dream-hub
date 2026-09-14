@@ -41,7 +41,7 @@ export async function criarPixParaPedido(input: {
   const nowIso = new Date().toISOString()
   const { data: existing } = await supabaseAdmin
     .from('pix_cobrancas')
-    .select('txid, qr_code, expira_em, status, valor')
+    .select('txid, qr_code, qr_code_image, invoice_url, expira_em, status, valor')
     .eq('order_id', order.id)
     .eq('status', 'ativa')
     .gt('expira_em', nowIso)
@@ -53,11 +53,14 @@ export async function criarPixParaPedido(input: {
     return {
       txid: existing.txid,
       qrCode: existing.qr_code,
+      qrCodeImage: existing.qr_code_image ?? null,
+      invoiceUrl: existing.invoice_url ?? null,
       expiraEm: existing.expira_em,
       valor: Number(existing.valor),
       reused: true,
     }
   }
+
 
   const { makeTxid } = await import('@/lib/pix.server')
   const { ensureAsaasCustomer, createAsaasPixPayment } = await import('@/lib/asaas.server')
@@ -121,5 +124,15 @@ export async function criarPixParaPedido(input: {
     }
   }
 
-  return { txid, qrCode: pix.payload, expiraEm, valor: total, reused: false }
+  return {
+    txid,
+    qrCode: pix.payload,
+    // Data URI pronta para <img src>: data:image/png;base64,…
+    qrCodeImage: pix.encodedImage ? `data:image/png;base64,${pix.encodedImage}` : null,
+    invoiceUrl: pix.invoiceUrl ?? null,
+    expiraEm,
+    valor: total,
+    reused: false,
+  }
+
 }
