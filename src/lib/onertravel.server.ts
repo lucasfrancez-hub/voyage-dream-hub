@@ -225,6 +225,11 @@ async function fetchMotor(
 
 export type PollSpeed = "normal" | "fast";
 
+type SearchTrace = {
+  correlationId: string;
+  source: "internal_api" | "status_probe";
+};
+
 async function poll(
   path: "outbound" | "inbound",
   loc: string,
@@ -232,6 +237,7 @@ async function poll(
   maxRounds = 30,
   speed: PollSpeed = "normal",
   signal?: AbortSignal,
+  trace?: SearchTrace,
 ): Promise<OnerLegResult> {
 
   const acc = new Map<string, OnerFlight>();
@@ -280,6 +286,20 @@ async function poll(
       );
       if (!res.ok) {
         ultimoStatus = res.status;
+        const responseBody = (await res.text()).slice(0, 2_000);
+        if (trace) {
+          console.error(
+            `[oner-search] ${JSON.stringify({
+              correlationId: trace.correlationId,
+              source: trace.source,
+              stage: `poll_${path}`,
+              url: `${SERVERLESS}/api/flight/v1/search/${path}`,
+              requestBody: { ...body, page },
+              providerStatus: res.status,
+              providerBody: responseBody,
+            })}`,
+          );
+        }
         break;
       }
       respostasOk++;
@@ -462,6 +482,7 @@ export async function searchFlights(
   data: SearchData,
   speed: PollSpeed = "normal",
   signal?: AbortSignal,
+  trace?: SearchTrace,
 ): Promise<OnerSearchResult> {
   const loc = buildLocationHref(data);
   let searchKey = data.searchKey ?? "";
@@ -493,10 +514,54 @@ export async function searchFlights(
       searchKey = "";
     }
     if (!searchKey) {
+      if (trace) {
+        console.error(
+          `[oner-search] ${JSON.stringify({
+            correlationId: trace.correlationId,
+            source: trace.source,
+            stage: "start",
+            url: `${SERVERLESS}/api/flight/v1/search`,
+            requestBody: {
+              departureDate: `${data.departureDate}T00:00:00.000Z`,
+              ...(data.returnDate ? { returnDate: `${data.returnDate}T00:00:00.000Z` } : {}),
+              departureStation: data.departureIata.toUpperCase(),
+              arrivalStation: data.arrivalIata.toUpperCase(),
+              isDepartureStationCity: data.departureIsCity,
+              isArrivalStationCity: data.arrivalIsCity,
+              paxAdtCount: data.adults,
+              paxChdCount: data.children,
+              paxInfCount: data.infants,
+            },
+            providerStatus: startRes.status,
+            providerBody: startText.slice(0, 2_000),
+          })}`,
+        );
+      }
       throw new Error(
         `A operadora não retornou chave de busca (HTTP ${startRes.status}). Tente novamente em instantes.`,
       );
     }
+  }
+
+  const finalFilter = buildFilter(data.filters);
+  if (trace) {
+    console.info(
+      `[oner-search] ${JSON.stringify({
+        correlationId: trace.correlationId,
+        source: trace.source,
+        stage: "prepared",
+        cabinClassReceived: data.filters.cabinClass,
+        cabinClassConverted: finalFilter.cabinClass,
+        url: `${SERVERLESS}/api/flight/v1/search/outbound`,
+        requestBody: {
+          searchKey: "[redacted]",
+          pageSize: data.pageSize,
+          filter: finalFilter,
+          ordinationEnum: 0,
+          page: 1,
+        },
+      })}`,
+    );
   }
 
   const outbound = await poll(
@@ -505,14 +570,81 @@ export async function searchFlights(
     {
       searchKey,
       pageSize: data.pageSize,
-      filter: buildFilter(data.filters),
+      filter: finalFilter,
       ordinationEnum: 0,
     },
     30,
     speed,
     signal,
+    trace,
   );
   return { searchKey, outbound, inbound: null };
+}
+
+/** Verifica o mesmo motor e o mesmo endpoint usados pela pesquisa real. */
+export async function probeFlightSearch(correlationId: string): Promise<boolean> {
+  const date = new Date(Date.now() + 30 * 24 * 60 * 60_000).toISOString().slice(0, 10);
+  const loc = buildLocationHref({
+    departureIata: "GRU",
+    arrivalIata: "GIG",
+    departureDate: date,
+    returnDate: null,
+    adults: 1,
+    children: 0,
+    infants: 0,
+    pageSize: 1,
+    departureIsCity: false,
+    arrivalIsCity: false,
+    searchKey: null,
+    combinedKey: null,
+    filters: DEFAULT_FILTERS,
+  });
+  const startRes = await fetchMotor(`${SERVERLESS}/api/flight/v1/search`, {
+    method: "POST",
+    headers: headers(loc),
+    body: JSON.stringify({
+      departureDate: `${date}T00:00:00.000Z`,
+      departureStation: "GRU",
+      arrivalStation: "GIG",
+      isDepartureStationCity: false,
+      isArrivalStationCity: false,
+      paxAdtCount: 1,
+      paxChdCount: 0,
+      paxInfCount: 0,
+    }),
+  });
+  const startText = await startRes.text();
+  let searchKey = "";
+  try {
+    searchKey = (JSON.parse(startText) as { searchKey?: string }).searchKey ?? "";
+  } catch {
+    searchKey = "";
+  }
+  if (!startRes.ok || !searchKey) {
+    console.error(
+      `[oner-search] ${JSON.stringify({ correlationId, source: "status_probe", stage: "start", providerStatus: startRes.status, providerBody: startText.slice(0, 2_000) })}`,
+    );
+    return false;
+  }
+  const body = {
+    searchKey,
+    pageSize: 1,
+    filter: buildFilter(DEFAULT_FILTERS),
+    ordinationEnum: 0,
+    page: 1,
+  };
+  const resultRes = await fetchMotor(`${SERVERLESS}/api/flight/v1/search/outbound`, {
+    method: "POST",
+    headers: headers(loc),
+    body: JSON.stringify(body),
+  });
+  if (!resultRes.ok) {
+    const responseBody = (await resultRes.text()).slice(0, 2_000);
+    console.error(
+      `[oner-search] ${JSON.stringify({ correlationId, source: "status_probe", stage: "poll_outbound", requestBody: { ...body, searchKey: "[redacted]" }, providerStatus: resultRes.status, providerBody: responseBody })}`,
+    );
+  }
+  return resultRes.ok;
 }
 
 export async function searchInboundFlights(
