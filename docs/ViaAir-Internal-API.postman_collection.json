@@ -1,456 +1,478 @@
 {
-  "info": {
-    "name": "VIA AIR — API interna v1",
-    "description": "Fachada oficial sobre o motor aéreo e o financeiro VIA AIR. Escopo da v1: somente aéreo (busca, checkout, pagamento, pedidos). Preencha as variáveis base_url e api_token.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{api_token}}",
-        "type": "string"
-      }
-    ]
-  },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "https://pedidos.viaair.tur.br/api/public/internal/v1"
-    },
-    {
-      "key": "api_token",
-      "value": "vai_live_xxxxxxxxxxxxxxxxx"
-    },
-    {
-      "key": "search_id",
-      "value": ""
-    },
-    {
-      "key": "offer_id",
-      "value": ""
-    },
-    {
-      "key": "inbound_offer_id",
-      "value": ""
-    },
-    {
-      "key": "checkout_id",
-      "value": ""
-    },
-    {
-      "key": "order_id",
-      "value": ""
-    },
-    {
-      "key": "payment_id",
-      "value": ""
-    },
-    {
-      "key": "card_token",
-      "value": ""
-    },
-    {
-      "key": "card_key",
-      "value": ""
-    },
-    {
-      "key": "multicity_search_id",
-      "value": ""
-    },
-    {
-      "key": "group_id",
-      "value": ""
-    },
-    {
-      "key": "offer_leg1",
-      "value": ""
-    },
-    {
-      "key": "offer_leg2",
-      "value": ""
-    }
-  ],
-  "item": [
-    {
-      "name": "Saúde",
-      "item": [
-        {
-          "name": "Health",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/health"
-          }
-        },
-        {
-          "name": "Situação do fornecedor",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/oner/status"
-          }
-        }
-      ]
-    },
-    {
-      "name": "Voos",
-      "item": [
-        {
-          "name": "Aeroportos",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/airports/search?query=rio&isDeparture=true"
-          }
-        },
-        {
-          "name": "Pesquisa de voos",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/flights/search",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"origin\": \"GRU\",\n  \"destination\": \"GIG\",\n  \"departureDate\": \"2026-10-12\",\n  \"returnDate\": \"2026-10-18\",\n  \"adults\": 1,\n  \"children\": 0,\n  \"infants\": 0,\n  \"checkedBaggage\": false\n}"
-            }
-          }
-        },
-        {
-          "name": "Volta",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/flights/inbound",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"searchId\": \"{{search_id}}\",\n  \"outboundOfferId\": \"{{offer_id}}\"\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Checkout",
-      "item": [
-        {
-          "name": "Criar checkout",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "skyhub-checkout-0001"
-              }
-            ],
-            "url": "{{base_url}}/checkouts",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"offerId\": \"{{offer_id}}\",\n  \"inboundOfferId\": \"{{inbound_offer_id}}\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Ler checkout",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/checkouts/{{checkout_id}}"
-          }
-        },
-        {
-          "name": "Passageiros",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/passengers",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"passengers\": [\n    {\n      \"firstName\": \"Maria\",\n      \"lastName\": \"Souza\",\n      \"type\": \"ADT\",\n      \"gender\": \"F\",\n      \"birthDate\": \"1990-04-21\",\n      \"documentNumber\": \"12345678901\",\n      \"documentType\": 1,\n      \"nationalityCountryId\": 30,\n      \"email\": \"maria@exemplo.com\",\n      \"phone\": \"44999999999\"\n    }\n  ]\n}"
-            }
-          }
-        },
-        {
-          "name": "Reconferir tarifa",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/revalidate",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"expectedAmount\": 471.00\n}"
-            }
-          }
-        },
-        {
-          "name": "Formas de pagamento",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/payment-methods"
-          }
-        }
-      ]
-    },
-    {
-      "name": "Pagamentos",
-      "item": [
-        {
-          "name": "Tokenizar cartão",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/card-token",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"holderName\": \"MARIA SOUZA\",\n  \"number\": \"5555444433332222\",\n  \"cvv\": \"123\",\n  \"expirationMonth\": \"12\",\n  \"expirationYear\": \"2029\",\n  \"documentType\": 1,\n  \"documentNumber\": \"12345678901\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Parcelamento",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/installments",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount\": 471.00,\n  \"cardToken\": \"{{card_token}}\",\n  \"cardKey\": \"{{card_key}}\",\n  \"multipleCards\": false\n}"
-            }
-          }
-        },
-        {
-          "name": "Pagar com cartão",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "skyhub-card-0001"
-              }
-            ],
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/card",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cards\": [\n    {\n      \"cardToken\": \"{{card_token}}\",\n      \"cardKey\": \"{{card_key}}\",\n      \"brand\": \"MASTERCARD\",\n      \"cardBin\": \"555544\",\n      \"lastDigits\": \"2222\",\n      \"holderName\": \"MARIA SOUZA\",\n      \"documentType\": 1,\n      \"documentNumber\": \"12345678901\",\n      \"expirationMonth\": 12,\n      \"expirationYear\": 2029,\n      \"amount\": 471.00,\n      \"installments\": 3,\n      \"interestRate\": 0\n    }\n  ],\n  \"totalAmount\": 471.00,\n  \"payer\": {\n    \"firstName\": \"Maria\",\n    \"lastName\": \"Souza\",\n    \"documentNumber\": \"12345678901\",\n    \"birthDate\": \"1990-04-21\",\n    \"email\": \"maria@exemplo.com\",\n    \"phone\": \"44999999999\",\n    \"zipCode\": \"87700000\",\n    \"street\": \"Rua X\",\n    \"number\": \"100\",\n    \"complement\": \"\",\n    \"neighborhood\": \"Centro\",\n    \"city\": \"Paranavai\",\n    \"state\": \"PR\"\n  }\n}"
-            }
-          }
-        },
-        {
-          "name": "Gerar Pix VIA AIR",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "skyhub-pix-0001"
-              }
-            ],
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/pix",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount\": 471.00,\n  \"payer\": {\n    \"name\": \"Maria Souza\",\n    \"documentNumber\": \"12345678901\",\n    \"email\": \"maria@exemplo.com\"\n  }\n}"
-            }
-          }
-        },
-        {
-          "name": "Situação do Pix do checkout",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/pix"
-          }
-        },
-        {
-          "name": "Situação do pagamento",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/payments/{{payment_id}}"
-          }
-        },
-        {
-          "name": "Cancelar pagamento",
-          "request": {
-            "method": "POST",
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/cancel"
-          }
-        }
-      ]
-    },
-    {
-      "name": "Pedidos",
-      "item": [
-        {
-          "name": "Criar pedido",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Idempotency-Key",
-                "value": "skyhub-order-0001"
-              }
-            ],
-            "url": "{{base_url}}/checkouts/{{checkout_id}}/order"
-          }
-        },
-        {
-          "name": "Pedido completo",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/orders/{{order_id}}"
-          }
-        },
-        {
-          "name": "Situação do pedido",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/orders/{{order_id}}/status"
-          }
-        },
-        {
-          "name": "Bilhetes",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/orders/{{order_id}}/tickets"
-          }
-        },
-        {
-          "name": "Documentos",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/orders/{{order_id}}/documents"
-          }
-        }
-      ]
-    },
-    {
-      "name": "Multitrecho",
-      "item": [
-        {
-          "name": "Pesquisa multitrecho",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/flights/multicity/search",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"adults\": 1,\n  \"children\": 0,\n  \"infants\": 0,\n  \"checkedBaggage\": false,\n  \"legs\": [\n    {\n      \"origin\": \"GRU\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"2026-10-10\"\n    },\n    {\n      \"origin\": \"MIA\",\n      \"destination\": \"JFK\",\n      \"departureDate\": \"2026-10-15\"\n    }\n  ]\n}"
-            }
-          }
-        },
-        {
-          "name": "Criar grupo (checkouts por perna)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "skyhub-mc-0001"
-              }
-            ],
-            "url": "{{base_url}}/multicity/checkouts",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"searchId\": \"{{multicity_search_id}}\",\n  \"offers\": [\n    {\n      \"sequence\": 1,\n      \"offerId\": \"{{offer_leg1}}\"\n    },\n    {\n      \"sequence\": 2,\n      \"offerId\": \"{{offer_leg2}}\"\n    }\n  ]\n}"
-            }
-          }
-        },
-        {
-          "name": "Passageiros do grupo",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "skyhub-mc-pax-0001"
-              }
-            ],
-            "url": "{{base_url}}/multicity/groups/{{group_id}}/passengers",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"passengers\": [\n    {\n      \"firstName\": \"MARIA\",\n      \"lastName\": \"SILVA\",\n      \"type\": \"ADT\",\n      \"gender\": \"F\",\n      \"birthDate\": \"1990-05-12\",\n      \"documentType\": 1,\n      \"documentNumber\": \"12345678909\",\n      \"nationalityCountryId\": 30,\n      \"email\": \"maria@exemplo.com\",\n      \"phone\": \"44999514838\"\n    }\n  ]\n}"
-            }
-          }
-        },
-        {
-          "name": "Revalidar grupo",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "skyhub-mc-rev-0001"
-              }
-            ],
-            "url": "{{base_url}}/multicity/groups/{{group_id}}/revalidate",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reservations\": [\n    {\n      \"sequence\": 1,\n      \"expectedAmount\": 2100.0\n    },\n    {\n      \"sequence\": 2,\n      \"expectedAmount\": 900.0\n    }\n  ]\n}"
-            }
-          }
-        },
-        {
-          "name": "Consultar grupo",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/multicity/groups/{{group_id}}"
-          }
-        }
-      ]
-    }
+ "info": {
+  "name": "VIA AIR — API interna v1",
+  "description": "Fachada oficial sobre o motor aéreo e o financeiro VIA AIR. Escopo da v1: somente aéreo (busca, checkout, pagamento, pedidos). Preencha as variáveis base_url e api_token.",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "auth": {
+  "type": "bearer",
+  "bearer": [
+   {
+    "key": "token",
+    "value": "{{api_token}}",
+    "type": "string"
+   }
   ]
+ },
+ "variable": [
+  {
+   "key": "base_url",
+   "value": "https://pedidos.viaair.tur.br/api/public/internal/v1"
+  },
+  {
+   "key": "api_token",
+   "value": "vai_live_xxxxxxxxxxxxxxxxx"
+  },
+  {
+   "key": "search_id",
+   "value": ""
+  },
+  {
+   "key": "offer_id",
+   "value": ""
+  },
+  {
+   "key": "inbound_offer_id",
+   "value": ""
+  },
+  {
+   "key": "checkout_id",
+   "value": ""
+  },
+  {
+   "key": "order_id",
+   "value": ""
+  },
+  {
+   "key": "payment_id",
+   "value": ""
+  },
+  {
+   "key": "card_token",
+   "value": ""
+  },
+  {
+   "key": "card_key",
+   "value": ""
+  },
+  {
+   "key": "multicity_search_id",
+   "value": ""
+  },
+  {
+   "key": "group_id",
+   "value": ""
+  },
+  {
+   "key": "offer_leg1",
+   "value": ""
+  },
+  {
+   "key": "offer_leg2",
+   "value": ""
+  }
+ ],
+ "item": [
+  {
+   "name": "Saúde",
+   "item": [
+    {
+     "name": "Health",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/health"
+     }
+    },
+    {
+     "name": "Situação do fornecedor",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/oner/status"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Voos",
+   "item": [
+    {
+     "name": "Aeroportos",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/airports/search?query=rio&isDeparture=true"
+     }
+    },
+    {
+     "name": "Pesquisa de voos",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": "{{base_url}}/flights/search",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"origin\": \"GRU\",\n  \"destination\": \"GIG\",\n  \"departureDate\": \"2026-10-12\",\n  \"returnDate\": \"2026-10-18\",\n  \"adults\": 1,\n  \"children\": 0,\n  \"infants\": 0,\n  \"checkedBaggage\": false\n}"
+      }
+     }
+    },
+    {
+     "name": "Volta",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": "{{base_url}}/flights/inbound",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"searchId\": \"{{search_id}}\",\n  \"outboundOfferId\": \"{{offer_id}}\"\n}"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "Checkout",
+   "item": [
+    {
+     "name": "Criar checkout",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Idempotency-Key",
+        "value": "skyhub-checkout-0001"
+       }
+      ],
+      "url": "{{base_url}}/checkouts",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"offerId\": \"{{offer_id}}\",\n  \"inboundOfferId\": \"{{inbound_offer_id}}\"\n}"
+      }
+     }
+    },
+    {
+     "name": "Ler checkout",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/checkouts/{{checkout_id}}"
+     }
+    },
+    {
+     "name": "Passageiros",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": "{{base_url}}/checkouts/{{checkout_id}}/passengers",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"passengers\": [\n    {\n      \"firstName\": \"Maria\",\n      \"lastName\": \"Souza\",\n      \"type\": \"ADT\",\n      \"gender\": \"F\",\n      \"birthDate\": \"1990-04-21\",\n      \"documentNumber\": \"12345678901\",\n      \"documentType\": 1,\n      \"nationalityCountryId\": 30,\n      \"email\": \"maria@exemplo.com\",\n      \"phone\": \"44999999999\"\n    }\n  ]\n}"
+      }
+     }
+    },
+    {
+     "name": "Reconferir tarifa",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": "{{base_url}}/checkouts/{{checkout_id}}/revalidate",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"expectedAmount\": 471.00\n}"
+      }
+     }
+    },
+    {
+     "name": "Formas de pagamento",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/checkouts/{{checkout_id}}/payment-methods"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Pagamentos",
+   "item": [
+    {
+     "name": "Tokenizar cartão",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/card-token",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"holderName\": \"MARIA SOUZA\",\n  \"number\": \"5555444433332222\",\n  \"cvv\": \"123\",\n  \"expirationMonth\": \"12\",\n  \"expirationYear\": \"2029\",\n  \"documentType\": 1,\n  \"documentNumber\": \"12345678901\"\n}"
+      }
+     }
+    },
+    {
+     "name": "Parcelamento",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": "{{base_url}}/checkouts/{{checkout_id}}/installments",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"amount\": 471.00,\n  \"cardToken\": \"{{card_token}}\",\n  \"cardKey\": \"{{card_key}}\",\n  \"multipleCards\": false\n}"
+      }
+     }
+    },
+    {
+     "name": "Pagar com cartão",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Idempotency-Key",
+        "value": "skyhub-card-0001"
+       }
+      ],
+      "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/card",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"cards\": [\n    {\n      \"cardToken\": \"{{card_token}}\",\n      \"cardKey\": \"{{card_key}}\",\n      \"brand\": \"MASTERCARD\",\n      \"cardBin\": \"555544\",\n      \"lastDigits\": \"2222\",\n      \"holderName\": \"MARIA SOUZA\",\n      \"documentType\": 1,\n      \"documentNumber\": \"12345678901\",\n      \"expirationMonth\": 12,\n      \"expirationYear\": 2029,\n      \"amount\": 471.00,\n      \"installments\": 3,\n      \"interestRate\": 0\n    }\n  ],\n  \"totalAmount\": 471.00,\n  \"payer\": {\n    \"firstName\": \"Maria\",\n    \"lastName\": \"Souza\",\n    \"documentNumber\": \"12345678901\",\n    \"birthDate\": \"1990-04-21\",\n    \"email\": \"maria@exemplo.com\",\n    \"phone\": \"44999999999\",\n    \"zipCode\": \"87700000\",\n    \"street\": \"Rua X\",\n    \"number\": \"100\",\n    \"complement\": \"\",\n    \"neighborhood\": \"Centro\",\n    \"city\": \"Paranavai\",\n    \"state\": \"PR\"\n  }\n}"
+      }
+     }
+    },
+    {
+     "name": "Gerar Pix VIA AIR",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Idempotency-Key",
+        "value": "skyhub-pix-0001"
+       }
+      ],
+      "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/pix",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"amount\": 471.00,\n  \"payer\": {\n    \"name\": \"Maria Souza\",\n    \"documentNumber\": \"12345678901\",\n    \"email\": \"maria@exemplo.com\"\n  }\n}"
+      }
+     }
+    },
+    {
+     "name": "Situação do Pix do checkout",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/pix"
+     }
+    },
+    {
+     "name": "Situação do pagamento",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/payments/{{payment_id}}"
+     }
+    },
+    {
+     "name": "Cancelar pagamento",
+     "request": {
+      "method": "POST",
+      "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/cancel"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Pedidos",
+   "item": [
+    {
+     "name": "Criar pedido",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Idempotency-Key",
+        "value": "skyhub-order-0001"
+       }
+      ],
+      "url": "{{base_url}}/checkouts/{{checkout_id}}/order"
+     }
+    },
+    {
+     "name": "Pedido completo",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/orders/{{order_id}}"
+     }
+    },
+    {
+     "name": "Situação do pedido",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/orders/{{order_id}}/status"
+     }
+    },
+    {
+     "name": "Bilhetes",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/orders/{{order_id}}/tickets"
+     }
+    },
+    {
+     "name": "Documentos",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/orders/{{order_id}}/documents"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Multitrecho",
+   "item": [
+    {
+     "name": "Pesquisa multitrecho",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": "{{base_url}}/flights/multicity/search",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"adults\": 1,\n  \"children\": 0,\n  \"infants\": 0,\n  \"checkedBaggage\": false,\n  \"legs\": [\n    {\n      \"origin\": \"GRU\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"2026-10-10\"\n    },\n    {\n      \"origin\": \"MIA\",\n      \"destination\": \"JFK\",\n      \"departureDate\": \"2026-10-15\"\n    }\n  ]\n}"
+      }
+     }
+    },
+    {
+     "name": "Criar grupo (checkouts por perna)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Idempotency-Key",
+        "value": "skyhub-mc-0001"
+       }
+      ],
+      "url": "{{base_url}}/multicity/checkouts",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"searchId\": \"{{multicity_search_id}}\",\n  \"offers\": [\n    {\n      \"sequence\": 1,\n      \"offerId\": \"{{offer_leg1}}\"\n    },\n    {\n      \"sequence\": 2,\n      \"offerId\": \"{{offer_leg2}}\"\n    }\n  ]\n}"
+      }
+     }
+    },
+    {
+     "name": "Passageiros do grupo",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Idempotency-Key",
+        "value": "skyhub-mc-pax-0001"
+       }
+      ],
+      "url": "{{base_url}}/multicity/groups/{{group_id}}/passengers",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"passengers\": [\n    {\n      \"firstName\": \"MARIA\",\n      \"lastName\": \"SILVA\",\n      \"type\": \"ADT\",\n      \"gender\": \"F\",\n      \"birthDate\": \"1990-05-12\",\n      \"documentType\": 1,\n      \"documentNumber\": \"12345678909\",\n      \"nationalityCountryId\": 30,\n      \"email\": \"maria@exemplo.com\",\n      \"phone\": \"44999514838\"\n    }\n  ]\n}"
+      }
+     }
+    },
+    {
+     "name": "Revalidar grupo",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Idempotency-Key",
+        "value": "skyhub-mc-rev-0001"
+       }
+      ],
+      "url": "{{base_url}}/multicity/groups/{{group_id}}/revalidate",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"reservations\": [\n    {\n      \"sequence\": 1,\n      \"expectedAmount\": 2100.0\n    },\n    {\n      \"sequence\": 2,\n      \"expectedAmount\": 900.0\n    }\n  ]\n}"
+      }
+     }
+    },
+    {
+     "name": "Consultar grupo",
+     "request": {
+      "method": "GET",
+      "url": "{{base_url}}/multicity/groups/{{group_id}}"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Importação",
+   "item": [
+    {
+     "name": "Importar reserva da Comprar Viagem",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": "{{base_url}}/imports/comprar-viagem/reservation",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"checkoutUrl\": \"https://www.comprarviagem.com.br/checkout/9b8b466f-4d2f-42f9-8b7c-0257386cb44f\"\n}"
+      }
+     }
+    }
+   ]
+  }
+ ]
 }
