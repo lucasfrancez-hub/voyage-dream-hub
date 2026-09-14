@@ -4,6 +4,11 @@
  */
 import type { OnerFlight, OnerPlace } from "@/lib/onertravel.types";
 import type { OnerState } from "@/lib/integrations/oner/config";
+import {
+  montarPlanoDeParcelamento,
+  type ApiInstallmentPlan,
+} from "@/lib/api/installment-plan";
+import type { MarkupTable } from "@/lib/airfare-conditions";
 
 export type ApiSegment = {
   flightNumber: string;
@@ -38,6 +43,8 @@ export type ApiFlightOffer = {
   price: { amount: number; tax: number; total: number; currency: "BRL"; passengers: number };
   segments: ApiSegment[];
   fares: ApiFare[];
+  /** Simulação comercial VIA AIR (sem juros da cia + markup acima do teto). */
+  installmentPlan?: ApiInstallmentPlan | null;
 };
 
 function iso(p?: OnerPlace | null): string | null {
@@ -56,7 +63,11 @@ function temBagagem(f: OnerFlight): boolean {
   });
 }
 
-export function normalizarVoo(f: OnerFlight, offerId: string): ApiFlightOffer {
+export function normalizarVoo(
+  f: OnerFlight,
+  offerId: string,
+  markups?: MarkupTable,
+): ApiFlightOffer {
   const j = f.journey;
   const duracao = j.flyingTime ? j.flyingTime.hour * 60 + j.flyingTime.minute : null;
   return {
@@ -94,6 +105,11 @@ export function normalizarVoo(f: OnerFlight, offerId: string): ApiFlightOffer {
       cabinClass: o.cabinClass ?? null,
       checkedBaggage: Boolean(o.allowedBaggage),
     })),
+    installmentPlan: montarPlanoDeParcelamento({
+      total: f.price?.total ?? 0,
+      airline: j.marketingAirline?.name ?? j.marketingAirline?.iata ?? null,
+      markups,
+    }),
   };
 }
 

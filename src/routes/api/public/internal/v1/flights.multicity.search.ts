@@ -49,6 +49,8 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/multicity/
           }
 
           const { searchFlights } = await import("@/lib/onertravel.server");
+          const { carregarMarkups } = await import("@/lib/api/installment-plan.server");
+          const markups = await carregarMarkups();
           const searchId = novoSearchIdMulticity();
           const legs: Array<Record<string, unknown>> = [];
 
@@ -124,7 +126,7 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/multicity/
               legs.push({
                 ...base,
                 totalCount: resultado.outbound.totalFlightsCount,
-                offers: voos.map((f, k) => normalizarVoo(f, ids[k] ?? "")),
+                offers: voos.map((f, k) => normalizarVoo(f, ids[k] ?? "", markups)),
                 error: null,
               });
             } catch (e) {

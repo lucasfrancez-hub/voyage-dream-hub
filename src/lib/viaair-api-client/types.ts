@@ -112,6 +112,35 @@ export type FlightOffer = {
   price: { amount: number; tax: number; total: number; currency: "BRL"; passengers: number };
   segments: FlightSegment[];
   fares: FareOption[];
+  /** Simulação comercial VIA AIR de parcelamento desta oferta. */
+  installmentPlan?: InstallmentPlan | null;
+};
+
+/** Uma linha da tabela de parcelamento simulada. */
+export type InstallmentPlanOption = {
+  installments: number;
+  installmentValue: number;
+  total: number;
+  /** Percentual acrescido acima da tarifa (0 quando sem juros). */
+  markupPercent: number;
+  interestFree: boolean;
+};
+
+/**
+ * Tabela de parcelamento da oferta, calculada pelas regras VIA AIR:
+ * sem juros até o teto da companhia aérea e, acima disso, com o markup
+ * cadastrado. É simulação (`estimated: true`); o valor definitivo do cartão
+ * vem de POST /checkouts/{checkoutId}/installments.
+ */
+export type InstallmentPlan = {
+  source: "VIAAIR_RULES";
+  estimated: true;
+  currency: "BRL";
+  baseAmount: number;
+  maxInterestFree: number;
+  maxInstallments: number;
+  pixOnly: boolean;
+  options: InstallmentPlanOption[];
 };
 
 export type FlightSearchResponse = {
