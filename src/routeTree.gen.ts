@@ -213,6 +213,23 @@ import { Route as CruzeirosUiPreviewScreenModelRouteImport } from './routes/cruz
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as ApiPublicInternalV1CheckoutsRouteImport } from './routes/api/public/internal/v1/checkouts'
+import { Route as ApiPublicInternalV1HealthRouteImport } from './routes/api/public/internal/v1/health'
+import { Route as ApiPublicInternalV1AirportsSearchRouteImport } from './routes/api/public/internal/v1/airports.search'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId'
+import { Route as ApiPublicInternalV1FlightsInboundRouteImport } from './routes/api/public/internal/v1/flights.inbound'
+import { Route as ApiPublicInternalV1FlightsSearchRouteImport } from './routes/api/public/internal/v1/flights.search'
+import { Route as ApiPublicInternalV1OnerStatusRouteImport } from './routes/api/public/internal/v1/oner.status'
+import { Route as ApiPublicInternalV1PaymentsPaymentIdRouteImport } from './routes/api/public/internal/v1/payments.$paymentId'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.installments'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdOrderRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.order'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPassengersRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.passengers'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payment-methods'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.revalidate'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.cancel'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.card'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.card-token'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.pix'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -1278,6 +1295,108 @@ const LovableEmailTransactionalPreviewRoute =
     path: '/lovable/email/transactional/preview',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicInternalV1CheckoutsRoute =
+  ApiPublicInternalV1CheckoutsRouteImport.update({
+    id: '/api/public/internal/v1/checkouts',
+    path: '/api/public/internal/v1/checkouts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1HealthRoute =
+  ApiPublicInternalV1HealthRouteImport.update({
+    id: '/api/public/internal/v1/health',
+    path: '/api/public/internal/v1/health',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1AirportsSearchRoute =
+  ApiPublicInternalV1AirportsSearchRouteImport.update({
+    id: '/api/public/internal/v1/airports/search',
+    path: '/api/public/internal/v1/airports/search',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdRouteImport.update({
+    id: '/$checkoutId',
+    path: '/$checkoutId',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsRoute,
+  } as any)
+const ApiPublicInternalV1FlightsInboundRoute =
+  ApiPublicInternalV1FlightsInboundRouteImport.update({
+    id: '/api/public/internal/v1/flights/inbound',
+    path: '/api/public/internal/v1/flights/inbound',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1FlightsSearchRoute =
+  ApiPublicInternalV1FlightsSearchRouteImport.update({
+    id: '/api/public/internal/v1/flights/search',
+    path: '/api/public/internal/v1/flights/search',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1OnerStatusRoute =
+  ApiPublicInternalV1OnerStatusRouteImport.update({
+    id: '/api/public/internal/v1/oner/status',
+    path: '/api/public/internal/v1/oner/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1PaymentsPaymentIdRoute =
+  ApiPublicInternalV1PaymentsPaymentIdRouteImport.update({
+    id: '/api/public/internal/v1/payments/$paymentId',
+    path: '/api/public/internal/v1/payments/$paymentId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRouteImport.update({
+    id: '/installments',
+    path: '/installments',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdOrderRouteImport.update({
+    id: '/order',
+    path: '/order',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdPassengersRouteImport.update({
+    id: '/passengers',
+    path: '/passengers',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRouteImport.update({
+    id: '/payment-methods',
+    path: '/payment-methods',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRouteImport.update({
+    id: '/revalidate',
+    path: '/revalidate',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRouteImport.update({
+    id: '/payments/cancel',
+    path: '/payments/cancel',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRouteImport.update({
+    id: '/payments/card',
+    path: '/payments/card',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRouteImport.update({
+    id: '/payments/card-token',
+    path: '/payments/card-token',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRouteImport.update({
+    id: '/payments/pix',
+    path: '/payments/pix',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1484,6 +1603,23 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/api/public/internal/v1/checkouts': typeof ApiPublicInternalV1CheckoutsRouteWithChildren
+  '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
+  '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
+  '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
+  '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
+  '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
+  '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/installments': typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/order': typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/passengers': typeof ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payment-methods': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/revalidate': typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/card': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/pix': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1687,6 +1823,23 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/api/public/internal/v1/checkouts': typeof ApiPublicInternalV1CheckoutsRouteWithChildren
+  '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
+  '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
+  '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
+  '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
+  '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
+  '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/installments': typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/order': typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/passengers': typeof ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payment-methods': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/revalidate': typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/card': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/pix': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1894,6 +2047,23 @@ export interface FileRoutesById {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/api/public/internal/v1/checkouts': typeof ApiPublicInternalV1CheckoutsRouteWithChildren
+  '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
+  '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
+  '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
+  '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
+  '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
+  '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/installments': typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/order': typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/passengers': typeof ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payment-methods': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/revalidate': typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/card': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/payments/pix': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -2102,6 +2272,23 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
+    | '/api/public/internal/v1/checkouts'
+    | '/api/public/internal/v1/health'
+    | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/checkouts/$checkoutId'
+    | '/api/public/internal/v1/flights/inbound'
+    | '/api/public/internal/v1/flights/search'
+    | '/api/public/internal/v1/oner/status'
+    | '/api/public/internal/v1/payments/$paymentId'
+    | '/api/public/internal/v1/checkouts/$checkoutId/installments'
+    | '/api/public/internal/v1/checkouts/$checkoutId/order'
+    | '/api/public/internal/v1/checkouts/$checkoutId/passengers'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payment-methods'
+    | '/api/public/internal/v1/checkouts/$checkoutId/revalidate'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -2305,6 +2492,23 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
+    | '/api/public/internal/v1/checkouts'
+    | '/api/public/internal/v1/health'
+    | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/checkouts/$checkoutId'
+    | '/api/public/internal/v1/flights/inbound'
+    | '/api/public/internal/v1/flights/search'
+    | '/api/public/internal/v1/oner/status'
+    | '/api/public/internal/v1/payments/$paymentId'
+    | '/api/public/internal/v1/checkouts/$checkoutId/installments'
+    | '/api/public/internal/v1/checkouts/$checkoutId/order'
+    | '/api/public/internal/v1/checkouts/$checkoutId/passengers'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payment-methods'
+    | '/api/public/internal/v1/checkouts/$checkoutId/revalidate'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
   id:
     | '__root__'
     | '/'
@@ -2511,6 +2715,23 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
+    | '/api/public/internal/v1/checkouts'
+    | '/api/public/internal/v1/health'
+    | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/checkouts/$checkoutId'
+    | '/api/public/internal/v1/flights/inbound'
+    | '/api/public/internal/v1/flights/search'
+    | '/api/public/internal/v1/oner/status'
+    | '/api/public/internal/v1/payments/$paymentId'
+    | '/api/public/internal/v1/checkouts/$checkoutId/installments'
+    | '/api/public/internal/v1/checkouts/$checkoutId/order'
+    | '/api/public/internal/v1/checkouts/$checkoutId/passengers'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payment-methods'
+    | '/api/public/internal/v1/checkouts/$checkoutId/revalidate'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
+    | '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2620,6 +2841,13 @@ export interface RootRouteChildren {
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  ApiPublicInternalV1CheckoutsRoute: typeof ApiPublicInternalV1CheckoutsRouteWithChildren
+  ApiPublicInternalV1HealthRoute: typeof ApiPublicInternalV1HealthRoute
+  ApiPublicInternalV1AirportsSearchRoute: typeof ApiPublicInternalV1AirportsSearchRoute
+  ApiPublicInternalV1FlightsInboundRoute: typeof ApiPublicInternalV1FlightsInboundRoute
+  ApiPublicInternalV1FlightsSearchRoute: typeof ApiPublicInternalV1FlightsSearchRoute
+  ApiPublicInternalV1OnerStatusRoute: typeof ApiPublicInternalV1OnerStatusRoute
+  ApiPublicInternalV1PaymentsPaymentIdRoute: typeof ApiPublicInternalV1PaymentsPaymentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -4052,6 +4280,125 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/internal/v1/checkouts': {
+      id: '/api/public/internal/v1/checkouts'
+      path: '/api/public/internal/v1/checkouts'
+      fullPath: '/api/public/internal/v1/checkouts'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/health': {
+      id: '/api/public/internal/v1/health'
+      path: '/api/public/internal/v1/health'
+      fullPath: '/api/public/internal/v1/health'
+      preLoaderRoute: typeof ApiPublicInternalV1HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/airports/search': {
+      id: '/api/public/internal/v1/airports/search'
+      path: '/api/public/internal/v1/airports/search'
+      fullPath: '/api/public/internal/v1/airports/search'
+      preLoaderRoute: typeof ApiPublicInternalV1AirportsSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId'
+      path: '/$checkoutId'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsRoute
+    }
+    '/api/public/internal/v1/flights/inbound': {
+      id: '/api/public/internal/v1/flights/inbound'
+      path: '/api/public/internal/v1/flights/inbound'
+      fullPath: '/api/public/internal/v1/flights/inbound'
+      preLoaderRoute: typeof ApiPublicInternalV1FlightsInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/flights/search': {
+      id: '/api/public/internal/v1/flights/search'
+      path: '/api/public/internal/v1/flights/search'
+      fullPath: '/api/public/internal/v1/flights/search'
+      preLoaderRoute: typeof ApiPublicInternalV1FlightsSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/oner/status': {
+      id: '/api/public/internal/v1/oner/status'
+      path: '/api/public/internal/v1/oner/status'
+      fullPath: '/api/public/internal/v1/oner/status'
+      preLoaderRoute: typeof ApiPublicInternalV1OnerStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/payments/$paymentId': {
+      id: '/api/public/internal/v1/payments/$paymentId'
+      path: '/api/public/internal/v1/payments/$paymentId'
+      fullPath: '/api/public/internal/v1/payments/$paymentId'
+      preLoaderRoute: typeof ApiPublicInternalV1PaymentsPaymentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/installments': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/installments'
+      path: '/installments'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/installments'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/order': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/order'
+      path: '/order'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/order'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/passengers': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/passengers'
+      path: '/passengers'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/passengers'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPassengersRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/payment-methods': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/payment-methods'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/revalidate': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/revalidate'
+      path: '/revalidate'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/revalidate'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel'
+      path: '/payments/cancel'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/payments/card': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
+      path: '/payments/card'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
+      path: '/payments/card-token'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/payments/pix': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
+      path: '/payments/pix'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
+    }
   }
 }
 
@@ -4323,6 +4670,60 @@ const VistoAmericanoTokenRouteChildren: VistoAmericanoTokenRouteChildren = {
 const VistoAmericanoTokenRouteWithChildren =
   VistoAmericanoTokenRoute._addFileChildren(VistoAmericanoTokenRouteChildren)
 
+interface ApiPublicInternalV1CheckoutsCheckoutIdRouteChildren {
+  ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute
+  ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute
+  ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute
+  ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute
+  ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
+  ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute
+  ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute
+  ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute
+  ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute
+}
+
+const ApiPublicInternalV1CheckoutsCheckoutIdRouteChildren: ApiPublicInternalV1CheckoutsCheckoutIdRouteChildren =
+  {
+    ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute,
+    ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute,
+    ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute,
+    ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdPaymentMethodsRoute,
+    ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute,
+    ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute,
+    ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute,
+    ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute,
+    ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute,
+  }
+
+const ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren =
+  ApiPublicInternalV1CheckoutsCheckoutIdRoute._addFileChildren(
+    ApiPublicInternalV1CheckoutsCheckoutIdRouteChildren,
+  )
+
+interface ApiPublicInternalV1CheckoutsRouteChildren {
+  ApiPublicInternalV1CheckoutsCheckoutIdRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
+}
+
+const ApiPublicInternalV1CheckoutsRouteChildren: ApiPublicInternalV1CheckoutsRouteChildren =
+  {
+    ApiPublicInternalV1CheckoutsCheckoutIdRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren,
+  }
+
+const ApiPublicInternalV1CheckoutsRouteWithChildren =
+  ApiPublicInternalV1CheckoutsRoute._addFileChildren(
+    ApiPublicInternalV1CheckoutsRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -4439,6 +4840,17 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  ApiPublicInternalV1CheckoutsRoute:
+    ApiPublicInternalV1CheckoutsRouteWithChildren,
+  ApiPublicInternalV1HealthRoute: ApiPublicInternalV1HealthRoute,
+  ApiPublicInternalV1AirportsSearchRoute:
+    ApiPublicInternalV1AirportsSearchRoute,
+  ApiPublicInternalV1FlightsInboundRoute:
+    ApiPublicInternalV1FlightsInboundRoute,
+  ApiPublicInternalV1FlightsSearchRoute: ApiPublicInternalV1FlightsSearchRoute,
+  ApiPublicInternalV1OnerStatusRoute: ApiPublicInternalV1OnerStatusRoute,
+  ApiPublicInternalV1PaymentsPaymentIdRoute:
+    ApiPublicInternalV1PaymentsPaymentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
