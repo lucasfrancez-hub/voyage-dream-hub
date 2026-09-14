@@ -19,6 +19,7 @@ export type ApiClientResumo = {
   active: boolean;
   rateLimitPerMin: number;
   webhookUrl: string | null;
+  webhookSecretHint: string | null;
   lastUsedAt: string | null;
   expiresAt: string | null;
   revokedAt: string | null;
@@ -45,6 +46,7 @@ function mapear(r: Record<string, unknown>): ApiClientResumo {
     active: Boolean(r["active"]),
     rateLimitPerMin: Number(r["rate_limit_per_min"] ?? 120),
     webhookUrl: (r["webhook_url"] as string) ?? null,
+    webhookSecretHint: (r["webhook_secret_hint"] as string) ?? null,
     lastUsedAt: (r["last_used_at"] as string) ?? null,
     expiresAt: (r["expires_at"] as string) ?? null,
     revokedAt: (r["revoked_at"] as string) ?? null,
