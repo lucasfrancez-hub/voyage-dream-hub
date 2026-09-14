@@ -77,6 +77,17 @@ export const Route = createFileRoute("/api/public/internal/v1/checkouts/$checkou
                   metodo: "PIX",
                   pixExpiraEm: pix.expiraEm,
                 });
+                // Guarda a referência da cobrança para a consulta GET devolver
+                // o mesmo contrato (txid, QR Code e vencimento).
+                await supabaseAdmin
+                  .from("integration_orders")
+                  .update({
+                    customer_payment_txid: pix.txid,
+                    customer_payment_status: "pending",
+                    provider_pix_expires_at: pix.expiraEm,
+                  } as never)
+                  .eq("provider_cart_id", ref.cartId);
+
 
                 return ok(
                   {
