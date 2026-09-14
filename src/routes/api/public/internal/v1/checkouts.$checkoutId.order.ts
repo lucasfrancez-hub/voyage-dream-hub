@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/public/internal/v1/checkouts/$checkou
                 }
                 const aberto = await abrirPedidoDoCarrinho({ cartId: ref.cartId, metodo: "PIX" });
                 const r = await criarPedido(ref.cartId, token, aberto.integrationOrderId ?? undefined);
-                const numero = (r as { numero?: string | null }).numero ?? null;
+                const numero = r.orderNumber ?? null;
                 if (!numero) {
                   return fail(
                     "provider_error",
