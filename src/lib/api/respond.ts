@@ -13,6 +13,7 @@ export type ApiErrorCode =
   | "provider_error"
   | "provider_unavailable"
   | "provider_session_unavailable"
+  | "provider_session_renewing"
   | "price_changed"
   | "payment_declined"
   | "internal_error";
@@ -27,6 +28,7 @@ const STATUS: Record<ApiErrorCode, number> = {
   provider_error: 502,
   provider_unavailable: 503,
   provider_session_unavailable: 503,
+  provider_session_renewing: 503,
   price_changed: 409,
   payment_declined: 402,
   internal_error: 500,
@@ -35,6 +37,7 @@ const STATUS: Record<ApiErrorCode, number> = {
 const RETRYABLE: ApiErrorCode[] = [
   "provider_unavailable",
   "provider_session_unavailable",
+  "provider_session_renewing",
   "rate_limited",
   "internal_error",
 ];
