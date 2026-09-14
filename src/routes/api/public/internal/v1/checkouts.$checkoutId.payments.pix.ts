@@ -86,6 +86,8 @@ export const Route = createFileRoute("/api/public/internal/v1/checkouts/$checkou
                     amount: pix.valor,
                     currency: "BRL",
                     qrCode: pix.qrCode,
+                    qrCodeImage: pix.qrCodeImage,
+                    invoiceUrl: pix.invoiceUrl,
                     expiresAt: pix.expiraEm,
                     status: "ACTIVE",
                     provider: "VIAAIR_ASAAS",
@@ -117,17 +119,46 @@ export const Route = createFileRoute("/api/public/internal/v1/checkouts/$checkou
             provider_pix_expires_at: string | null;
           } | null;
           if (!linha) return fail("not_found", "Nenhum Pix gerado para este checkout.", ctx.correlationId);
+
+          // Mesmo formato da criação: a Sky Hub recebe sempre o contrato completo.
+          const { data: cob } = linha.customer_payment_txid
+            ? await supabaseAdmin
+                .from("pix_cobrancas")
+                .select("txid,valor,qr_code,qr_code_image,invoice_url,expira_em,status")
+                .eq("txid", linha.customer_payment_txid)
+                .maybeSingle()
+            : { data: null };
+          const c = cob as {
+            txid: string;
+            valor: number;
+            qr_code: string | null;
+            qr_code_image: string | null;
+            invoice_url: string | null;
+            expira_em: string | null;
+            status: string | null;
+          } | null;
+
           return ok(
             {
               paymentId: linha.customer_payment_txid,
+              txid: linha.customer_payment_txid,
               orderId: linha.viaair_order_id,
-              status: statusDoPagamento(linha.customer_payment_status, linha.provider_pix_expires_at),
-              expiresAt: linha.provider_pix_expires_at,
+              amount: c ? Number(c.valor) : null,
+              currency: "BRL",
+              qrCode: c?.qr_code ?? null,
+              qrCodeImage: c?.qr_code_image ?? null,
+              invoiceUrl: c?.invoice_url ?? null,
+              status: statusDoPagamento(
+                c?.status ?? linha.customer_payment_status,
+                c?.expira_em ?? linha.provider_pix_expires_at,
+              ),
+              expiresAt: c?.expira_em ?? linha.provider_pix_expires_at,
               provider: "VIAAIR_ASAAS",
             },
             ctx.correlationId,
           );
         }),
+
     },
   },
 });
