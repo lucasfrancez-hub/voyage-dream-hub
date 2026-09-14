@@ -48,7 +48,10 @@ function PainelTokens() {
 
   const stats = useQuery({
     queryKey: ["api-client-stats", aberto],
-    queryFn: () => estatisticas({ data: { id: aberto! } }),
+    queryFn: async (): Promise<{ chamadas24h: number }> => {
+      const r = (await estatisticas({ data: { id: aberto! } })) as { chamadas24h?: number };
+      return { chamadas24h: r.chamadas24h ?? 0 };
+    },
     enabled: !!aberto,
   });
 

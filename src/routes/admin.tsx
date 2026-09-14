@@ -805,6 +805,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     pathname.startsWith("/admin/regras-parcelamento") ||
     pathname.startsWith("/admin/codigos-auth") ||
     pathname.startsWith("/admin/stripe") ||
+    pathname.startsWith("/admin/api-tokens") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
   return (
@@ -828,6 +829,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
             { to: "/admin/regras-parcelamento", label: "Regras de parcelamento", icon: CreditCard },
             { to: "/admin/codigos-auth", label: "Códigos 2FA por e-mail", icon: ShieldCheck },
             { to: "/admin/stripe", label: "Stripe — Testes 3DS", icon: CreditCard },
+            { to: "/admin/api-tokens", label: "API — Tokens", icon: ShieldCheck },
 
           ],
         },
