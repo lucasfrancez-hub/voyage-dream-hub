@@ -213,11 +213,15 @@ import { Route as CruzeirosUiPreviewScreenModelRouteImport } from './routes/cruz
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as ApiPublicInternalV1CheckoutsRouteImport } from './routes/api/public/internal/v1/checkouts'
 import { Route as ApiPublicInternalV1HealthRouteImport } from './routes/api/public/internal/v1/health'
 import { Route as ApiPublicInternalV1AirportsSearchRouteImport } from './routes/api/public/internal/v1/airports.search'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId'
 import { Route as ApiPublicInternalV1FlightsInboundRouteImport } from './routes/api/public/internal/v1/flights.inbound'
 import { Route as ApiPublicInternalV1FlightsSearchRouteImport } from './routes/api/public/internal/v1/flights.search'
 import { Route as ApiPublicInternalV1OnerStatusRouteImport } from './routes/api/public/internal/v1/oner.status'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPassengersRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.passengers'
+import { Route as ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.revalidate'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -1283,6 +1287,12 @@ const LovableEmailTransactionalPreviewRoute =
     path: '/lovable/email/transactional/preview',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicInternalV1CheckoutsRoute =
+  ApiPublicInternalV1CheckoutsRouteImport.update({
+    id: '/api/public/internal/v1/checkouts',
+    path: '/api/public/internal/v1/checkouts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInternalV1HealthRoute =
   ApiPublicInternalV1HealthRouteImport.update({
     id: '/api/public/internal/v1/health',
@@ -1294,6 +1304,12 @@ const ApiPublicInternalV1AirportsSearchRoute =
     id: '/api/public/internal/v1/airports/search',
     path: '/api/public/internal/v1/airports/search',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdRouteImport.update({
+    id: '/$checkoutId',
+    path: '/$checkoutId',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsRoute,
   } as any)
 const ApiPublicInternalV1FlightsInboundRoute =
   ApiPublicInternalV1FlightsInboundRouteImport.update({
@@ -1312,6 +1328,18 @@ const ApiPublicInternalV1OnerStatusRoute =
     id: '/api/public/internal/v1/oner/status',
     path: '/api/public/internal/v1/oner/status',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdPassengersRouteImport.update({
+    id: '/passengers',
+    path: '/passengers',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
+  } as any)
+const ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute =
+  ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRouteImport.update({
+    id: '/revalidate',
+    path: '/revalidate',
+    getParentRoute: () => ApiPublicInternalV1CheckoutsCheckoutIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -1519,11 +1547,15 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/api/public/internal/v1/checkouts': typeof ApiPublicInternalV1CheckoutsRouteWithChildren
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
   '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
   '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/passengers': typeof ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/revalidate': typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1727,11 +1759,15 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/api/public/internal/v1/checkouts': typeof ApiPublicInternalV1CheckoutsRouteWithChildren
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
   '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
   '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/passengers': typeof ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/revalidate': typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1939,11 +1975,15 @@ export interface FileRoutesById {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/api/public/internal/v1/checkouts': typeof ApiPublicInternalV1CheckoutsRouteWithChildren
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
   '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
   '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/passengers': typeof ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute
+  '/api/public/internal/v1/checkouts/$checkoutId/revalidate': typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -2152,11 +2192,15 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
+    | '/api/public/internal/v1/checkouts'
     | '/api/public/internal/v1/health'
     | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
     | '/api/public/internal/v1/flights/search'
     | '/api/public/internal/v1/oner/status'
+    | '/api/public/internal/v1/checkouts/$checkoutId/passengers'
+    | '/api/public/internal/v1/checkouts/$checkoutId/revalidate'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -2360,11 +2404,15 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
+    | '/api/public/internal/v1/checkouts'
     | '/api/public/internal/v1/health'
     | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
     | '/api/public/internal/v1/flights/search'
     | '/api/public/internal/v1/oner/status'
+    | '/api/public/internal/v1/checkouts/$checkoutId/passengers'
+    | '/api/public/internal/v1/checkouts/$checkoutId/revalidate'
   id:
     | '__root__'
     | '/'
@@ -2571,11 +2619,15 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
+    | '/api/public/internal/v1/checkouts'
     | '/api/public/internal/v1/health'
     | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
     | '/api/public/internal/v1/flights/search'
     | '/api/public/internal/v1/oner/status'
+    | '/api/public/internal/v1/checkouts/$checkoutId/passengers'
+    | '/api/public/internal/v1/checkouts/$checkoutId/revalidate'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2685,6 +2737,7 @@ export interface RootRouteChildren {
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  ApiPublicInternalV1CheckoutsRoute: typeof ApiPublicInternalV1CheckoutsRouteWithChildren
   ApiPublicInternalV1HealthRoute: typeof ApiPublicInternalV1HealthRoute
   ApiPublicInternalV1AirportsSearchRoute: typeof ApiPublicInternalV1AirportsSearchRoute
   ApiPublicInternalV1FlightsInboundRoute: typeof ApiPublicInternalV1FlightsInboundRoute
@@ -4122,6 +4175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/internal/v1/checkouts': {
+      id: '/api/public/internal/v1/checkouts'
+      path: '/api/public/internal/v1/checkouts'
+      fullPath: '/api/public/internal/v1/checkouts'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/internal/v1/health': {
       id: '/api/public/internal/v1/health'
       path: '/api/public/internal/v1/health'
@@ -4135,6 +4195,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/internal/v1/airports/search'
       preLoaderRoute: typeof ApiPublicInternalV1AirportsSearchRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId'
+      path: '/$checkoutId'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsRoute
     }
     '/api/public/internal/v1/flights/inbound': {
       id: '/api/public/internal/v1/flights/inbound'
@@ -4156,6 +4223,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/internal/v1/oner/status'
       preLoaderRoute: typeof ApiPublicInternalV1OnerStatusRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/passengers': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/passengers'
+      path: '/passengers'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/passengers'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPassengersRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
+    }
+    '/api/public/internal/v1/checkouts/$checkoutId/revalidate': {
+      id: '/api/public/internal/v1/checkouts/$checkoutId/revalidate'
+      path: '/revalidate'
+      fullPath: '/api/public/internal/v1/checkouts/$checkoutId/revalidate'
+      preLoaderRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRouteImport
+      parentRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRoute
     }
   }
 }
@@ -4428,6 +4509,39 @@ const VistoAmericanoTokenRouteChildren: VistoAmericanoTokenRouteChildren = {
 const VistoAmericanoTokenRouteWithChildren =
   VistoAmericanoTokenRoute._addFileChildren(VistoAmericanoTokenRouteChildren)
 
+interface ApiPublicInternalV1CheckoutsCheckoutIdRouteChildren {
+  ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute
+  ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute
+}
+
+const ApiPublicInternalV1CheckoutsCheckoutIdRouteChildren: ApiPublicInternalV1CheckoutsCheckoutIdRouteChildren =
+  {
+    ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdPassengersRoute,
+    ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdRevalidateRoute,
+  }
+
+const ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren =
+  ApiPublicInternalV1CheckoutsCheckoutIdRoute._addFileChildren(
+    ApiPublicInternalV1CheckoutsCheckoutIdRouteChildren,
+  )
+
+interface ApiPublicInternalV1CheckoutsRouteChildren {
+  ApiPublicInternalV1CheckoutsCheckoutIdRoute: typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
+}
+
+const ApiPublicInternalV1CheckoutsRouteChildren: ApiPublicInternalV1CheckoutsRouteChildren =
+  {
+    ApiPublicInternalV1CheckoutsCheckoutIdRoute:
+      ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren,
+  }
+
+const ApiPublicInternalV1CheckoutsRouteWithChildren =
+  ApiPublicInternalV1CheckoutsRoute._addFileChildren(
+    ApiPublicInternalV1CheckoutsRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -4544,6 +4658,8 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  ApiPublicInternalV1CheckoutsRoute:
+    ApiPublicInternalV1CheckoutsRouteWithChildren,
   ApiPublicInternalV1HealthRoute: ApiPublicInternalV1HealthRoute,
   ApiPublicInternalV1AirportsSearchRoute:
     ApiPublicInternalV1AirportsSearchRoute,
