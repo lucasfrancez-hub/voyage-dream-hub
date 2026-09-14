@@ -6,28 +6,89 @@
   },
   "auth": {
     "type": "bearer",
-    "bearer": [{ "key": "token", "value": "{{api_token}}", "type": "string" }]
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_token}}",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
-    { "key": "base_url", "value": "https://pedidos.viaair.tur.br/api/public/internal/v1" },
-    { "key": "api_token", "value": "vai_live_xxxxxxxxxxxxxxxxx" },
-    { "key": "search_id", "value": "" },
-    { "key": "offer_id", "value": "" },
-    { "key": "inbound_offer_id", "value": "" },
-    { "key": "checkout_id", "value": "" },
-    { "key": "order_id", "value": "" },
-    { "key": "payment_id", "value": "" },
-    { "key": "card_token", "value": "" },
-    { "key": "card_key", "value": "" }
+    {
+      "key": "base_url",
+      "value": "https://pedidos.viaair.tur.br/api/public/internal/v1"
+    },
+    {
+      "key": "api_token",
+      "value": "vai_live_xxxxxxxxxxxxxxxxx"
+    },
+    {
+      "key": "search_id",
+      "value": ""
+    },
+    {
+      "key": "offer_id",
+      "value": ""
+    },
+    {
+      "key": "inbound_offer_id",
+      "value": ""
+    },
+    {
+      "key": "checkout_id",
+      "value": ""
+    },
+    {
+      "key": "order_id",
+      "value": ""
+    },
+    {
+      "key": "payment_id",
+      "value": ""
+    },
+    {
+      "key": "card_token",
+      "value": ""
+    },
+    {
+      "key": "card_key",
+      "value": ""
+    },
+    {
+      "key": "multicity_search_id",
+      "value": ""
+    },
+    {
+      "key": "group_id",
+      "value": ""
+    },
+    {
+      "key": "offer_leg1",
+      "value": ""
+    },
+    {
+      "key": "offer_leg2",
+      "value": ""
+    }
   ],
   "item": [
     {
       "name": "Saúde",
       "item": [
-        { "name": "Health", "request": { "method": "GET", "url": "{{base_url}}/health" } },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        },
         {
           "name": "Situação do fornecedor",
-          "request": { "method": "GET", "url": "{{base_url}}/oner/status" }
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/oner/status"
+          }
         }
       ]
     },
@@ -45,7 +106,12 @@
           "name": "Pesquisa de voos",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/flights/search",
             "body": {
               "mode": "raw",
@@ -57,7 +123,12 @@
           "name": "Volta",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/flights/inbound",
             "body": {
               "mode": "raw",
@@ -75,8 +146,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "skyhub-checkout-0001" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "skyhub-checkout-0001"
+              }
             ],
             "url": "{{base_url}}/checkouts",
             "body": {
@@ -87,13 +164,21 @@
         },
         {
           "name": "Ler checkout",
-          "request": { "method": "GET", "url": "{{base_url}}/checkouts/{{checkout_id}}" }
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/checkouts/{{checkout_id}}"
+          }
         },
         {
           "name": "Passageiros",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/checkouts/{{checkout_id}}/passengers",
             "body": {
               "mode": "raw",
@@ -105,9 +190,17 @@
           "name": "Reconferir tarifa",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/checkouts/{{checkout_id}}/revalidate",
-            "body": { "mode": "raw", "raw": "{\n  \"expectedAmount\": 471.00\n}" }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expectedAmount\": 471.00\n}"
+            }
           }
         },
         {
@@ -126,7 +219,12 @@
           "name": "Tokenizar cartão",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/card-token",
             "body": {
               "mode": "raw",
@@ -138,7 +236,12 @@
           "name": "Parcelamento",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{base_url}}/checkouts/{{checkout_id}}/installments",
             "body": {
               "mode": "raw",
@@ -151,8 +254,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "skyhub-card-0001" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "skyhub-card-0001"
+              }
             ],
             "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/card",
             "body": {
@@ -166,8 +275,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "skyhub-pix-0001" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "skyhub-pix-0001"
+              }
             ],
             "url": "{{base_url}}/checkouts/{{checkout_id}}/payments/pix",
             "body": {
@@ -185,7 +300,10 @@
         },
         {
           "name": "Situação do pagamento",
-          "request": { "method": "GET", "url": "{{base_url}}/payments/{{payment_id}}" }
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/payments/{{payment_id}}"
+          }
         },
         {
           "name": "Cancelar pagamento",
@@ -203,25 +321,134 @@
           "name": "Criar pedido",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Idempotency-Key", "value": "skyhub-order-0001" }],
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "skyhub-order-0001"
+              }
+            ],
             "url": "{{base_url}}/checkouts/{{checkout_id}}/order"
           }
         },
         {
           "name": "Pedido completo",
-          "request": { "method": "GET", "url": "{{base_url}}/orders/{{order_id}}" }
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/orders/{{order_id}}"
+          }
         },
         {
           "name": "Situação do pedido",
-          "request": { "method": "GET", "url": "{{base_url}}/orders/{{order_id}}/status" }
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/orders/{{order_id}}/status"
+          }
         },
         {
           "name": "Bilhetes",
-          "request": { "method": "GET", "url": "{{base_url}}/orders/{{order_id}}/tickets" }
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/orders/{{order_id}}/tickets"
+          }
         },
         {
           "name": "Documentos",
-          "request": { "method": "GET", "url": "{{base_url}}/orders/{{order_id}}/documents" }
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/orders/{{order_id}}/documents"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Multitrecho",
+      "item": [
+        {
+          "name": "Pesquisa multitrecho",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/flights/multicity/search",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adults\": 1,\n  \"children\": 0,\n  \"infants\": 0,\n  \"checkedBaggage\": false,\n  \"legs\": [\n    {\n      \"origin\": \"GRU\",\n      \"destination\": \"MIA\",\n      \"departureDate\": \"2026-10-10\"\n    },\n    {\n      \"origin\": \"MIA\",\n      \"destination\": \"JFK\",\n      \"departureDate\": \"2026-10-15\"\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Criar grupo (checkouts por perna)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "skyhub-mc-0001"
+              }
+            ],
+            "url": "{{base_url}}/multicity/checkouts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"searchId\": \"{{multicity_search_id}}\",\n  \"offers\": [\n    {\n      \"sequence\": 1,\n      \"offerId\": \"{{offer_leg1}}\"\n    },\n    {\n      \"sequence\": 2,\n      \"offerId\": \"{{offer_leg2}}\"\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Passageiros do grupo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "skyhub-mc-pax-0001"
+              }
+            ],
+            "url": "{{base_url}}/multicity/groups/{{group_id}}/passengers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengers\": [\n    {\n      \"firstName\": \"MARIA\",\n      \"lastName\": \"SILVA\",\n      \"type\": \"ADT\",\n      \"gender\": \"F\",\n      \"birthDate\": \"1990-05-12\",\n      \"documentType\": 1,\n      \"documentNumber\": \"12345678909\",\n      \"nationalityCountryId\": 30,\n      \"email\": \"maria@exemplo.com\",\n      \"phone\": \"44999514838\"\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Revalidar grupo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "skyhub-mc-rev-0001"
+              }
+            ],
+            "url": "{{base_url}}/multicity/groups/{{group_id}}/revalidate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reservations\": [\n    {\n      \"sequence\": 1,\n      \"expectedAmount\": 2100.0\n    },\n    {\n      \"sequence\": 2,\n      \"expectedAmount\": 900.0\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Consultar grupo",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/multicity/groups/{{group_id}}"
+          }
         }
       ]
     }
