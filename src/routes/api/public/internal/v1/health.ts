@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/internal/v1/health")({
           let oner = "unknown";
           try {
             const s = await statusConexao();
-            oner = s.conectado ? "up" : "degraded";
+            oner = s.status === "conectada" ? "up" : "degraded";
           } catch {
             oner = "down";
           }

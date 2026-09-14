@@ -15,11 +15,17 @@ export const Route = createFileRoute("/api/public/internal/v1/oner/status")({
             const s = await statusConexao();
             return ok(
               {
-                available: Boolean(s.conectado),
-                session: s.conectado ? "active" : "inactive",
-                lastValidatedAt: s.validadoEm ?? null,
-                expiresAt: s.expiraEm ?? null,
-                message: s.conectado ? null : "Sessão do fornecedor indisponível.",
+                available: s.status === "conectada",
+                session: s.status === "conectada" ? "active" : "inactive",
+                lastValidatedAt: s.authenticatedAt,
+                lastUsedAt: s.lastUsedAt,
+                expiresAt: s.expiresAt,
+                message:
+                  s.status === "codigo_necessario"
+                    ? "Aguardando código de acesso do fornecedor."
+                    : s.status === "expirada"
+                      ? "Sessão do fornecedor expirada."
+                      : null,
               },
               ctx.correlationId,
             );
