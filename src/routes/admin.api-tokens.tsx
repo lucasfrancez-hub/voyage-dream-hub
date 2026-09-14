@@ -249,6 +249,7 @@ function PainelTokens() {
                       onClick={() => {
                         setAberto(aberto === c.id ? null : c.id);
                         setWebhook(c.webhookUrl ?? "");
+                        setWebhookSecret("");
                       }}
                     >
                       Detalhes
