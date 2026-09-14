@@ -6,7 +6,7 @@ const t = gerarToken("live");
 const code = "DIAG_TMP_" + Date.now();
 const { data, error } = await db.from("api_clients").insert({
   name: "Diagnóstico temporário", client_code: code, environment: "live",
-  token_hash: hashToken(t.token), token_prefix: t.prefixo ?? t.token.slice(0, 18),
+  token_hash: t.hash, token_prefix: t.prefix, token_last4: t.last4,
   scopes: [...API_SCOPES], rate_limit_per_min: 120, active: true,
 } as never).select("id").single();
 if (error) { console.log("insert erro", error.message); process.exit(1); }
