@@ -43,6 +43,11 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
           const d = parsed.data;
           try {
             const { searchFlights } = await import("@/lib/onertravel.server");
+            const { ehCodigoDeCidade } = await import("@/lib/api/iata.server");
+            const origemCidade =
+              d.originIsCity ?? (await ehCodigoDeCidade(d.origin, true));
+            const destinoCidade =
+              d.destinationIsCity ?? (await ehCodigoDeCidade(d.destination, false));
             const resultado = await searchFlights({
               departureIata: d.origin.toUpperCase(),
               arrivalIata: d.destination.toUpperCase(),
@@ -52,8 +57,9 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
               children: d.children,
               infants: d.infants,
               pageSize: 50,
-              departureIsCity: d.originIsCity,
-              arrivalIsCity: d.destinationIsCity,
+              departureIsCity: origemCidade,
+              arrivalIsCity: destinoCidade,
+
               filters: {
                 containsDispatchBaggage: d.checkedBaggage,
                 maxStops: d.maxStops ?? null,
