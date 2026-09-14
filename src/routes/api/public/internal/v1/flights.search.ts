@@ -82,8 +82,9 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
               adults: d.adults,
               children: d.children,
               infants: d.infants,
-              departureIsCity: d.originIsCity,
-              arrivalIsCity: d.destinationIsCity,
+              departureIsCity: origemCidade,
+              arrivalIsCity: destinoCidade,
+
             };
             const payloads: OfferPayload[] = voos.map((f) => ({
               searchKey: resultado.searchKey,
