@@ -326,7 +326,12 @@ async function poll(
 
   // Nenhuma resposta válida do fornecedor: erro explícito, nunca lista vazia.
   if (respostasOk === 0) {
-    throw new Error("indisponivel:motor: o fornecedor não respondeu à pesquisa.");
+    console.warn(
+      `[oner] pesquisa ${path} sem resposta válida do motor (HTTP ${ultimoStatus || "sem status"}).`,
+    );
+    throw new Error(
+      `indisponivel:motor: o fornecedor não respondeu à pesquisa (HTTP ${ultimoStatus || 0}).`,
+    );
   }
 
 
