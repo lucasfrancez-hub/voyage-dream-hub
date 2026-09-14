@@ -202,5 +202,14 @@ export const estatisticasApiClient = createServerFn({ method: "POST" })
       .eq("api_client_id", data.id)
       .order("created_at", { ascending: false })
       .limit(20);
-    return { chamadas24h: count ?? 0, ultimos: (ultimos ?? []) as unknown[] };
+    return {
+      chamadas24h: count ?? 0,
+      ultimos: (ultimos ?? []) as Array<{
+        endpoint: string;
+        method: string;
+        status: number;
+        created_at: string;
+        duration_ms: number | null;
+      }>,
+    };
   });

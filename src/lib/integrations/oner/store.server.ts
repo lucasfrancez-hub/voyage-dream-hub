@@ -230,7 +230,7 @@ export async function atualizarOperacao(
 }
 
 /** Etapas que viram aviso para quem consome a API interna. */
-const AVISOS_API: Partial<Record<OnerState, string>> = {
+const AVISOS_API: Partial<Record<OnerState, import("@/lib/api/webhooks.server").ApiWebhookEvent>> = {
   LOCATOR_RECEIVED: "order.locator.received",
   TICKETS_RECEIVED: "order.ticket.received",
   COMPLETE: "order.completed",
@@ -238,7 +238,7 @@ const AVISOS_API: Partial<Record<OnerState, string>> = {
   PROVIDER_PAID: "supplier.payment.paid",
   ONER_PAID: "supplier.payment.paid",
   PROVIDER_PAYMENT_PROCESSING: "supplier.payment.pending",
-  MANUAL_REVIEW: "supplier.payment.review",
+  MANUAL_REVIEW: "supplier.payment.failed",
 };
 
 export async function mudarEtapa(

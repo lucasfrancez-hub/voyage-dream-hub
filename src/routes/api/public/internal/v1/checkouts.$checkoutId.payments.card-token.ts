@@ -40,8 +40,6 @@ export const Route = createFileRoute(
               cvv: parsed.data.cvv,
               mesValidade: parsed.data.expirationMonth,
               anoValidade: parsed.data.expirationYear,
-              documentoTipo: parsed.data.documentType,
-              documentoNumero: parsed.data.documentNumber,
             });
             if (!cofre.ok || !cofre.cofre) {
               return fail("payment_declined", "Cartão não validado pela operadora.", ctx.correlationId, {
