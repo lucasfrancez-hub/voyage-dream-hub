@@ -70,7 +70,10 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
                 airlineIatas: d.airlines.map((a) => a.toUpperCase()),
                 cabinClass: d.cabinClass ?? null,
               },
-            } as never);
+            } as never, "normal", undefined, {
+              correlationId: ctx.correlationId,
+              source: "internal_api",
+            });
 
             const searchId = novoSearchId();
             const voos = resultado.outbound.flights;

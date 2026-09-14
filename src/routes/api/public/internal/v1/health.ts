@@ -12,12 +12,10 @@ export const Route = createFileRoute("/api/public/internal/v1/health")({
       GET: async ({ request }) =>
         withApi(request, "flights:read", async (ctx) => {
           const { statusConexao } = await import("@/lib/integrations/oner/session.server");
-          const { searchAirports } = await import("@/lib/onertravel.server");
+          const { probeFlightSearch } = await import("@/lib/onertravel.server");
 
           // Pesquisa é anônima; sessão só vale para compra/pagamento.
-          const buscaOk = await searchAirports({ query: "GRU", isDeparture: true })
-            .then((l) => l.length > 0)
-            .catch(() => false);
+          const buscaOk = await probeFlightSearch(ctx.correlationId).catch(() => false);
 
           let checkoutSession = "unknown";
           try {

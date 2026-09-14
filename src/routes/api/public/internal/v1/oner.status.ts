@@ -19,12 +19,11 @@ export const Route = createFileRoute("/api/public/internal/v1/oner/status")({
         withApi(request, "flights:read", async (ctx) => {
           try {
             const { statusConexao } = await import("@/lib/integrations/oner/session.server");
-            const { searchAirports } = await import("@/lib/onertravel.server");
+            const { probeFlightSearch } = await import("@/lib/onertravel.server");
 
             const [s, buscaOk] = await Promise.all([
               statusConexao(),
-              searchAirports({ query: "GRU", isDeparture: true })
-                .then((l) => l.length > 0)
+              probeFlightSearch(ctx.correlationId)
                 .catch(() => false),
             ]);
 
