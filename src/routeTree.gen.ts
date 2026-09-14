@@ -220,6 +220,7 @@ import { Route as ApiPublicInternalV1AirportsSearchRouteImport } from './routes/
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId'
 import { Route as ApiPublicInternalV1FlightsInboundRouteImport } from './routes/api/public/internal/v1/flights.inbound'
 import { Route as ApiPublicInternalV1FlightsSearchRouteImport } from './routes/api/public/internal/v1/flights.search'
+import { Route as ApiPublicInternalV1MulticityCheckoutsRouteImport } from './routes/api/public/internal/v1/multicity.checkouts'
 import { Route as ApiPublicInternalV1OnerStatusRouteImport } from './routes/api/public/internal/v1/oner.status'
 import { Route as ApiPublicInternalV1OrdersOrderIdRouteImport } from './routes/api/public/internal/v1/orders.$orderId'
 import { Route as ApiPublicInternalV1PaymentsPaymentIdRouteImport } from './routes/api/public/internal/v1/payments.$paymentId'
@@ -1343,6 +1344,12 @@ const ApiPublicInternalV1FlightsSearchRoute =
     path: '/api/public/internal/v1/flights/search',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicInternalV1MulticityCheckoutsRoute =
+  ApiPublicInternalV1MulticityCheckoutsRouteImport.update({
+    id: '/api/public/internal/v1/multicity/checkouts',
+    path: '/api/public/internal/v1/multicity/checkouts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInternalV1OnerStatusRoute =
   ApiPublicInternalV1OnerStatusRouteImport.update({
     id: '/api/public/internal/v1/oner/status',
@@ -1658,6 +1665,7 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
   '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
+  '/api/public/internal/v1/multicity/checkouts': typeof ApiPublicInternalV1MulticityCheckoutsRoute
   '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
   '/api/public/internal/v1/orders/$orderId': typeof ApiPublicInternalV1OrdersOrderIdRouteWithChildren
   '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
@@ -1885,6 +1893,7 @@ export interface FileRoutesByTo {
   '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
   '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
+  '/api/public/internal/v1/multicity/checkouts': typeof ApiPublicInternalV1MulticityCheckoutsRoute
   '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
   '/api/public/internal/v1/orders/$orderId': typeof ApiPublicInternalV1OrdersOrderIdRouteWithChildren
   '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
@@ -2116,6 +2125,7 @@ export interface FileRoutesById {
   '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
   '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
+  '/api/public/internal/v1/multicity/checkouts': typeof ApiPublicInternalV1MulticityCheckoutsRoute
   '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
   '/api/public/internal/v1/orders/$orderId': typeof ApiPublicInternalV1OrdersOrderIdRouteWithChildren
   '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
@@ -2348,6 +2358,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
     | '/api/public/internal/v1/flights/search'
+    | '/api/public/internal/v1/multicity/checkouts'
     | '/api/public/internal/v1/oner/status'
     | '/api/public/internal/v1/orders/$orderId'
     | '/api/public/internal/v1/payments/$paymentId'
@@ -2575,6 +2586,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
     | '/api/public/internal/v1/flights/search'
+    | '/api/public/internal/v1/multicity/checkouts'
     | '/api/public/internal/v1/oner/status'
     | '/api/public/internal/v1/orders/$orderId'
     | '/api/public/internal/v1/payments/$paymentId'
@@ -2805,6 +2817,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
     | '/api/public/internal/v1/flights/search'
+    | '/api/public/internal/v1/multicity/checkouts'
     | '/api/public/internal/v1/oner/status'
     | '/api/public/internal/v1/orders/$orderId'
     | '/api/public/internal/v1/payments/$paymentId'
@@ -2936,6 +2949,7 @@ export interface RootRouteChildren {
   ApiPublicInternalV1AirportsSearchRoute: typeof ApiPublicInternalV1AirportsSearchRoute
   ApiPublicInternalV1FlightsInboundRoute: typeof ApiPublicInternalV1FlightsInboundRoute
   ApiPublicInternalV1FlightsSearchRoute: typeof ApiPublicInternalV1FlightsSearchRoute
+  ApiPublicInternalV1MulticityCheckoutsRoute: typeof ApiPublicInternalV1MulticityCheckoutsRoute
   ApiPublicInternalV1OnerStatusRoute: typeof ApiPublicInternalV1OnerStatusRoute
   ApiPublicInternalV1OrdersOrderIdRoute: typeof ApiPublicInternalV1OrdersOrderIdRouteWithChildren
   ApiPublicInternalV1PaymentsPaymentIdRoute: typeof ApiPublicInternalV1PaymentsPaymentIdRoute
@@ -4422,6 +4436,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInternalV1FlightsSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/internal/v1/multicity/checkouts': {
+      id: '/api/public/internal/v1/multicity/checkouts'
+      path: '/api/public/internal/v1/multicity/checkouts'
+      fullPath: '/api/public/internal/v1/multicity/checkouts'
+      preLoaderRoute: typeof ApiPublicInternalV1MulticityCheckoutsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/internal/v1/oner/status': {
       id: '/api/public/internal/v1/oner/status'
       path: '/api/public/internal/v1/oner/status'
@@ -5013,6 +5034,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicInternalV1FlightsInboundRoute:
     ApiPublicInternalV1FlightsInboundRoute,
   ApiPublicInternalV1FlightsSearchRoute: ApiPublicInternalV1FlightsSearchRoute,
+  ApiPublicInternalV1MulticityCheckoutsRoute:
+    ApiPublicInternalV1MulticityCheckoutsRoute,
   ApiPublicInternalV1OnerStatusRoute: ApiPublicInternalV1OnerStatusRoute,
   ApiPublicInternalV1OrdersOrderIdRoute:
     ApiPublicInternalV1OrdersOrderIdRouteWithChildren,
