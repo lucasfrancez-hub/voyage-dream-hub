@@ -251,6 +251,8 @@ async function poll(
         signal,
       );
       if (!res.ok) break;
+      respostasOk++;
+
       try {
         const json = (await res.json()) as {
           haveMore?: boolean;
