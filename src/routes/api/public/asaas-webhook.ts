@@ -283,6 +283,17 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
             .update({ status: 'paid', pix_baixa_tipo: 'asaas' })
             .eq('id', cob.order_id)
 
+          // Avisa quem consome a API interna (Sky Hub) — nunca derruba o webhook.
+          {
+            const { enfileirarEvento } = await import('@/lib/api/webhooks.server')
+            await enfileirarEvento('customer.payment.paid', {
+              orderId: cob.order_id,
+              paymentId: cob.txid ?? null,
+              amount: valor,
+              paidAt: new Date(horario).toISOString(),
+            })
+          }
+
           const description = `Pix ASAAS — ${paymentId}`
           const { data: existingPay } = await supabaseAdmin
             .from('order_payments')
