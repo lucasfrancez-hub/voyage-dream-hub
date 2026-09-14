@@ -294,6 +294,21 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
             })
           }
 
+          // Pix de checkout de voo (Oner): recebeu, identificou — paga o
+          // fornecedor na hora, sem esperar a janela manual de 30 minutos.
+          // Nunca derruba o webhook: falha aqui só mantém a tarefa manual.
+          try {
+            const { pagarFornecedorAposPixCliente } = await import(
+              '@/lib/integrations/oner/pix-auto.server'
+            )
+            const auto = await pagarFornecedorAposPixCliente(cob.order_id)
+            if (!auto.ok) {
+              console.warn('[asaas-webhook] auto-pagamento Oner pendente', auto.motivo)
+            }
+          } catch (err) {
+            console.error('[asaas-webhook] auto-pagamento Oner falhou', err)
+          }
+
           const description = `Pix ASAAS — ${paymentId}`
           const { data: existingPay } = await supabaseAdmin
             .from('order_payments')
