@@ -183,7 +183,12 @@ export async function atualizarGrupo(
  * COMPLETE só quando todas as reservas estiverem concluídas.
  */
 export function statusDoGrupo(
-  reservas: Array<{ status: string; paymentStatus?: string | null; ticketStatus?: string | null }>,
+  reservas: Array<{
+    status: string;
+    paymentStatus?: string | null;
+    ticketStatus?: string | null;
+    checkoutCriado?: boolean;
+  }>,
 ): GroupStatus {
   if (reservas.length === 0) return "FAILED";
   const falhou = (r: (typeof reservas)[number]) => r.status === "FAILED" || r.status === "DECLINED";
