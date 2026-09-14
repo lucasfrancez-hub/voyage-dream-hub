@@ -198,3 +198,63 @@ describe("segurança da documentação", () => {
     }
   });
 });
+
+describe("sessão de compra do fornecedor", () => {
+  const respond = readFileSync("src/lib/api/respond.ts", "utf8");
+  const webhooks = readFileSync("src/lib/api/webhooks.server.ts", "utf8");
+
+  it("o código provider_session_unavailable existe em todos os contratos", () => {
+    expect(respond).toContain("provider_session_unavailable");
+    expect(openapi).toContain("provider_session_unavailable");
+    expect(doc).toContain("provider_session_unavailable");
+  });
+
+  it("é repetível (503) para o consumidor poder tentar de novo", () => {
+    expect(respond).toMatch(/RETRYABLE[\s\S]*provider_session_unavailable/);
+    expect(respond).toMatch(/provider_session_unavailable: 503/);
+  });
+
+  it("os avisos de sessão existem na implementação, no OpenAPI, no SDK e na documentação", () => {
+    for (const evento of [
+      "checkout.session.required",
+      "checkout.session.restored",
+      "checkout.session.failed",
+    ]) {
+      expect(webhooks).toContain(evento);
+      expect(openapi).toContain(evento);
+      expect(tipos).toContain(evento);
+      expect(doc).toContain(evento);
+    }
+  });
+
+  it("a pesquisa de voos não depende da sessão de compra", () => {
+    for (const rota of [
+      "src/routes/api/public/internal/v1/flights.search.ts",
+      "src/routes/api/public/internal/v1/flights.inbound.ts",
+      "src/routes/api/public/internal/v1/flights.multicity.search.ts",
+    ]) {
+      const src = readFileSync(rota, "utf8");
+      expect(src).not.toContain("sessaoDeCompra");
+      expect(src).not.toContain("obterToken");
+    }
+  });
+
+  it("as rotas de compra renovam a sessão em vez de falhar direto", () => {
+    for (const rota of [
+      "checkouts.$checkoutId.ts",
+      "checkouts.$checkoutId.passengers.ts",
+      "checkouts.$checkoutId.revalidate.ts",
+      "checkouts.$checkoutId.payment-methods.ts",
+      "checkouts.$checkoutId.installments.ts",
+      "checkouts.$checkoutId.payments.card.ts",
+      "checkouts.$checkoutId.payments.cancel.ts",
+      "checkouts.$checkoutId.order.ts",
+      "multicity.groups.$groupId.passengers.ts",
+      "multicity.groups.$groupId.revalidate.ts",
+    ]) {
+      const src = readFileSync(`src/routes/api/public/internal/v1/${rota}`, "utf8");
+      expect(src).toContain("sessaoDeCompra");
+      expect(src).not.toContain("obterToken");
+    }
+  });
+});
