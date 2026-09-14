@@ -22,8 +22,11 @@ const entrada = z.object({
   checkedBaggage: z.boolean().default(false),
   maxStops: z.number().int().min(0).max(3).nullish(),
   airlines: z.array(z.string().trim().min(2).max(3)).max(20).default([]),
-  originIsCity: z.boolean().default(false),
-  destinationIsCity: z.boolean().default(false),
+  // Quando não informado, a própria API descobre se o código é de cidade
+  // (SAO, RIO...). Mandar cidade como aeroporto devolvia zero voos.
+  originIsCity: z.boolean().nullish(),
+  destinationIsCity: z.boolean().nullish(),
+
 });
 
 export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
@@ -40,6 +43,11 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
           const d = parsed.data;
           try {
             const { searchFlights } = await import("@/lib/onertravel.server");
+            const { ehCodigoDeCidade } = await import("@/lib/api/iata.server");
+            const origemCidade =
+              d.originIsCity ?? (await ehCodigoDeCidade(d.origin, true));
+            const destinoCidade =
+              d.destinationIsCity ?? (await ehCodigoDeCidade(d.destination, false));
             const resultado = await searchFlights({
               departureIata: d.origin.toUpperCase(),
               arrivalIata: d.destination.toUpperCase(),
@@ -49,8 +57,9 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
               children: d.children,
               infants: d.infants,
               pageSize: 50,
-              departureIsCity: d.originIsCity,
-              arrivalIsCity: d.destinationIsCity,
+              departureIsCity: origemCidade,
+              arrivalIsCity: destinoCidade,
+
               filters: {
                 containsDispatchBaggage: d.checkedBaggage,
                 maxStops: d.maxStops ?? null,
@@ -73,8 +82,9 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
               adults: d.adults,
               children: d.children,
               infants: d.infants,
-              departureIsCity: d.originIsCity,
-              arrivalIsCity: d.destinationIsCity,
+              departureIsCity: origemCidade,
+              arrivalIsCity: destinoCidade,
+
             };
             const payloads: OfferPayload[] = voos.map((f) => ({
               searchKey: resultado.searchKey,

@@ -229,6 +229,10 @@ async function poll(
   // publicam em ondas diferentes — sair na primeira onda faz sumir voos e
   // mostrar tarifa mais cara do que a real.
   let roundsWithFlights = 0;
+  // Quantas respostas o fornecedor realmente entregou. Zero = motor fora do
+  // ar: não podemos devolver "nenhum voo" como se fosse falta de inventário.
+  let respostasOk = 0;
+
 
   for (let i = 0; i < maxRounds; i++) {
     if (signal?.aborted) throw new Error("cancelado:motor");
@@ -247,6 +251,8 @@ async function poll(
         signal,
       );
       if (!res.ok) break;
+      respostasOk++;
+
       try {
         const json = (await res.json()) as {
           haveMore?: boolean;
@@ -286,6 +292,12 @@ async function poll(
 
     if (i + 1 < maxRounds) await sleepCancelavel(GAP_MS, signal);
   }
+
+  // Nenhuma resposta válida do fornecedor: erro explícito, nunca lista vazia.
+  if (respostasOk === 0) {
+    throw new Error("indisponivel:motor: o fornecedor não respondeu à pesquisa.");
+  }
+
 
 
   const flights = [...acc.entries()]
