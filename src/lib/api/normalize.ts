@@ -168,7 +168,10 @@ export type ApiPaymentStatus = "ACTIVE" | "PAID" | "EXPIRED" | "CANCELLED" | "RE
 
 export function statusDoPagamento(bruto: string | null, expiraEm?: string | null): ApiPaymentStatus {
   const v = (bruto ?? "").toUpperCase();
-  if (["PAID", "RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(v)) return "PAID";
+  if (["PAID", "RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "CONCLUIDA", "PAGA"].includes(v)) return "PAID";
+  if (v.startsWith("ESTORN")) return "REFUNDED";
+  if (v.startsWith("CANCELAD")) return "CANCELLED";
+  if (v.startsWith("EXPIRAD")) return "EXPIRED";
   if (["REFUNDED", "REFUND_REQUESTED", "CHARGEBACK"].some((x) => v.includes(x))) return "REFUNDED";
   if (["CANCELLED", "CANCELED", "DELETED"].some((x) => v.includes(x))) return "CANCELLED";
   if (expiraEm && new Date(expiraEm).getTime() < Date.now()) return "EXPIRED";
