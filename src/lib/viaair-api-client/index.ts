@@ -105,25 +105,16 @@ export class ViaAirApi {
   }
 
   health() {
-    return this.call<{ status: string; version: string; services: Record<string, string> }>(
-      "GET",
-      "/health",
-    );
+    return this.call<HealthResponse>("GET", "/health");
   }
 
   onerStatus() {
-    return this.call<{ available: boolean; session: string; lastValidatedAt: string | null }>(
-      "GET",
-      "/oner/status",
-    );
+    return this.call<OnerStatusResponse>("GET", "/oner/status");
   }
 
   searchAirports(query: string, isDeparture = true) {
     const q = new URLSearchParams({ query, isDeparture: String(isDeparture) });
-    return this.call<{ airports: Array<{ iata: string; name: string; city: string }> }>(
-      "GET",
-      `/airports/search?${q}`,
-    );
+    return this.call<{ airports: Airport[] }>("GET", `/airports/search?${q}`);
   }
 
   searchFlights(input: FlightSearchRequest) {
@@ -134,16 +125,8 @@ export class ViaAirApi {
     return this.call<InboundResponse>("POST", "/flights/inbound", input);
   }
 
-  createCheckout(
-    input: { offerId: string; inboundOfferId?: string; fareKey?: string },
-    idempotencyKey?: string,
-  ) {
-    return this.call<{ checkoutId: string; status: string; expiresAt: string }>(
-      "POST",
-      "/checkouts",
-      input,
-      { idempotencyKey },
-    );
+  createCheckout(input: CreateCheckoutRequest, idempotencyKey?: string) {
+    return this.call<CreateCheckoutResponse>("POST", "/checkouts", input, { idempotencyKey });
   }
 
   getCheckout(checkoutId: string) {
@@ -151,7 +134,7 @@ export class ViaAirApi {
   }
 
   setPassengers(checkoutId: string, passengers: Passenger[], idempotencyKey?: string) {
-    return this.call<{ ok: true; passengers: number }>(
+    return this.call<PassengersResponse>(
       "PUT",
       `/checkouts/${checkoutId}/passengers`,
       { passengers },
@@ -159,15 +142,21 @@ export class ViaAirApi {
     );
   }
 
-  revalidate(checkoutId: string) {
-    return this.call<RevalidateResult>("POST", `/checkouts/${checkoutId}/revalidate`);
+  /** `expectedAmount` é o total mostrado ao cliente; a API compara com o valor atual. */
+  revalidate(checkoutId: string, expectedAmount: number) {
+    return this.call<RevalidateResult>("POST", `/checkouts/${checkoutId}/revalidate`, {
+      expectedAmount,
+    });
   }
 
   getPaymentMethods(checkoutId: string) {
-    return this.call<{ methods: PaymentMethod[] }>("GET", `/checkouts/${checkoutId}/payment-methods`);
+    return this.call<PaymentMethodsResponse>("GET", `/checkouts/${checkoutId}/payment-methods`);
   }
 
-  getInstallments(checkoutId: string, input: { cardBin: string; amount: number }) {
+  getInstallments(
+    checkoutId: string,
+    input: { amount: number; cardToken: string; cardKey: string; multipleCards?: boolean },
+  ) {
     return this.call<{ installments: InstallmentOption[] }>(
       "POST",
       `/checkouts/${checkoutId}/installments`,
@@ -175,22 +164,13 @@ export class ViaAirApi {
     );
   }
 
-  createCardToken(
-    checkoutId: string,
-    input: { number: string; holder: string; expMonth: string; expYear: string; cvv: string },
-  ) {
+  /** PAN e CVV trafegam apenas nesta chamada; não são gravados nem devolvidos. */
+  createCardToken(checkoutId: string, input: CardTokenRequest) {
     return this.call<CardToken>("POST", `/checkouts/${checkoutId}/payments/card-token`, input);
   }
 
-  payByCard(
-    checkoutId: string,
-    input: {
-      cards: Array<{ token: string; key: string; amount: number; installments: number }>;
-      payer: Record<string, unknown>;
-    },
-    idempotencyKey?: string,
-  ) {
-    return this.call<{ status: string; orderId: string | null; locator: string | null }>(
+  payByCard(checkoutId: string, input: CardPaymentRequest, idempotencyKey?: string) {
+    return this.call<CardPaymentResponse>(
       "POST",
       `/checkouts/${checkoutId}/payments/card`,
       input,
@@ -198,11 +178,7 @@ export class ViaAirApi {
     );
   }
 
-  createPix(
-    checkoutId: string,
-    input: { payer: { name: string; document: string; email?: string; phone?: string } },
-    idempotencyKey?: string,
-  ) {
+  createPix(checkoutId: string, input: PixRequest, idempotencyKey?: string) {
     return this.call<PixPayment>("POST", `/checkouts/${checkoutId}/payments/pix`, input, {
       idempotencyKey,
     });
@@ -217,16 +193,13 @@ export class ViaAirApi {
   }
 
   cancelPayment(checkoutId: string) {
-    return this.call<{ ok: boolean }>("POST", `/checkouts/${checkoutId}/payments/cancel`);
+    return this.call<CancelPaymentResponse>("POST", `/checkouts/${checkoutId}/payments/cancel`);
   }
 
   createOrder(checkoutId: string, idempotencyKey?: string) {
-    return this.call<{ orderId: string; providerOrderNumber: string | null }>(
-      "POST",
-      `/checkouts/${checkoutId}/order`,
-      {},
-      { idempotencyKey },
-    );
+    return this.call<CreateOrderResponse>("POST", `/checkouts/${checkoutId}/order`, {}, {
+      idempotencyKey,
+    });
   }
 
   getOrder(orderId: string) {
@@ -234,23 +207,18 @@ export class ViaAirApi {
   }
 
   getOrderStatus(orderId: string) {
-    return this.call<{ orderId: string; status: OrderStatus; detail: string | null }>(
-      "GET",
-      `/orders/${orderId}/status`,
-    );
+    return this.call<OrderStatusResponse>("GET", `/orders/${orderId}/status`);
   }
 
   getTickets(orderId: string) {
-    return this.call<{ orderId: string; tickets: Ticket[] }>("GET", `/orders/${orderId}/tickets`);
+    return this.call<TicketsResponse>("GET", `/orders/${orderId}/tickets`);
   }
 
   getDocuments(orderId: string) {
-    return this.call<{ orderId: string; documents: Array<{ name: string; url: string | null }> }>(
-      "GET",
-      `/orders/${orderId}/documents`,
-    );
+    return this.call<DocumentsResponse>("GET", `/orders/${orderId}/documents`);
   }
 }
+
 
 /** Confere a assinatura de um aviso enviado pela VIA AIR (Node/Web Crypto). */
 export async function verificarAssinaturaWebhook(input: {
