@@ -229,12 +229,24 @@ export async function atualizarOperacao(
   return row;
 }
 
+/** Etapas que viram aviso para quem consome a API interna. */
+const AVISOS_API: Partial<Record<OnerState, import("@/lib/api/webhooks.server").ApiWebhookEvent>> = {
+  LOCATOR_RECEIVED: "order.locator.received",
+  TICKETS_RECEIVED: "order.ticket.received",
+  COMPLETE: "order.completed",
+  FAILED: "order.failed",
+  PROVIDER_PAID: "supplier.payment.paid",
+  ONER_PAID: "supplier.payment.paid",
+  PROVIDER_PAYMENT_PROCESSING: "supplier.payment.pending",
+  MANUAL_REVIEW: "supplier.payment.failed",
+};
+
 export async function mudarEtapa(
   id: string,
   state: OnerState,
   opts: { detail?: string | null; erro?: string | null; extra?: Record<string, unknown> } = {},
 ) {
-  return atualizarOperacao(
+  const r = await atualizarOperacao(
     id,
     {
       state,
@@ -244,6 +256,21 @@ export async function mudarEtapa(
     },
     { eventType: "state_change", message: opts.detail ?? state },
   );
+
+  const evento = AVISOS_API[state];
+  if (evento) {
+    try {
+      const { enfileirarEvento } = await import("@/lib/api/webhooks.server");
+      await enfileirarEvento(evento, {
+        orderId: id,
+        status: state,
+        detail: opts.detail ?? null,
+      });
+    } catch {
+      // aviso é acessório: nunca interrompe o fluxo da operação
+    }
+  }
+  return r;
 }
 
 /** Reagenda a próxima consulta com intervalo crescente. */

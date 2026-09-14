@@ -159,7 +159,7 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
 
         let { data: cob } = await supabaseAdmin
           .from('pix_cobrancas')
-          .select('id, order_id, status, valor')
+          .select('id, order_id, status, valor, txid')
           .eq('asaas_payment_id', paymentId)
           .maybeSingle()
 
@@ -167,7 +167,7 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
         if (!cob && payment?.externalReference) {
           const alt = await supabaseAdmin
             .from('pix_cobrancas')
-            .select('id, order_id, status, valor')
+            .select('id, order_id, status, valor, txid')
             .eq('txid', payment.externalReference)
             .maybeSingle()
           cob = alt.data ?? null
@@ -282,6 +282,17 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
             .from('orders')
             .update({ status: 'paid', pix_baixa_tipo: 'asaas' })
             .eq('id', cob.order_id)
+
+          // Avisa quem consome a API interna (Sky Hub) — nunca derruba o webhook.
+          {
+            const { enfileirarEvento } = await import('@/lib/api/webhooks.server')
+            await enfileirarEvento('customer.payment.paid', {
+              orderId: cob.order_id,
+              paymentId: cob.txid ?? null,
+              amount: valor,
+              paidAt: new Date(horario).toISOString(),
+            })
+          }
 
           const description = `Pix ASAAS — ${paymentId}`
           const { data: existingPay } = await supabaseAdmin
