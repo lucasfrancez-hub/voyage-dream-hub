@@ -136,7 +136,6 @@ GET /airports/search?query=rio&isDeparture=true
 ```
 
 ```json
-```json
 {
   "airports": [
     { "iata": "RIO", "name": "", "city": "RIO", "country": "", "isCity": true, "cityCode": "RIO" },
