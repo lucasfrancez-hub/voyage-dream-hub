@@ -83,7 +83,18 @@ export function failFromError(e: unknown, correlationId: string, provider = "one
       provider,
     });
   }
+  // Motor fora do ar / sem chave de busca: é indisponibilidade do fornecedor,
+  // nunca "não há voos". O consumidor precisa distinguir os dois casos.
+  if (/indisponivel:motor|chave de busca/i.test(msg)) {
+    return fail(
+      "provider_unavailable",
+      "O motor de pesquisa do fornecedor está indisponível no momento.",
+      correlationId,
+      { provider },
+    );
+  }
   return fail("provider_error", "Não foi possível concluir a operação no fornecedor.", correlationId, {
     provider,
   });
 }
+
