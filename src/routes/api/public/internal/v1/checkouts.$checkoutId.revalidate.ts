@@ -22,12 +22,11 @@ export const Route = createFileRoute("/api/public/internal/v1/checkouts/$checkou
             return fail("invalid_request", "Informe expectedAmount.", ctx.correlationId);
           }
           try {
-            const { obterToken } = await import("@/lib/integrations/oner/session.server");
+            const { sessaoDeCompra } = await import("@/lib/api/oner-session.server");
             const { revalidarPreco } = await import("@/lib/integrations/oner/checkout.server");
-            const token = await obterToken({});
-            if (!token) {
-              return fail("provider_unavailable", "Sessão do fornecedor indisponível.", ctx.correlationId);
-            }
+            const sessao = await sessaoDeCompra(ctx.correlationId, { checkoutId: params.checkoutId });
+            if ("falha" in sessao) return sessao.falha;
+            const token = sessao.token;
             const r = await revalidarPreco(ref.cartId, token, parsed.data.expectedAmount);
             if (r.expirado) {
               return ok(

@@ -382,7 +382,10 @@ export type WebhookEventName =
   | "order.locator.received"
   | "order.ticket.received"
   | "order.completed"
-  | "order.failed";
+  | "order.failed"
+  | "checkout.session.required"
+  | "checkout.session.restored"
+  | "checkout.session.failed";
 
 export type WebhookEvent = {
   id: string;

@@ -74,7 +74,15 @@ Permissões do token Sky Hub: `flights:read`, `flights:write`, `checkouts:read`,
 Códigos: `unauthorized` (401), `payment_declined` (402), `forbidden` (403),
 `not_found` (404), `conflict` (409), `price_changed` (409), `invalid_request` (422),
 `rate_limited` (429), `internal_error` (500), `provider_error` (502),
-`provider_unavailable` (503). Repita apenas quando `retryable = true`.
+`provider_unavailable` (503), `provider_session_unavailable` (503).
+Repita apenas quando `retryable = true`.
+
+**`provider_session_unavailable`** é específico: a sessão de compra do
+fornecedor estava vencida e a VIA AIR já iniciou a reativação por conta
+própria. A Sky Hub não recebe, guarda nem envia código, cookie ou sessão do
+fornecedor. Espere `details.retryAfterSeconds` (padrão 60s) e repita a mesma
+chamada **com a mesma `Idempotency-Key`** — nada é cobrado nem duplicado.
+Só a pesquisa de voos nunca sofre esse erro: ela não depende de sessão.
 
 ---
 
@@ -121,8 +129,19 @@ GET /oner/status
 }
 ```
 
-Se `available` for `false`, a busca de voos e o checkout vão falhar com
-`503 provider_unavailable` até a VIA AIR reconectar a sessão.
+`available` / `searchAvailable` dizem respeito à **pesquisa** (que é anônima e
+não depende de login). `checkoutSession` diz respeito à **sessão de compra**,
+exigida a partir do carrinho. Com `checkoutSession.status = "inactive"` a
+pesquisa continua funcionando normalmente; as chamadas de compra respondem
+`503 provider_session_unavailable` enquanto a VIA AIR reativa a sessão
+sozinha.
+
+**Quais endpoints exigem sessão de compra:** `GET/PUT /checkouts/{id}`,
+passageiros, `revalidate`, `payment-methods`, `installments`, pagamento em
+cartão, cancelamento de pagamento, criação do pedido e os equivalentes de
+multitrecho. **Não exigem:** `/health`, `/oner/status`, `/airports/search`,
+`/flights/search`, `/flights/inbound`, `/flights/multicity/search`, consultas
+de pedido/bilhete/documento e o Pix do cliente (emitido pela VIA AIR).
 
 ---
 
@@ -517,7 +536,13 @@ X-ViaAir-Signature: sha256=9c1f…
 Eventos: `checkout.updated`, `customer.payment.paid`, `customer.payment.failed`,
 `supplier.payment.pending`, `supplier.payment.paid`, `supplier.payment.failed`,
 `order.created`, `order.locator.received`, `order.ticket.received`,
-`order.completed`, `order.failed`.
+`order.completed`, `order.failed`, `checkout.session.required`,
+`checkout.session.restored`, `checkout.session.failed`.
+
+Os três eventos de sessão avisam, em tempo real, que uma operação de compra
+esbarrou na sessão vencida (`required`), que a reativação deu certo
+(`restored`) ou que ainda não concluiu (`failed`). Payload:
+`{ checkoutId?, orderId?, groupId?, provider: "oner", retryAfterSeconds? }`.
 
 **Assinatura:** HMAC-SHA256 de `timestamp + "." + corpo bruto`, com a
 `VIAAIR_WEBHOOK_SECRET`, em hexadecimal, prefixado por `sha256=`. Confira sempre

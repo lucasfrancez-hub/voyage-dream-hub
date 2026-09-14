@@ -16,7 +16,10 @@ export type ApiWebhookEvent =
   | "order.locator.received"
   | "order.ticket.received"
   | "order.completed"
-  | "order.failed";
+  | "order.failed"
+  | "checkout.session.required"
+  | "checkout.session.restored"
+  | "checkout.session.failed";
 
 /** Espera entre tentativas: 1min, 5min, 15min, 1h, 6h, 24h. */
 const ESPERAS_MIN = [1, 5, 15, 60, 360, 1440];

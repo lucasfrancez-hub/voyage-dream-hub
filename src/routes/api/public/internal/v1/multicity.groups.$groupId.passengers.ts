@@ -65,16 +65,11 @@ export const Route = createFileRoute(
                 );
               }
               try {
-                const { obterToken } = await import("@/lib/integrations/oner/session.server");
+                const { sessaoDeCompra } = await import("@/lib/api/oner-session.server");
                 const { enviarPassageiros } = await import("@/lib/integrations/oner/checkout.server");
-                const token = await obterToken({});
-                if (!token) {
-                  return fail(
-                    "provider_unavailable",
-                    "Sessão do fornecedor indisponível.",
-                    ctx.correlationId,
-                  );
-                }
+                const sessao = await sessaoDeCompra(ctx.correlationId, { groupId: params.groupId });
+                if ("falha" in sessao) return sessao.falha;
+                const token = sessao.token;
                 const telefone = (primeiro.phone ?? "").replace(/\D/g, "");
                 const lista = parsed.data.passengers.map((p) => ({
                   firstName: p.firstName,
