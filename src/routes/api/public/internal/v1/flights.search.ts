@@ -22,8 +22,11 @@ const entrada = z.object({
   checkedBaggage: z.boolean().default(false),
   maxStops: z.number().int().min(0).max(3).nullish(),
   airlines: z.array(z.string().trim().min(2).max(3)).max(20).default([]),
-  originIsCity: z.boolean().default(false),
-  destinationIsCity: z.boolean().default(false),
+  // Quando não informado, a própria API descobre se o código é de cidade
+  // (SAO, RIO...). Mandar cidade como aeroporto devolvia zero voos.
+  originIsCity: z.boolean().nullish(),
+  destinationIsCity: z.boolean().nullish(),
+
 });
 
 export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
