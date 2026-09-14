@@ -123,11 +123,38 @@ const hm = (mins: number | null | undefined) =>
     ? null
     : { hour: Math.floor(mins / 60) % 24, minute: mins % 60 };
 
+/**
+ * A operadora só aceita cabine como NÚMERO (0 econômica, 1 econômica premium,
+ * 2 executiva, 3 primeira classe). Mandar texto ("ECONOMY") faz o motor
+ * devolver HTTP 400 em TODAS as páginas, o que virava "fornecedor
+ * indisponível" mesmo com o motor no ar.
+ */
+const CABINE_ENUM: Record<string, number> = {
+  ECONOMY: 0,
+  ECONOMICA: 0,
+  COACH: 0,
+  PREMIUM_ECONOMY: 1,
+  PREMIUMECONOMY: 1,
+  PREMIUM_COACH: 1,
+  BUSINESS: 2,
+  EXECUTIVA: 2,
+  FIRST: 3,
+  FIRST_CLASS: 3,
+};
+
+export function cabinClassEnum(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number") return Number.isInteger(v) && v >= 0 && v <= 3 ? v : null;
+  const chave = String(v).trim().toUpperCase().replace(/[\s-]+/g, "_");
+  if (/^\d+$/.test(chave)) return cabinClassEnum(Number(chave));
+  return CABINE_ENUM[chave] ?? null;
+}
+
 function buildFilter(f: OnerOperatorFilters) {
   const isFullDay = f.departureFrom === 0 && (f.departureTo === 1440 || f.departureTo === null);
   return {
     containsDispatchBaggage: f.containsDispatchBaggage,
-    cabinClass: f.cabinClass,
+    cabinClass: cabinClassEnum(f.cabinClass),
     startPrice: f.startPrice,
     endPrice: f.endPrice,
     startDepartureTime: isFullDay ? null : hm(f.departureFrom),
