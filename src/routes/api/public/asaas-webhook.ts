@@ -159,7 +159,7 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
 
         let { data: cob } = await supabaseAdmin
           .from('pix_cobrancas')
-          .select('id, order_id, status, valor')
+          .select('id, order_id, status, valor, txid')
           .eq('asaas_payment_id', paymentId)
           .maybeSingle()
 
@@ -167,7 +167,7 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
         if (!cob && payment?.externalReference) {
           const alt = await supabaseAdmin
             .from('pix_cobrancas')
-            .select('id, order_id, status, valor')
+            .select('id, order_id, status, valor, txid')
             .eq('txid', payment.externalReference)
             .maybeSingle()
           cob = alt.data ?? null
