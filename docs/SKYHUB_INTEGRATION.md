@@ -91,7 +91,43 @@ internos do fornecedor nunca são expostos:
 
 ---
 
+## 5.1 Monitoramento
+
+```
+GET /health
+```
+
+```json
+{
+  "status": "ok",
+  "version": "1.0.0",
+  "time": "2026-10-01T20:40:00.000Z",
+  "services": { "oner": "up", "asaas": "configured" }
+}
+```
+
+```
+GET /oner/status
+```
+
+```json
+{
+  "available": true,
+  "session": "active",
+  "lastValidatedAt": "2026-10-01T14:02:00Z",
+  "lastUsedAt": "2026-10-01T20:31:00Z",
+  "expiresAt": "2026-10-01T20:02:00Z",
+  "message": null
+}
+```
+
+Se `available` for `false`, a busca de voos e o checkout vão falhar com
+`503 provider_unavailable` até a VIA AIR reconectar a sessão.
+
+---
+
 ## 6. Fluxo aéreo completo
+
 
 ### 6.1 Aeroportos
 
