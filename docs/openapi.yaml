@@ -596,7 +596,8 @@ components:
         name: { type: string }
         city: { type: string }
         country: { type: string }
-        isCity: { type: boolean }
+        isCity: { type: boolean, description: Quando true, o código representa a cidade (todos os aeroportos) }
+        cityCode: { type: string, description: Código IATA da cidade a que o aeroporto pertence }
     FlightSearchRequest:
       type: object
       required: [origin, destination, departureDate]

@@ -57,7 +57,10 @@ export type Airport = {
   name?: string;
   city?: string;
   country?: string;
+  /** true quando o código representa a cidade inteira (todos os aeroportos). */
   isCity?: boolean;
+  /** Código IATA da cidade a que o aeroporto pertence. */
+  cityCode?: string;
 };
 
 export type FlightSearchRequest = {

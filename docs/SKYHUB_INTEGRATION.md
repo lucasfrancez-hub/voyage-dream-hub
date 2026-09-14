@@ -136,8 +136,23 @@ GET /airports/search?query=rio&isDeparture=true
 ```
 
 ```json
-{ "airports": [{ "iata": "GIG", "name": "Galeão", "city": "Rio de Janeiro", "country": "Brasil", "isCity": false }] }
+```json
+{
+  "airports": [
+    { "iata": "RIO", "name": "", "city": "RIO", "country": "", "isCity": true, "cityCode": "RIO" },
+    {
+      "iata": "GIG",
+      "name": "Rio Galeão – Tom Jobim International Airport",
+      "city": "Rio De Janeiro",
+      "country": "Brasil",
+      "isCity": false,
+      "cityCode": "RIO"
+    }
+  ]
+}
 ```
+
+Resposta real do ambiente de produção em 2026-09-14.
 
 ### 6.2 Pesquisa
 
