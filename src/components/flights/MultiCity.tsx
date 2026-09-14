@@ -1169,7 +1169,15 @@ function TrechoCard({
     },
     onSuccess: (r: { url: string }) => {
       onPurchased();
-      window.open(r.url, "_blank", "noopener");
+      // Abre em nova aba como link normal (não pop-up), evitando bloqueio.
+      const a = document.createElement("a");
+      a.href = r.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     },
     onError: (e) =>
       toast.error(
