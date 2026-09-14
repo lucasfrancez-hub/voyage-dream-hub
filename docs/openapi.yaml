@@ -1,0 +1,760 @@
+openapi: 3.1.0
+info:
+  title: VIA AIR — API interna (v1)
+  version: 1.0.0
+  description: |
+    Fachada oficial sobre o motor aéreo (Oner/OnerTravel) e o financeiro VIA AIR (Asaas/Pix).
+    Consumida pela Sky Hub e por outros sistemas internos da VIA AIR.
+
+    Regras gerais:
+      * Toda chamada exige `Authorization: Bearer vai_live_...` (ou `vai_test_...`).
+      * Chamadas que alteram estado aceitam `Idempotency-Key`.
+      * `X-Correlation-Id` é aceito e sempre devolvido.
+      * O QR Code Pix entregue ao cliente é sempre da VIA AIR (Asaas), nunca do fornecedor.
+      * PAN e CVV nunca são gravados, registrados ou devolvidos.
+servers:
+  - url: https://pedidos.viaair.tur.br/api/public/internal/v1
+    description: Produção
+security:
+  - bearerAuth: []
+tags:
+  - name: Saúde
+  - name: Voos
+  - name: Checkout
+  - name: Pagamentos
+  - name: Pedidos
+paths:
+  /health:
+    get:
+      tags: [Saúde]
+      summary: Situação da API e dos serviços
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  version: { type: string, example: "1.0.0" }
+                  services:
+                    type: object
+                    properties:
+                      oner: { type: string, example: up }
+                      asaas: { type: string, example: up }
+        "401": { $ref: "#/components/responses/Erro" }
+  /oner/status:
+    get:
+      tags: [Saúde]
+      summary: Situação da sessão do fornecedor
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available: { type: boolean }
+                  session: { type: string, enum: [active, inactive] }
+                  lastValidatedAt: { type: string, format: date-time, nullable: true }
+  /airports/search:
+    get:
+      tags: [Voos]
+      summary: Autocomplete de aeroportos
+      parameters:
+        - { name: query, in: query, required: true, schema: { type: string, minLength: 2 } }
+        - { name: isDeparture, in: query, schema: { type: boolean, default: true } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  airports:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        iata: { type: string }
+                        name: { type: string }
+                        city: { type: string }
+  /flights/search:
+    post:
+      tags: [Voos]
+      summary: Pesquisa de voos (ida ou ida e volta)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FlightSearchRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FlightSearchResponse" }
+        "422": { $ref: "#/components/responses/Erro" }
+        "503": { $ref: "#/components/responses/Erro" }
+  /flights/inbound:
+    post:
+      tags: [Voos]
+      summary: Volta disponível para a ida escolhida
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [searchId, outboundOfferId]
+              properties:
+                searchId: { type: string }
+                outboundOfferId: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  searchId: { type: string }
+                  inbound:
+                    type: array
+                    items: { $ref: "#/components/schemas/FlightOffer" }
+  /checkouts:
+    post:
+      tags: [Checkout]
+      summary: Cria o checkout a partir de uma oferta
+      parameters: [{ $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [offerId]
+              properties:
+                offerId: { type: string }
+                inboundOfferId: { type: string }
+                fareKey: { type: string }
+      responses:
+        "201":
+          description: Criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkoutId: { type: string, example: chk_01H8XK3P2Q }
+                  status: { type: string }
+                  expiresAt: { type: string, format: date-time }
+  /checkouts/{checkoutId}:
+    get:
+      tags: [Checkout]
+      summary: Conteúdo do checkout
+      parameters: [{ $ref: "#/components/parameters/CheckoutId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Checkout" }
+        "404": { $ref: "#/components/responses/Erro" }
+  /checkouts/{checkoutId}/passengers:
+    put:
+      tags: [Checkout]
+      summary: Envia os passageiros
+      parameters:
+        - { $ref: "#/components/parameters/CheckoutId" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [passengers]
+              properties:
+                passengers:
+                  type: array
+                  items: { $ref: "#/components/schemas/Passenger" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  passengers: { type: integer }
+  /checkouts/{checkoutId}/revalidate:
+    post:
+      tags: [Checkout]
+      summary: Reconfere a tarifa
+      parameters: [{ $ref: "#/components/parameters/CheckoutId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      status: { type: string, enum: [VALID] }
+                      amount: { type: number }
+                  - type: object
+                    properties:
+                      status: { type: string, enum: [PRICE_CHANGED] }
+                      previousAmount: { type: number }
+                      currentAmount: { type: number }
+                      difference: { type: number }
+                  - type: object
+                    properties:
+                      status: { type: string, enum: [EXPIRED] }
+  /checkouts/{checkoutId}/payment-methods:
+    get:
+      tags: [Pagamentos]
+      summary: Formas de pagamento realmente liberadas
+      parameters: [{ $ref: "#/components/parameters/CheckoutId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  methods:
+                    type: array
+                    items: { $ref: "#/components/schemas/PaymentMethod" }
+  /checkouts/{checkoutId}/installments:
+    post:
+      tags: [Pagamentos]
+      summary: Parcelamento informado pela operadora
+      parameters: [{ $ref: "#/components/parameters/CheckoutId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cardBin, amount]
+              properties:
+                cardBin: { type: string }
+                amount: { type: number }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  installments:
+                    type: array
+                    items: { $ref: "#/components/schemas/InstallmentOption" }
+  /checkouts/{checkoutId}/payments/card-token:
+    post:
+      tags: [Pagamentos]
+      summary: Tokeniza o cartão no cofre da operadora
+      description: PAN e CVV trafegam apenas nesta chamada; não são gravados nem registrados.
+      parameters: [{ $ref: "#/components/parameters/CheckoutId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [holderName, number, cvv, expirationMonth, expirationYear, documentNumber]
+              properties:
+                holderName: { type: string }
+                number: { type: string }
+                cvv: { type: string }
+                expirationMonth: { type: string }
+                expirationYear: { type: string }
+                documentType: { type: integer, default: 1 }
+                documentNumber: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CardToken" }
+        "402": { $ref: "#/components/responses/Erro" }
+  /checkouts/{checkoutId}/payments/card:
+    post:
+      tags: [Pagamentos]
+      summary: Pagamento com 1 a 3 cartões
+      parameters:
+        - { $ref: "#/components/parameters/CheckoutId" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cards, payer]
+              properties:
+                cards:
+                  type: array
+                  minItems: 1
+                  maxItems: 3
+                  items:
+                    type: object
+                    required: [token, key, amount, installments]
+                    properties:
+                      token: { type: string }
+                      key: { type: string }
+                      amount: { type: number }
+                      installments: { type: integer }
+                payer: { $ref: "#/components/schemas/Payer" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: PAID }
+                  orderId: { type: string, nullable: true }
+                  locator: { type: string, nullable: true }
+        "402": { $ref: "#/components/responses/Erro" }
+  /checkouts/{checkoutId}/payments/pix:
+    post:
+      tags: [Pagamentos]
+      summary: Gera o Pix VIA AIR (Asaas) para o cliente
+      parameters:
+        - { $ref: "#/components/parameters/CheckoutId" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payer]
+              properties:
+                payer: { $ref: "#/components/schemas/Payer" }
+      responses:
+        "201":
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PixPayment" }
+    get:
+      tags: [Pagamentos]
+      summary: Situação do Pix do checkout
+      parameters: [{ $ref: "#/components/parameters/CheckoutId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PixPayment" }
+  /checkouts/{checkoutId}/payments/cancel:
+    post:
+      tags: [Pagamentos]
+      summary: Cancela o pagamento em aberto
+      description: Não cancela bilhete já emitido.
+      parameters: [{ $ref: "#/components/parameters/CheckoutId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { ok: { type: boolean } }
+  /checkouts/{checkoutId}/order:
+    post:
+      tags: [Pedidos]
+      summary: Cria o pedido no fornecedor (F-…)
+      parameters:
+        - { $ref: "#/components/parameters/CheckoutId" }
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+      responses:
+        "201":
+          description: Criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId: { type: string }
+                  providerOrderNumber: { type: string, nullable: true }
+  /payments/{paymentId}:
+    get:
+      tags: [Pagamentos]
+      summary: Situação de um pagamento
+      parameters:
+        - { name: paymentId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PixPayment" }
+  /orders/{orderId}:
+    get:
+      tags: [Pedidos]
+      summary: Pedido completo
+      parameters: [{ $ref: "#/components/parameters/OrderId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+  /orders/{orderId}/status:
+    get:
+      tags: [Pedidos]
+      summary: Situação resumida
+      parameters: [{ $ref: "#/components/parameters/OrderId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId: { type: string }
+                  status: { $ref: "#/components/schemas/OrderStatus" }
+                  detail: { type: string, nullable: true }
+                  customerPaymentStatus: { type: string, nullable: true }
+                  supplierPaymentStatus: { type: string, nullable: true }
+                  locator: { type: string, nullable: true }
+  /orders/{orderId}/tickets:
+    get:
+      tags: [Pedidos]
+      summary: Bilhetes emitidos
+      parameters: [{ $ref: "#/components/parameters/OrderId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId: { type: string }
+                  tickets:
+                    type: array
+                    items: { $ref: "#/components/schemas/Ticket" }
+  /orders/{orderId}/documents:
+    get:
+      tags: [Pedidos]
+      summary: Documentos do pedido (links temporários de 15 minutos)
+      parameters: [{ $ref: "#/components/parameters/OrderId" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId: { type: string }
+                  documents:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name: { type: string }
+                        url: { type: string, nullable: true }
+                        expiresInSeconds: { type: integer }
+webhooks:
+  viaAirEvent:
+    post:
+      summary: Aviso enviado pela VIA AIR ao sistema consumidor
+      description: |
+        Cabeçalhos: `X-ViaAir-Signature: sha256=<hmac>` e `X-ViaAir-Timestamp`.
+        A assinatura é HMAC-SHA256 de `timestamp + "." + corpo`, com a senha combinada.
+        Responda HTTP 2xx. Sem 2xx, a VIA AIR repete em 1min, 5min, 15min, 1h, 6h e 24h.
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WebhookEvent" }
+      responses:
+        "200": { description: Recebido }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Token no formato `vai_live_xxxxxxxxxxxxxxxxx` ou `vai_test_...`.
+  parameters:
+    CheckoutId:
+      name: checkoutId
+      in: path
+      required: true
+      schema: { type: string }
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema: { type: string }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema: { type: string, maxLength: 120 }
+  responses:
+    Erro:
+      description: Erro normalizado
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                [
+                  unauthorized,
+                  forbidden,
+                  invalid_request,
+                  not_found,
+                  conflict,
+                  rate_limited,
+                  provider_error,
+                  provider_unavailable,
+                  price_changed,
+                  payment_declined,
+                  internal_error,
+                ]
+            message: { type: string }
+            provider: { type: string, nullable: true }
+            retryable: { type: boolean }
+            correlationId: { type: string }
+    FlightSearchRequest:
+      type: object
+      required: [origin, destination, departureDate]
+      properties:
+        origin: { type: string, example: GRU }
+        destination: { type: string, example: GIG }
+        departureDate: { type: string, format: date }
+        returnDate: { type: string, format: date, nullable: true }
+        adults: { type: integer, default: 1 }
+        children: { type: integer, default: 0 }
+        infants: { type: integer, default: 0 }
+        cabinClass: { type: string }
+        checkedBaggage: { type: boolean }
+        maxStops: { type: integer }
+        airlines:
+          type: array
+          items: { type: string }
+    FlightSearchResponse:
+      type: object
+      properties:
+        searchId: { type: string }
+        roundTrip: { type: boolean }
+        outbound:
+          type: array
+          items: { $ref: "#/components/schemas/FlightOffer" }
+    FlightOffer:
+      type: object
+      properties:
+        offerId: { type: string, example: off_9f2c6f4b }
+        airline:
+          type: object
+          properties:
+            iata: { type: string, nullable: true }
+            name: { type: string, nullable: true }
+        flightNumber: { type: string }
+        origin: { type: string }
+        destination: { type: string }
+        departureAt: { type: string, nullable: true }
+        arrivalAt: { type: string, nullable: true }
+        durationMinutes: { type: integer, nullable: true }
+        stops: { type: integer }
+        price:
+          type: object
+          properties:
+            amount: { type: number }
+            tax: { type: number }
+            total: { type: number }
+            currency: { type: string, example: BRL }
+            passengers: { type: integer }
+        segments:
+          type: array
+          items: { $ref: "#/components/schemas/FlightSegment" }
+        fares:
+          type: array
+          items: { $ref: "#/components/schemas/FareOption" }
+    FlightSegment:
+      type: object
+      properties:
+        flightNumber: { type: string }
+        airline:
+          type: object
+          properties:
+            iata: { type: string, nullable: true }
+            name: { type: string, nullable: true }
+        origin: { type: string }
+        destination: { type: string }
+        departureAt: { type: string, nullable: true }
+        arrivalAt: { type: string, nullable: true }
+        cabinClass: { type: string, nullable: true }
+    FareOption:
+      type: object
+      properties:
+        fareKey: { type: string }
+        price: { type: number }
+        tax: { type: number }
+        total: { type: number }
+        fareFamily: { type: string, nullable: true }
+        cabinClass: { type: string, nullable: true }
+        checkedBaggage: { type: boolean }
+    Passenger:
+      type: object
+      required: [firstName, lastName, passengerType]
+      properties:
+        firstName: { type: string }
+        lastName: { type: string }
+        passengerType: { type: string, enum: [ADT, CHD, INF] }
+        birthDate: { type: string, format: date, nullable: true }
+        gender: { type: string, enum: [M, F], nullable: true }
+        documentNumber: { type: string, nullable: true }
+        nationality: { type: string, nullable: true }
+        email: { type: string, nullable: true, description: Somente o primeiro passageiro }
+        phone: { type: string, nullable: true, description: Somente o primeiro passageiro }
+    Payer:
+      type: object
+      required: [name, document]
+      properties:
+        name: { type: string }
+        document: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        zipCode: { type: string }
+        street: { type: string }
+        number: { type: string }
+        district: { type: string }
+        city: { type: string }
+        state: { type: string }
+    Checkout:
+      type: object
+      properties:
+        checkoutId: { type: string }
+        status: { type: string }
+        expiresAt: { type: string, nullable: true }
+        amount: { type: number, nullable: true }
+        currency: { type: string }
+        flights: {}
+        passengers:
+          type: array
+          items: {}
+    PaymentMethod:
+      type: object
+      properties:
+        method: { type: string, enum: [CARD, PIX, VIAAIR_ASAAS] }
+        available: { type: boolean }
+        maxCards: { type: integer }
+        reason: { type: string, nullable: true }
+    InstallmentOption:
+      type: object
+      properties:
+        installments: { type: integer }
+        installmentAmount: { type: number }
+        totalAmount: { type: number }
+        interest: { type: boolean }
+    CardToken:
+      type: object
+      properties:
+        cardToken: { type: string }
+        cardKey: { type: string }
+        brand: { type: string, nullable: true }
+        cardBin: { type: string, nullable: true }
+        lastDigits: { type: string, nullable: true }
+    PixPayment:
+      type: object
+      properties:
+        paymentId: { type: string }
+        txid: { type: string }
+        amount: { type: number }
+        qrCode: { type: string, description: Copia-e-cola (EMV) }
+        qrCodeImage: { type: string, nullable: true, description: Imagem em Base64 }
+        invoiceUrl: { type: string, nullable: true }
+        expiresAt: { type: string, format: date-time }
+        status: { type: string, enum: [ACTIVE, PAID, EXPIRED, CANCELLED, REFUNDED] }
+    OrderStatus:
+      type: string
+      enum:
+        - CREATED
+        - AWAITING_PAYMENT
+        - CUSTOMER_PAYMENT_PAID
+        - SUPPLIER_PAYMENT_PENDING
+        - SUPPLIER_PAYMENT_PAID
+        - SUPPLIER_PAYMENT_REVIEW
+        - WAITING_RESERVATION
+        - LOCATOR_RECEIVED
+        - TICKETS_RECEIVED
+        - COMPLETE
+        - PRICE_CHANGED
+        - MANUAL_REVIEW
+        - FAILED
+        - CANCELLED
+    Ticket:
+      type: object
+      properties:
+        passenger: { type: string, nullable: true }
+        ticketNumber: { type: string, nullable: true }
+        pnr: { type: string, nullable: true }
+        airline: { type: string, nullable: true }
+        status: { type: string, nullable: true }
+    Order:
+      type: object
+      properties:
+        orderId: { type: string }
+        viaairOrderId: { type: string, nullable: true }
+        providerOrderNumber: { type: string, nullable: true }
+        saleId: { type: string, nullable: true }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        amount: { type: number, nullable: true }
+        currency: { type: string }
+        paymentMethod: { type: string, nullable: true }
+        customerPaymentStatus: { type: string, nullable: true }
+        supplierPaymentStatus: { type: string, nullable: true }
+        locator: { type: string, nullable: true }
+        passengers:
+          type: array
+          items: {}
+        tickets:
+          type: array
+          items: { $ref: "#/components/schemas/Ticket" }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    WebhookEvent:
+      type: object
+      properties:
+        id: { type: string }
+        event:
+          type: string
+          enum:
+            - checkout.updated
+            - customer.payment.paid
+            - customer.payment.failed
+            - supplier.payment.pending
+            - supplier.payment.paid
+            - supplier.payment.failed
+            - order.created
+            - order.locator.received
+            - order.ticket.received
+            - order.completed
+            - order.failed
+        createdAt: { type: string, format: date-time }
+        data: { type: object }
