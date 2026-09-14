@@ -32,6 +32,7 @@ import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as VoarRouteImport } from './routes/voar'
 import { Route as AdminAntifraudeRouteImport } from './routes/admin.antifraude'
+import { Route as AdminApiTokensRouteImport } from './routes/admin.api-tokens'
 import { Route as AdminAppCelularRouteImport } from './routes/admin.app-celular'
 import { Route as AdminArteModelosRouteImport } from './routes/admin.arte-modelos'
 import { Route as AdminBilhetesRouteImport } from './routes/admin.bilhetes'
@@ -349,6 +350,11 @@ const VoarRoute = VoarRouteImport.update({
 const AdminAntifraudeRoute = AdminAntifraudeRouteImport.update({
   id: '/antifraude',
   path: '/antifraude',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminApiTokensRoute = AdminApiTokensRouteImport.update({
+  id: '/api-tokens',
+  path: '/api-tokens',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAppCelularRoute = AdminAppCelularRouteImport.update({
@@ -1457,6 +1463,7 @@ export interface FileRoutesByFullPath {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-tokens': typeof AdminApiTokensRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
   '/admin/bilhetes': typeof AdminBilhetesRoute
@@ -1683,6 +1690,7 @@ export interface FileRoutesByTo {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-tokens': typeof AdminApiTokensRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
   '/admin/bilhetes': typeof AdminBilhetesRoute
@@ -1911,6 +1919,7 @@ export interface FileRoutesById {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-tokens': typeof AdminApiTokensRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
   '/admin/bilhetes': typeof AdminBilhetesRoute
@@ -2141,6 +2150,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-tokens'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
     | '/admin/bilhetes'
@@ -2367,6 +2377,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-tokens'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
     | '/admin/bilhetes'
@@ -2594,6 +2605,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-tokens'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
     | '/admin/bilhetes'
@@ -3078,6 +3090,13 @@ declare module '@tanstack/react-router' {
       path: '/antifraude'
       fullPath: '/admin/antifraude'
       preLoaderRoute: typeof AdminAntifraudeRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/api-tokens': {
+      id: '/admin/api-tokens'
+      path: '/api-tokens'
+      fullPath: '/admin/api-tokens'
+      preLoaderRoute: typeof AdminApiTokensRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/app-celular': {
@@ -4531,6 +4550,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminAntifraudeRoute: typeof AdminAntifraudeRoute
+  AdminApiTokensRoute: typeof AdminApiTokensRoute
   AdminAppCelularRoute: typeof AdminAppCelularRoute
   AdminArteModelosRoute: typeof AdminArteModelosRoute
   AdminBilhetesRoute: typeof AdminBilhetesRoute
@@ -4606,6 +4626,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAntifraudeRoute: AdminAntifraudeRoute,
+  AdminApiTokensRoute: AdminApiTokensRoute,
   AdminAppCelularRoute: AdminAppCelularRoute,
   AdminArteModelosRoute: AdminArteModelosRoute,
   AdminBilhetesRoute: AdminBilhetesRoute,
