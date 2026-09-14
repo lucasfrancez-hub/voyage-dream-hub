@@ -277,7 +277,10 @@ async function poll(
         },
         signal,
       );
-      if (!res.ok) break;
+      if (!res.ok) {
+        ultimoStatus = res.status;
+        break;
+      }
       respostasOk++;
 
       try {
