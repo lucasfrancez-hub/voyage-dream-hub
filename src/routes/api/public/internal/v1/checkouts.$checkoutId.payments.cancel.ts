@@ -16,12 +16,11 @@ export const Route = createFileRoute("/api/public/internal/v1/checkouts/$checkou
           const ref = await lerCheckoutRef(params.checkoutId);
           if (!ref) return fail("not_found", "Checkout não encontrado.", ctx.correlationId);
           try {
-            const { obterToken } = await import("@/lib/integrations/oner/session.server");
+            const { sessaoDeCompra } = await import("@/lib/api/oner-session.server");
             const { cancelarPagamento } = await import("@/lib/integrations/oner/payment.server");
-            const token = await obterToken({});
-            if (!token) {
-              return fail("provider_unavailable", "Sessão do fornecedor indisponível.", ctx.correlationId);
-            }
+            const sessao = await sessaoDeCompra(ctx.correlationId, { checkoutId: params.checkoutId });
+            if ("falha" in sessao) return sessao.falha;
+            const token = sessao.token;
             const call = await cancelarPagamento(token, ref.cartId);
             if (!call.ok) {
               return fail(
