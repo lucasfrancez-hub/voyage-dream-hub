@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/public/internal/v1/payments/$paymentI
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { data } = await supabaseAdmin
             .from("pix_cobrancas")
-            .select("txid,order_id,valor,status,expira_em,qr_code,created_at")
+            .select("txid,order_id,valor,status,expira_em,qr_code,qr_code_image,invoice_url,created_at")
             .eq("txid", params.paymentId)
             .maybeSingle();
           const linha = data as {
@@ -24,21 +24,27 @@ export const Route = createFileRoute("/api/public/internal/v1/payments/$paymentI
             status: string | null;
             expira_em: string | null;
             qr_code: string | null;
+            qr_code_image: string | null;
+            invoice_url: string | null;
             created_at: string;
           } | null;
           if (!linha) return fail("not_found", "Pagamento não encontrado.", ctx.correlationId);
           return ok(
             {
               paymentId: linha.txid,
+              txid: linha.txid,
               orderId: linha.order_id,
               amount: Number(linha.valor),
               currency: "BRL",
               status: statusDoPagamento(linha.status, linha.expira_em),
               qrCode: linha.qr_code,
+              qrCodeImage: linha.qr_code_image,
+              invoiceUrl: linha.invoice_url,
               expiresAt: linha.expira_em,
               createdAt: linha.created_at,
               provider: "VIAAIR_ASAAS",
             },
+
             ctx.correlationId,
           );
         }),
