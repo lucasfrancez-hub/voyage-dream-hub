@@ -1,5 +1,5 @@
 import { searchFlights } from "@/lib/onertravel.server";
-const r:any = await searchFlights({departureIata:"GRU",arrivalIata:"GIG",departureDate:"2026-10-14",returnDate:null,adults:1,children:0,infants:0,pageSize:50,departureIsCity:false,arrivalIsCity:false,filters:{containsDispatchBaggage:false,maxStops:2,startPrice:null,endPrice:null,departureFrom:null,departureTo:null,airlineIatas:[],cabinClass:null}} as never,"normal");
+const r:any = await searchFlights({departureIata:"GRU",arrivalIata:"GIG",departureDate:"2026-10-14",returnDate:null,adults:1,children:0,infants:0,pageSize:50,departureIsCity:false,arrivalIsCity:false,filters:{containsDispatchBaggage:true,maxStops:2,startPrice:null,endPrice:null,departureFrom:null,departureTo:null,airlineIatas:[],cabinClass:null}} as never,"normal");
 const fl=r.outbound.flights;
 console.log("itinerarios",fl.length);
 const dist:Record<number,number>={};
