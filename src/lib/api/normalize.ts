@@ -94,8 +94,12 @@ export function normalizarVoo(f: OnerFlight, offerId: string): ApiFlightOffer {
       cabinClass: o.cabinClass ?? null,
       checkedBaggage: Boolean(o.allowedBaggage),
     })),
-    ...(f.fareOptions?.length ? {} : { fares: [] as ApiFare[] }),
-  } as ApiFlightOffer & { checkedBaggage?: boolean };
+  };
+}
+
+/** Bagagem despachada declarada no voo (nível itinerário). */
+export function ofertaTemBagagem(f: OnerFlight): boolean {
+  return temBagagem(f);
 }
 
 /* ------------------------------------------------------------------ */
