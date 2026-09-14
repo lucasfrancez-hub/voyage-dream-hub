@@ -156,6 +156,35 @@ function semAcentoLocal(v: string): string {
   return v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
 
+/* Disjuntor: quando a FRT trava pedindo código de verificação, novas tentativas
+ * só geram códigos pendentes e nunca voltam sugestões. Então pausamos as
+ * chamadas por alguns minutos e tentamos UMA vez resolver o código automático. */
+const PAUSA_2FA_MS = 5 * 60_000;
+let frtPausadaAte = 0;
+let tentandoCodigo: Promise<unknown> | null = null;
+
+function ehBloqueio2fa(msg: string): boolean {
+  return /c[óo]digo de verifica[çc][ãa]o/i.test(msg);
+}
+
+function tratarBloqueio2fa(msg: string) {
+  if (!ehBloqueio2fa(msg)) return;
+  frtPausadaAte = Date.now() + PAUSA_2FA_MS;
+  if (tentandoCodigo) return;
+  tentandoCodigo = (async () => {
+    try {
+      const { frtResolver2faAutomatico } = await import("@/lib/frt/frt-connector.server");
+      const r = await frtResolver2faAutomatico();
+      if (r.ok) frtPausadaAte = 0;
+      else console.error("[comprefacil] FRT segue bloqueada:", r.mensagem);
+    } catch (e) {
+      console.error("[comprefacil] falha ao resolver 2FA da FRT:", e instanceof Error ? e.message : e);
+    } finally {
+      tentandoCodigo = null;
+    }
+  })();
+}
+
 /** Opções exibidas pelo próprio autopreencher da FRT. */
 export async function buscarSugestoesFrt(termoRecebido: string): Promise<DestinoFrt[]> {
   const termo = termoRecebido.trim();
@@ -163,6 +192,8 @@ export async function buscarSugestoesFrt(termoRecebido: string): Promise<Destino
   const chave = semAcentoLocal(termo);
   const guardado = cacheSugestoesFrt.get(chave);
   if (guardado && Date.now() - guardado.em < TTL) return guardado.itens;
+  // Sessão travada por 2FA: não insiste (cada tentativa gera novo código).
+  if (Date.now() < frtPausadaAte) return guardado?.itens ?? [];
   try {
     const { frtSugestoesLocal } = await import("@/lib/frt/frt-connector.server");
     const { opcoes } = await frtSugestoesLocal("destino", termo);
@@ -180,10 +211,13 @@ export async function buscarSugestoesFrt(termoRecebido: string): Promise<Destino
     cacheSugestoesFrt.set(chave, { em: Date.now(), itens: unicos });
     return unicos;
   } catch (e) {
-    console.error("[comprefacil] autocomplete FRT indisponível:", e instanceof Error ? e.message : e);
+    const msg = e instanceof Error ? e.message : String(e);
+    tratarBloqueio2fa(msg);
+    console.error("[comprefacil] autocomplete FRT indisponível:", msg);
     return guardado?.itens ?? [];
   }
 }
+
 
 export async function iataPeloAutocompleteFrt(nome: string): Promise<string | null> {
   const termo = nome.trim();
