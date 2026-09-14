@@ -211,7 +211,22 @@ Resposta:
       "stops": 0,
       "price": { "amount": 412.9, "tax": 58.1, "total": 471.0, "currency": "BRL", "passengers": 1 },
       "segments": [ /* ... */ ],
-      "fares": [ { "fareKey": "…", "price": 412.9, "tax": 58.1, "total": 471.0, "fareFamily": "LIGHT", "cabinClass": "ECONOMY", "checkedBaggage": false } ]
+      "fares": [ { "fareKey": "…", "price": 412.9, "tax": 58.1, "total": 471.0, "fareFamily": "LIGHT", "cabinClass": "ECONOMY", "checkedBaggage": false } ],
+      "installmentPlan": {
+        "source": "VIAAIR_RULES",
+        "estimated": true,
+        "currency": "BRL",
+        "baseAmount": 471.0,
+        "maxInterestFree": 4,
+        "maxInstallments": 12,
+        "pixOnly": false,
+        "options": [
+          { "installments": 1, "installmentValue": 471.0, "total": 471.0, "markupPercent": 0, "interestFree": true },
+          { "installments": 4, "installmentValue": 117.75, "total": 471.0, "markupPercent": 0, "interestFree": true },
+          { "installments": 5, "installmentValue": 99.93, "total": 499.64, "markupPercent": 6.08, "interestFree": false },
+          { "installments": 12, "installmentValue": 47.09, "total": 565.11, "markupPercent": 19.98, "interestFree": false }
+        ]
+      }
     }
   ]
 }
@@ -220,6 +235,21 @@ Resposta:
 Obrigatórios: `origin`, `destination`, `departureDate`. Opcionais: `returnDate`,
 `adults`, `children`, `infants`, `cabinClass`, `checkedBaggage`, `maxStops`, `airlines`,
 `originIsCity`, `destinationIsCity`.
+
+#### Tabela de parcelamento da oferta (`installmentPlan`)
+
+Vem pronta na busca, em toda oferta (ida, volta e multitrecho), para a tela de
+Detalhes. Regra: **sem juros até o teto da companhia aérea** daquela oferta e,
+acima desse teto, com o **markup da VIA AIR** por quantidade de parcelas, até 12x.
+
+- `maxInterestFree` — até quantas parcelas aquela companhia permite sem juros.
+- `markupPercent` — acréscimo aplicado naquela quantidade (0 nas sem juros).
+- `total` — valor final daquela modalidade; `installmentValue` — valor da parcela.
+- `pixOnly: true` — companhia sem parcelamento (só à vista/Pix).
+- `estimated: true` e `source: "VIAAIR_RULES"` — é simulação comercial da VIA AIR.
+  A Sky Hub **apenas exibe** esses valores, nunca recalcula juros ou markup.
+  Os valores definitivos do cartão (bandeira/BIN, 1–3 cartões) continuam vindo de
+  `POST /checkouts/{checkoutId}/installments`, já com o carrinho criado.
 
 ### 6.3 Volta (somente ida e volta)
 

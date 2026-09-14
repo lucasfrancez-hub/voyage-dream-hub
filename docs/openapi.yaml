@@ -498,6 +498,32 @@ paths:
                   tickets:
                     type: array
                     items: { $ref: "#/components/schemas/Ticket" }
+  /imports/comprar-viagem/reservation:
+    post:
+      tags: [Importação]
+      summary: Importar reserva da Comprar Viagem pelo link do checkout
+      description: >-
+        A Sky Hub envia apenas o link público do checkout. A VIA AIR extrai o
+        identificador do carrinho, usa a sessão autenticada existente (renovando
+        quando necessário) e devolve a reserva normalizada. Nenhum dado de
+        autenticação do fornecedor é exposto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                checkoutUrl: { type: string, example: "https://www.comprarviagem.com.br/checkout/9b8b466f-4d2f-42f9-8b7c-0257386cb44f" }
+                checkoutId: { type: string, nullable: true }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportedReservation" }
+        "404": { description: Link expirado ou reserva não encontrada }
+        "503": { description: Sessão do fornecedor indisponível ou em renovação }
   /orders/{orderId}/documents:
     get:
       tags: [Pedidos]
@@ -949,6 +975,101 @@ components:
         fares:
           type: array
           items: { $ref: "#/components/schemas/FareOption" }
+        installmentPlan:
+          nullable: true
+          allOf: [{ $ref: "#/components/schemas/InstallmentPlan" }]
+    ImportedReservation:
+      type: object
+      properties:
+        provider: { type: string, enum: [comprar_viagem] }
+        externalCartId: { type: string, description: Identificador estável da importação (evita duplicar a mesma reserva) }
+        externalReservationId: { type: string }
+        sourceUrl: { type: string, nullable: true }
+        locator: { type: string, nullable: true }
+        status: { type: string }
+        expired: { type: boolean }
+        currency: { type: string, example: BRL }
+        segments:
+          type: array
+          items:
+            type: object
+            properties:
+              journey: { type: string, example: outbound }
+              origin: { type: string, nullable: true }
+              originCity: { type: string, nullable: true }
+              originAirport: { type: string, nullable: true }
+              destination: { type: string, nullable: true }
+              destinationCity: { type: string, nullable: true }
+              destinationAirport: { type: string, nullable: true }
+              departureDateTime: { type: string, nullable: true }
+              arrivalDateTime: { type: string, nullable: true }
+              airline: { type: string, nullable: true }
+              airlineIata: { type: string, nullable: true }
+              flightNumber: { type: string, nullable: true }
+              cabin: { type: string, nullable: true }
+              fareFamily: { type: string, nullable: true }
+              connections: { type: array, items: { type: string } }
+              baggage:
+                type: object
+                properties:
+                  carryOn: { type: string, nullable: true }
+                  checked: { type: string, nullable: true }
+        passengers:
+          type: array
+          items:
+            type: object
+            properties:
+              fullName: { type: string, nullable: true }
+              firstName: { type: string, nullable: true }
+              lastName: { type: string, nullable: true }
+              type: { type: string, nullable: true }
+              documentType: { type: string, nullable: true }
+              documentNumber: { type: string, nullable: true }
+              birthDate: { type: string, nullable: true }
+        passengersSaved: { type: boolean }
+        amount:
+          type: object
+          properties:
+            fare: { type: number, nullable: true }
+            taxes: { type: number, nullable: true }
+            total: { type: number, nullable: true }
+        installments:
+          type: array
+          items:
+            type: object
+            properties:
+              installment: { type: integer }
+              installmentsValue: { type: number }
+              total: { type: number }
+              interestRate: { type: number }
+              hasRate: { type: boolean }
+        fetchedAt: { type: string }
+    InstallmentPlan:
+      type: object
+      description: >-
+        Simulação comercial VIA AIR do parcelamento da oferta: sem juros até o
+        teto da companhia aérea e, acima disso, com o markup cadastrado pela
+        VIA AIR. É estimativa (estimated=true); os valores definitivos do
+        cartão vêm de POST /checkouts/{checkoutId}/installments.
+      properties:
+        source: { type: string, enum: [VIAAIR_RULES] }
+        estimated: { type: boolean, example: true }
+        currency: { type: string, example: BRL }
+        baseAmount: { type: number, example: 573.14 }
+        maxInterestFree: { type: integer, example: 5 }
+        maxInstallments: { type: integer, example: 12 }
+        pixOnly: { type: boolean }
+        options:
+          type: array
+          items: { $ref: "#/components/schemas/InstallmentPlanOption" }
+    InstallmentPlanOption:
+      type: object
+      properties:
+        installments: { type: integer, example: 12 }
+        installmentValue: { type: number, example: 57.28 }
+        total: { type: number, example: 687.66 }
+        markupPercent: { type: number, example: 19.98 }
+        interestFree: { type: boolean, example: false }
     FlightSegment:
       type: object
       properties:

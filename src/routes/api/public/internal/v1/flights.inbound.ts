@@ -32,6 +32,8 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/inbound")(
           }
           try {
             const { searchInboundFlights } = await import("@/lib/onertravel.server");
+            const { carregarMarkups } = await import("@/lib/api/installment-plan.server");
+            const markups = await carregarMarkups();
             const volta = await searchInboundFlights({
               departureIata: oferta.contexto.departureIata,
               arrivalIata: oferta.contexto.arrivalIata,
@@ -77,7 +79,7 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/inbound")(
                 searchId: parsed.data.searchId,
                 outboundOfferId: parsed.data.outboundOfferId,
                 totalCount: volta.totalFlightsCount,
-                inbound: volta.flights.map((f, i) => normalizarVoo(f, ids[i] ?? "")),
+                inbound: volta.flights.map((f, i) => normalizarVoo(f, ids[i] ?? "", markups)),
               },
               ctx.correlationId,
             );

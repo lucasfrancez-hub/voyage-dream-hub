@@ -43,6 +43,8 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
           const d = parsed.data;
           try {
             const { searchFlights } = await import("@/lib/onertravel.server");
+            const { carregarMarkups } = await import("@/lib/api/installment-plan.server");
+            const markups = await carregarMarkups();
             const { ehCodigoDeCidade } = await import("@/lib/api/iata.server");
             const origemCidade =
               d.originIsCity ?? (await ehCodigoDeCidade(d.origin, true));
@@ -110,7 +112,7 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
                 roundTrip: Boolean(d.returnDate),
                 currency: "BRL",
                 totalCount: resultado.outbound.totalFlightsCount,
-                outbound: voos.map((f, i) => normalizarVoo(f, ids[i] ?? "")),
+                outbound: voos.map((f, i) => normalizarVoo(f, ids[i] ?? "", markups)),
               },
               ctx.correlationId,
             );
