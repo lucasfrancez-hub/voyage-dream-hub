@@ -23,6 +23,13 @@ import type {
   HealthResponse,
   InboundResponse,
   InstallmentOption,
+  MultiCityCheckoutsRequest,
+  MultiCityCheckoutsResponse,
+  MultiCityGroup,
+  MultiCityPassengersResponse,
+  MultiCityRevalidateResponse,
+  MultiCitySearchRequest,
+  MultiCitySearchResponse,
   OnerStatusResponse,
   Order,
   OrderStatusResponse,
@@ -216,6 +223,44 @@ export class ViaAirApi {
 
   getDocuments(orderId: string) {
     return this.call<DocumentsResponse>("GET", `/orders/${orderId}/documents`);
+  }
+
+  /* --------------------------- Multitrecho -------------------------- */
+
+  searchMultiCity(input: MultiCitySearchRequest) {
+    return this.call<MultiCitySearchResponse>("POST", "/flights/multicity/search", input);
+  }
+
+  createMultiCityCheckouts(input: MultiCityCheckoutsRequest, idempotencyKey?: string) {
+    return this.call<MultiCityCheckoutsResponse>("POST", "/multicity/checkouts", input, {
+      idempotencyKey,
+    });
+  }
+
+  getMultiCityGroup(groupId: string) {
+    return this.call<MultiCityGroup>("GET", `/multicity/groups/${groupId}`);
+  }
+
+  setMultiCityPassengers(groupId: string, passengers: Passenger[], idempotencyKey?: string) {
+    return this.call<MultiCityPassengersResponse>(
+      "PUT",
+      `/multicity/groups/${groupId}/passengers`,
+      { passengers },
+      { idempotencyKey },
+    );
+  }
+
+  revalidateMultiCityGroup(
+    groupId: string,
+    reservations?: Array<{ sequence: number; expectedAmount: number }>,
+    idempotencyKey?: string,
+  ) {
+    return this.call<MultiCityRevalidateResponse>(
+      "POST",
+      `/multicity/groups/${groupId}/revalidate`,
+      { reservations: reservations ?? null },
+      { idempotencyKey },
+    );
   }
 }
 
