@@ -215,6 +215,8 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as ApiPublicInternalV1HealthRouteImport } from './routes/api/public/internal/v1/health'
 import { Route as ApiPublicInternalV1AirportsSearchRouteImport } from './routes/api/public/internal/v1/airports.search'
+import { Route as ApiPublicInternalV1FlightsInboundRouteImport } from './routes/api/public/internal/v1/flights.inbound'
+import { Route as ApiPublicInternalV1FlightsSearchRouteImport } from './routes/api/public/internal/v1/flights.search'
 import { Route as ApiPublicInternalV1OnerStatusRouteImport } from './routes/api/public/internal/v1/oner.status'
 
 const IndexRoute = IndexRouteImport.update({
@@ -1293,6 +1295,18 @@ const ApiPublicInternalV1AirportsSearchRoute =
     path: '/api/public/internal/v1/airports/search',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicInternalV1FlightsInboundRoute =
+  ApiPublicInternalV1FlightsInboundRouteImport.update({
+    id: '/api/public/internal/v1/flights/inbound',
+    path: '/api/public/internal/v1/flights/inbound',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1FlightsSearchRoute =
+  ApiPublicInternalV1FlightsSearchRouteImport.update({
+    id: '/api/public/internal/v1/flights/search',
+    path: '/api/public/internal/v1/flights/search',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInternalV1OnerStatusRoute =
   ApiPublicInternalV1OnerStatusRouteImport.update({
     id: '/api/public/internal/v1/oner/status',
@@ -1507,6 +1521,8 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
+  '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
   '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
 }
 export interface FileRoutesByTo {
@@ -1713,6 +1729,8 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
+  '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
   '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
 }
 export interface FileRoutesById {
@@ -1923,6 +1941,8 @@ export interface FileRoutesById {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
+  '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
   '/api/public/internal/v1/oner/status': typeof ApiPublicInternalV1OnerStatusRoute
 }
 export interface FileRouteTypes {
@@ -2134,6 +2154,8 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/api/public/internal/v1/health'
     | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/flights/inbound'
+    | '/api/public/internal/v1/flights/search'
     | '/api/public/internal/v1/oner/status'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -2340,6 +2362,8 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/api/public/internal/v1/health'
     | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/flights/inbound'
+    | '/api/public/internal/v1/flights/search'
     | '/api/public/internal/v1/oner/status'
   id:
     | '__root__'
@@ -2549,6 +2573,8 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/api/public/internal/v1/health'
     | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/flights/inbound'
+    | '/api/public/internal/v1/flights/search'
     | '/api/public/internal/v1/oner/status'
   fileRoutesById: FileRoutesById
 }
@@ -2661,6 +2687,8 @@ export interface RootRouteChildren {
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
   ApiPublicInternalV1HealthRoute: typeof ApiPublicInternalV1HealthRoute
   ApiPublicInternalV1AirportsSearchRoute: typeof ApiPublicInternalV1AirportsSearchRoute
+  ApiPublicInternalV1FlightsInboundRoute: typeof ApiPublicInternalV1FlightsInboundRoute
+  ApiPublicInternalV1FlightsSearchRoute: typeof ApiPublicInternalV1FlightsSearchRoute
   ApiPublicInternalV1OnerStatusRoute: typeof ApiPublicInternalV1OnerStatusRoute
 }
 
@@ -4108,6 +4136,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInternalV1AirportsSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/internal/v1/flights/inbound': {
+      id: '/api/public/internal/v1/flights/inbound'
+      path: '/api/public/internal/v1/flights/inbound'
+      fullPath: '/api/public/internal/v1/flights/inbound'
+      preLoaderRoute: typeof ApiPublicInternalV1FlightsInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/flights/search': {
+      id: '/api/public/internal/v1/flights/search'
+      path: '/api/public/internal/v1/flights/search'
+      fullPath: '/api/public/internal/v1/flights/search'
+      preLoaderRoute: typeof ApiPublicInternalV1FlightsSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/internal/v1/oner/status': {
       id: '/api/public/internal/v1/oner/status'
       path: '/api/public/internal/v1/oner/status'
@@ -4505,6 +4547,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicInternalV1HealthRoute: ApiPublicInternalV1HealthRoute,
   ApiPublicInternalV1AirportsSearchRoute:
     ApiPublicInternalV1AirportsSearchRoute,
+  ApiPublicInternalV1FlightsInboundRoute:
+    ApiPublicInternalV1FlightsInboundRoute,
+  ApiPublicInternalV1FlightsSearchRoute: ApiPublicInternalV1FlightsSearchRoute,
   ApiPublicInternalV1OnerStatusRoute: ApiPublicInternalV1OnerStatusRoute,
 }
 export const routeTree = rootRouteImport
