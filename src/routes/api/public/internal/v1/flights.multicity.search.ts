@@ -15,8 +15,9 @@ const perna = z.object({
   origin: z.string().trim().length(3),
   destination: z.string().trim().length(3),
   departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  originIsCity: z.boolean().default(false),
-  destinationIsCity: z.boolean().default(false),
+  originIsCity: z.boolean().nullish(),
+  destinationIsCity: z.boolean().nullish(),
+
 });
 
 const entrada = z.object({
@@ -63,6 +64,10 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/multicity/
               departureDate: l.departureDate,
             };
             try {
+              const { ehCodigoDeCidade } = await import("@/lib/api/iata.server");
+              const origemCidade = l.originIsCity ?? (await ehCodigoDeCidade(origin, true));
+              const destinoCidade =
+                l.destinationIsCity ?? (await ehCodigoDeCidade(destination, false));
               const resultado = await searchFlights({
                 departureIata: origin,
                 arrivalIata: destination,
@@ -72,8 +77,9 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/multicity/
                 children: d.children,
                 infants: d.infants,
                 pageSize: 50,
-                departureIsCity: l.originIsCity,
-                arrivalIsCity: l.destinationIsCity,
+                departureIsCity: origemCidade,
+                arrivalIsCity: destinoCidade,
+
                 filters: {
                   containsDispatchBaggage: d.checkedBaggage,
                   maxStops: d.maxStops ?? null,
