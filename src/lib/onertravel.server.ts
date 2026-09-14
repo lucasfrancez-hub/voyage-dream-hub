@@ -259,6 +259,7 @@ async function poll(
   // Quantas respostas o fornecedor realmente entregou. Zero = motor fora do
   // ar: não podemos devolver "nenhum voo" como se fosse falta de inventário.
   let respostasOk = 0;
+  let ultimoStatus = 0;
 
 
   for (let i = 0; i < maxRounds; i++) {
