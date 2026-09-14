@@ -1584,12 +1584,16 @@ function SummaryCard({
               </Button>
             ) : publicMode ? (
               cartUrl ? (
-                // Link real: navegação por clique do usuário nunca é tratada como pop-up,
-                // então nenhum bloqueador impede a ida ao carrinho.
+                // Link real: navegação por clique do usuário nunca é tratada como pop-up.
+                // O cliente SEMPRE cai no checkout da VIA AIR (QR do Pix é nosso);
+                // o endereço da operadora só é usado como último recurso.
                 <a
-                  href={cartUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={(() => {
+                    const id = cartUrl.match(
+                      /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/,
+                    )?.[0];
+                    return id ? `/checkout/voo/${id.toLowerCase()}` : cartUrl;
+                  })()}
                   onClick={() => registrarLead(cartUrl)}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-4 text-xs font-black uppercase tracking-[0.15em] text-primary-foreground transition-opacity hover:opacity-90"
                 >
