@@ -868,6 +868,7 @@ components:
                   rate_limited,
                   provider_error,
                   provider_unavailable,
+                  provider_session_unavailable,
                   price_changed,
                   payment_declined,
                   internal_error,
