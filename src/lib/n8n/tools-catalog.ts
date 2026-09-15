@@ -71,9 +71,13 @@ export const N8N_TOOLS: N8nTool[] = [
         children: N,
         infants: N,
         cabinClass: { type: "string", enum: ["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"] },
-        baggageOnly: B,
-        directOnly: B,
+        // Nomes idênticos aos da rota real (flights.search.ts). Não existe
+        // baggageOnly/directOnly: o filtro de bagagem é checkedBaggage e o de
+        // conexões é maxStops (0 = só voo direto).
+        checkedBaggage: B,
+        maxStops: N,
         airlines: ARR(S),
+
       },
       ["origin", "destination", "departureDate", "adults"],
     ),
