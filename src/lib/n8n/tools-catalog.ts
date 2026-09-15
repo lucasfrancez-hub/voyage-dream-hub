@@ -149,7 +149,32 @@ export const N8N_TOOLS: N8nTool[] = [
       "status=found → apresentar os pacotes retornados. not_found/incompatible/customization_required → seguir para cotação personalizada, sem oferecer 'pacote parecido'. Preço, taxas, hotel, datas, vagas e parcelamento vêm prontos; o agente nunca calcula.",
   },
   {
+    name: "create_flight_quote",
+    description:
+      "Cria o orçamento aéreo persistido da VIA AIR a partir da oferta escolhida e devolve o link público do orçamento. Usar sempre que o cliente escolher um voo: nunca montar preço ou link manualmente.",
+    method: "POST",
+    endpoint: "/api/public/internal/v1/quotes/flight",
+    required_scope: "quotes:write",
+    roles: ["air"],
+    input_schema: obj(
+      {
+        searchId: S,
+        offerId: S,
+        inboundOfferId: { ...S, nullable: true },
+        fareIndex: N,
+        inboundFareIndex: N,
+        agentName: S,
+        conversationId: S,
+      },
+      ["offerId"],
+    ),
+    output_schema: obj({ quote_id: S, public_id: S, public_url: S, short_url: S, total: N, currency: S }),
+    notes:
+      "Só aceita identificadores opacos (offerId). As chaves do fornecedor são resolvidas no servidor e nunca voltam na resposta. O link é o mesmo formato https://pedidos.viaair.tur.br/orcamento/{publicId} usado pelo fluxo de reserva.",
+  },
+  {
     name: "create_checkout",
+
 
     description: "Cria o carrinho (checkout) a partir da oferta escolhida pelo cliente.",
     method: "POST",
@@ -394,7 +419,38 @@ export const N8N_INITIAL_SCOPES = [
   "passengers:write",
   "orders:read",
   "tickets:read",
+  "quotes:write",
 ];
+
+/**
+ * Ferramentas autorizadas por perfil (fonte da verdade do backend).
+ *
+ * consultant: pacotes prontos e apoio; NÃO faz aéreo avulso — deve transferir
+ * para a Central (regra conversacional, não é tool).
+ * air: pesquisa aérea, multitrecho e criação do orçamento aéreo.
+ */
+export const DEFAULT_TOOLS_BY_ROLE: Record<AgentRole, string[]> = {
+  consultant: ["search_ready_packages", "get_order", "get_order_status"],
+  air: [
+    "search_airports",
+    "search_flights",
+    "search_inbound",
+    "search_multicity",
+    "create_flight_quote",
+    "get_order",
+    "get_order_status",
+    "get_tickets",
+  ],
+};
+
+/** Tools do agente: o que estiver em `ai_agents.tools_habilitadas` vence; caso
+ *  contrário aplica-se o padrão do perfil. Sempre filtrado pelo catálogo. */
+export function resolveToolsEnabled(role: AgentRole, configuradas: string[]): string[] {
+  const permitidas = new Set(DEFAULT_TOOLS_BY_ROLE[role]);
+  const existentes = new Set(N8N_TOOLS.map((t) => t.name));
+  const base = configuradas.length ? configuradas : DEFAULT_TOOLS_BY_ROLE[role];
+  return base.filter((t) => existentes.has(t) && permitidas.has(t));
+}
 
 
 export function toolsForRole(role: AgentRole): N8nTool[] {
