@@ -1619,9 +1619,10 @@ function SummaryCard({
                       if (id) {
                         // Checkout da VIA AIR (o QR do Pix é sempre nosso).
                         window.open(`/checkout/voo/${id.toLowerCase()}`, "_blank", "noopener");
-
+                      } else {
                         window.open(r.url, "_blank", "noopener");
                       }
+
                     } catch {
                       setBuyingPublic(false);
                     }
