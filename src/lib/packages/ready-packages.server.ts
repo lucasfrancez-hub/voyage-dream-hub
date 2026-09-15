@@ -185,7 +185,8 @@ function productTypeOf(row: Row): ReadyPackage["product_type"] {
 function montarParcelamento(args: {
   rules: InstallmentRule[];
   supplierName: string | null;
-  totalPerPerson: number | null;
+  /** Valor comercial apresentado (já na ocupação-base, taxas inclusas). */
+  packageTotal: number | null;
   departureDate: string | null;
   priceFrom: boolean;
 }): ReadyPackageInstallmentPlan {
