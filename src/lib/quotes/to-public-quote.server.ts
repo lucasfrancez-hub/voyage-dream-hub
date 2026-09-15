@@ -524,6 +524,7 @@ export async function buildPublicQuoteFromImported(params: {
         }
       : null,
     source: { type: "SYSTEM", conversationId: null },
+    installmentHint: operatorHint(normalized) || null,
     validUntil: params.validUntil ?? null,
     publicNotes: null,
   };
