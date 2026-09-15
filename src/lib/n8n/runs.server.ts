@@ -31,6 +31,21 @@ export async function startRun(input: {
   } as never);
 }
 
+/**
+ * O n8n aceitou o evento (202). O run continua ABERTO aguardando o callback —
+ * por isso não gravamos finished_at/duration aqui.
+ */
+export async function markDispatched(
+  runId: string,
+  n8nExecutionId: string | null,
+): Promise<void> {
+  const supabase = await db();
+  await supabase
+    .from("n8n_agent_runs")
+    .update({ status: "dispatched", n8n_execution_id: n8nExecutionId } as never)
+    .eq("run_id", runId);
+}
+
 export async function finishRun(
   runId: string,
   patch: {

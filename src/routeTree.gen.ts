@@ -201,6 +201,7 @@ import { Route as ApiPublicHooksInstagramDmQueueRouteImport } from './routes/api
 import { Route as ApiPublicHooksInstagramHealthRouteImport } from './routes/api/public/hooks/instagram-health'
 import { Route as ApiPublicHooksKeepWindowAliveRouteImport } from './routes/api/public/hooks/keep-window-alive'
 import { Route as ApiPublicHooksMetaAdsSyncRouteImport } from './routes/api/public/hooks/meta-ads-sync'
+import { Route as ApiPublicHooksN8nDispatchTestRouteImport } from './routes/api/public/hooks/n8n-dispatch-test'
 import { Route as ApiPublicHooksN8nReplyRouteImport } from './routes/api/public/hooks/n8n-reply'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
 import { Route as ApiPublicHooksSocialScheduleDispatchRouteImport } from './routes/api/public/hooks/social-schedule-dispatch'
@@ -1241,6 +1242,12 @@ const ApiPublicHooksMetaAdsSyncRoute =
     path: '/api/public/hooks/meta-ads-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksN8nDispatchTestRoute =
+  ApiPublicHooksN8nDispatchTestRouteImport.update({
+    id: '/api/public/hooks/n8n-dispatch-test',
+    path: '/api/public/hooks/n8n-dispatch-test',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksN8nReplyRoute = ApiPublicHooksN8nReplyRouteImport.update({
   id: '/api/public/hooks/n8n-reply',
   path: '/api/public/hooks/n8n-reply',
@@ -1687,6 +1694,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/meta-ads-sync': typeof ApiPublicHooksMetaAdsSyncRoute
+  '/api/public/hooks/n8n-dispatch-test': typeof ApiPublicHooksN8nDispatchTestRoute
   '/api/public/hooks/n8n-reply': typeof ApiPublicHooksN8nReplyRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
@@ -1921,6 +1929,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/meta-ads-sync': typeof ApiPublicHooksMetaAdsSyncRoute
+  '/api/public/hooks/n8n-dispatch-test': typeof ApiPublicHooksN8nDispatchTestRoute
   '/api/public/hooks/n8n-reply': typeof ApiPublicHooksN8nReplyRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
@@ -2159,6 +2168,7 @@ export interface FileRoutesById {
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/meta-ads-sync': typeof ApiPublicHooksMetaAdsSyncRoute
+  '/api/public/hooks/n8n-dispatch-test': typeof ApiPublicHooksN8nDispatchTestRoute
   '/api/public/hooks/n8n-reply': typeof ApiPublicHooksN8nReplyRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
@@ -2398,6 +2408,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/meta-ads-sync'
+    | '/api/public/hooks/n8n-dispatch-test'
     | '/api/public/hooks/n8n-reply'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
@@ -2632,6 +2643,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/meta-ads-sync'
+    | '/api/public/hooks/n8n-dispatch-test'
     | '/api/public/hooks/n8n-reply'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
@@ -2869,6 +2881,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/meta-ads-sync'
+    | '/api/public/hooks/n8n-dispatch-test'
     | '/api/public/hooks/n8n-reply'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
@@ -3008,6 +3021,7 @@ export interface RootRouteChildren {
   ApiPublicHooksInstagramHealthRoute: typeof ApiPublicHooksInstagramHealthRoute
   ApiPublicHooksKeepWindowAliveRoute: typeof ApiPublicHooksKeepWindowAliveRoute
   ApiPublicHooksMetaAdsSyncRoute: typeof ApiPublicHooksMetaAdsSyncRoute
+  ApiPublicHooksN8nDispatchTestRoute: typeof ApiPublicHooksN8nDispatchTestRoute
   ApiPublicHooksN8nReplyRoute: typeof ApiPublicHooksN8nReplyRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
   ApiPublicHooksSocialScheduleDispatchRoute: typeof ApiPublicHooksSocialScheduleDispatchRoute
@@ -4384,6 +4398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksMetaAdsSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/n8n-dispatch-test': {
+      id: '/api/public/hooks/n8n-dispatch-test'
+      path: '/api/public/hooks/n8n-dispatch-test'
+      fullPath: '/api/public/hooks/n8n-dispatch-test'
+      preLoaderRoute: typeof ApiPublicHooksN8nDispatchTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/n8n-reply': {
       id: '/api/public/hooks/n8n-reply'
       path: '/api/public/hooks/n8n-reply'
@@ -5153,6 +5174,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksInstagramHealthRoute: ApiPublicHooksInstagramHealthRoute,
   ApiPublicHooksKeepWindowAliveRoute: ApiPublicHooksKeepWindowAliveRoute,
   ApiPublicHooksMetaAdsSyncRoute: ApiPublicHooksMetaAdsSyncRoute,
+  ApiPublicHooksN8nDispatchTestRoute: ApiPublicHooksN8nDispatchTestRoute,
   ApiPublicHooksN8nReplyRoute: ApiPublicHooksN8nReplyRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
   ApiPublicHooksSocialScheduleDispatchRoute:
