@@ -229,7 +229,7 @@ function montarParcelamento(args: {
 
 function normalizar(
   row: Row,
-  datas: ReadyPackageDate[],
+  datas: RawDate[],
   rules: InstallmentRule[],
   mismatch: string[],
 ): ReadyPackage {
@@ -237,15 +237,24 @@ function normalizar(
   const flexivel = dateMode === "flexible" || row.flexible_dates === true || !row.going_date;
   const disponiveis = datas.filter((d) => d.is_available && (d.seats == null || d.seats > 0));
 
-  // Preço: prioriza a data disponível mais barata quando o calendário existe.
+  // Mesma regra da página pública (/pacotes/{slug}):
+  // per_unit (passeio/ingresso) => 1 unidade; senão => valor da ocupação-base.
+  const isTicket = row.kind === "tour" || row.kind === "service";
+  const perUnit = row.pricing_mode === "per_unit" || isTicket;
+  const ocupacaoBase = n(row.base_occupancy) ?? 2;
+  const multiplicador = perUnit ? 1 : ocupacaoBase;
+
+  // Valor: prioriza a data disponível mais barata quando o calendário existe.
   const melhor = disponiveis.length
     ? disponiveis.reduce((a, b) =>
-        (a.price_per_person ?? Infinity) <= (b.price_per_person ?? Infinity) ? a : b,
+        (a.unit_price ?? Infinity) <= (b.unit_price ?? Infinity) ? a : b,
       )
     : null;
-  const preco = n(melhor?.price_per_person ?? row.price_per_person);
+  const unitario = n(melhor?.unit_price ?? row.price_per_person);
   const taxas = n(melhor?.taxes ?? row.taxes);
-  const totalPP = preco == null ? null : Number((preco + (taxas ?? 0)).toFixed(2));
+  // As taxas JÁ estão dentro do valor cadastrado — nunca somar (evita dupla soma).
+  const packageTotal =
+    unitario == null ? null : Number((unitario * multiplicador).toFixed(2));
 
   let availability: ReadyPackage["availability"];
   if (row.is_active === false) availability = "inactive";
@@ -256,6 +265,13 @@ function normalizar(
   const seats = melhor?.seats ?? null;
   const slug = (row.slug as string | null) ?? null;
   const path = slug ? `/pacotes/${slug}` : "";
+  const occupancyLabel = perUnit
+    ? row.kind === "tour"
+      ? "por pessoa"
+      : "por unidade"
+    : ocupacaoBase === 1
+      ? "para 1 pessoa"
+      : `para ${ocupacaoBase} pessoas`;
 
   return {
     package_id: String(row.id),
@@ -270,9 +286,14 @@ function normalizar(
     return_date: row.return_date ?? null,
     nights: n(row.nights),
     price_from: flexivel || (!melhor && datas.length === 0 && !row.going_date),
-    price_per_person: preco,
+    pricing_basis: perUnit ? "per_unit" : "per_party",
+    occupancy_label: occupancyLabel,
+    package_total: packageTotal,
     taxes: taxas,
-    total_per_person: totalPP,
+    taxes_included: true,
+    requires_recalculation: mismatch.some(
+      (m) => m === "ocupacao_diferente_recalcular" || m === "criancas_a_confirmar",
+    ),
     currency: "BRL",
     pricing_mode: row.pricing_mode ?? null,
     base_occupancy: n(row.base_occupancy),
