@@ -1,0 +1,103 @@
+/**
+ * POST /api/public/internal/v1/quotes/flight
+ *
+ * Cria o orçamento aéreo persistido da VIA AIR a partir de identificadores
+ * OPACOS (searchId + offerId [+ inboundOfferId]). As chaves do fornecedor
+ * (fareKey/searchKey/itineraryId) são resolvidas internamente e NUNCA voltam
+ * na resposta.
+ *
+ * Retorno: { quote_id, public_url } — link compatível com
+ * https://pedidos.viaair.tur.br/orcamento/{publicId} e com o fluxo de reserva.
+ */
+import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
+import { withApi, ok, fail } from "@/lib/api/auth.server";
+import { failFromError } from "@/lib/api/respond";
+import { lerOferta } from "@/lib/api/refs.server";
+import type { ApiFlightOffer } from "@/lib/api/normalize";
+
+const entrada = z.object({
+  searchId: z.string().min(6).max(60).nullish(),
+  offerId: z.string().min(6).max(60),
+  inboundOfferId: z.string().min(6).max(60).nullish(),
+  /** Índice da tarifa escolhida dentro de fares[] da própria oferta. */
+  fareIndex: z.number().int().min(0).max(20).nullish(),
+  inboundFareIndex: z.number().int().min(0).max(20).nullish(),
+  agentName: z.string().trim().min(1).max(60).nullish(),
+  conversationId: z.string().trim().min(1).max(80).nullish(),
+  validUntil: z.string().datetime().nullish(),
+});
+
+export const Route = createFileRoute("/api/public/internal/v1/quotes/flight")({
+  server: {
+    handlers: {
+      POST: async ({ request }) =>
+        withApi(request, "quotes:write", async (ctx) => {
+          const parsed = entrada.safeParse(ctx.body);
+          if (!parsed.success) {
+            return fail("invalid_request", "Informe pelo menos offerId.", ctx.correlationId, {
+              details: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
+            });
+          }
+          const d = parsed.data;
+          try {
+            const ida = await lerOferta(d.offerId);
+            if (!ida) {
+              return fail("not_found", "Esta oferta expirou. Refaça a busca.", ctx.correlationId);
+            }
+            const vooIda = (ida.resumo as { voo?: ApiFlightOffer } | null)?.voo;
+            if (!vooIda) {
+              return fail(
+                "not_found",
+                "Esta oferta é de uma busca antiga e não pode virar orçamento. Refaça a busca.",
+                ctx.correlationId,
+              );
+            }
+
+            let volta = null as Awaited<ReturnType<typeof lerOferta>>;
+            let vooVolta: ApiFlightOffer | undefined;
+            if (d.inboundOfferId) {
+              volta = await lerOferta(d.inboundOfferId);
+              if (!volta) {
+                return fail("not_found", "A oferta de volta expirou. Refaça a busca.", ctx.correlationId);
+              }
+              vooVolta = (volta.resumo as { voo?: ApiFlightOffer } | null)?.voo;
+              if (!vooVolta) {
+                return fail(
+                  "not_found",
+                  "A oferta de volta é de uma busca antiga. Refaça a busca.",
+                  ctx.correlationId,
+                );
+              }
+            }
+
+            const { criarOrcamentoAereoDaOferta } = await import("@/lib/quotes/from-api-offer.server");
+            const r = await criarOrcamentoAereoDaOferta({
+              outbound: { payload: ida, offer: vooIda, fareIndex: d.fareIndex ?? null },
+              inbound:
+                volta && vooVolta
+                  ? { payload: volta, offer: vooVolta, fareIndex: d.inboundFareIndex ?? null }
+                  : null,
+              agentName: d.agentName ?? null,
+              conversationId: d.conversationId ?? null,
+              validUntil: d.validUntil ?? null,
+            });
+
+            return ok(
+              {
+                quote_id: r.quote_id,
+                public_id: r.public_id,
+                public_url: r.public_url,
+                short_url: r.short_url,
+                total: r.total,
+                currency: "BRL",
+              },
+              ctx.correlationId,
+            );
+          } catch (e) {
+            return failFromError(e, ctx.correlationId);
+          }
+        }),
+    },
+  },
+});

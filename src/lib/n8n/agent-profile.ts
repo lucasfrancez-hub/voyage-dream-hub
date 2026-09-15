@@ -9,6 +9,9 @@
 
 export type AgentRole = "consultant" | "air";
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { resolveToolsEnabled } from "./tools-catalog";
+
 export type N8nAgentProfile = {
   id: string;
   slug: string;
@@ -61,13 +64,14 @@ export function toolsEnabledFrom(value: unknown): string[] {
 }
 
 export function toAgentProfile(row: AiAgentRow): N8nAgentProfile {
+  const role = roleFromEquipe(row.equipe);
   return {
     id: row.id,
     slug: row.slug,
     name: row.nome,
     gender: genderFromAgent(row),
-    role: roleFromEquipe(row.equipe),
-    tools_enabled: toolsEnabledFrom(row.tools_habilitadas),
+    role,
+    tools_enabled: resolveToolsEnabled(role, toolsEnabledFrom(row.tools_habilitadas)),
     forbidden_topics: Array.isArray(row.temas_proibidos) ? row.temas_proibidos : [],
   };
 }

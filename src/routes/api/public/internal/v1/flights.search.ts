@@ -97,7 +97,9 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
               itineraryId: f.journey.key ?? "",
               leg: "outbound" as const,
               contexto,
-              resumo: { total: f.price?.total ?? 0 },
+              // Guardamos a oferta já normalizada para que o orçamento aéreo
+              // possa ser criado depois só com o offerId (sem chave do fornecedor).
+              resumo: { total: f.price?.total ?? 0, voo: normalizarVoo(f, "", markups) },
             }));
             const ids = await guardarOfertas({
               clientId: ctx.client.id,
