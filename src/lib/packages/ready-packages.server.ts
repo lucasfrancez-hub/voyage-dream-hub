@@ -296,7 +296,7 @@ function normalizar(
     ),
     currency: "BRL",
     pricing_mode: row.pricing_mode ?? null,
-    base_occupancy: n(row.base_occupancy),
+    base_occupancy: ocupacaoBase,
     max_units: n(row.max_units),
     hotel: {
       name: row.hotel_name ?? null,
@@ -319,13 +319,22 @@ function normalizar(
     installment_plan: montarParcelamento({
       rules,
       supplierName: row.supplier_name ?? null,
-      totalPerPerson: totalPP,
+      packageTotal,
       departureDate: (melhor?.date ?? row.going_date ?? null) as string | null,
       priceFrom: flexivel,
     }),
     seats,
     availability,
-    available_dates: disponiveis.slice(0, 24),
+    available_dates: disponiveis.slice(0, 24).map((d) => ({
+      date: d.date,
+      package_total:
+        d.unit_price == null ? null : Number((d.unit_price * multiplicador).toFixed(2)),
+      taxes: d.taxes,
+      taxes_included: true as const,
+      seats: d.seats,
+      is_available: d.is_available,
+      modality: d.modality,
+    })),
     image_url: row.image_url ?? null,
     public_url: path ? `${PUBLIC_SITE_URL}${path}` : "",
     public_path: path,
