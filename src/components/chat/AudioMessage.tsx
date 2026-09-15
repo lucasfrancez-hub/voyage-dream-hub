@@ -26,9 +26,10 @@ const VELOCIDADES = [1, 1.5, 2] as const;
 interface Props {
   src: string;
   isOut: boolean;
+  className?: string;
 }
 
-export function AudioMessage({ src, isOut }: Props) {
+export function AudioMessage({ src, isOut, className }: Props) {
   const ref = useRef<HTMLAudioElement | null>(null);
   const fillRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number>(0);
@@ -105,7 +106,7 @@ export function AudioMessage({ src, isOut }: Props) {
   );
 
   return (
-    <div className="mb-1 flex w-60 max-w-full items-center gap-3">
+    <div className={cn("mb-1 flex w-60 max-w-full items-center gap-3", className)}>
       <audio
         ref={ref}
         src={src}
