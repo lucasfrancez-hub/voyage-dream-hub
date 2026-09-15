@@ -52,10 +52,23 @@ export const readyPackagesInput = z.object({
 
 export type ReadyPackagesInput = z.infer<typeof readyPackagesInput>;
 
+/** Valor interno cru do calendário (nunca exposto na resposta da API). */
+type RawDate = {
+  date: string;
+  unit_price: number | null;
+  taxes: number | null;
+  seats: number | null;
+  is_available: boolean;
+  modality: string | null;
+};
+
 export type ReadyPackageDate = {
   date: string;
-  price_per_person: number | null;
+  /** Valor comercial da data, já na ocupação-base (mesmo número da página). */
+  package_total: number | null;
+  /** Taxas JÁ inclusas em package_total (informativo, nunca somar de novo). */
   taxes: number | null;
+  taxes_included: true;
   seats: number | null;
   is_available: boolean;
   modality: string | null;
@@ -75,11 +88,25 @@ export type ReadyPackage = {
   nights: number | null;
   /** true quando o valor é "a partir de" (produto flexível / sem data fixa). */
   price_from: boolean;
-  price_per_person: number | null;
+  /**
+   * Base comercial do valor:
+   * - "per_party": package_total já é o valor TOTAL para base_occupancy pessoas;
+   * - "per_unit": package_total é o valor de 1 unidade (ingresso/passeio).
+   * Em ambos os casos o agente apenas apresenta — nunca divide nem multiplica.
+   */
+  pricing_basis: "per_party" | "per_unit";
+  /** Texto pronto para apresentação: "para 2 pessoas" / "por pessoa". */
+  occupancy_label: string;
+  /** ÚNICO valor comercial. Taxas já inclusas. Não somar nada a ele. */
+  package_total: number | null;
+  /** Taxas JÁ inclusas em package_total (informativo). */
   taxes: number | null;
-  total_per_person: number | null;
+  taxes_included: true;
+  /** true quando a ocupação pedida difere da base: condição precisa ser recalculada. */
+  requires_recalculation: boolean;
   currency: "BRL";
   pricing_mode: string | null;
+
   base_occupancy: number | null;
   max_units: number | null;
   hotel: {
