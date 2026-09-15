@@ -439,7 +439,7 @@ export async function searchReadyPackages(
       const lista = porPacote.get(String(d.package_id)) ?? [];
       lista.push({
         date: String(d.date),
-        price_per_person: n(d.price_per_person),
+        unit_price: n(d.price_per_person),
         taxes: n(d.taxes),
         seats: d.seats == null ? null : n(d.seats),
         is_available: d.is_available !== false,
