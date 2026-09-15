@@ -115,7 +115,7 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/multicity/
                 sequence,
                 searchId,
                 contexto,
-                resumo: { total: f.price?.total ?? 0 },
+                resumo: { total: f.price?.total ?? 0, voo: normalizarVoo(f, "", markups) },
               }));
               const ids = await guardarOfertas({
                 clientId: ctx.client.id,

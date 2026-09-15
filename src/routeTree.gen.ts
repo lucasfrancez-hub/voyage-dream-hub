@@ -228,6 +228,7 @@ import { Route as ApiPublicInternalV1OnerStatusRouteImport } from './routes/api/
 import { Route as ApiPublicInternalV1OrdersOrderIdRouteImport } from './routes/api/public/internal/v1/orders.$orderId'
 import { Route as ApiPublicInternalV1PackagesSearchRouteImport } from './routes/api/public/internal/v1/packages.search'
 import { Route as ApiPublicInternalV1PaymentsPaymentIdRouteImport } from './routes/api/public/internal/v1/payments.$paymentId'
+import { Route as ApiPublicInternalV1QuotesFlightRouteImport } from './routes/api/public/internal/v1/quotes.flight'
 import { Route as ApiPublicInternalV1WebhooksDispatchRouteImport } from './routes/api/public/internal/v1/webhooks.dispatch'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.installments'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdOrderRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.order'
@@ -1399,6 +1400,12 @@ const ApiPublicInternalV1PaymentsPaymentIdRoute =
     path: '/api/public/internal/v1/payments/$paymentId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicInternalV1QuotesFlightRoute =
+  ApiPublicInternalV1QuotesFlightRouteImport.update({
+    id: '/api/public/internal/v1/quotes/flight',
+    path: '/api/public/internal/v1/quotes/flight',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInternalV1WebhooksDispatchRoute =
   ApiPublicInternalV1WebhooksDispatchRouteImport.update({
     id: '/api/public/internal/v1/webhooks/dispatch',
@@ -1728,6 +1735,7 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/v1/orders/$orderId': typeof ApiPublicInternalV1OrdersOrderIdRouteWithChildren
   '/api/public/internal/v1/packages/search': typeof ApiPublicInternalV1PackagesSearchRoute
   '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
+  '/api/public/internal/v1/quotes/flight': typeof ApiPublicInternalV1QuotesFlightRoute
   '/api/public/internal/v1/webhooks/dispatch': typeof ApiPublicInternalV1WebhooksDispatchRoute
   '/api/public/internal/v1/checkouts/$checkoutId/installments': typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute
   '/api/public/internal/v1/checkouts/$checkoutId/order': typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute
@@ -1964,6 +1972,7 @@ export interface FileRoutesByTo {
   '/api/public/internal/v1/orders/$orderId': typeof ApiPublicInternalV1OrdersOrderIdRouteWithChildren
   '/api/public/internal/v1/packages/search': typeof ApiPublicInternalV1PackagesSearchRoute
   '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
+  '/api/public/internal/v1/quotes/flight': typeof ApiPublicInternalV1QuotesFlightRoute
   '/api/public/internal/v1/webhooks/dispatch': typeof ApiPublicInternalV1WebhooksDispatchRoute
   '/api/public/internal/v1/checkouts/$checkoutId/installments': typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute
   '/api/public/internal/v1/checkouts/$checkoutId/order': typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute
@@ -2204,6 +2213,7 @@ export interface FileRoutesById {
   '/api/public/internal/v1/orders/$orderId': typeof ApiPublicInternalV1OrdersOrderIdRouteWithChildren
   '/api/public/internal/v1/packages/search': typeof ApiPublicInternalV1PackagesSearchRoute
   '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
+  '/api/public/internal/v1/quotes/flight': typeof ApiPublicInternalV1QuotesFlightRoute
   '/api/public/internal/v1/webhooks/dispatch': typeof ApiPublicInternalV1WebhooksDispatchRoute
   '/api/public/internal/v1/checkouts/$checkoutId/installments': typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute
   '/api/public/internal/v1/checkouts/$checkoutId/order': typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute
@@ -2445,6 +2455,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/orders/$orderId'
     | '/api/public/internal/v1/packages/search'
     | '/api/public/internal/v1/payments/$paymentId'
+    | '/api/public/internal/v1/quotes/flight'
     | '/api/public/internal/v1/webhooks/dispatch'
     | '/api/public/internal/v1/checkouts/$checkoutId/installments'
     | '/api/public/internal/v1/checkouts/$checkoutId/order'
@@ -2681,6 +2692,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/orders/$orderId'
     | '/api/public/internal/v1/packages/search'
     | '/api/public/internal/v1/payments/$paymentId'
+    | '/api/public/internal/v1/quotes/flight'
     | '/api/public/internal/v1/webhooks/dispatch'
     | '/api/public/internal/v1/checkouts/$checkoutId/installments'
     | '/api/public/internal/v1/checkouts/$checkoutId/order'
@@ -2920,6 +2932,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/orders/$orderId'
     | '/api/public/internal/v1/packages/search'
     | '/api/public/internal/v1/payments/$paymentId'
+    | '/api/public/internal/v1/quotes/flight'
     | '/api/public/internal/v1/webhooks/dispatch'
     | '/api/public/internal/v1/checkouts/$checkoutId/installments'
     | '/api/public/internal/v1/checkouts/$checkoutId/order'
@@ -3060,6 +3073,7 @@ export interface RootRouteChildren {
   ApiPublicInternalV1OrdersOrderIdRoute: typeof ApiPublicInternalV1OrdersOrderIdRouteWithChildren
   ApiPublicInternalV1PackagesSearchRoute: typeof ApiPublicInternalV1PackagesSearchRoute
   ApiPublicInternalV1PaymentsPaymentIdRoute: typeof ApiPublicInternalV1PaymentsPaymentIdRoute
+  ApiPublicInternalV1QuotesFlightRoute: typeof ApiPublicInternalV1QuotesFlightRoute
   ApiPublicInternalV1WebhooksDispatchRoute: typeof ApiPublicInternalV1WebhooksDispatchRoute
   ApiPublicInternalV1FlightsMulticitySearchRoute: typeof ApiPublicInternalV1FlightsMulticitySearchRoute
   ApiPublicInternalV1ImportsComprarViagemReservationRoute: typeof ApiPublicInternalV1ImportsComprarViagemReservationRoute
@@ -4601,6 +4615,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInternalV1PaymentsPaymentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/internal/v1/quotes/flight': {
+      id: '/api/public/internal/v1/quotes/flight'
+      path: '/api/public/internal/v1/quotes/flight'
+      fullPath: '/api/public/internal/v1/quotes/flight'
+      preLoaderRoute: typeof ApiPublicInternalV1QuotesFlightRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/internal/v1/webhooks/dispatch': {
       id: '/api/public/internal/v1/webhooks/dispatch'
       path: '/api/public/internal/v1/webhooks/dispatch'
@@ -5229,6 +5250,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicInternalV1PackagesSearchRoute,
   ApiPublicInternalV1PaymentsPaymentIdRoute:
     ApiPublicInternalV1PaymentsPaymentIdRoute,
+  ApiPublicInternalV1QuotesFlightRoute: ApiPublicInternalV1QuotesFlightRoute,
   ApiPublicInternalV1WebhooksDispatchRoute:
     ApiPublicInternalV1WebhooksDispatchRoute,
   ApiPublicInternalV1FlightsMulticitySearchRoute:

@@ -65,7 +65,11 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/inbound")(
               itineraryId: f.journey.key ?? "",
               leg: "inbound" as const,
               contexto: oferta.contexto,
-              resumo: { total: f.price?.total ?? 0, outboundOfferId: parsed.data.outboundOfferId },
+              resumo: {
+                total: f.price?.total ?? 0,
+                outboundOfferId: parsed.data.outboundOfferId,
+                voo: normalizarVoo(f, "", markups),
+              },
             }));
             const ids = await guardarOfertas({
               clientId: ctx.client.id,
