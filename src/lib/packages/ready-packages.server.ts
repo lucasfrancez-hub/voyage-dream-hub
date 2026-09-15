@@ -427,7 +427,7 @@ export async function searchReadyPackages(
 
   // Calendário de datas dos candidatos (datas fixas com preço e vagas reais).
   const ids = rows.map((r) => String(r.id));
-  const porPacote = new Map<string, ReadyPackageDate[]>();
+  const porPacote = new Map<string, RawDate[]>();
   for (let i = 0; i < ids.length; i += 200) {
     const { data: datas } = await supabaseAdmin
       .from("package_date_prices")
