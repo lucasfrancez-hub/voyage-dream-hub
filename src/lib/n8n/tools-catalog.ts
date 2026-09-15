@@ -388,12 +388,14 @@ export const N8N_TOOLS: N8nTool[] = [
 /** Escopos mínimos do cliente n8n na primeira fase (sem pagamento). */
 export const N8N_INITIAL_SCOPES = [
   "flights:read",
+  "packages:read",
   "checkouts:read",
   "checkouts:write",
   "passengers:write",
   "orders:read",
   "tickets:read",
 ];
+
 
 export function toolsForRole(role: AgentRole): N8nTool[] {
   return N8N_TOOLS.filter((t) => t.roles.includes(role));
