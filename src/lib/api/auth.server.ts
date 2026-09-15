@@ -60,12 +60,42 @@ function mesmoHash(a: string, b: string): boolean {
 
 type Falha = { code: ApiErrorCode; message: string };
 
-async function autenticar(request: Request): Promise<{ client: ApiClient } | { erro: Falha }> {
-  const header = request.headers.get("authorization") ?? "";
-  const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
-  if (!token || !/^vai_(live|test)_[A-Za-z0-9]{24,80}$/.test(token)) {
-    return { erro: { code: "unauthorized", message: "Token ausente ou mal formado." } };
+const FORMATO_TOKEN = /^vai_(live|test)_[A-Za-z0-9]{24,80}$/;
+
+/**
+ * Lê o token da chamada. Formato oficial: `Authorization: Bearer <token>`.
+ * Também aceitamos, por tolerância, o token puro em `Authorization`,
+ * `Bearer:` e o header `x-api-key`. Nunca registra o valor do token.
+ */
+function lerToken(request: Request): { token: string } | { motivo: string } {
+  const auth = (request.headers.get("authorization") ?? "").trim();
+  const apiKey = (request.headers.get("x-api-key") ?? "").trim();
+  const bruto = auth || apiKey;
+  if (!bruto) {
+    return { motivo: "header Authorization ausente na requisição" };
   }
+  const semPrefixo = /^bearer[: ]\s*/i.test(bruto) ? bruto.replace(/^bearer[: ]\s*/i, "").trim() : bruto;
+  const limpo = semPrefixo.replace(/^["']|["']$/g, "").trim();
+  if (!limpo) return { motivo: "header Authorization sem valor após 'Bearer'" };
+  if (!FORMATO_TOKEN.test(limpo)) {
+    const prefixo = /^vai_(live|test)_/.test(limpo) ? "prefixo correto, corpo fora do formato" : "sem o prefixo vai_live_/vai_test_";
+    return { motivo: `token com ${prefixo} (${limpo.length} caracteres)` };
+  }
+  return { token: limpo };
+}
+
+async function autenticar(request: Request): Promise<{ client: ApiClient } | { erro: Falha }> {
+  const lido = lerToken(request);
+  if ("motivo" in lido) {
+    return {
+      erro: {
+        code: "unauthorized",
+        message: `Token ausente ou mal formado: ${lido.motivo}. Envie Authorization: Bearer vai_live_… ou vai_test_…`,
+      },
+    };
+  }
+  const token = lido.token;
+
   const hash = hashToken(token);
   const supabase = await db();
   const { data } = await supabase
