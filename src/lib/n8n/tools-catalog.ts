@@ -71,9 +71,13 @@ export const N8N_TOOLS: N8nTool[] = [
         children: N,
         infants: N,
         cabinClass: { type: "string", enum: ["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"] },
-        baggageOnly: B,
-        directOnly: B,
+        // Nomes idênticos aos da rota real (flights.search.ts). Não existe
+        // baggageOnly/directOnly: o filtro de bagagem é checkedBaggage e o de
+        // conexões é maxStops (0 = só voo direto).
+        checkedBaggage: B,
+        maxStops: N,
         airlines: ARR(S),
+
       },
       ["origin", "destination", "departureDate", "adults"],
     ),
@@ -107,7 +111,46 @@ export const N8N_TOOLS: N8nTool[] = [
     output_schema: obj({ searchId: S, legs: ARR(obj({ sequence: N, offers: ARR({ type: "object" }) })) }),
   },
   {
+    name: "search_ready_packages",
+    description:
+      "Pacotes PRONTOS publicados no Command Center da VIA AIR (destino, datas, hotel, inclusos, preço real e parcelamento). Usar SEMPRE antes de propor pacote personalizado. Nunca inventar pacote: só existe o que esta tool devolver.",
+    method: "POST",
+    endpoint: "/api/public/internal/v1/packages/search",
+    required_scope: "packages:read",
+    roles: ["consultant"],
+    input_schema: obj({
+      destination: S,
+      origin: S,
+      month: S,
+      departureFrom: S,
+      departureTo: S,
+      departureDate: S,
+      returnDate: S,
+      nights: N,
+      nightsMin: N,
+      nightsMax: N,
+      adults: N,
+      children: ARR(N),
+      kind: { type: "string", enum: ["package", "tour", "service"] },
+      productType: { type: "string", enum: ["pacote_pronto", "passeio", "servico", "cruzeiro"] },
+      onlyAvailable: B,
+      limit: N,
+    }),
+    output_schema: obj({
+      status: { type: "string", enum: ["found", "not_found", "incompatible", "customization_required"] },
+      next_step: { type: "string", enum: ["present_options", "custom_quote"] },
+      source: { type: "string", enum: ["COMMAND_CENTER"] },
+      total_count: N,
+      packages: ARR({ type: "object" }),
+      near_matches: ARR({ type: "object" }),
+      message: S,
+    }),
+    notes:
+      "status=found → apresentar os pacotes retornados. not_found/incompatible/customization_required → seguir para cotação personalizada, sem oferecer 'pacote parecido'. Preço, taxas, hotel, datas, vagas e parcelamento vêm prontos; o agente nunca calcula.",
+  },
+  {
     name: "create_checkout",
+
     description: "Cria o carrinho (checkout) a partir da oferta escolhida pelo cliente.",
     method: "POST",
     endpoint: "/api/public/internal/v1/checkouts",
@@ -345,12 +388,14 @@ export const N8N_TOOLS: N8nTool[] = [
 /** Escopos mínimos do cliente n8n na primeira fase (sem pagamento). */
 export const N8N_INITIAL_SCOPES = [
   "flights:read",
+  "packages:read",
   "checkouts:read",
   "checkouts:write",
   "passengers:write",
   "orders:read",
   "tickets:read",
 ];
+
 
 export function toolsForRole(role: AgentRole): N8nTool[] {
   return N8N_TOOLS.filter((t) => t.roles.includes(role));

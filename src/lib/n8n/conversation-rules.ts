@@ -84,13 +84,42 @@ export const DETERMINISTIC_RULES: string[] = [
   "Protocolo encerra após 48h de inatividade, com aviso em 47h.",
 ];
 
+/**
+ * D — roteamento por tipo de produto (funcionamento, não estilo).
+ * O agente decide QUAL ferramenta chamar; quem valida continua sendo o servidor.
+ */
+export const PRODUCT_ROUTING: { product_type: string; rule: string }[] = [
+  {
+    product_type: "aereo",
+    rule: "Passagem aérea avulsa: search_flights (ida/ida e volta) e search_inbound para a volta.",
+  },
+  {
+    product_type: "aereo_multitrecho",
+    rule: "Multitrecho: coletar todos os trechos em state.legs (2 a 6, origem ≠ destino, datas em ordem) e só então chamar search_multicity. Nunca juntar destinos numa única string.",
+  },
+  {
+    product_type: "pacote_pronto",
+    rule: "Pedido de pacote: chamar search_ready_packages PRIMEIRO. status=found → apresentar apenas esses produtos reais.",
+  },
+  {
+    product_type: "pacote_personalizado",
+    rule: "Só quando search_ready_packages devolver not_found, incompatible ou customization_required. Coletar dados e seguir para cotação personalizada, sem oferecer pacote parecido.",
+  },
+  {
+    product_type: "cruzeiro",
+    rule: "Cruzeiro é produto do Command Center (productType=cruzeiro em search_ready_packages).",
+  },
+];
+
 export function rulesForRole(role: AgentRole) {
   return {
     conversation: CONVERSATION_RULES,
     scope: ROLE_SCOPE[role],
     enforced_by_server: DETERMINISTIC_RULES,
+    product_routing: PRODUCT_ROUTING,
   };
 }
 
 /** Versão das regras — muda sempre que este arquivo é alterado de propósito. */
-export const RULES_VERSION = "2026-09-15.1";
+export const RULES_VERSION = "2026-09-15.2";
+

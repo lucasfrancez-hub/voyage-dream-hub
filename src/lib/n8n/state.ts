@@ -33,17 +33,46 @@ export type AgentStateStage =
 
 export type AgentStateTripType = "ida" | "ida_e_volta" | "multitrecho" | null;
 
+/**
+ * Tipo de produto tratado na conversa. Separa explicitamente pacote PRONTO
+ * (já publicado no Command Center) de pacote PERSONALIZADO (montado para o
+ * cliente). Campo aditivo: `intent`/`product_scope` seguem existindo.
+ */
+export type AgentStateProductType =
+  | "aereo"
+  | "pacote_pronto"
+  | "pacote_personalizado"
+  | "cruzeiro"
+  | "hotel"
+  | "outro"
+  | null;
+
+/** Uma perna do multitrecho — mesmo contrato da Internal API (legs[]). */
+export type AgentStateLeg = {
+  origin: string | null;
+  destination: string | null;
+  departureDate: string | null;
+};
+
+/** Limites de multitrecho suportados pelo backend (src/lib/api/multicity.server.ts). */
+export const MIN_AGENT_LEGS = 2;
+export const MAX_AGENT_LEGS = 6;
+
 export type AgentState = {
   intent: AgentStateIntent;
   product_scope: AgentStateProductScope;
+  product_type: AgentStateProductType;
   stage: AgentStateStage;
   origin: string | null;
   /** true só quando o próprio cliente confirmou a origem (nunca deduzida). */
   origin_confirmed: boolean | null;
   destination: string | null;
   trip_type: AgentStateTripType;
+  /** Trechos do multitrecho, na ordem. Nunca juntar destinos numa string. */
+  legs: AgentStateLeg[];
   departure_date: string | null;
   return_date: string | null;
+
   adults: number | null;
   /** Idades das crianças (2-11), quando informadas. */
   children: number[];
@@ -72,13 +101,16 @@ export type AgentState = {
 export const EMPTY_AGENT_STATE: AgentState = {
   intent: null,
   product_scope: null,
+  product_type: null,
   stage: null,
   origin: null,
   origin_confirmed: null,
   destination: null,
   trip_type: null,
+  legs: [],
   departure_date: null,
   return_date: null,
+
   adults: null,
   children: [],
   infants: [],
@@ -103,7 +135,9 @@ export const EMPTY_AGENT_STATE: AgentState = {
 const STRING_KEYS = [
   "intent",
   "product_scope",
+  "product_type",
   "stage",
+
   "origin",
   "destination",
   "trip_type",
@@ -167,8 +201,68 @@ export function sanitizeAgentStatePatch(input: unknown): Partial<AgentState> {
       out[k] = arr.map(str).filter((s): s is string => !!s).slice(0, 20);
     }
   }
+  if ("legs" in raw) out.legs = sanitizeLegs(raw.legs);
   return out as Partial<AgentState>;
 }
+
+const IATA = /^[A-Z]{3}$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Mantém só pernas com o formato do backend; ordem preservada. */
+export function sanitizeLegs(input: unknown): AgentStateLeg[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .slice(0, MAX_AGENT_LEGS)
+    .map((raw) => {
+      const l = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+      const origin = str(l.origin)?.toUpperCase() ?? null;
+      const destination = str(l.destination)?.toUpperCase() ?? null;
+      const date = str(l.departureDate ?? l.date);
+      return {
+        origin: origin && IATA.test(origin) ? origin : null,
+        destination: destination && IATA.test(destination) ? destination : null,
+        departureDate: date && ISO_DATE.test(date) ? date : null,
+      };
+    })
+    .filter((l) => l.origin || l.destination || l.departureDate);
+}
+
+/**
+ * Regras do multitrecho, iguais às do backend (validarPernas):
+ * 2 a 6 pernas, IATA de 3 letras, origem ≠ destino e datas não-decrescentes.
+ */
+export function validateLegs(legs: AgentStateLeg[]): string[] {
+  const erros: string[] = [];
+  if (legs.length < MIN_AGENT_LEGS) erros.push(`minimo_${MIN_AGENT_LEGS}_trechos`);
+  if (legs.length > MAX_AGENT_LEGS) erros.push(`maximo_${MAX_AGENT_LEGS}_trechos`);
+  let anterior: string | null = null;
+  legs.forEach((l, i) => {
+    const n = i + 1;
+    if (!l.origin) erros.push(`trecho_${n}_origin`);
+    if (!l.destination) erros.push(`trecho_${n}_destination`);
+    if (!l.departureDate) erros.push(`trecho_${n}_departureDate`);
+    if (l.origin && l.destination && l.origin === l.destination)
+      erros.push(`trecho_${n}_origem_igual_destino`);
+    if (l.departureDate) {
+      if (anterior && l.departureDate < anterior) erros.push(`trecho_${n}_data_fora_de_ordem`);
+      anterior = l.departureDate;
+    }
+  });
+  return erros;
+}
+
+/** Pernas prontas para o payload de `search_multicity`. */
+export function legsForSearch(
+  state: AgentState,
+): { origin: string; destination: string; departureDate: string }[] {
+  if (validateLegs(state.legs).length > 0) return [];
+  return state.legs.map((l) => ({
+    origin: l.origin!,
+    destination: l.destination!,
+    departureDate: l.departureDate!,
+  }));
+}
+
 
 /** Normaliza o JSON salvo no banco para o formato completo do estado. */
 export function normalizeAgentState(input: unknown): AgentState {
@@ -185,6 +279,14 @@ export function mergeAgentState(current: unknown, patch: unknown): AgentState {
 /** Campos ainda necessários para uma pesquisa aérea válida. */
 export function missingFlightFields(state: AgentState): string[] {
   const faltando: string[] = [];
+
+  if (state.trip_type === "multitrecho") {
+    if (!state.origin_confirmed) faltando.push("origin_confirmed");
+    faltando.push(...validateLegs(state.legs));
+    if (!state.adults) faltando.push("adults");
+    return faltando;
+  }
+
   if (!state.origin || state.origin_confirmed !== true) faltando.push("origin");
   if (!state.destination) faltando.push("destination");
   if (!state.trip_type) faltando.push("trip_type");
@@ -193,3 +295,14 @@ export function missingFlightFields(state: AgentState): string[] {
   if (!state.adults) faltando.push("adults");
   return faltando;
 }
+
+/** Campos mínimos para pesquisar pacote pronto no Command Center. */
+export function missingReadyPackageFields(state: AgentState): string[] {
+  const faltando: string[] = [];
+  if (!state.destination) faltando.push("destination");
+  if (!state.departure_date && !state.origin && !state.return_date) {
+    // Mês/período ajudam muito, mas não são obrigatórios para a primeira busca.
+  }
+  return faltando;
+}
+
