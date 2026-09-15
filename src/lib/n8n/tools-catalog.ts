@@ -146,7 +146,7 @@ export const N8N_TOOLS: N8nTool[] = [
       message: S,
     }),
     notes:
-      "status=found → apresentar os pacotes retornados. not_found/incompatible/customization_required → seguir para cotação personalizada, sem oferecer 'pacote parecido'. Preço, taxas, hotel, datas, vagas e parcelamento vêm prontos; o agente nunca calcula.",
+      "status=found → apresentar os pacotes retornados. not_found/incompatible/customization_required → seguir para cotação personalizada, sem oferecer 'pacote parecido'. PREÇO: o único valor comercial é package_total, já na ocupação-base (pricing_basis=per_party → apresentar como 'R$ X occupancy_label', ex.: 'para 2 pessoas'). taxes já estão inclusas (taxes_included=true) — NUNCA somar taxes ao package_total, nunca dividir por passageiro, nunca multiplicar. Se requires_recalculation=true (ocupação diferente da base ou crianças), informar que a condição precisa ser recalculada/confirmada, sem adaptar valor.",
   },
   {
     name: "create_flight_quote",
