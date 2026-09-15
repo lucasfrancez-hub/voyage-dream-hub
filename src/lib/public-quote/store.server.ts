@@ -55,6 +55,8 @@ function toRow(q: NewPublicQuote, publicId: string) {
       // Modo roteiro (ordem cronológica) precisa sobreviver ao snapshot público.
       itinerary: q.itinerary === true || (q.options ?? []).some((o) => o.itinerary === true),
       options: q.options ?? null,
+      // Operadora de origem: o link reavalia a regra vigente a cada abertura.
+      installmentHint: q.installmentHint ?? null,
     } as unknown as Record<string, unknown>,
     valid_until: q.validUntil ?? null,
     public_notes: q.publicNotes ?? null,
@@ -139,6 +141,7 @@ export function rowToQuote(row: any): PublicQuote {
       extra.itinerary === true ||
       (Array.isArray(extra.options) && extra.options.some((o: any) => o?.itinerary === true)),
     payment: row.payment,
+    installmentHint: extra.installmentHint ?? null,
     totals: row.totals,
     summary: row.summary ?? [],
     agent: row.agent ?? null,
@@ -345,7 +348,9 @@ export async function getPublicQuoteByPublicId(publicId: string): Promise<Public
     .maybeSingle();
   if (!data) return null;
   const row = data as Record<string, unknown>;
-  const quote = rowToQuote(row);
+  // A regra de parcelamento vigente (admin) manda sobre o snapshot gravado.
+  const { applyCurrentInstallmentRule } = await import("./apply-installment-rule.server");
+  const quote = await applyCurrentInstallmentRule(rowToQuote(row));
 
   // Métrica de visualização e enriquecimento do TripAdvisor NUNCA seguram o
   // carregamento do link do cliente — ambos são time-boxed.

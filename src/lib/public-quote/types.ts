@@ -273,6 +273,11 @@ export type PublicQuote = {
     type: "MANUAL" | "BRUNO" | "PAULA" | "SYSTEM";
     conversationId?: string | null;
   };
+  /**
+   * Texto da operadora de origem (FRT/Infotravel, Cativa…) usado para casar a
+   * regra vigente em `installment_rules` toda vez que o link é aberto.
+   */
+  installmentHint?: string | null;
   validUntil?: string | null;
   expired?: boolean;
   publicNotes?: string | null;
