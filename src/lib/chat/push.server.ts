@@ -64,6 +64,7 @@ async function totalNaoLidas(): Promise<number> {
   const { data } = await supabaseAdmin
     .from("wa_conversations")
     .select("id, unread_count")
+    .neq("mode", "resolved")
     .order("last_message_at", { ascending: false })
     .limit(200);
   return (data ?? []).filter((c) => (c.unread_count ?? 0) > 0).length;
@@ -80,6 +81,14 @@ export async function notificarNovaMensagemChat({
 }: Args) {
   try {
     if (messageId && (await duplicado(`msg:${messageId}`))) return;
+
+    // Conversa arquivada (resolvida) não notifica os atendentes.
+    const { data: conv } = await supabaseAdmin
+      .from("wa_conversations")
+      .select("mode")
+      .eq("id", conversationId)
+      .maybeSingle();
+    if (conv?.mode === "resolved") return;
 
     const { data: subs } = await supabaseAdmin
       .from("wa_chat_push_subs")
