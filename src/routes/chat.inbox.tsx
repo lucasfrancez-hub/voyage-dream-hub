@@ -1756,7 +1756,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
               </button>
             </div>
           ) : audioDraft ? (
-            <div className="flex flex-1 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5">
               <button
                 onClick={discardDraft}
                 title="Descartar áudio"
@@ -1764,7 +1764,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
               >
                 <Trash2 className="h-4 w-4" />
               </button>
-              <audio src={audioDraft.url} controls className="h-9 flex-1" />
+              <AudioMessage src={audioDraft.url} isOut={false} className="mb-0 w-full min-w-0 flex-1" />
             </div>
           ) : (
           <textarea
@@ -1800,7 +1800,7 @@ function ConversationView({ conv, onRefetch, onBack }: { conv: Conv; onRefetch: 
           <button
             onClick={submit}
             disabled={!input.trim() && !pendingFile && !audioDraft}
-            className="flex h-10 w-10 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#F26B1F] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             <Send className="h-4 w-4" />
           </button>
