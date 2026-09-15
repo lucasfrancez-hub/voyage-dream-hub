@@ -11,7 +11,7 @@
  */
 import { buildN8nAgentContext } from "./context.server";
 import { isN8nAgentEnabled, n8nSecret, n8nWebhookUrl, signPayload } from "./config.server";
-import { finishRun, startRun } from "./runs.server";
+import { finishRun, markDispatched, startRun } from "./runs.server";
 
 export type DispatchResult =
   | { ok: true; runId: string; accepted: true; n8nExecutionId: string | null }
@@ -81,7 +81,8 @@ export async function dispatchTurnToN8n(input: {
     } catch {
       execId = null;
     }
-    await finishRun(runId, { status: "dispatched", n8nExecutionId: execId });
+    // Run fica ABERTO aguardando o callback do n8n (que traz a resposta).
+    await markDispatched(runId, execId);
     return { ok: true, runId, accepted: true, n8nExecutionId: execId };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
