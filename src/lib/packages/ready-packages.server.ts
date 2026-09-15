@@ -521,7 +521,9 @@ export async function searchReadyPackages(
     if (noites != null && ((nMin && noites < nMin) || (nMax && noites > nMax)))
       motivos.push("noites_incompativel");
 
-    const bloqueantes = motivos.filter((m) => m !== "criancas_a_confirmar");
+    const bloqueantes = motivos.filter(
+      (m) => m !== "criancas_a_confirmar" && m !== "ocupacao_diferente_recalcular",
+    );
     const item = normalizar(
       row,
       periodoOk && datas.length ? datasCandidatas : datas,
