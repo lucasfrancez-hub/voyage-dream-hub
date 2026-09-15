@@ -197,9 +197,9 @@ function montarParcelamento(args: {
     supplierName: args.supplierName,
     source: args.supplierName,
     departureDate: args.departureDate,
-    totalAmount: args.totalPerPerson,
+    totalAmount: args.packageTotal,
   });
-  const total = args.totalPerPerson;
+  const total = args.packageTotal;
   const opcaoPrepago = prepago.options[prepago.options.length - 1] ?? null;
   return {
     source: "VIAAIR_RULES",
