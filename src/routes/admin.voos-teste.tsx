@@ -1594,8 +1594,11 @@ function SummaryCard({
                     )?.[0];
                     return id ? `/checkout/voo/${id.toLowerCase()}` : cartUrl;
                   })()}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={() => registrarLead(cartUrl)}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-4 text-xs font-black uppercase tracking-[0.15em] text-primary-foreground transition-opacity hover:opacity-90"
+
                 >
                   <ShoppingCart className="h-4 w-4" />
                   Comprar agora
