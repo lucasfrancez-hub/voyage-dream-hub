@@ -9,6 +9,9 @@
 
 export type AgentRole = "consultant" | "air";
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { resolveToolsEnabled } from "./tools-catalog";
+
 export type N8nAgentProfile = {
   id: string;
   slug: string;
