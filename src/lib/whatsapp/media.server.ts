@@ -69,21 +69,48 @@ async function transcribeOnce(
     "audio/m4a": "m4a",
     "audio/x-m4a": "m4a",
   };
-  const baseType = mimeType.split(";")[0].trim().toLowerCase();
-  const ext = extMap[baseType] ?? "ogg";
+  const declarado = mimeType.split(";")[0].trim().toLowerCase();
 
-  // Reembala os bytes com o content-type limpo: o Blob vindo do fetch às vezes
-  // carrega o mime com parâmetros (";codecs=opus") e o provedor rejeita.
   const bytes = await blob.arrayBuffer();
   if (bytes.byteLength < 512) {
     console.error("[wa/media] áudio vazio/curto demais:", bytes.byteLength);
     return null;
   }
-  const arquivo = new Blob([bytes], { type: baseType || "audio/ogg" });
+
+  // O mime declarado pelo WhatsApp/UazAPI às vezes vem errado ou como
+  // application/octet-stream. Descobre o container pelos bytes reais — mandar
+  // um MP4/AMR rotulado como OGG faz o provedor recusar ("corrupted or unsupported").
+  const head = new Uint8Array(bytes.slice(0, 16));
+  const ascii = (i: number, n: number) =>
+    String.fromCharCode(...Array.from(head.slice(i, i + n)));
+  let detectado: { mime: string; ext: string } | null = null;
+  if (ascii(0, 4) === "OggS") detectado = { mime: "audio/ogg", ext: "ogg" };
+  else if (ascii(0, 4) === "RIFF" && ascii(8, 4) === "WAVE")
+    detectado = { mime: "audio/wav", ext: "wav" };
+  else if (ascii(4, 4) === "ftyp") detectado = { mime: "audio/mp4", ext: "m4a" };
+  else if (head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3)
+    detectado = { mime: "audio/webm", ext: "webm" };
+  else if (ascii(0, 3) === "ID3" || (head[0] === 0xff && (head[1] & 0xe0) === 0xe0))
+    detectado = { mime: "audio/mpeg", ext: "mp3" };
+  else if (ascii(0, 5) === "#!AMR") detectado = { mime: "audio/amr", ext: "amr" };
+
+  const baseType = detectado?.mime ?? (extMap[declarado] ? declarado : "audio/ogg");
+  const ext = detectado?.ext ?? extMap[declarado] ?? "ogg";
+  if (!detectado) {
+    console.warn(
+      "[wa/media] container de áudio não reconhecido pelos bytes; usando mime declarado:",
+      declarado,
+    );
+  }
+
+  // Reembala os bytes com o content-type limpo: o Blob vindo do fetch às vezes
+  // carrega o mime com parâmetros (";codecs=opus") e o provedor rejeita.
+  const arquivo = new Blob([bytes], { type: baseType });
 
   const form = new FormData();
   form.append("model", model);
   form.append("file", arquivo, `audio.${ext}`);
+
 
 
   try {
