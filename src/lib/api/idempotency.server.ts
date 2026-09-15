@@ -35,13 +35,28 @@ export async function comIdempotencia(
 
   const { data: existente } = await supabase
     .from("api_idempotency_keys")
-    .select("request_hash,status,response")
+    .select("request_hash,status,response,created_at")
     .eq("api_client_id", args.clientId)
     .eq("idempotency_key", args.idempotencyKey)
     .eq("endpoint", args.endpoint)
     .maybeSingle();
 
-  const linha = existente as { request_hash: string; status: number | null; response: unknown } | null;
+  const linha = existente as
+    | { request_hash: string; status: number | null; response: unknown; created_at: string }
+    | null;
+
+  const chave: string = args.idempotencyKey;
+  const limparReserva = async () => {
+
+    await supabase
+      .from("api_idempotency_keys")
+      .delete()
+      .eq("api_client_id", args.clientId)
+      .eq("idempotency_key", chave)
+      .eq("endpoint", args.endpoint)
+      .is("status", null);
+  };
+
   if (linha) {
     if (linha.request_hash !== request_hash) {
       return fail(
@@ -53,7 +68,18 @@ export async function comIdempotencia(
     if (linha.status && linha.response) {
       return ok(linha.response, args.correlationId, linha.status);
     }
-    return fail("conflict", "Uma chamada com esta chave ainda está em andamento.", args.correlationId);
+    // Reserva sem resposta: só é "em andamento" durante a janela de execução.
+    // Passado esse tempo a tentativa anterior falhou (erro de provedor/exceção)
+    // e a mesma chave precisa poder ser reenviada.
+    const idadeMs = Date.now() - new Date(linha.created_at).getTime();
+    if (Number.isFinite(idadeMs) && idadeMs < 120_000) {
+      return fail(
+        "conflict",
+        "Uma chamada com esta chave ainda está em andamento.",
+        args.correlationId,
+      );
+    }
+    await limparReserva();
   }
 
   await supabase.from("api_idempotency_keys").insert({
@@ -63,7 +89,15 @@ export async function comIdempotencia(
     request_hash,
   } as never);
 
-  const resposta = await executar();
+  let resposta: Response;
+  try {
+    resposta = await executar();
+  } catch (err) {
+    // Exceção vira 500 mais acima: libera a chave pra permitir nova tentativa.
+    await limparReserva();
+    throw err;
+  }
+
   try {
     const clone = resposta.clone();
     const corpo = (await clone.json()) as unknown;
@@ -74,9 +108,14 @@ export async function comIdempotencia(
         .eq("api_client_id", args.clientId)
         .eq("idempotency_key", args.idempotencyKey)
         .eq("endpoint", args.endpoint);
+    } else {
+      // Falha temporária do fornecedor (5xx): a chave volta a ficar livre.
+      await limparReserva();
     }
   } catch {
     /* resposta não-JSON: não guarda */
+    if (resposta.status >= 500) await limparReserva();
   }
   return resposta;
 }
+
