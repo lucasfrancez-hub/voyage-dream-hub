@@ -121,27 +121,40 @@ function PainelTokens() {
       </header>
 
       {tokenNovo ? (
-        <div className="rounded-xl border border-primary/40 bg-primary/5 p-4">
-          <p className="text-sm font-medium">Token gerado — copie agora, ele não aparece de novo:</p>
-          <div className="mt-2 flex items-center gap-2">
-            <code className="flex-1 overflow-x-auto rounded-lg bg-card px-3 py-2 text-xs">{tokenNovo}</code>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground"
-              onClick={() => {
-                void navigator.clipboard.writeText(tokenNovo);
-                toast.success("Copiado.");
-              }}
-            >
-              <Copy className="h-3.5 w-3.5" /> Copiar
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border px-3 py-2 text-xs"
-              onClick={() => setTokenNovo(null)}
-            >
-              Ocultar
-            </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-xl border border-primary/40 bg-card p-5 shadow-xl">
+            <p className="text-sm font-semibold">
+              Token gerado — copie agora, ele não aparece de novo:
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Começa com <code>vai_test_</code> (teste) ou <code>vai_live_</code> (produção) e tem 57
+              caracteres. Esse é o único valor que o outro sistema deve usar no header
+              <code> Authorization: Bearer …</code>. Não é o código do acesso nem o ID.
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <code className="flex-1 overflow-x-auto rounded-lg bg-background px-3 py-2 text-xs">
+                {tokenNovo}
+              </code>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground"
+                onClick={() => {
+                  void navigator.clipboard.writeText(tokenNovo);
+                  toast.success("Copiado.");
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" /> Copiar
+              </button>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                className="rounded-lg border px-3 py-2 text-xs"
+                onClick={() => setTokenNovo(null)}
+              >
+                Já copiei — fechar
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
