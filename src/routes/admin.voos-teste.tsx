@@ -1618,8 +1618,8 @@ function SummaryCard({
                       setBuyingPublic(false);
                       if (id) {
                         // Checkout da VIA AIR (o QR do Pix é sempre nosso).
-                        window.location.href = `/checkout/voo/${id.toLowerCase()}`;
-                      } else {
+                        window.open(`/checkout/voo/${id.toLowerCase()}`, "_blank", "noopener");
+
                         window.open(r.url, "_blank", "noopener");
                       }
                     } catch {
