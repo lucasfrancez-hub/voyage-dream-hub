@@ -506,8 +506,12 @@ export async function searchReadyPackages(
     if (usadas.length > 0 && comVaga.length === 0) motivos.push("sem_vaga");
 
     // --- ocupação --------------------------------------------------------
-    const ocupacao = n(row.base_occupancy);
+    // O preço do pacote é o da ocupação-base. Ocupação diferente NÃO é
+    // recalculada automaticamente: sinalizamos que precisa ser confirmada.
+    const ocupacao = n(row.base_occupancy) ?? 2;
     if (input.adults && ocupacao && input.adults > ocupacao) motivos.push("ocupacao_incompativel");
+    else if (input.adults && ocupacao && input.adults !== ocupacao)
+      motivos.push("ocupacao_diferente_recalcular");
     if (input.children.length > 0) motivos.push("criancas_a_confirmar");
 
     // --- noites ----------------------------------------------------------
