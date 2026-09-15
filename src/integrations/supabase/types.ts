@@ -6315,6 +6315,77 @@ export type Database = {
         }
         Relationships: []
       }
+      n8n_agent_runs: {
+        Row: {
+          actions: Json
+          agent_role: string | null
+          agent_slug: string | null
+          channel: string | null
+          conversation_id: string
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          message_id: string | null
+          n8n_execution_id: string | null
+          protocol_id: string | null
+          run_id: string
+          started_at: string
+          state_update: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          agent_role?: string | null
+          agent_slug?: string | null
+          channel?: string | null
+          conversation_id: string
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          message_id?: string | null
+          n8n_execution_id?: string | null
+          protocol_id?: string | null
+          run_id: string
+          started_at?: string
+          state_update?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          agent_role?: string | null
+          agent_slug?: string | null
+          channel?: string | null
+          conversation_id?: string
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          message_id?: string | null
+          n8n_execution_id?: string | null
+          protocol_id?: string | null
+          run_id?: string
+          started_at?: string
+          state_update?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "n8n_agent_runs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nfse_config: {
         Row: {
           aliquota_iss: number
@@ -10618,6 +10689,8 @@ export type Database = {
       wa_conversations: {
         Row: {
           agent_slug: string | null
+          agent_state: Json
+          agent_state_protocol_id: string | null
           ai_debounce_until: string | null
           ai_instruction: string | null
           ai_instruction_at: string | null
@@ -10683,6 +10756,8 @@ export type Database = {
         }
         Insert: {
           agent_slug?: string | null
+          agent_state?: Json
+          agent_state_protocol_id?: string | null
           ai_debounce_until?: string | null
           ai_instruction?: string | null
           ai_instruction_at?: string | null
@@ -10748,6 +10823,8 @@ export type Database = {
         }
         Update: {
           agent_slug?: string | null
+          agent_state?: Json
+          agent_state_protocol_id?: string | null
           ai_debounce_until?: string | null
           ai_instruction?: string | null
           ai_instruction_at?: string | null
