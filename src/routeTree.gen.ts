@@ -201,6 +201,7 @@ import { Route as ApiPublicHooksInstagramDmQueueRouteImport } from './routes/api
 import { Route as ApiPublicHooksInstagramHealthRouteImport } from './routes/api/public/hooks/instagram-health'
 import { Route as ApiPublicHooksKeepWindowAliveRouteImport } from './routes/api/public/hooks/keep-window-alive'
 import { Route as ApiPublicHooksMetaAdsSyncRouteImport } from './routes/api/public/hooks/meta-ads-sync'
+import { Route as ApiPublicHooksN8nReplyRouteImport } from './routes/api/public/hooks/n8n-reply'
 import { Route as ApiPublicHooksRunCheckinsRouteImport } from './routes/api/public/hooks/run-checkins'
 import { Route as ApiPublicHooksSocialScheduleDispatchRouteImport } from './routes/api/public/hooks/social-schedule-dispatch'
 import { Route as ApiPublicHooksSyncCalendarsRouteImport } from './routes/api/public/hooks/sync-calendars'
@@ -216,6 +217,7 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as ApiPublicInternalV1CheckoutsRouteImport } from './routes/api/public/internal/v1/checkouts'
 import { Route as ApiPublicInternalV1HealthRouteImport } from './routes/api/public/internal/v1/health'
+import { Route as ApiPublicInternalV1AgentToolsRouteImport } from './routes/api/public/internal/v1/agent.tools'
 import { Route as ApiPublicInternalV1AirportsSearchRouteImport } from './routes/api/public/internal/v1/airports.search'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId'
 import { Route as ApiPublicInternalV1FlightsInboundRouteImport } from './routes/api/public/internal/v1/flights.inbound'
@@ -1239,6 +1241,11 @@ const ApiPublicHooksMetaAdsSyncRoute =
     path: '/api/public/hooks/meta-ads-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksN8nReplyRoute = ApiPublicHooksN8nReplyRouteImport.update({
+  id: '/api/public/hooks/n8n-reply',
+  path: '/api/public/hooks/n8n-reply',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksRunCheckinsRoute =
   ApiPublicHooksRunCheckinsRouteImport.update({
     id: '/api/public/hooks/run-checkins',
@@ -1322,6 +1329,12 @@ const ApiPublicInternalV1HealthRoute =
   ApiPublicInternalV1HealthRouteImport.update({
     id: '/api/public/internal/v1/health',
     path: '/api/public/internal/v1/health',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1AgentToolsRoute =
+  ApiPublicInternalV1AgentToolsRouteImport.update({
+    id: '/api/public/internal/v1/agent/tools',
+    path: '/api/public/internal/v1/agent/tools',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicInternalV1AirportsSearchRoute =
@@ -1674,6 +1687,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/meta-ads-sync': typeof ApiPublicHooksMetaAdsSyncRoute
+  '/api/public/hooks/n8n-reply': typeof ApiPublicHooksN8nReplyRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
@@ -1689,6 +1703,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/api/public/internal/v1/checkouts': typeof ApiPublicInternalV1CheckoutsRouteWithChildren
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
+  '/api/public/internal/v1/agent/tools': typeof ApiPublicInternalV1AgentToolsRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
   '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
@@ -1906,6 +1921,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/meta-ads-sync': typeof ApiPublicHooksMetaAdsSyncRoute
+  '/api/public/hooks/n8n-reply': typeof ApiPublicHooksN8nReplyRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
@@ -1921,6 +1937,7 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/api/public/internal/v1/checkouts': typeof ApiPublicInternalV1CheckoutsRouteWithChildren
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
+  '/api/public/internal/v1/agent/tools': typeof ApiPublicInternalV1AgentToolsRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
   '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
@@ -2142,6 +2159,7 @@ export interface FileRoutesById {
   '/api/public/hooks/instagram-health': typeof ApiPublicHooksInstagramHealthRoute
   '/api/public/hooks/keep-window-alive': typeof ApiPublicHooksKeepWindowAliveRoute
   '/api/public/hooks/meta-ads-sync': typeof ApiPublicHooksMetaAdsSyncRoute
+  '/api/public/hooks/n8n-reply': typeof ApiPublicHooksN8nReplyRoute
   '/api/public/hooks/run-checkins': typeof ApiPublicHooksRunCheckinsRoute
   '/api/public/hooks/social-schedule-dispatch': typeof ApiPublicHooksSocialScheduleDispatchRoute
   '/api/public/hooks/sync-calendars': typeof ApiPublicHooksSyncCalendarsRoute
@@ -2157,6 +2175,7 @@ export interface FileRoutesById {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/api/public/internal/v1/checkouts': typeof ApiPublicInternalV1CheckoutsRouteWithChildren
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
+  '/api/public/internal/v1/agent/tools': typeof ApiPublicInternalV1AgentToolsRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
   '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
@@ -2379,6 +2398,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/meta-ads-sync'
+    | '/api/public/hooks/n8n-reply'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
@@ -2394,6 +2414,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/api/public/internal/v1/checkouts'
     | '/api/public/internal/v1/health'
+    | '/api/public/internal/v1/agent/tools'
     | '/api/public/internal/v1/airports/search'
     | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
@@ -2611,6 +2632,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/meta-ads-sync'
+    | '/api/public/hooks/n8n-reply'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
@@ -2626,6 +2648,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/api/public/internal/v1/checkouts'
     | '/api/public/internal/v1/health'
+    | '/api/public/internal/v1/agent/tools'
     | '/api/public/internal/v1/airports/search'
     | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
@@ -2846,6 +2869,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/instagram-health'
     | '/api/public/hooks/keep-window-alive'
     | '/api/public/hooks/meta-ads-sync'
+    | '/api/public/hooks/n8n-reply'
     | '/api/public/hooks/run-checkins'
     | '/api/public/hooks/social-schedule-dispatch'
     | '/api/public/hooks/sync-calendars'
@@ -2861,6 +2885,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/api/public/internal/v1/checkouts'
     | '/api/public/internal/v1/health'
+    | '/api/public/internal/v1/agent/tools'
     | '/api/public/internal/v1/airports/search'
     | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
@@ -2983,6 +3008,7 @@ export interface RootRouteChildren {
   ApiPublicHooksInstagramHealthRoute: typeof ApiPublicHooksInstagramHealthRoute
   ApiPublicHooksKeepWindowAliveRoute: typeof ApiPublicHooksKeepWindowAliveRoute
   ApiPublicHooksMetaAdsSyncRoute: typeof ApiPublicHooksMetaAdsSyncRoute
+  ApiPublicHooksN8nReplyRoute: typeof ApiPublicHooksN8nReplyRoute
   ApiPublicHooksRunCheckinsRoute: typeof ApiPublicHooksRunCheckinsRoute
   ApiPublicHooksSocialScheduleDispatchRoute: typeof ApiPublicHooksSocialScheduleDispatchRoute
   ApiPublicHooksSyncCalendarsRoute: typeof ApiPublicHooksSyncCalendarsRoute
@@ -2998,6 +3024,7 @@ export interface RootRouteChildren {
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
   ApiPublicInternalV1CheckoutsRoute: typeof ApiPublicInternalV1CheckoutsRouteWithChildren
   ApiPublicInternalV1HealthRoute: typeof ApiPublicInternalV1HealthRoute
+  ApiPublicInternalV1AgentToolsRoute: typeof ApiPublicInternalV1AgentToolsRoute
   ApiPublicInternalV1AirportsSearchRoute: typeof ApiPublicInternalV1AirportsSearchRoute
   ApiPublicInternalV1FlightsInboundRoute: typeof ApiPublicInternalV1FlightsInboundRoute
   ApiPublicInternalV1FlightsSearchRoute: typeof ApiPublicInternalV1FlightsSearchRoute
@@ -4357,6 +4384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksMetaAdsSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/n8n-reply': {
+      id: '/api/public/hooks/n8n-reply'
+      path: '/api/public/hooks/n8n-reply'
+      fullPath: '/api/public/hooks/n8n-reply'
+      preLoaderRoute: typeof ApiPublicHooksN8nReplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/run-checkins': {
       id: '/api/public/hooks/run-checkins'
       path: '/api/public/hooks/run-checkins'
@@ -4460,6 +4494,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/internal/v1/health'
       fullPath: '/api/public/internal/v1/health'
       preLoaderRoute: typeof ApiPublicInternalV1HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/agent/tools': {
+      id: '/api/public/internal/v1/agent/tools'
+      path: '/api/public/internal/v1/agent/tools'
+      fullPath: '/api/public/internal/v1/agent/tools'
+      preLoaderRoute: typeof ApiPublicInternalV1AgentToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/internal/v1/airports/search': {
@@ -5112,6 +5153,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksInstagramHealthRoute: ApiPublicHooksInstagramHealthRoute,
   ApiPublicHooksKeepWindowAliveRoute: ApiPublicHooksKeepWindowAliveRoute,
   ApiPublicHooksMetaAdsSyncRoute: ApiPublicHooksMetaAdsSyncRoute,
+  ApiPublicHooksN8nReplyRoute: ApiPublicHooksN8nReplyRoute,
   ApiPublicHooksRunCheckinsRoute: ApiPublicHooksRunCheckinsRoute,
   ApiPublicHooksSocialScheduleDispatchRoute:
     ApiPublicHooksSocialScheduleDispatchRoute,
@@ -5129,6 +5171,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicInternalV1CheckoutsRoute:
     ApiPublicInternalV1CheckoutsRouteWithChildren,
   ApiPublicInternalV1HealthRoute: ApiPublicInternalV1HealthRoute,
+  ApiPublicInternalV1AgentToolsRoute: ApiPublicInternalV1AgentToolsRoute,
   ApiPublicInternalV1AirportsSearchRoute:
     ApiPublicInternalV1AirportsSearchRoute,
   ApiPublicInternalV1FlightsInboundRoute:
