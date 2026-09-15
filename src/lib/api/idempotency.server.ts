@@ -45,14 +45,14 @@ export async function comIdempotencia(
     | { request_hash: string; status: number | null; response: unknown; created_at: string }
     | null;
 
-  const chave = args.idempotencyKey;
+  const chave = chave;
   const limparReserva = async () => {
 
     await supabase
       .from("api_idempotency_keys")
       .delete()
       .eq("api_client_id", args.clientId)
-      .eq("idempotency_key", args.idempotencyKey)
+      .eq("idempotency_key", chave)
       .eq("endpoint", args.endpoint)
       .is("status", null);
   };
