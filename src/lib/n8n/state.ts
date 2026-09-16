@@ -8,14 +8,7 @@
  * REGRA: campo desconhecido permanece `null` (ou lista vazia). Nada é inventado.
  */
 
-export type AgentStateIntent =
-  | "aereo"
-  | "pacote"
-  | "hotel"
-  | "pos_venda"
-  | "duvida"
-  | "outro"
-  | null;
+export type AgentStateIntent = "aereo" | "pacote" | "hotel" | "pos_venda" | "duvida" | "outro" | null;
 
 export type AgentStateProductScope = "aereo" | "pacote" | "hotel" | "combinado" | "outro" | null;
 
@@ -94,6 +87,11 @@ export type AgentState = {
   /** O que a conversa está esperando do cliente agora ("cpf", "confirmacao_opcao"…). */
   awaiting: string | null;
   handoff_status: string | null;
+  /**
+   * true depois que a primeira transferência foi anunciada ao cliente. Próximos
+   * handoffs humanos na mesma continuidade são silenciosos (sem nova bubble de aviso).
+   */
+  transfer_notice_shown?: boolean | null;
   /** Atualizado automaticamente a cada merge. */
   updated_at?: string | null;
 };
@@ -129,6 +127,7 @@ export const EMPTY_AGENT_STATE: AgentState = {
   payment_status: null,
   awaiting: null,
   handoff_status: null,
+  transfer_notice_shown: null,
   updated_at: null,
 };
 
@@ -154,7 +153,7 @@ const STRING_KEYS = [
   "handoff_status",
 ] as const;
 
-const BOOLEAN_KEYS = ["origin_confirmed", "baggage", "direct_only"] as const;
+const BOOLEAN_KEYS = ["origin_confirmed", "baggage", "direct_only", "transfer_notice_shown"] as const;
 const NUMBER_KEYS = ["adults", "max_connections", "selected_option"] as const;
 const NUMBER_LIST_KEYS = ["children", "infants"] as const;
 const STRING_LIST_KEYS = ["included_airlines", "excluded_airlines"] as const;
@@ -192,13 +191,19 @@ export function sanitizeAgentStatePatch(input: unknown): Partial<AgentState> {
   for (const k of NUMBER_LIST_KEYS) {
     if (k in raw) {
       const arr = Array.isArray(raw[k]) ? (raw[k] as unknown[]) : [];
-      out[k] = arr.map(num).filter((n): n is number => n !== null).slice(0, 9);
+      out[k] = arr
+        .map(num)
+        .filter((n): n is number => n !== null)
+        .slice(0, 9);
     }
   }
   for (const k of STRING_LIST_KEYS) {
     if (k in raw) {
       const arr = Array.isArray(raw[k]) ? (raw[k] as unknown[]) : [];
-      out[k] = arr.map(str).filter((s): s is string => !!s).slice(0, 20);
+      out[k] = arr
+        .map(str)
+        .filter((s): s is string => !!s)
+        .slice(0, 20);
     }
   }
   if ("legs" in raw) out.legs = sanitizeLegs(raw.legs);
@@ -241,8 +246,7 @@ export function validateLegs(legs: AgentStateLeg[]): string[] {
     if (!l.origin) erros.push(`trecho_${n}_origin`);
     if (!l.destination) erros.push(`trecho_${n}_destination`);
     if (!l.departureDate) erros.push(`trecho_${n}_departureDate`);
-    if (l.origin && l.destination && l.origin === l.destination)
-      erros.push(`trecho_${n}_origem_igual_destino`);
+    if (l.origin && l.destination && l.origin === l.destination) erros.push(`trecho_${n}_origem_igual_destino`);
     if (l.departureDate) {
       if (anterior && l.departureDate < anterior) erros.push(`trecho_${n}_data_fora_de_ordem`);
       anterior = l.departureDate;
@@ -252,9 +256,7 @@ export function validateLegs(legs: AgentStateLeg[]): string[] {
 }
 
 /** Pernas prontas para o payload de `search_multicity`. */
-export function legsForSearch(
-  state: AgentState,
-): { origin: string; destination: string; departureDate: string }[] {
+export function legsForSearch(state: AgentState): { origin: string; destination: string; departureDate: string }[] {
   if (validateLegs(state.legs).length > 0) return [];
   return state.legs.map((l) => ({
     origin: l.origin!,
@@ -262,7 +264,6 @@ export function legsForSearch(
     departureDate: l.departureDate!,
   }));
 }
-
 
 /** Normaliza o JSON salvo no banco para o formato completo do estado. */
 export function normalizeAgentState(input: unknown): AgentState {
@@ -305,4 +306,3 @@ export function missingReadyPackageFields(state: AgentState): string[] {
   }
   return faltando;
 }
-
