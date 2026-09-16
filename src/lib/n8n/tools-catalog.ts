@@ -56,7 +56,8 @@ export const N8N_TOOLS: N8nTool[] = [
   },
   {
     name: "search_flights",
-    description: "Pesquisa voos de ida ou ida e volta. Devolve ofertas com preço, bagagem, família tarifária e plano de parcelamento.",
+    description:
+      "Pesquisa voos de ida ou ida e volta. Devolve ofertas com preço, bagagem, família tarifária e plano de parcelamento.",
     method: "POST",
     endpoint: "/api/public/internal/v1/flights/search",
     required_scope: "flights:read",
@@ -77,13 +78,20 @@ export const N8N_TOOLS: N8nTool[] = [
         checkedBaggage: B,
         maxStops: N,
         airlines: ARR(S),
-
       },
       ["origin", "destination", "departureDate", "adults"],
     ),
     output_schema: obj({
       searchId: S,
-      offers: ARR(obj({ offerId: S, price: { type: "object" }, segments: ARR({ type: "object" }), baggage: { type: "object" }, installmentPlan: { type: "object" } })),
+      offers: ARR(
+        obj({
+          offerId: S,
+          price: { type: "object" },
+          segments: ARR({ type: "object" }),
+          baggage: { type: "object" },
+          installmentPlan: { type: "object" },
+        }),
+      ),
     }),
     notes: "Pode levar de 10 a 42s. Chamar de forma assíncrona e devolver o resultado por callback.",
   },
@@ -105,7 +113,12 @@ export const N8N_TOOLS: N8nTool[] = [
     required_scope: "flights:read",
     roles: ["air"],
     input_schema: obj(
-      { legs: ARR(obj({ origin: S, destination: S, departureDate: S }, ["origin", "destination", "departureDate"])), adults: N, children: N, infants: N },
+      {
+        legs: ARR(obj({ origin: S, destination: S, departureDate: S }, ["origin", "destination", "departureDate"])),
+        adults: N,
+        children: N,
+        infants: N,
+      },
       ["legs", "adults"],
     ),
     output_schema: obj({ searchId: S, legs: ARR(obj({ sequence: N, offers: ARR({ type: "object" }) })) }),
@@ -151,7 +164,7 @@ export const N8N_TOOLS: N8nTool[] = [
   {
     name: "create_flight_quote",
     description:
-      "Cria o orçamento aéreo persistido da VIA AIR e devolve UM único link público. Envie options[] com até 3 ofertas (opção 1, 2 e 3 no mesmo link). Nunca montar preço ou link manualmente.",
+      "Cria o orçamento aéreo persistido da VIA AIR e devolve UM único link público. Envie options[] com até 3 ofertas (opção 1, 2 e 3 no mesmo link). Em orçamento com várias opções, o valor do topo (total / lowest_total, com price_from=true) representa o menor preço disponível entre as opções. Não é a soma das opções. O valor de cada opção está em options[].total. Nunca montar preço ou link manualmente.",
     method: "POST",
     endpoint: "/api/public/internal/v1/quotes/flight",
     required_scope: "quotes:write",
@@ -187,15 +200,16 @@ export const N8N_TOOLS: N8nTool[] = [
       public_url: S,
       short_url: S,
       total: N,
+      lowest_total: N,
+      price_from: B,
       currency: S,
       options: { type: "array", items: obj({ option_number: N, total: N, currency: S }) },
     }),
     notes:
-      "Envie options[] com as 3 ofertas (ordem livre: o servidor ordena do menor para o maior total) — todas ficam no MESMO link. O formato antigo com offerId único continua aceito. Só identificadores opacos: as chaves do fornecedor são resolvidas no servidor e nunca voltam na resposta. Link: https://pedidos.viaair.tur.br/orcamento/{publicId}.",
+      "Envie options[] com as 3 ofertas (ordem livre: o servidor ordena do menor para o maior total) — todas ficam no MESMO link. O formato antigo com offerId único continua aceito. total e lowest_total têm o mesmo valor: o menor total entre as opções (price_from=true quando há mais de uma opção). Nunca somar as opções. fareIndex/inboundFareIndex são opcionais: omita quando não houver escolha real de família tarifária (o servidor usa a tarifa padrão). Só identificadores opacos: as chaves do fornecedor são resolvidas no servidor e nunca voltam na resposta. Link: https://pedidos.viaair.tur.br/orcamento/{publicId}.",
   },
   {
     name: "create_checkout",
-
 
     description: "Cria o carrinho (checkout) a partir da oferta escolhida pelo cliente.",
     method: "POST",
@@ -248,7 +262,16 @@ export const N8N_TOOLS: N8nTool[] = [
         checkoutId: S,
         passengers: ARR(
           obj(
-            { type: { type: "string", enum: ["ADT", "CHD", "INF"] }, firstName: S, lastName: S, birthDate: S, gender: { type: "string", enum: ["M", "F"] }, document: S, email: S, phone: S },
+            {
+              type: { type: "string", enum: ["ADT", "CHD", "INF"] },
+              firstName: S,
+              lastName: S,
+              birthDate: S,
+              gender: { type: "string", enum: ["M", "F"] },
+              document: S,
+              email: S,
+              phone: S,
+            },
             ["type", "firstName", "lastName", "birthDate"],
           ),
         ),
@@ -289,7 +312,8 @@ export const N8N_TOOLS: N8nTool[] = [
   },
   {
     name: "get_payment_methods",
-    description: "Formas de pagamento realmente disponíveis para aquele carrinho (regra de 72h aplicada pelo servidor).",
+    description:
+      "Formas de pagamento realmente disponíveis para aquele carrinho (regra de 72h aplicada pelo servidor).",
     method: "POST",
     endpoint: "/api/public/internal/v1/checkouts/{checkoutId}/payment-methods",
     required_scope: "checkouts:read",
@@ -325,7 +349,10 @@ export const N8N_TOOLS: N8nTool[] = [
     endpoint: "/api/public/internal/v1/checkouts/{checkoutId}/payments/card",
     required_scope: "payments:write",
     roles: ["air"],
-    input_schema: obj({ checkoutId: S, cards: ARR({ type: "object" }), payer: { type: "object" } }, ["checkoutId", "cards"]),
+    input_schema: obj({ checkoutId: S, cards: ARR({ type: "object" }), payer: { type: "object" } }, [
+      "checkoutId",
+      "cards",
+    ]),
     output_schema: obj({ paymentId: S, status: S }),
     notes: "Exige confirmação explícita do cliente, validada pelo Lovable.",
   },
@@ -387,7 +414,12 @@ export const N8N_TOOLS: N8nTool[] = [
     required_scope: "orders:read",
     roles: ["air", "consultant"],
     input_schema: obj({ orderId: S }, ["orderId"]),
-    output_schema: obj({ orderId: S, status: S, passengers: ARR({ type: "object" }), tickets: ARR({ type: "object" }) }),
+    output_schema: obj({
+      orderId: S,
+      status: S,
+      passengers: ARR({ type: "object" }),
+      tickets: ARR({ type: "object" }),
+    }),
   },
   {
     name: "get_order_status",
@@ -427,7 +459,12 @@ export const N8N_TOOLS: N8nTool[] = [
     required_scope: "checkouts:read",
     roles: ["air"],
     input_schema: obj({ checkoutUrl: S, checkoutId: S }),
-    output_schema: obj({ externalCartId: S, segments: ARR({ type: "object" }), passengers: ARR({ type: "object" }), total: { type: "object" } }),
+    output_schema: obj({
+      externalCartId: S,
+      segments: ARR({ type: "object" }),
+      passengers: ARR({ type: "object" }),
+      total: { type: "object" },
+    }),
   },
 ];
 
@@ -472,7 +509,6 @@ export function resolveToolsEnabled(role: AgentRole, configuradas: string[]): st
   const base = configuradas.length ? configuradas : DEFAULT_TOOLS_BY_ROLE[role];
   return base.filter((t) => existentes.has(t) && permitidas.has(t));
 }
-
 
 export function toolsForRole(role: AgentRole): N8nTool[] {
   return N8N_TOOLS.filter((t) => t.roles.includes(role));
