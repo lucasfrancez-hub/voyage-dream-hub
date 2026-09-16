@@ -501,13 +501,36 @@ export const DEFAULT_TOOLS_BY_ROLE: Record<AgentRole, string[]> = {
   ],
 };
 
-/** Tools do agente: o que estiver em `ai_agents.tools_habilitadas` vence; caso
- *  contrário aplica-se o padrão do perfil. Sempre filtrado pelo catálogo. */
+/**
+ * Fallback do fluxo n8n para o perfil `air` quando o cadastro não traz nenhuma
+ * tool válida do catálogo n8n (ex.: `tools_habilitadas` só com nomes do
+ * atendimento legado). Não inclui search_airports, get_order,
+ * get_order_status nem get_tickets nesta fase.
+ */
+export const N8N_AIR_FALLBACK_TOOLS = [
+  "search_flights",
+  "search_inbound",
+  "search_multicity",
+  "create_flight_quote",
+] as const;
+
+/**
+ * Tools do agente para o n8n. `ai_agents.tools_habilitadas` é o cadastro legado
+ * e NÃO é alterado aqui: só se descartam os nomes que não existem no catálogo n8n
+ * (ou não são permitidos ao perfil).
+ * - sobrou alguma tool válida → usa essas;
+ * - role air sem nenhuma válida → N8N_AIR_FALLBACK_TOOLS;
+ * - outros perfis: comportamento anterior (cadastro vazio → padrão do perfil;
+ *   cadastro só com nomes fora do catálogo → nenhuma tool).
+ */
 export function resolveToolsEnabled(role: AgentRole, configuradas: string[]): string[] {
   const permitidas = new Set(DEFAULT_TOOLS_BY_ROLE[role]);
   const existentes = new Set(N8N_TOOLS.map((t) => t.name));
-  const base = configuradas.length ? configuradas : DEFAULT_TOOLS_BY_ROLE[role];
-  return base.filter((t) => existentes.has(t) && permitidas.has(t));
+  const valida = (t: string) => existentes.has(t) && permitidas.has(t);
+  const doCatalogo = configuradas.filter(valida);
+  if (doCatalogo.length) return doCatalogo;
+  if (role === "air") return N8N_AIR_FALLBACK_TOOLS.filter(valida);
+  return configuradas.length ? [] : DEFAULT_TOOLS_BY_ROLE[role].filter(valida);
 }
 
 export function toolsForRole(role: AgentRole): N8nTool[] {
