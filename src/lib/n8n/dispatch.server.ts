@@ -356,6 +356,8 @@ export type FallbackDeps = {
     actor: string;
     onlyIfInAiMode: boolean;
   }) => Promise<{ executed: boolean; detail: string }>;
+  /** Marca no state que a transferência já foi anunciada ao cliente (transfer_notice_shown). */
+  markTransferNoticeShown: (conversationId: string) => Promise<void>;
   log: (event: string, data: Record<string, unknown>) => void;
 };
 
@@ -405,6 +407,14 @@ export async function technicalFallbackCore(input: FallbackInput, deps: Fallback
         runId: input.runId ?? "n8n-fallback",
       });
       messageSent = envio.sent > 0;
+      if (messageSent) {
+        // A mensagem fixa anuncia a transferência: próximos handoffs humanos ficam silenciosos.
+        try {
+          await deps.markTransferNoticeShown(input.conversationId);
+        } catch (e) {
+          deps.log("n8n_fallback_notice_state_failed", { reason: input.reason, error: String(e) });
+        }
+      }
     } else {
       // Sem condição segura de envio: prioriza o handoff e registra o motivo.
       deps.log("n8n_fallback_message_skipped", { reason: input.reason, guard: guard.reason });
@@ -714,6 +724,10 @@ async function realFallbackDeps(): Promise<FallbackDeps> {
     guard: guardBeforeExecute,
     sendReplyBubbles,
     performHandoff,
+    markTransferNoticeShown: async (conversationId) => {
+      const { applyAgentStatePatch } = await import("./state.server");
+      await applyAgentStatePatch(conversationId, { transfer_notice_shown: true });
+    },
     log: (event, data) => console.warn(`[n8n/fallback] ${event}`, JSON.stringify(data)),
   };
 }
