@@ -79,6 +79,34 @@ export async function guardBeforeExecute(conversationId: string): Promise<GuardR
   };
 }
 
+/**
+ * Cadência natural entre bubbles. O envio físico ao WhatsApp acontece AQUI (o n8n só
+ * manda o array no callback), então a espera fica nesta camada e não num Wait do n8n.
+ * Tempo antes da PRÓXIMA bubble, conforme o tamanho dela: curta ~1–2 s, média ~2–4 s,
+ * longa ~4–6 s, com variação aleatória. Mínimo de 0,7 s para nunca chegarem juntas e
+ * teto total por resposta para não segurar o callback.
+ */
+export const BUBBLE_CADENCE_MIN_MS = 700;
+export const BUBBLE_CADENCE_MAX_TOTAL_MS = 15_000;
+
+export function bubbleDelayMs(texto: string, rand: () => number = Math.random): number {
+  const n = String(texto ?? "").trim().length;
+  const [min, max] = n <= 40 ? [1_000, 2_000] : n <= 160 ? [2_000, 4_000] : [4_000, 6_000];
+  return Math.round(min + (max - min) * Math.min(1, Math.max(0, rand())));
+}
+
+/** Espera (ms) antes de cada bubble, na ordem. A primeira sai sem espera. */
+export function planBubbleCadence(textos: string[], rand: () => number = Math.random): number[] {
+  let total = 0;
+  return textos.map((t, i) => {
+    if (i === 0) return 0;
+    const alvo = bubbleDelayMs(t, rand);
+    const espera = Math.max(BUBBLE_CADENCE_MIN_MS, Math.min(alvo, BUBBLE_CADENCE_MAX_TOTAL_MS - total));
+    total += espera;
+    return espera;
+  });
+}
+
 /** Envia os balões respeitando a trava de última hora de assunção humana. */
 export async function sendReplyBubbles(args: {
   conversationId: string;
@@ -92,12 +120,30 @@ export async function sendReplyBubbles(args: {
   const { sendWhatsAppText } = await import("@/lib/whatsapp/send.server");
   const { saveMessage, setWaMessageId } = await import("@/lib/whatsapp/conversation.server");
 
+  const textos = args.bubbles
+    .map((b) =>
+      String(b ?? "")
+        .trim()
+        .slice(0, 4000),
+    )
+    .filter(Boolean);
+  const esperas = planBubbleCadence(textos);
+  let inboundWaId: string | null | undefined;
+
   let enviados = 0;
-  for (const bubble of args.bubbles) {
-    const texto = String(bubble ?? "")
-      .trim()
-      .slice(0, 4000);
-    if (!texto) continue;
+  for (const [i, texto] of textos.entries()) {
+    if (esperas[i]! > 0) {
+      // "Digitando…" durante a espera, quando o canal suporta (mesmo recurso do fluxo atual).
+      try {
+        if (inboundWaId === undefined) inboundWaId = await ultimoInboundWaId(args.conversationId);
+        const { sendWhatsAppTypingIndicator } = await import("@/lib/whatsapp/send.server");
+        await sendWhatsAppTypingIndicator(inboundWaId ?? "", args.waPhone);
+      } catch {
+        /* indicador é opcional */
+      }
+      await new Promise((res) => setTimeout(res, esperas[i]));
+    }
+    // Trava de assunção humana conferida DEPOIS da espera, logo antes de cada envio.
     if (await abortIfHumanTookOver(args.conversationId, "n8n-reply")) {
       return { sent: enviados, aborted: true };
     }
@@ -114,9 +160,22 @@ export async function sendReplyBubbles(args: {
     const r = await sendWhatsAppText(args.waPhone, texto);
     if (salvo?.id && r.id) await setWaMessageId(salvo.id, r.id);
     enviados += 1;
-    await new Promise((res) => setTimeout(res, 300));
   }
   return { sent: enviados, aborted: false };
+}
+
+async function ultimoInboundWaId(conversationId: string): Promise<string | null> {
+  const supabase = await db();
+  const { data } = await supabase
+    .from("wa_messages")
+    .select("wa_message_id")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "inbound")
+    .not("wa_message_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as { wa_message_id?: string | null } | null)?.wa_message_id ?? null;
 }
 
 export async function executeActions(args: {
