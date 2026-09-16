@@ -44,7 +44,13 @@ export async function criarCarrinhoDoOrcamento(params: {
     .eq("public_id", params.publicId)
     .maybeSingle();
 
-  if (!row?.quote_id) return { url: null, motivo: "Orçamento sem pesquisa vinculada." };
+  // Orçamentos criados pela Internal API não nascem de uma pesquisa do
+  // WhatsApp: as chaves de tarifa ficam guardadas junto do próprio link.
+  if (!row?.quote_id) {
+    const alternativo = await carrinhoPorChavesDoOrcamento(params);
+    if (alternativo) return alternativo;
+    return { url: null, motivo: "Orçamento sem pesquisa vinculada." };
+  }
 
   const { data: fq } = await supabaseAdmin
     .from("wa_flight_quotes")
@@ -55,6 +61,8 @@ export async function criarCarrinhoDoOrcamento(params: {
   const payload = (fq?.payload ?? null) as Payload | null;
   const opcoes = payload?.opcoes ?? [];
   if (!payload?.search_key || !opcoes.length) {
+    const alternativo = await carrinhoPorChavesDoOrcamento(params);
+    if (alternativo) return alternativo;
     return { url: null, motivo: "Pesquisa sem chaves de tarifa." };
   }
 
