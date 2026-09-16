@@ -66,13 +66,20 @@ export const Route = createFileRoute("/api/public/internal/v1/quotes/flight")({
           }
 
           try {
-            const { criarOrcamentoAereoDaOferta, criarOrcamentoAereoMultiDaOferta } = await import(
-              "@/lib/quotes/from-api-offer.server"
-            );
+            const { criarOrcamentoAereoDaOferta, criarOrcamentoAereoMultiDaOferta } =
+              await import("@/lib/quotes/from-api-offer.server");
 
             const resolvidas: Array<{
-              outbound: { payload: NonNullable<Awaited<ReturnType<typeof lerOferta>>>; offer: ApiFlightOffer; fareIndex: number | null };
-              inbound: { payload: NonNullable<Awaited<ReturnType<typeof lerOferta>>>; offer: ApiFlightOffer; fareIndex: number | null } | null;
+              outbound: {
+                payload: NonNullable<Awaited<ReturnType<typeof lerOferta>>>;
+                offer: ApiFlightOffer;
+                fareIndex: number | null;
+              };
+              inbound: {
+                payload: NonNullable<Awaited<ReturnType<typeof lerOferta>>>;
+                offer: ApiFlightOffer;
+                fareIndex: number | null;
+              } | null;
             }> = [];
 
             for (const [i, o] of lista.entries()) {
@@ -94,11 +101,7 @@ export const Route = createFileRoute("/api/public/internal/v1/quotes/flight")({
               if (o.inboundOfferId) {
                 const volta = await lerOferta(o.inboundOfferId);
                 if (!volta) {
-                  return fail(
-                    "not_found",
-                    `A volta da opção ${i + 1} expirou. Refaça a busca.`,
-                    ctx.correlationId,
-                  );
+                  return fail("not_found", `A volta da opção ${i + 1} expirou. Refaça a busca.`, ctx.correlationId);
                 }
                 const vooVolta = (volta.resumo as { voo?: ApiFlightOffer } | null)?.voo;
                 if (!vooVolta) {
@@ -130,7 +133,10 @@ export const Route = createFileRoute("/api/public/internal/v1/quotes/flight")({
                   public_id: r.public_id,
                   public_url: r.public_url,
                   short_url: r.short_url,
+                  // Várias opções: o topo é o MENOR total entre as opções (preço "a partir de"), nunca a soma.
                   total: r.total,
+                  lowest_total: r.total,
+                  price_from: true,
                   currency: "BRL",
                   options: r.options,
                 },
@@ -154,6 +160,8 @@ export const Route = createFileRoute("/api/public/internal/v1/quotes/flight")({
                 public_url: r.public_url,
                 short_url: r.short_url,
                 total: r.total,
+                lowest_total: r.total,
+                price_from: false,
                 currency: "BRL",
                 options: [{ option_number: 1, total: r.total, currency: "BRL" }],
               },
