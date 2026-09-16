@@ -17,7 +17,7 @@
  *  6. Watchdog de runs sem callback (3 min)
  */
 import { buildN8nAgentContext } from "./context.server";
-import { isN8nAgentEnabled, n8nSecret, n8nWebhookUrl, signPayload } from "./config.server";
+import { isN8nAgentEnabled, n8nSecret, n8nWebhookUrl, progressToken, signPayload } from "./config.server";
 import { startRun, transitionRun } from "./runs.server";
 
 // ===========================================================================
@@ -241,7 +241,8 @@ export async function dispatchTurnToN8n(input: {
     channel: context.channel,
   });
 
-  const body = JSON.stringify(context);
+  // progress_token: autoriza só o aviso curto de continuidade DESTE run (ver processN8nProgressCore).
+  const body = JSON.stringify({ ...context, progress_token: progressToken(runId, secret) });
   const idempotencyKey = `${input.conversationId}:${context.message_id ?? runId}`;
 
   const resultado = await runDispatchAttempts(
@@ -636,6 +637,81 @@ export async function processN8nCallbackCore(
 }
 
 // ---------------------------------------------------------------------------
+// Aviso de progresso antes da busca (não encerra o run)
+// ---------------------------------------------------------------------------
+
+/** Aviso de continuidade antes de uma busca: 1 balão curto, sem link, sem pergunta. */
+export const PROGRESS_MAX_CHARS = 220;
+
+export function sanitizeProgressMessage(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const bruto = raw.trim();
+  if (!bruto || /[\r\n]/.test(bruto)) return null;
+  const m = bruto.replace(/\s+/g, " ");
+  if (m.length > PROGRESS_MAX_CHARS) return null;
+  if (/https?:\/\/|www\.|\?/i.test(m)) return null;
+  return m;
+}
+
+export type ProgressDeps = {
+  verifyToken: (runId: string, token: string | null) => boolean;
+  loadRun: (runId: string) => Promise<RunRow | null>;
+  guard: (conversationId: string) => Promise<GuardResultLike>;
+  /** Marca atômica: true só para o PRIMEIRO aviso de um run ainda aberto. */
+  claimProgress: (runId: string) => Promise<boolean>;
+  sendReplyBubbles: FallbackDeps["sendReplyBubbles"];
+  now: () => number;
+};
+
+/**
+ * Aviso de progresso do n8n ("já tô cotando aqui pra vc") enviado ANTES da busca.
+ * Não encerra o run: o callback final continua valendo normalmente.
+ * Autorização: token do run (HMAC do run_id com o segredo, emitido no dispatch).
+ * Limites: run aberto e com menos de 10 min, mesma conversa, guardBeforeExecute ok,
+ * 1 balão curto (sem link/pergunta/quebra de linha) e no máximo 1 aviso por run.
+ */
+export async function processN8nProgressCore(
+  payload: Record<string, unknown>,
+  runId: string,
+  token: string | null,
+  deps: ProgressDeps,
+): Promise<{ httpStatus: number; body: Record<string, unknown> }> {
+  if (!deps.verifyToken(runId, token)) return { httpStatus: 401, body: { ok: false, error: "invalid_progress_token" } };
+  const message = sanitizeProgressMessage(payload["message"]);
+  if (!message) return { httpStatus: 422, body: { ok: false, error: "invalid_progress_message" } };
+
+  const run = await deps.loadRun(runId);
+  if (!run) return { httpStatus: 404, body: { ok: false, error: "run_not_found" } };
+  if (!(OPEN_RUN_STATUSES as readonly string[]).includes(run.status)) {
+    return { httpStatus: 409, body: { ok: false, error: "run_not_open", status: run.status } };
+  }
+  if (deps.now() - new Date(run.started_at).getTime() > CALLBACK_MAX_AGE_MS) {
+    return { httpStatus: 409, body: { ok: false, error: "run_expired" } };
+  }
+  const conversationId = String(payload["conversation_id"] ?? "") || run.conversation_id;
+  if (conversationId !== run.conversation_id) {
+    return { httpStatus: 409, body: { ok: false, error: "conversation_mismatch" } };
+  }
+
+  const guard = await deps.guard(run.conversation_id);
+  if (!guard.ok) return { httpStatus: 200, body: { ok: true, sent: false, skipped: guard.reason } };
+
+  if (!(await deps.claimProgress(runId))) {
+    return { httpStatus: 200, body: { ok: true, sent: false, skipped: "progress_already_sent" } };
+  }
+
+  const envio = await deps.sendReplyBubbles({
+    conversationId: run.conversation_id,
+    waPhone: guard.conversation.wa_phone,
+    agentSlug: guard.conversation.agent_slug,
+    agentName: guard.conversation.agent_name,
+    bubbles: [message],
+    runId,
+  });
+  return { httpStatus: 200, body: { ok: true, sent: envio.sent > 0, aborted: envio.aborted } };
+}
+
+// ---------------------------------------------------------------------------
 // Watchdog
 // ---------------------------------------------------------------------------
 
@@ -776,6 +852,40 @@ export async function processN8nCallback(
     fallback: technicalFallback,
     isEnabled: isN8nAgentEnabled,
     rescheduleIfInboundDuringRun,
+    now: () => Date.now(),
+  });
+}
+
+export async function processN8nProgress(
+  payload: Record<string, unknown>,
+  runId: string,
+  token: string | null,
+): Promise<{ httpStatus: number; body: Record<string, unknown> }> {
+  const { loadRun } = await import("./runs.server");
+  const { guardBeforeExecute, sendReplyBubbles } = await import("./actions.server");
+  const { verifyProgressToken } = await import("./config.server");
+  return processN8nProgressCore(payload, runId, token, {
+    verifyToken: verifyProgressToken,
+    loadRun,
+    guard: guardBeforeExecute,
+    claimProgress: async (id) => {
+      // Marca atômica no próprio run (actions ainda vazio enquanto o run está aberto;
+      // o callback final sobrescreve com o resultado das actions).
+      const supabase = await db();
+      const { data, error } = await supabase
+        .from("n8n_agent_runs")
+        .update({ actions: [{ type: "progress_notice", at: new Date().toISOString() }] } as never)
+        .eq("run_id", id)
+        .in("status", ["pending", "dispatched"])
+        .eq("actions", "[]" as never)
+        .select("run_id");
+      if (error) {
+        console.error("[n8n/progress] claimProgress", id, error.message);
+        return false;
+      }
+      return Array.isArray(data) && data.length > 0;
+    },
+    sendReplyBubbles,
     now: () => Date.now(),
   });
 }
