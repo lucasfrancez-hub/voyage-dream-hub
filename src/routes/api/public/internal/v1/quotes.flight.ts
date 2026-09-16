@@ -16,9 +16,18 @@ import { failFromError } from "@/lib/api/respond";
 import { lerOferta } from "@/lib/api/refs.server";
 import type { ApiFlightOffer } from "@/lib/api/normalize";
 
+const opcao = z.object({
+  offerId: z.string().min(6).max(60),
+  inboundOfferId: z.string().min(6).max(60).nullish(),
+  fareIndex: z.number().int().min(0).max(20).nullish(),
+  inboundFareIndex: z.number().int().min(0).max(20).nullish(),
+});
+
 const entrada = z.object({
   searchId: z.string().min(6).max(60).nullish(),
-  offerId: z.string().min(6).max(60),
+  /** Novo formato: até 3 opções no MESMO orçamento. Tem prioridade sobre offerId. */
+  options: z.array(opcao).min(1).max(3).nullish(),
+  offerId: z.string().min(6).max(60).optional(),
   inboundOfferId: z.string().min(6).max(60).nullish(),
   /** Índice da tarifa escolhida dentro de fares[] da própria oferta. */
   fareIndex: z.number().int().min(0).max(20).nullish(),
