@@ -159,6 +159,19 @@ export const N8N_TOOLS: N8nTool[] = [
     input_schema: obj(
       {
         searchId: S,
+        options: {
+          type: "array",
+          maxItems: 3,
+          items: obj(
+            {
+              offerId: S,
+              inboundOfferId: { ...S, nullable: true },
+              fareIndex: N,
+              inboundFareIndex: N,
+            },
+            ["offerId"],
+          ),
+        },
         offerId: S,
         inboundOfferId: { ...S, nullable: true },
         fareIndex: N,
@@ -166,11 +179,19 @@ export const N8N_TOOLS: N8nTool[] = [
         agentName: S,
         conversationId: S,
       },
-      ["offerId"],
+      [],
     ),
-    output_schema: obj({ quote_id: S, public_id: S, public_url: S, short_url: S, total: N, currency: S }),
+    output_schema: obj({
+      quote_id: S,
+      public_id: S,
+      public_url: S,
+      short_url: S,
+      total: N,
+      currency: S,
+      options: { type: "array", items: obj({ option_number: N, total: N, currency: S }) },
+    }),
     notes:
-      "Só aceita identificadores opacos (offerId). As chaves do fornecedor são resolvidas no servidor e nunca voltam na resposta. O link é o mesmo formato https://pedidos.viaair.tur.br/orcamento/{publicId} usado pelo fluxo de reserva.",
+      "Envie options[] com as 3 ofertas (ordem livre: o servidor ordena do menor para o maior total) — todas ficam no MESMO link. O formato antigo com offerId único continua aceito. Só identificadores opacos: as chaves do fornecedor são resolvidas no servidor e nunca voltam na resposta. Link: https://pedidos.viaair.tur.br/orcamento/{publicId}.",
   },
   {
     name: "create_checkout",
