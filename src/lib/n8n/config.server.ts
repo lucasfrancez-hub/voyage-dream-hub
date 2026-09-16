@@ -18,9 +18,9 @@ export function n8nSecret(): string | null {
 
 /** Só true com flag ligada, URL https e segredo configurado. */
 export function isN8nAgentEnabled(): boolean {
-  return (process.env["N8N_AGENT_ENABLED"] ?? "false").trim().toLowerCase() === "true"
-    && !!n8nWebhookUrl()
-    && !!n8nSecret();
+  return (
+    (process.env["N8N_AGENT_ENABLED"] ?? "false").trim().toLowerCase() === "true" && !!n8nWebhookUrl() && !!n8nSecret()
+  );
 }
 
 /** Assinatura HMAC-SHA256 de `${timestamp}.${body}`. */
@@ -55,4 +55,20 @@ export function verifyCallbackSignature(args: {
     return { ok: false, reason: "invalid_signature" };
   }
   return { ok: true };
+}
+
+/**
+ * Token do aviso de progresso de UM run (HMAC-SHA256 de "n8n-progress:<run_id>").
+ * Vai no payload do dispatch e só autoriza 1 balão curto de continuidade desse run
+ * enquanto ele estiver aberto (regras em processN8nProgressCore). Não serve como
+ * assinatura de callback (formato diferente de `${timestamp}.${body}`).
+ */
+export function progressToken(runId: string, secret: string): string {
+  return createHmac("sha256", secret).update(`n8n-progress:${runId}`).digest("hex");
+}
+
+export function verifyProgressToken(runId: string, token: string | null): boolean {
+  const secret = n8nSecret();
+  if (!secret || !token) return false;
+  return safeEqual(token.trim().toLowerCase(), progressToken(runId, secret));
 }
