@@ -267,6 +267,10 @@ export async function criarOrcamentoAereoMultiDaOferta(args: {
   });
 
   const { quote, url, shortUrl } = await savePublicQuote(dto as never);
+  await guardarChavesDoOrcamento(
+    quote.publicId,
+    montadas.map((m, i) => ({ ...m.entrada, opcao: i + 1 })),
+  );
   return {
     quote_id: quote.id,
     public_id: quote.publicId,
