@@ -103,6 +103,43 @@ export async function lerCheckoutRef(
   return row?.payload ?? null;
 }
 
+/* ------------------------------------------------------------------ */
+/* Orçamento público -> chaves de tarifa (para gerar o carrinho depois) */
+/* ------------------------------------------------------------------ */
+
+export type QuoteCartRef = {
+  searchKey: string;
+  contexto: OfferPayload["contexto"];
+  opcoes: Array<{
+    opcao: number;
+    outboundFareId: string;
+    outboundItineraryId: string;
+    inboundFareId: string | null;
+    inboundItineraryId: string | null;
+    isRoundTrip: boolean;
+  }>;
+};
+
+export async function guardarCarrinhoDoOrcamento(publicId: string, ref: QuoteCartRef): Promise<void> {
+  const supabase = await db();
+  await supabase.from("api_offer_refs").insert({
+    search_id: publicId,
+    kind: `quotecart:${publicId}`,
+    payload: ref as never,
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  } as never);
+}
+
+export async function lerCarrinhoDoOrcamento(publicId: string): Promise<QuoteCartRef | null> {
+  const supabase = await db();
+  const { data } = await supabase
+    .from("api_offer_refs")
+    .select("payload")
+    .eq("kind", `quotecart:${publicId}`)
+    .maybeSingle();
+  return ((data as { payload: QuoteCartRef } | null)?.payload ?? null) as QuoteCartRef | null;
+}
+
 export function novoSearchId(): string {
   return id("srh");
 }
