@@ -62,7 +62,7 @@ export async function guardBeforeExecute(conversationId: string): Promise<GuardR
   if (conv["assigned_to"]) return { ok: false, reason: "human_assigned" };
   if (conv["fraud_transfer_required"]) return { ok: false, reason: "fraud_blocked" };
 
-  const slug = (conv["central_slug"] as string | null) ?? (conv["agent_slug"] as string | null) ?? null;
+  const slug = ((conv["central_slug"] as string | null) ?? (conv["agent_slug"] as string | null)) ?? null;
   let nome: string | null = null;
   if (slug) {
     const { data: ag } = await supabase.from("ai_agents").select("nome").eq("slug", slug).maybeSingle();
@@ -94,9 +94,7 @@ export async function sendReplyBubbles(args: {
 
   let enviados = 0;
   for (const bubble of args.bubbles) {
-    const texto = String(bubble ?? "")
-      .trim()
-      .slice(0, 4000);
+    const texto = String(bubble ?? "").trim().slice(0, 4000);
     if (!texto) continue;
     if (await abortIfHumanTookOver(args.conversationId, "n8n-reply")) {
       return { sent: enviados, aborted: true };
@@ -145,10 +143,7 @@ export async function executeActions(args: {
 
     try {
       if (tipo === "pause_ai") {
-        await supabase
-          .from("wa_conversations")
-          .update({ ai_paused: true } as never)
-          .eq("id", args.conversationId);
+        await supabase.from("wa_conversations").update({ ai_paused: true } as never).eq("id", args.conversationId);
         out.push({ type: tipo, executed: true, detail: "IA pausada nesta conversa" });
         continue;
       }
@@ -160,14 +155,26 @@ export async function executeActions(args: {
         continue;
       }
       if (tipo === "handoff") {
-        const r = await performHandoff({
-          conversationId: args.conversationId,
-          to: String((acaoRaw as { to?: unknown }).to ?? "human"),
-          reason: String((acaoRaw as { reason?: unknown }).reason ?? "n8n_handoff"),
-          briefing: String((acaoRaw as { briefing?: unknown }).briefing ?? "").slice(0, 2000) || undefined,
+        const { recordHandoff } = await import("@/lib/whatsapp/conversation.server");
+        const destino = String((acaoRaw as { to?: unknown }).to ?? "human");
+        const motivo = String((acaoRaw as { reason?: unknown }).reason ?? "n8n_handoff");
+        const briefing = String((acaoRaw as { briefing?: unknown }).briefing ?? "").slice(0, 2000) || undefined;
+        await recordHandoff({
+          conversation_id: args.conversationId,
+          from_mode: "ai",
+          to_mode: destino === "human" ? "human" : "ai",
+          reason: motivo,
+          briefing,
           actor: "n8n",
         });
-        out.push({ type: tipo, executed: r.executed, detail: r.detail });
+        if (destino === "human") {
+          await supabase
+            .from("wa_conversations")
+            .update({ mode: "human", priority: "high" } as never)
+            .eq("id", args.conversationId);
+        }
+        await applyAgentStatePatch(args.conversationId, { handoff_status: destino });
+        out.push({ type: tipo, executed: true, detail: `handoff para ${destino}` });
         continue;
       }
     } catch (e) {
@@ -175,65 +182,4 @@ export async function executeActions(args: {
     }
   }
   return out;
-}
-
-/**
- * Handoff único do n8n: usado pela action "handoff" E pelo fallback técnico
- * (dispatch.server.ts). Não existe outro caminho de transferência.
- *
- * Com onlyIfInAiMode, a troca para humano é ATÔMICA e só acontece se a
- * conversa ainda estiver em IA e sem humano atribuído — nunca gera dois
- * handoffs nem tira a conversa de um atendente.
- */
-export async function performHandoff(args: {
-  conversationId: string;
-  to?: string;
-  reason: string;
-  briefing?: string;
-  actor: string;
-  onlyIfInAiMode?: boolean;
-}): Promise<{ executed: boolean; detail: string }> {
-  const supabase = await db();
-  const { recordHandoff } = await import("@/lib/whatsapp/conversation.server");
-  const destino = args.to ?? "human";
-
-  if (args.onlyIfInAiMode) {
-    const { data } = await supabase
-      .from("wa_conversations")
-      .update({ mode: "human", priority: "high" } as never)
-      .eq("id", args.conversationId)
-      .eq("mode", "ai")
-      .is("assigned_to", null)
-      .select("id");
-    if (!Array.isArray(data) || data.length === 0) {
-      return { executed: false, detail: "conversa não está mais em modo IA" };
-    }
-    await recordHandoff({
-      conversation_id: args.conversationId,
-      from_mode: "ai",
-      to_mode: "human",
-      reason: args.reason,
-      briefing: args.briefing,
-      actor: args.actor,
-    });
-    await applyAgentStatePatch(args.conversationId, { handoff_status: "human" });
-    return { executed: true, detail: "handoff para human" };
-  }
-
-  await recordHandoff({
-    conversation_id: args.conversationId,
-    from_mode: "ai",
-    to_mode: destino === "human" ? "human" : "ai",
-    reason: args.reason,
-    briefing: args.briefing,
-    actor: args.actor,
-  });
-  if (destino === "human") {
-    await supabase
-      .from("wa_conversations")
-      .update({ mode: "human", priority: "high" } as never)
-      .eq("id", args.conversationId);
-  }
-  await applyAgentStatePatch(args.conversationId, { handoff_status: destino });
-  return { executed: true, detail: `handoff para ${destino}` };
 }
