@@ -160,6 +160,7 @@ export const Route = createFileRoute("/api/public/internal/v1/quotes/flight")({
               ctx.correlationId,
             );
           } catch (e) {
+            console.error("[quotes/flight]", ctx.correlationId, e instanceof Error ? e.stack : e);
             return failFromError(e, ctx.correlationId);
           }
         }),
