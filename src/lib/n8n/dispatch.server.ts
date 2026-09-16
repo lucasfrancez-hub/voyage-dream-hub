@@ -714,7 +714,9 @@ export async function processN8nCallback(
     transitionRun: (id, from, to, error) => transitionRun(id, from as never, to as never, error),
     finishRun: (id, patch) => finishRun(id, patch as never),
     guard: guardBeforeExecute,
-    applyStatePatch: (conversationId, patch) => applyAgentStatePatch(conversationId, patch as never),
+    applyStatePatch: async (conversationId, patch) => {
+      await applyAgentStatePatch(conversationId, patch as never);
+    },
     sendReplyBubbles,
     executeActions: (args) => executeActions(args as never),
     fallback: technicalFallback,
