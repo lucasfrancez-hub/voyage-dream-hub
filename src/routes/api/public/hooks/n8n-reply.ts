@@ -25,6 +25,23 @@ export const Route = createFileRoute("/api/public/hooks/n8n-reply")({
     handlers: {
       POST: async ({ request }) => {
         const raw = await request.text();
+        // Aviso de progresso (balão curto antes de uma busca): autorizado pelo token do run
+        // emitido no dispatch, não pela assinatura do callback. Nunca encerra o run.
+        const progressHeader = request.headers.get("x-viaair-progress-token");
+        if (progressHeader !== null) {
+          let progressPayload: Record<string, unknown>;
+          try {
+            progressPayload = JSON.parse(raw) as Record<string, unknown>;
+          } catch {
+            return json({ ok: false, error: "invalid_json" }, 422);
+          }
+          const progressRunId = String(progressPayload["run_id"] ?? "");
+          if (!/^[0-9a-f-]{36}$/i.test(progressRunId)) return json({ ok: false, error: "invalid_run_id" }, 422);
+          const { processN8nProgress } = await import("@/lib/n8n/dispatch.server");
+          const progresso = await processN8nProgress(progressPayload, progressRunId, progressHeader);
+          return json(progresso.body, progresso.httpStatus);
+        }
+
         const { verifyCallbackSignature } = await import("@/lib/n8n/config.server");
         const check = verifyCallbackSignature({
           body: raw,
