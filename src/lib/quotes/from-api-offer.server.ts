@@ -193,3 +193,60 @@ export async function criarOrcamentoAereoDaOferta(args: {
     total: option.total,
   };
 }
+
+/**
+ * Várias ofertas (até 3) viram UM único orçamento público com seletor de
+ * opções — exatamente a mesma estrutura já usada pelo portal
+ * (buildAirOnlyMultiQuote). As opções são ordenadas do menor para o maior
+ * total e cada uma preserva os seus próprios voos, tarifas e pagamento.
+ */
+export async function criarOrcamentoAereoMultiDaOferta(args: {
+  opcoes: Array<{ outbound: QuoteOfferInput; inbound?: QuoteOfferInput | null }>;
+  agentName?: string | null;
+  conversationId?: string | null;
+  validUntil?: string | null;
+}): Promise<{
+  quote_id: string;
+  public_id: string;
+  public_url: string;
+  short_url: string | null;
+  total: number;
+  options: Array<{ option_number: number; total: number; currency: "BRL" }>;
+}> {
+  const montadas = args.opcoes.map((o) => montarCotacaoDaOferta(o));
+  montadas.sort((a, b) => (Number(a.option.total) || 0) - (Number(b.option.total) || 0));
+
+  const result = montadas[0]!.result;
+  const options = montadas.map((m, i) => ({
+    ...m.option,
+    opcao: i + 1,
+    cart: m.option.cart,
+  }));
+  result.opcoes = options;
+
+  const { buildAirOnlyMultiQuote } = await import("@/lib/public-quote/from-flight.server");
+  const { savePublicQuote } = await import("@/lib/public-quote/store.server");
+
+  const dto = buildAirOnlyMultiQuote({
+    result,
+    options,
+    agentName: args.agentName ?? null,
+    conversationId: args.conversationId ?? null,
+    flightQuoteId: null,
+    validUntil: args.validUntil ?? null,
+  });
+
+  const { quote, url, shortUrl } = await savePublicQuote(dto as never);
+  return {
+    quote_id: quote.id,
+    public_id: quote.publicId,
+    public_url: url,
+    short_url: shortUrl ?? null,
+    total: options[0]!.total,
+    options: options.map((o, i) => ({
+      option_number: i + 1,
+      total: Number(o.total) || 0,
+      currency: "BRL" as const,
+    })),
+  };
+}
