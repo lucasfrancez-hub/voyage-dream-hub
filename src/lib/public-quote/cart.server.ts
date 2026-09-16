@@ -44,7 +44,13 @@ export async function criarCarrinhoDoOrcamento(params: {
     .eq("public_id", params.publicId)
     .maybeSingle();
 
-  if (!row?.quote_id) return { url: null, motivo: "Orçamento sem pesquisa vinculada." };
+  // Orçamentos criados pela Internal API não nascem de uma pesquisa do
+  // WhatsApp: as chaves de tarifa ficam guardadas junto do próprio link.
+  if (!row?.quote_id) {
+    const alternativo = await carrinhoPorChavesDoOrcamento(params);
+    if (alternativo) return alternativo;
+    return { url: null, motivo: "Orçamento sem pesquisa vinculada." };
+  }
 
   const { data: fq } = await supabaseAdmin
     .from("wa_flight_quotes")
@@ -55,6 +61,8 @@ export async function criarCarrinhoDoOrcamento(params: {
   const payload = (fq?.payload ?? null) as Payload | null;
   const opcoes = payload?.opcoes ?? [];
   if (!payload?.search_key || !opcoes.length) {
+    const alternativo = await carrinhoPorChavesDoOrcamento(params);
+    if (alternativo) return alternativo;
     return { url: null, motivo: "Pesquisa sem chaves de tarifa." };
   }
 
@@ -87,5 +95,52 @@ export async function criarCarrinhoDoOrcamento(params: {
     preferInboundFare: false,
   } as never);
 
-  return { url: criado.url };
+  return { url: checkoutViaAir(criado.cartId) };
+}
+
+/** Checkout da própria VIA AIR — o cliente nunca é mandado pro site da operadora. */
+function checkoutViaAir(cartId: string): string {
+  return `https://pedidos.viaair.tur.br/checkout/voo/${String(cartId).toLowerCase()}`;
+}
+
+/**
+ * Caminho dos orçamentos criados pela Internal API: as chaves de tarifa de
+ * cada opção ficam guardadas no servidor junto do link público.
+ */
+async function carrinhoPorChavesDoOrcamento(params: {
+  publicId: string;
+  opcao?: number | null;
+}): Promise<{ url: string } | null> {
+  const { lerCarrinhoDoOrcamento } = await import("@/lib/api/refs.server");
+  const ref = await lerCarrinhoDoOrcamento(params.publicId);
+  if (!ref?.searchKey || !ref.opcoes?.length) return null;
+
+  const numero = Number(params.opcao ?? 1) || 1;
+  const opt =
+    ref.opcoes.find((o) => Number(o.opcao) === numero) ??
+    ref.opcoes[Math.min(numero, ref.opcoes.length) - 1];
+  if (!opt?.outboundFareId || !opt?.outboundItineraryId) return null;
+
+  const ctx = ref.contexto ?? ({} as (typeof ref)["contexto"]);
+  const { createFlightCart } = await import("@/lib/onertravel.server");
+  const criado = await createFlightCart({
+    searchKey: ref.searchKey,
+    outboundFareId: opt.outboundFareId,
+    outboundItineraryId: opt.outboundItineraryId,
+    inboundFareId: opt.inboundFareId ?? null,
+    inboundItineraryId: opt.inboundItineraryId ?? null,
+    isRoundTrip: !!opt.isRoundTrip,
+    departureIata: ctx.departureIata ?? null,
+    arrivalIata: ctx.arrivalIata ?? null,
+    departureDate: ctx.departureDate ?? null,
+    returnDate: ctx.returnDate ?? null,
+    adults: Math.max(1, Number(ctx.adults) || 1),
+    children: Math.max(0, Number(ctx.children) || 0),
+    infants: Math.max(0, Number(ctx.infants) || 0),
+    departureIsCity: !!ctx.departureIsCity,
+    arrivalIsCity: !!ctx.arrivalIsCity,
+    preferInboundFare: false,
+  } as never);
+
+  return { url: checkoutViaAir(criado.cartId) };
 }

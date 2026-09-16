@@ -185,6 +185,7 @@ export async function criarOrcamentoAereoDaOferta(args: {
   });
 
   const { quote, url, shortUrl } = await savePublicQuote(dto as never);
+  await guardarChavesDoOrcamento(quote.publicId, [{ ...args, opcao: 1 }]);
   return {
     quote_id: quote.id,
     public_id: quote.publicId,
@@ -192,6 +193,35 @@ export async function criarOrcamentoAereoDaOferta(args: {
     short_url: shortUrl ?? null,
     total: option.total,
   };
+}
+
+/**
+ * Guarda, SOMENTE no servidor, as chaves de tarifa de cada opção do orçamento.
+ * É o que permite depois gerar o carrinho e abrir o checkout da VIA AIR.
+ */
+async function guardarChavesDoOrcamento(
+  publicId: string,
+  opcoes: Array<{ outbound: QuoteOfferInput; inbound?: QuoteOfferInput | null; opcao: number }>,
+): Promise<void> {
+  try {
+    const primeira = opcoes[0];
+    if (!primeira?.outbound.payload.searchKey) return;
+    const { guardarCarrinhoDoOrcamento } = await import("@/lib/api/refs.server");
+    await guardarCarrinhoDoOrcamento(publicId, {
+      searchKey: primeira.outbound.payload.searchKey,
+      contexto: primeira.outbound.payload.contexto,
+      opcoes: opcoes.map((o) => ({
+        opcao: o.opcao,
+        outboundFareId: o.outbound.payload.fareId,
+        outboundItineraryId: o.outbound.payload.itineraryId,
+        inboundFareId: o.inbound?.payload.fareId ?? null,
+        inboundItineraryId: o.inbound?.payload.itineraryId ?? null,
+        isRoundTrip: !!o.inbound,
+      })),
+    });
+  } catch (e) {
+    console.error("[orcamento-api] falha ao guardar chaves de tarifa:", e);
+  }
 }
 
 /**
@@ -213,7 +243,7 @@ export async function criarOrcamentoAereoMultiDaOferta(args: {
   total: number;
   options: Array<{ option_number: number; total: number; currency: "BRL" }>;
 }> {
-  const montadas = args.opcoes.map((o) => montarCotacaoDaOferta(o));
+  const montadas = args.opcoes.map((o) => ({ ...montarCotacaoDaOferta(o), entrada: o }));
   montadas.sort((a, b) => (Number(a.option.total) || 0) - (Number(b.option.total) || 0));
 
   const result = montadas[0]!.result;
@@ -237,6 +267,10 @@ export async function criarOrcamentoAereoMultiDaOferta(args: {
   });
 
   const { quote, url, shortUrl } = await savePublicQuote(dto as never);
+  await guardarChavesDoOrcamento(
+    quote.publicId,
+    montadas.map((m, i) => ({ ...m.entrada, opcao: i + 1 })),
+  );
   return {
     quote_id: quote.id,
     public_id: quote.publicId,
