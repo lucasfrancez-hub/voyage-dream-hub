@@ -164,7 +164,8 @@ export function usableBubbles(reply: unknown): string[] {
 
 /**
  * status "ok" → resposta normal (pode ter só actions).
- * status "degraded" COM bolha utilizável → resposta de contingência enviada normalmente.
+ * status "degraded" COM bolha utilizável → a bolha é enviada e, em seguida, handoff para humano
+ *   (o cliente nunca fica só com a mensagem de espera e a conversa em "ai").
  * Qualquer outro caso (erro, degraded sem bolha) → falha sem resposta utilizável.
  */
 export function interpretCallbackStatus(payload: Record<string, unknown>): CallbackInterpretation {
@@ -192,7 +193,10 @@ export function staleRunAction(
 }
 
 /** Motivo interno registrado no handoff (nunca mostrado ao cliente). */
-export function fallbackReason(kind: DispatchFailureKind | "watchdog" | "callback_failure", detail?: string): string {
+export function fallbackReason(
+  kind: DispatchFailureKind | "watchdog" | "callback_failure" | "degraded_reply",
+  detail?: string,
+): string {
   return `n8n_fallback:${kind}${detail ? `:${detail}` : ""}`.slice(0, 200);
 }
 
@@ -364,6 +368,8 @@ export type FallbackInput = {
   sendMessage: boolean;
   /** Só age sobre o cliente quando o n8n está ligado (N8N_AGENT_ENABLED). */
   allowHandoff: boolean;
+  /** Contexto para o time humano (vai para o briefing do handoff). */
+  briefing?: string;
 };
 
 export type FallbackResult = { handoff: boolean; messageSent: boolean; skipped: string | null };
@@ -409,7 +415,9 @@ export async function technicalFallbackCore(input: FallbackInput, deps: Fallback
     conversationId: input.conversationId,
     to: "human",
     reason: input.reason,
-    briefing: "Falha técnica no agente automático. Atendimento transferido para o time sem resposta da IA neste turno.",
+    briefing:
+      input.briefing ??
+      "Falha técnica no agente automático. Atendimento transferido para o time sem resposta da IA neste turno.",
     actor: "n8n-fallback",
     onlyIfInAiMode: true,
   });
@@ -569,19 +577,51 @@ export async function processN8nCallbackCore(
 
   const resultados = await deps.executeActions({ conversationId, runId, actions: payload["actions"] });
 
+  // degraded COM bolha: a bolha (mensagem de espera) já foi enviada acima. O cliente não pode
+  // ficar abandonado com a conversa em "ai": aplica o MESMO handoff para humano, sem mensagem
+  // fixa extra (evita resposta duplicada). Estado e histórico já estão gravados (contexto
+  // preservado). Se uma action "handoff" deste turno já transferiu, o fallback não repete.
+  let handoffDegradado: FallbackResult | null = null;
+  if (interpretacao.degraded && !envio.aborted) {
+    handoffDegradado = await deps.fallback({
+      conversationId,
+      runId,
+      reason: fallbackReason("degraded_reply"),
+      briefing:
+        "O agente automático não concluiu o turno e enviou apenas uma mensagem de espera ao cliente. Continue o atendimento a partir do histórico e do estado da conversa.",
+      sendMessage: false,
+      allowHandoff: deps.isEnabled(),
+    });
+  }
+
   await deps.finishRun(runId, {
     status: envio.aborted ? "rejected" : "completed",
     n8nExecutionId,
     actions: resultados,
     stateUpdate,
-    error: envio.aborted ? "human_takeover_during_send" : interpretacao.degraded ? "degraded_reply" : null,
+    error: envio.aborted
+      ? "human_takeover_during_send"
+      : interpretacao.degraded
+        ? handoffDegradado?.handoff
+          ? "degraded_reply_handoff"
+          : "degraded_reply"
+        : null,
   });
 
-  if (!envio.aborted) await deps.rescheduleIfInboundDuringRun(conversationId, aberto.started_at);
+  // Turno degradado vai para humano: não reagenda novo turno de IA.
+  if (!envio.aborted && !interpretacao.degraded) {
+    await deps.rescheduleIfInboundDuringRun(conversationId, aberto.started_at);
+  }
 
   return {
     httpStatus: 200,
-    body: { ok: true, bubbles_sent: envio.sent, actions: resultados, degraded: interpretacao.degraded },
+    body: {
+      ok: true,
+      bubbles_sent: envio.sent,
+      actions: resultados,
+      degraded: interpretacao.degraded,
+      handoff: handoffDegradado?.handoff ?? false,
+    },
   };
 }
 
