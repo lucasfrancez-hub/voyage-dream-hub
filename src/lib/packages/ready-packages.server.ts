@@ -52,10 +52,23 @@ export const readyPackagesInput = z.object({
 
 export type ReadyPackagesInput = z.infer<typeof readyPackagesInput>;
 
+/** Valor interno cru do calendário (nunca exposto na resposta da API). */
+type RawDate = {
+  date: string;
+  unit_price: number | null;
+  taxes: number | null;
+  seats: number | null;
+  is_available: boolean;
+  modality: string | null;
+};
+
 export type ReadyPackageDate = {
   date: string;
-  price_per_person: number | null;
+  /** Valor comercial da data, já na ocupação-base (mesmo número da página). */
+  package_total: number | null;
+  /** Taxas JÁ inclusas em package_total (informativo, nunca somar de novo). */
   taxes: number | null;
+  taxes_included: true;
   seats: number | null;
   is_available: boolean;
   modality: string | null;
@@ -75,11 +88,25 @@ export type ReadyPackage = {
   nights: number | null;
   /** true quando o valor é "a partir de" (produto flexível / sem data fixa). */
   price_from: boolean;
-  price_per_person: number | null;
+  /**
+   * Base comercial do valor:
+   * - "per_party": package_total já é o valor TOTAL para base_occupancy pessoas;
+   * - "per_unit": package_total é o valor de 1 unidade (ingresso/passeio).
+   * Em ambos os casos o agente apenas apresenta — nunca divide nem multiplica.
+   */
+  pricing_basis: "per_party" | "per_unit";
+  /** Texto pronto para apresentação: "para 2 pessoas" / "por pessoa". */
+  occupancy_label: string;
+  /** ÚNICO valor comercial. Taxas já inclusas. Não somar nada a ele. */
+  package_total: number | null;
+  /** Taxas JÁ inclusas em package_total (informativo). */
   taxes: number | null;
-  total_per_person: number | null;
+  taxes_included: true;
+  /** true quando a ocupação pedida difere da base: condição precisa ser recalculada. */
+  requires_recalculation: boolean;
   currency: "BRL";
   pricing_mode: string | null;
+
   base_occupancy: number | null;
   max_units: number | null;
   hotel: {
@@ -158,7 +185,8 @@ function productTypeOf(row: Row): ReadyPackage["product_type"] {
 function montarParcelamento(args: {
   rules: InstallmentRule[];
   supplierName: string | null;
-  totalPerPerson: number | null;
+  /** Valor comercial apresentado (já na ocupação-base, taxas inclusas). */
+  packageTotal: number | null;
   departureDate: string | null;
   priceFrom: boolean;
 }): ReadyPackageInstallmentPlan {
@@ -169,9 +197,9 @@ function montarParcelamento(args: {
     supplierName: args.supplierName,
     source: args.supplierName,
     departureDate: args.departureDate,
-    totalAmount: args.totalPerPerson,
+    totalAmount: args.packageTotal,
   });
-  const total = args.totalPerPerson;
+  const total = args.packageTotal;
   const opcaoPrepago = prepago.options[prepago.options.length - 1] ?? null;
   return {
     source: "VIAAIR_RULES",
@@ -201,7 +229,7 @@ function montarParcelamento(args: {
 
 function normalizar(
   row: Row,
-  datas: ReadyPackageDate[],
+  datas: RawDate[],
   rules: InstallmentRule[],
   mismatch: string[],
 ): ReadyPackage {
@@ -209,15 +237,24 @@ function normalizar(
   const flexivel = dateMode === "flexible" || row.flexible_dates === true || !row.going_date;
   const disponiveis = datas.filter((d) => d.is_available && (d.seats == null || d.seats > 0));
 
-  // Preço: prioriza a data disponível mais barata quando o calendário existe.
+  // Mesma regra da página pública (/pacotes/{slug}):
+  // per_unit (passeio/ingresso) => 1 unidade; senão => valor da ocupação-base.
+  const isTicket = row.kind === "tour" || row.kind === "service";
+  const perUnit = row.pricing_mode === "per_unit" || isTicket;
+  const ocupacaoBase = n(row.base_occupancy) ?? 2;
+  const multiplicador = perUnit ? 1 : ocupacaoBase;
+
+  // Valor: prioriza a data disponível mais barata quando o calendário existe.
   const melhor = disponiveis.length
     ? disponiveis.reduce((a, b) =>
-        (a.price_per_person ?? Infinity) <= (b.price_per_person ?? Infinity) ? a : b,
+        (a.unit_price ?? Infinity) <= (b.unit_price ?? Infinity) ? a : b,
       )
     : null;
-  const preco = n(melhor?.price_per_person ?? row.price_per_person);
+  const unitario = n(melhor?.unit_price ?? row.price_per_person);
   const taxas = n(melhor?.taxes ?? row.taxes);
-  const totalPP = preco == null ? null : Number((preco + (taxas ?? 0)).toFixed(2));
+  // As taxas JÁ estão dentro do valor cadastrado — nunca somar (evita dupla soma).
+  const packageTotal =
+    unitario == null ? null : Number((unitario * multiplicador).toFixed(2));
 
   let availability: ReadyPackage["availability"];
   if (row.is_active === false) availability = "inactive";
@@ -228,6 +265,13 @@ function normalizar(
   const seats = melhor?.seats ?? null;
   const slug = (row.slug as string | null) ?? null;
   const path = slug ? `/pacotes/${slug}` : "";
+  const occupancyLabel = perUnit
+    ? row.kind === "tour"
+      ? "por pessoa"
+      : "por unidade"
+    : ocupacaoBase === 1
+      ? "para 1 pessoa"
+      : `para ${ocupacaoBase} pessoas`;
 
   return {
     package_id: String(row.id),
@@ -242,12 +286,17 @@ function normalizar(
     return_date: row.return_date ?? null,
     nights: n(row.nights),
     price_from: flexivel || (!melhor && datas.length === 0 && !row.going_date),
-    price_per_person: preco,
+    pricing_basis: perUnit ? "per_unit" : "per_party",
+    occupancy_label: occupancyLabel,
+    package_total: packageTotal,
     taxes: taxas,
-    total_per_person: totalPP,
+    taxes_included: true,
+    requires_recalculation: mismatch.some(
+      (m) => m === "ocupacao_diferente_recalcular" || m === "criancas_a_confirmar",
+    ),
     currency: "BRL",
     pricing_mode: row.pricing_mode ?? null,
-    base_occupancy: n(row.base_occupancy),
+    base_occupancy: ocupacaoBase,
     max_units: n(row.max_units),
     hotel: {
       name: row.hotel_name ?? null,
@@ -270,13 +319,22 @@ function normalizar(
     installment_plan: montarParcelamento({
       rules,
       supplierName: row.supplier_name ?? null,
-      totalPerPerson: totalPP,
+      packageTotal,
       departureDate: (melhor?.date ?? row.going_date ?? null) as string | null,
       priceFrom: flexivel,
     }),
     seats,
     availability,
-    available_dates: disponiveis.slice(0, 24),
+    available_dates: disponiveis.slice(0, 24).map((d) => ({
+      date: d.date,
+      package_total:
+        d.unit_price == null ? null : Number((d.unit_price * multiplicador).toFixed(2)),
+      taxes: d.taxes,
+      taxes_included: true as const,
+      seats: d.seats,
+      is_available: d.is_available,
+      modality: d.modality,
+    })),
     image_url: row.image_url ?? null,
     public_url: path ? `${PUBLIC_SITE_URL}${path}` : "",
     public_path: path,
@@ -369,7 +427,7 @@ export async function searchReadyPackages(
 
   // Calendário de datas dos candidatos (datas fixas com preço e vagas reais).
   const ids = rows.map((r) => String(r.id));
-  const porPacote = new Map<string, ReadyPackageDate[]>();
+  const porPacote = new Map<string, RawDate[]>();
   for (let i = 0; i < ids.length; i += 200) {
     const { data: datas } = await supabaseAdmin
       .from("package_date_prices")
@@ -381,7 +439,7 @@ export async function searchReadyPackages(
       const lista = porPacote.get(String(d.package_id)) ?? [];
       lista.push({
         date: String(d.date),
-        price_per_person: n(d.price_per_person),
+        unit_price: n(d.price_per_person),
         taxes: n(d.taxes),
         seats: d.seats == null ? null : n(d.seats),
         is_available: d.is_available !== false,
@@ -448,8 +506,12 @@ export async function searchReadyPackages(
     if (usadas.length > 0 && comVaga.length === 0) motivos.push("sem_vaga");
 
     // --- ocupação --------------------------------------------------------
-    const ocupacao = n(row.base_occupancy);
+    // O preço do pacote é o da ocupação-base. Ocupação diferente NÃO é
+    // recalculada automaticamente: sinalizamos que precisa ser confirmada.
+    const ocupacao = n(row.base_occupancy) ?? 2;
     if (input.adults && ocupacao && input.adults > ocupacao) motivos.push("ocupacao_incompativel");
+    else if (input.adults && ocupacao && input.adults !== ocupacao)
+      motivos.push("ocupacao_diferente_recalcular");
     if (input.children.length > 0) motivos.push("criancas_a_confirmar");
 
     // --- noites ----------------------------------------------------------
@@ -459,7 +521,9 @@ export async function searchReadyPackages(
     if (noites != null && ((nMin && noites < nMin) || (nMax && noites > nMax)))
       motivos.push("noites_incompativel");
 
-    const bloqueantes = motivos.filter((m) => m !== "criancas_a_confirmar");
+    const bloqueantes = motivos.filter(
+      (m) => m !== "criancas_a_confirmar" && m !== "ocupacao_diferente_recalcular",
+    );
     const item = normalizar(
       row,
       periodoOk && datas.length ? datasCandidatas : datas,
