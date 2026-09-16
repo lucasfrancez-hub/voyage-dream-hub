@@ -17,6 +17,16 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
         const { isAiGloballyOff } = await import("@/lib/whatsapp/ai-global-switch.server");
         const { isAiSilenced } = await import("@/lib/whatsapp/ai-silence.server");
 
+        // Watchdog dos turnos enviados ao n8n: run sem callback há mais de 3 min
+        // → mensagem fixa + humano (só com N8N_AGENT_ENABLED). Isolado: qualquer
+        // falha aqui nunca afeta o fluxo legado.
+        try {
+          const { sweepStaleRuns } = await import("@/lib/n8n/dispatch.server");
+          await sweepStaleRuns();
+        } catch (e) {
+          console.error("[dispatch-ai-debounced] watchdog n8n:", e);
+        }
+
         // Interruptor global: IAs desligadas → nenhum disparo automático.
         if (await isAiGloballyOff()) {
           return new Response(JSON.stringify({ ok: true, skipped: "ai_globally_off" }), {
@@ -30,8 +40,6 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             headers: { "content-type": "application/json" },
           });
         }
-
-
 
         const nowIso = new Date().toISOString();
         const { data: due, error } = await supabaseAdmin
@@ -68,13 +76,9 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             const primeiraPendente = [...(ultimas ?? [])]
               .reverse()
               .find(
-                (m) =>
-                  m.direction === "inbound" &&
-                  (!lastOut || new Date(m.created_at) > new Date(lastOut.created_at)),
+                (m) => m.direction === "inbound" && (!lastOut || new Date(m.created_at) > new Date(lastOut.created_at)),
               );
-            const tetoAt = primeiraPendente
-              ? new Date(primeiraPendente.created_at).getTime() + 3 * 60 * 1000
-              : 0;
+            const tetoAt = primeiraPendente ? new Date(primeiraPendente.created_at).getTime() + 3 * 60 * 1000 : 0;
             const digitando = lastIn && Date.now() - new Date(lastIn.created_at).getTime() < 25_000;
             if (digitando && Date.now() < tetoAt) {
               await supabaseAdmin
@@ -135,7 +139,6 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
             }
           }, 45_000);
 
-
           try {
             // "Digitando…" visual no WhatsApp do cliente enquanto a IA processa.
             // Usa o wa_message_id da última mensagem inbound da conversa.
@@ -153,11 +156,45 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
               await sendWhatsAppTypingIndicator(lastInbound.wa_message_id);
             }
 
-            await runAgent({
-              wa_phone: conv.wa_phone,
-              profile_name: conv.display_name,
-              trigger_message_id: lastInbound?.id ?? undefined,
-            });
+            const { isN8nAgentEnabled } = await import("@/lib/n8n/config.server");
+            if (isN8nAgentEnabled()) {
+              // Turno via n8n: a resposta chega por callback (n8n-reply). Falha técnica
+              // → mensagem fixa + humano; n8n não configurado → fluxo legado.
+              const { routeAiTurn } = await import("@/lib/n8n/dispatch.server");
+              const rota = await routeAiTurn({
+                conversationId: conv.id,
+                messageId: lastInbound?.id ?? null,
+                runLegacy: async () => {
+                  await runAgent({
+                    wa_phone: conv.wa_phone,
+                    profile_name: conv.display_name,
+                    trigger_message_id: lastInbound?.id ?? undefined,
+                  });
+                },
+              });
+              if (rota.route !== "legacy") {
+                clearInterval(heartbeat);
+                // Não reagenda aqui: um 2º turno concorrente duplicaria a resposta.
+                // Mensagens que chegarem durante o run são reagendadas pelo n8n-reply;
+                // "n8n_busy" (já há run aberto) tenta de novo em 30s.
+                await supabaseAdmin
+                  .from("wa_conversations")
+                  .update({
+                    ai_debounce_until: rota.route === "n8n_busy" ? new Date(Date.now() + 30_000).toISOString() : null,
+                  })
+                  .eq("id", conv.id)
+                  .eq("ai_debounce_until", leaseUntil);
+                dispatched.push(conv.id);
+                continue;
+              }
+            } else {
+              // N8N_AGENT_ENABLED desligado: fluxo legado inalterado.
+              await runAgent({
+                wa_phone: conv.wa_phone,
+                profile_name: conv.display_name,
+                trigger_message_id: lastInbound?.id ?? undefined,
+              });
+            }
             clearInterval(heartbeat);
 
             // Sucesso. Como o webhook agora PRESERVA o lease (pra não disparar
@@ -171,22 +208,16 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
               .order("created_at", { ascending: false })
               .limit(10);
             const inPos = (ultimasPos ?? []).find((m) => m.direction === "inbound");
-            const outPos = (ultimasPos ?? []).find(
-              (m) => m.direction === "outbound" && m.sender !== "system",
-            );
-            const pendente =
-              !!inPos && (!outPos || new Date(inPos.created_at) > new Date(outPos.created_at));
+            const outPos = (ultimasPos ?? []).find((m) => m.direction === "outbound" && m.sender !== "system");
+            const pendente = !!inPos && (!outPos || new Date(inPos.created_at) > new Date(outPos.created_at));
             await supabaseAdmin
               .from("wa_conversations")
               .update({
-                ai_debounce_until: pendente
-                  ? new Date(Date.now() + 45_000).toISOString()
-                  : null,
+                ai_debounce_until: pendente ? new Date(Date.now() + 45_000).toISOString() : null,
               })
               .eq("id", conv.id)
               .eq("ai_debounce_until", leaseUntil);
             dispatched.push(conv.id);
-
           } catch (e) {
             clearInterval(heartbeat);
             console.error(`[dispatch-ai-debounced] erro runAgent ${conv.id}:`, e);
@@ -198,8 +229,6 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-ai-debounced")(
               .eq("id", conv.id)
               .eq("ai_debounce_until", leaseUntil);
           }
-
-
         }
 
         return new Response(JSON.stringify({ ok: true, dispatched: dispatched.length }), {
