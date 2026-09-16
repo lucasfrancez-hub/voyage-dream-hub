@@ -151,7 +151,7 @@ export const N8N_TOOLS: N8nTool[] = [
   {
     name: "create_flight_quote",
     description:
-      "Cria o orçamento aéreo persistido da VIA AIR a partir da oferta escolhida e devolve o link público do orçamento. Usar sempre que o cliente escolher um voo: nunca montar preço ou link manualmente.",
+      "Cria o orçamento aéreo persistido da VIA AIR e devolve UM único link público. Envie options[] com até 3 ofertas (opção 1, 2 e 3 no mesmo link). Nunca montar preço ou link manualmente.",
     method: "POST",
     endpoint: "/api/public/internal/v1/quotes/flight",
     required_scope: "quotes:write",
