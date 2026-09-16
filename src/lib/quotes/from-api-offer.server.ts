@@ -243,7 +243,7 @@ export async function criarOrcamentoAereoMultiDaOferta(args: {
   total: number;
   options: Array<{ option_number: number; total: number; currency: "BRL" }>;
 }> {
-  const montadas = args.opcoes.map((o) => montarCotacaoDaOferta(o));
+  const montadas = args.opcoes.map((o) => ({ ...montarCotacaoDaOferta(o), entrada: o }));
   montadas.sort((a, b) => (Number(a.option.total) || 0) - (Number(b.option.total) || 0));
 
   const result = montadas[0]!.result;
