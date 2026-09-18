@@ -202,6 +202,34 @@ function PainelTokens() {
 
         <p className="mt-4 text-xs font-medium">Permissões</p>
         <div className="mt-2 flex flex-wrap gap-2">
+          <span className="self-center text-[11px] text-muted-foreground">Atalhos:</span>
+          <button
+            type="button"
+            className="rounded-full border border-dashed px-3 py-1 text-xs"
+            onClick={() => {
+              setNome("Sky Hub — Serviços");
+              setCodigo("SKY_HUB_SERVICOS");
+              setScopes(["services:read"]);
+            }}
+          >
+            Somente Serviços
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-dashed px-3 py-1 text-xs"
+            onClick={() => setScopes([...SKYHUB_DEFAULT_SCOPES])}
+          >
+            Sky Hub padrão
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-dashed px-3 py-1 text-xs"
+            onClick={() => setScopes([])}
+          >
+            Limpar
+          </button>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
           {API_SCOPES.map((s) => (
             <button
               key={s}
