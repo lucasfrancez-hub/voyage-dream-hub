@@ -3,7 +3,7 @@ import { DocumentoViewer } from "@/components/docs/DocumentoViewer";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2, LogOut, Package, ClipboardList, Home, Link2, Settings, Users, ChevronDown, LayoutDashboard, Contact, Smartphone,
-  Puzzle, MessageCircle, Sun, Moon, BarChart3, CreditCard, ShieldCheck } from "lucide-react";
+  Puzzle, MessageCircle, Sun, Moon, BarChart3, CreditCard, ShieldCheck, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -806,6 +806,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     pathname.startsWith("/admin/codigos-auth") ||
     pathname.startsWith("/admin/stripe") ||
     pathname.startsWith("/admin/api-tokens") ||
+    pathname.startsWith("/admin/api-servicos") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
   return (
