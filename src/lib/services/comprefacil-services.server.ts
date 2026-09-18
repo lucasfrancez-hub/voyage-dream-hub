@@ -229,6 +229,12 @@ function normalizar(
     taxas: 0,
     valor_total: valor,
     disponibilidade: valor != null ? "disponivel" : "sob_consulta",
+    precificacao: {
+      origem_valor: "operadora",
+      markup_viaair: 0,
+      comissao_agencia: null,
+      comissao_agencia_status: "nao_informada_pela_api",
+    },
     inclusos: s.informacoes ?? [],
     politica_cancelamento: s.politica,
     dados_tipo: {
@@ -247,6 +253,9 @@ function normalizar(
       codigo_fornecedor: s.externoId || null,
       tipo_servico_id: s.tipoServicoId ?? null,
       busca_guid: s.buscaGuid ?? null,
+      // Metadado interno do fornecedor (ex.: 646). Não é percentual conhecido
+      // e nunca sai do servidor — ver `paraSkyHub` e o bloco `precificacao`.
+      markup_id: s.markupId ?? null,
       cidade_id: ctx.cidadeId,
       periodo: { de: ctx.data, ate: ctx.dataFim },
       ocupacao: { adultos: ctx.adultos, idades: ctx.criancas },
