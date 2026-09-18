@@ -830,6 +830,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
             { to: "/admin/codigos-auth", label: "Códigos 2FA por e-mail", icon: ShieldCheck },
             { to: "/admin/stripe", label: "Stripe — Testes 3DS", icon: CreditCard },
             { to: "/admin/api-tokens", label: "API — Tokens", icon: ShieldCheck },
+            { to: "/admin/api-servicos", label: "API — Serviços Compre Fácil", icon: KeyRound },
 
           ],
         },
