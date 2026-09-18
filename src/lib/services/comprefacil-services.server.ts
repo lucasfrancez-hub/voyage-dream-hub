@@ -133,9 +133,9 @@ function classificar(s: ServicoDisponivel, seguro: boolean): TipoServico {
   // tipo real vem do título/categoria. Sem isso, transfer e passeio somem.
   const t = `${s.categoria ?? ""} ${s.titulo ?? ""}`.toLowerCase();
   if (/seguro/.test(t)) return "seguro";
-  if (/transfer|traslado|transporte/.test(t)) return "transfer";
-  if (/ingresso|ticket|entrada para/.test(t)) return "ingresso";
-  if (/passeio|tour|excurs|visita|city ?tour/.test(t)) return "passeio";
+  if (/transfer|traslado|trans?por/.test(t)) return "transfer";
+  if (/passeio|tour|excurs|city ?tour/.test(t)) return "passeio";
+  if (/ingresso|ticket|entrada/.test(t)) return "ingresso";
   return "servico";
 }
 
