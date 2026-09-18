@@ -38,6 +38,12 @@ export type ServicoDisponivel = {
   substituir?: boolean;
   /** tipo cru da operadora (0 serviço, 1 passeio, 2 ingresso, 3 transfer) */
   tipoServicoId?: number | null;
+  /**
+   * Identificador de markup da operadora (ex.: MarkupId 646) — metadado
+   * interno do fornecedor, preservado apenas no servidor para a reserva
+   * futura. NÃO representa percentual conhecido e NUNCA é exposto ao Sky Hub.
+   */
+  markupId?: number | null;
   /** Guid da busca ao vivo — necessário para reservar depois */
   buscaGuid?: string | null;
   /** payload ExtraIntegracao já decodificado (IDs específicos por tipo) */
@@ -163,6 +169,7 @@ function mapear(s: any, i: number): ServicoDisponivel {
     dataSelecionada: null,
     horaSelecionada: null,
     tipoServicoId: Number.isFinite(Number(s?.TipoServico)) ? Number(s?.TipoServico) : null,
+    markupId: Number.isFinite(Number(s?.MarkupId)) ? Number(s.MarkupId) : null,
     extra:
       extra && typeof extra === "object"
         ? (extra as Record<string, string | number | boolean | null>)

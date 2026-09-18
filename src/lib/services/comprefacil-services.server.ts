@@ -95,6 +95,20 @@ export type ServicoNormalizado = {
   taxas: number;
   valor_total: number | null;
   disponibilidade: "disponivel" | "sob_consulta";
+  /**
+   * Bloco fixo de precificação do contrato VIA AIR → Sky Hub.
+   * Regra desta fase: o valor é exatamente o retornado pela operadora, sem
+   * markup adicional. A comissão da agência NÃO é informada pela API do
+   * Compre Fácil e NUNCA é calculada aqui — a eventual divisão de 10% para a
+   * agência será uma regra comercial interna futura, separada do contrato
+   * bruto do fornecedor.
+   */
+  precificacao: {
+    origem_valor: "operadora";
+    markup_viaair: 0;
+    comissao_agencia: null;
+    comissao_agencia_status: "nao_informada_pela_api";
+  };
   inclusos: string[];
   politica_cancelamento: string | null;
   /** dados específicos do tipo, preservados sem quebrar o contrato comum */
