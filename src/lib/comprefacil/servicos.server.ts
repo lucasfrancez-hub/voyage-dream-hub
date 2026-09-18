@@ -36,7 +36,14 @@ export type ServicoDisponivel = {
   horaSelecionada?: string | null;
   /** true quando o cliente só trocou data/horário de um serviço já incluído */
   substituir?: boolean;
+  /** tipo cru da operadora (0 serviço, 1 passeio, 2 ingresso, 3 transfer) */
+  tipoServicoId?: number | null;
+  /** Guid da busca ao vivo — necessário para reservar depois */
+  buscaGuid?: string | null;
+  /** payload ExtraIntegracao já decodificado (IDs específicos por tipo) */
+  extra?: Record<string, string | number | boolean | null> | null;
 };
+
 
 export type OpcaoServico = {
   /** código da tarifa daquela data/horário (usado na reserva) */
@@ -155,8 +162,14 @@ function mapear(s: any, i: number): ServicoDisponivel {
     opcoes,
     dataSelecionada: null,
     horaSelecionada: null,
+    tipoServicoId: Number.isFinite(Number(s?.TipoServico)) ? Number(s?.TipoServico) : null,
+    extra:
+      extra && typeof extra === "object"
+        ? (extra as Record<string, string | number | boolean | null>)
+        : null,
   };
 }
+
 
 
 /** Espera com teto de tempo: devolve null se a operadora demorar demais. */
@@ -292,6 +305,8 @@ export async function buscarServicosDestinoCF(p: {
   const vistos = new Set<string>();
   const lista = itens
     .map(mapear)
+    .map((s) => ({ ...s, buscaGuid: guid }))
+
     .filter((s) => {
       const chave = `${s.titulo}|${s.valor}`;
       if (vistos.has(chave)) return false;

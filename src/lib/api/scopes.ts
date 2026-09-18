@@ -16,6 +16,7 @@ export const API_SCOPES = [
   "insurance:read",
   "products:read",
   "packages:read",
+  "services:read",
   "quotes:write",
 ] as const;
 
@@ -51,5 +52,6 @@ export const API_SCOPE_LABEL: Record<ApiScope, string> = {
   "insurance:read": "Consultar seguro viagem",
   "products:read": "Consultar produtos",
   "packages:read": "Consultar pacotes",
+  "services:read": "Consultar serviços (transfer, passeio, ingresso, seguro)",
   "quotes:write": "Criar orçamento público",
 };
