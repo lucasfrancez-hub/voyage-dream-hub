@@ -62,6 +62,20 @@ export const servicesSelectInput = z.object({
 
 /* ── Contrato de saída (padrão VIA AIR, em português) ────────────────── */
 
+/**
+ * Referência opaca entregue ao Sky Hub. Não é legível nem editável: é só um
+ * ponteiro para o registro do servidor, onde ficam os identificadores reais
+ * da operadora (código do serviço, Guid da busca, tarifas, IDs extras).
+ */
+export type ReferenciaOpaca = {
+  tipo: "opaca";
+  ref: string;
+  expira_em: string;
+};
+
+/** Dados do fornecedor que NUNCA saem do servidor. */
+export type ReferenciaInterna = Record<string, unknown>;
+
 export type ServicoNormalizado = {
   fornecedor: "comprefacil";
   tipo: "servico";
@@ -94,9 +108,19 @@ export type ServicoNormalizado = {
     /** coberturas detalhadas (seguro viagem) */
     coberturas: { nome: string; valor: string | null }[];
   };
-  /** identificadores opacos para a reserva futura — a IA/Sky Hub não interpreta */
-  referencia_fornecedor: Record<string, unknown>;
+  /** ponteiro opaco — a reserva futura é resolvida no servidor */
+  referencia_fornecedor: ReferenciaOpaca;
 };
+
+/** Forma interna: o normalizado + o bloco sigiloso do fornecedor. */
+export type ServicoInterno = ServicoNormalizado & { _fornecedor: ReferenciaInterna };
+
+/** Remove o bloco sigiloso antes de responder ao Sky Hub. */
+export function paraSkyHub(s: ServicoInterno): ServicoNormalizado {
+  const { _fornecedor: _oculto, ...publico } = s;
+  return publico;
+}
+
 
 export type ServicesSearchResult = {
   status: "found" | "not_found";
@@ -139,6 +163,19 @@ function classificar(s: ServicoDisponivel, seguro: boolean): TipoServico {
   return "servico";
 }
 
+/** Validade da referência opaca da busca (2 h, igual à busca guardada). */
+const VALIDADE_BUSCA_MS = 2 * 60 * 60 * 1000;
+/** Validade da seleção persistida. */
+const VALIDADE_SELECAO_MS = 30 * 24 * 60 * 60 * 1000;
+
+function refOpaca(validadeMs: number): ReferenciaOpaca {
+  return {
+    tipo: "opaca",
+    ref: novoId("svcref"),
+    expira_em: new Date(Date.now() + validadeMs).toISOString(),
+  };
+}
+
 function normalizar(
   s: ServicoDisponivel,
   ctx: {
@@ -150,7 +187,7 @@ function normalizar(
     criancas: number[];
     seguro: boolean;
   },
-): ServicoNormalizado {
+): ServicoInterno {
   const tipo = classificar(s, ctx.seguro);
   const opcoes = (s.opcoes ?? []).map((o) => ({ data: o.data, hora: o.hora, valor: o.valor }));
   const primeira = opcoes[0];
@@ -173,6 +210,7 @@ function normalizar(
     imagem_url: s.imagem ?? null,
     moeda: "BRL",
     // A operadora entrega um valor único já tarifado; não há taxa separada.
+    // Valor preservado como veio: nenhum markup do Pacote VIA AIR é somado.
     valor_liquido: valor,
     taxas: 0,
     valor_total: valor,
@@ -187,7 +225,8 @@ function normalizar(
       opcoes,
       coberturas: s.coberturas ?? [],
     },
-    referencia_fornecedor: {
+    referencia_fornecedor: refOpaca(VALIDADE_BUSCA_MS),
+    _fornecedor: {
       fornecedor: "comprefacil",
       origem: ctx.seguro ? "seguro" : "servico",
       id_interno: s.id,
@@ -208,6 +247,7 @@ function normalizar(
     },
   };
 }
+
 
 /* ── Resolução da cidade oficial ─────────────────────────────────────── */
 
@@ -255,7 +295,7 @@ async function guardarBusca(args: {
 
 async function lerBusca(buscaId: string): Promise<{
   criterio: ServicesSearchResult["criterio"];
-  servicos: ServicoNormalizado[];
+  servicos: ServicoInterno[];
 } | null> {
   const supabase = await db();
   const { data } = await supabase
@@ -264,12 +304,13 @@ async function lerBusca(buscaId: string): Promise<{
     .eq("kind", `svcsearch:${buscaId}`)
     .maybeSingle();
   const row = data as
-    | { payload: { criterio: ServicesSearchResult["criterio"]; servicos: ServicoNormalizado[] }; expires_at: string }
+    | { payload: { criterio: ServicesSearchResult["criterio"]; servicos: ServicoInterno[] }; expires_at: string }
     | null;
   if (!row) return null;
   if (new Date(row.expires_at).getTime() < Date.now()) return null;
   return row.payload;
 }
+
 
 /* ── Busca ───────────────────────────────────────────────────────────── */
 
@@ -361,7 +402,7 @@ export async function buscarServicos(
     criterio,
     total: lista.length,
     por_tipo,
-    servicos: lista,
+    servicos: lista.map(paraSkyHub),
     mensagem: lista.length
       ? `${lista.length} serviço(s) disponíveis para o destino e período.`
       : "Nenhum serviço disponível para este destino e período.",
@@ -376,27 +417,33 @@ export async function buscarServicos(
 export type ServicesSelectResult = {
   status: "selected";
   selecao_id: string;
+  busca_id: string;
+  criterio: ServicesSearchResult["criterio"];
   servico: ServicoNormalizado;
   /** esta fase não reserva nada na operadora */
   reserva: { realizada: false; motivo: "reserva_de_servico_nao_implementada" };
 };
 
+export type ServicesSelectErro = {
+  erro: "busca_expirada" | "servico_nao_encontrado" | "opcao_indisponivel";
+};
+
 export async function selecionarServico(
   input: z.infer<typeof servicesSelectInput>,
   clientId: string | null,
-): Promise<ServicesSelectResult | { erro: "busca_expirada" | "servico_nao_encontrado" | "opcao_indisponivel" }> {
+): Promise<ServicesSelectResult | ServicesSelectErro> {
   const busca = await lerBusca(input.buscaId);
   if (!busca) return { erro: "busca_expirada" };
   const base = busca.servicos.find((s) => s.servico_id === input.servicoId);
   if (!base) return { erro: "servico_nao_encontrado" };
 
-  let escolhido = base;
+  let escolhido: ServicoInterno = base;
   if (input.data || input.hora) {
     const opcao = base.dados_tipo.opcoes.find(
       (o) => (!input.data || o.data === input.data) && (!input.hora || o.hora === input.hora),
     );
     if (!opcao) return { erro: "opcao_indisponivel" };
-    const tarifas = (base.referencia_fornecedor["tarifas"] ?? []) as {
+    const tarifas = (base._fornecedor["tarifas"] ?? []) as {
       codigo: string | null;
       data: string;
       hora: string | null;
@@ -408,14 +455,17 @@ export async function selecionarServico(
       hora: opcao.hora,
       valor_liquido: opcao.valor ?? base.valor_liquido,
       valor_total: opcao.valor ?? base.valor_total,
-      referencia_fornecedor: {
-        ...base.referencia_fornecedor,
-        codigo_tarifa: tarifa?.codigo ?? base.referencia_fornecedor["codigo_tarifa"] ?? null,
+      _fornecedor: {
+        ...base._fornecedor,
+        codigo_tarifa: tarifa?.codigo ?? base._fornecedor["codigo_tarifa"] ?? null,
         data_escolhida: opcao.data,
         hora_escolhida: opcao.hora,
       },
     };
   }
+
+  // A referência opaca da seleção é nova e dura o tempo da seleção.
+  escolhido = { ...escolhido, referencia_fornecedor: refOpaca(VALIDADE_SELECAO_MS) };
 
   const selecaoId = novoId("svcsel");
   const supabase = await db();
@@ -423,14 +473,83 @@ export async function selecionarServico(
     api_client_id: clientId,
     search_id: input.buscaId,
     kind: `svcsel:${selecaoId}`,
-    payload: { criterio: busca.criterio, servico: escolhido } as never,
-    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    payload: { criterio: busca.criterio, busca_id: input.buscaId, servico: escolhido } as never,
+    expires_at: new Date(Date.now() + VALIDADE_SELECAO_MS).toISOString(),
   } as never);
 
   return {
     status: "selected",
     selecao_id: selecaoId,
-    servico: escolhido,
+    busca_id: input.buscaId,
+    criterio: busca.criterio,
+    servico: paraSkyHub(escolhido),
     reserva: { realizada: false, motivo: "reserva_de_servico_nao_implementada" },
   };
 }
+
+/* ── Recuperação da seleção persistida ───────────────────────────────── */
+
+export const servicesSelectionInput = z.object({
+  selecaoId: z.string().min(6).max(60),
+});
+
+export type ServicesSelectionResult = {
+  status: "selected";
+  selecao_id: string;
+  busca_id: string | null;
+  criterio: ServicesSearchResult["criterio"] | null;
+  servico: ServicoNormalizado;
+  reserva: { realizada: false; motivo: "reserva_de_servico_nao_implementada" };
+};
+
+/** Devolve a seleção persistida com os mesmos identificadores (opacos). */
+export async function recuperarSelecao(
+  selecaoId: string,
+): Promise<ServicesSelectionResult | { erro: "selecao_nao_encontrada" }> {
+  const supabase = await db();
+  const { data } = await supabase
+    .from("api_offer_refs")
+    .select("payload,expires_at")
+    .eq("kind", `svcsel:${selecaoId}`)
+    .maybeSingle();
+  const row = data as
+    | {
+        payload: {
+          criterio: ServicesSearchResult["criterio"] | null;
+          busca_id?: string | null;
+          servico: ServicoInterno;
+        };
+        expires_at: string;
+      }
+    | null;
+  if (!row || new Date(row.expires_at).getTime() < Date.now()) {
+    return { erro: "selecao_nao_encontrada" };
+  }
+  return {
+    status: "selected",
+    selecao_id: selecaoId,
+    busca_id: row.payload.busca_id ?? null,
+    criterio: row.payload.criterio ?? null,
+    servico: paraSkyHub(row.payload.servico),
+    reserva: { realizada: false, motivo: "reserva_de_servico_nao_implementada" },
+  };
+}
+
+/**
+ * Uso interno da VIA AIR (reserva futura): devolve os identificadores reais do
+ * fornecedor de uma seleção. NUNCA exposto em rota da Internal API.
+ */
+export async function lerReferenciaInterna(
+  selecaoId: string,
+): Promise<ReferenciaInterna | null> {
+  const supabase = await db();
+  const { data } = await supabase
+    .from("api_offer_refs")
+    .select("payload,expires_at")
+    .eq("kind", `svcsel:${selecaoId}`)
+    .maybeSingle();
+  const row = data as { payload: { servico: ServicoInterno }; expires_at: string } | null;
+  if (!row || new Date(row.expires_at).getTime() < Date.now()) return null;
+  return row.payload.servico._fornecedor ?? null;
+}
+
