@@ -553,4 +553,3 @@ export async function lerReferenciaInterna(
   return row.payload.servico._fornecedor ?? null;
 }
 
-}
