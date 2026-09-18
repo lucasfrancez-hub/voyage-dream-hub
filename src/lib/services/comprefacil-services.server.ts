@@ -126,14 +126,16 @@ function novoId(prefixo: string): string {
 /** Classifica no vocabulário da VIA AIR sem hardcode de um único tipo. */
 function classificar(s: ServicoDisponivel, seguro: boolean): TipoServico {
   if (seguro) return "seguro";
-  const porId: Record<number, TipoServico> = { 0: "servico", 1: "passeio", 2: "ingresso", 3: "transfer" };
+  const porId: Record<number, TipoServico> = { 1: "passeio", 2: "ingresso", 3: "transfer" };
   const id = s.tipoServicoId;
   if (id != null && porId[id]) return porId[id]!;
+  // A operadora manda TipoServico = 0 ("ATIVIDADE") para quase tudo, então o
+  // tipo real vem do título/categoria. Sem isso, transfer e passeio somem.
   const t = `${s.categoria ?? ""} ${s.titulo ?? ""}`.toLowerCase();
   if (/seguro/.test(t)) return "seguro";
-  if (/transfer|traslado/.test(t)) return "transfer";
-  if (/ingresso|ticket/.test(t)) return "ingresso";
-  if (/passeio|tour|city ?tour|excurs/.test(t)) return "passeio";
+  if (/transfer|traslado|transporte/.test(t)) return "transfer";
+  if (/ingresso|ticket|entrada para/.test(t)) return "ingresso";
+  if (/passeio|tour|excurs|visita|city ?tour/.test(t)) return "passeio";
   return "servico";
 }
 
