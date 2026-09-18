@@ -32,6 +32,7 @@ import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as VoarRouteImport } from './routes/voar'
 import { Route as AdminAntifraudeRouteImport } from './routes/admin.antifraude'
+import { Route as AdminApiServicosRouteImport } from './routes/admin.api-servicos'
 import { Route as AdminApiTokensRouteImport } from './routes/admin.api-tokens'
 import { Route as AdminAppCelularRouteImport } from './routes/admin.app-celular'
 import { Route as AdminArteModelosRouteImport } from './routes/admin.arte-modelos'
@@ -364,6 +365,11 @@ const VoarRoute = VoarRouteImport.update({
 const AdminAntifraudeRoute = AdminAntifraudeRouteImport.update({
   id: '/antifraude',
   path: '/antifraude',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminApiServicosRoute = AdminApiServicosRouteImport.update({
+  id: '/api-servicos',
+  path: '/api-servicos',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminApiTokensRoute = AdminApiTokensRouteImport.update({
@@ -1560,6 +1566,7 @@ export interface FileRoutesByFullPath {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-servicos': typeof AdminApiServicosRoute
   '/admin/api-tokens': typeof AdminApiTokensRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
@@ -1801,6 +1808,7 @@ export interface FileRoutesByTo {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-servicos': typeof AdminApiServicosRoute
   '/admin/api-tokens': typeof AdminApiTokensRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
@@ -2044,6 +2052,7 @@ export interface FileRoutesById {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-servicos': typeof AdminApiServicosRoute
   '/admin/api-tokens': typeof AdminApiTokensRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
   '/admin/arte-modelos': typeof AdminArteModelosRoute
@@ -2289,6 +2298,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-servicos'
     | '/admin/api-tokens'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
@@ -2530,6 +2540,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-servicos'
     | '/admin/api-tokens'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
@@ -2772,6 +2783,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-servicos'
     | '/admin/api-tokens'
     | '/admin/app-celular'
     | '/admin/arte-modelos'
@@ -3283,6 +3295,13 @@ declare module '@tanstack/react-router' {
       path: '/antifraude'
       fullPath: '/admin/antifraude'
       preLoaderRoute: typeof AdminAntifraudeRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/api-servicos': {
+      id: '/admin/api-servicos'
+      path: '/api-servicos'
+      fullPath: '/admin/api-servicos'
+      preLoaderRoute: typeof AdminApiServicosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/api-tokens': {
@@ -4841,6 +4860,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminAntifraudeRoute: typeof AdminAntifraudeRoute
+  AdminApiServicosRoute: typeof AdminApiServicosRoute
   AdminApiTokensRoute: typeof AdminApiTokensRoute
   AdminAppCelularRoute: typeof AdminAppCelularRoute
   AdminArteModelosRoute: typeof AdminArteModelosRoute
@@ -4917,6 +4937,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAntifraudeRoute: AdminAntifraudeRoute,
+  AdminApiServicosRoute: AdminApiServicosRoute,
   AdminApiTokensRoute: AdminApiTokensRoute,
   AdminAppCelularRoute: AdminAppCelularRoute,
   AdminArteModelosRoute: AdminArteModelosRoute,
