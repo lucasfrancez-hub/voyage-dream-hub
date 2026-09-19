@@ -84,7 +84,7 @@ export async function iniciarBuscaServicos(
     resultado: null,
     erro: null,
   };
-  await gravar(searchId, clientId, bloco);
+  await gravar(searchId, clientId, bloco, true);
 
   const t0 = Date.now();
   void (async () => {
