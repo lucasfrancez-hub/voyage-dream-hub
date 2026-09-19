@@ -156,6 +156,46 @@ export const Route = createFileRoute('/api/public/asaas-webhook')({
           console.error('[asaas-webhook] passaporte error', (e as Error).message)
         }
 
+        // ----- Carteira VIA AIR (cobranças criadas pela API interna) -----
+        // Ciclo próprio, separado do pedido de voo/pacote: aqui só marcamos
+        // o cliente como pago e avisamos quem consome a API. A VIA AIR não
+        // decide nada sobre reserva ou fornecedor.
+        try {
+          const { lerCobrancaPorAsaas, lerCobranca } = await import('@/lib/wallet/store.server')
+          const wc =
+            (await lerCobrancaPorAsaas(paymentId)) ||
+            (payment?.externalReference
+              ? await lerCobranca(String(payment.externalReference))
+              : null)
+          if (wc) {
+            const { confirmarPagamentoCliente, encerrarCobranca } = await import(
+              '@/lib/wallet/charges.server'
+            )
+            if (['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'].includes(event)) {
+              const quando = payment?.paymentDate || payment?.confirmedDate || new Date().toISOString()
+              const res = await confirmarPagamentoCliente({
+                charge: wc,
+                paidAt: new Date(quando).toISOString(),
+                paidAmount: Number(payment?.value ?? wc.amount ?? 0),
+              })
+              return Response.json({ ok: true, event, wallet: res })
+            }
+            const encerra: Record<string, 'expired' | 'cancelled' | 'refunded'> = {
+              PAYMENT_OVERDUE: 'expired',
+              PAYMENT_DELETED: 'cancelled',
+              PAYMENT_REFUNDED: 'refunded',
+            }
+            const novo = encerra[event]
+            if (novo) {
+              await encerrarCobranca({ charge: wc, status: novo, motivo: `Gateway: ${event}` })
+            }
+            return Response.json({ ok: true, event, wallet: true })
+          }
+        } catch (e) {
+          console.error('[asaas-webhook] wallet error', (e as Error).message)
+        }
+
+
 
         let { data: cob } = await supabaseAdmin
           .from('pix_cobrancas')

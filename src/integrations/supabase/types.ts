@@ -12042,6 +12042,236 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_charges: {
+        Row: {
+          agency_ref: string | null
+          amount: number
+          api_client_id: string
+          asaas_customer_id: string | null
+          asaas_payment_id: string | null
+          booking_ref: string | null
+          callback_url: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          expires_at: string | null
+          external_reference: string
+          id: string
+          invoice_url: string | null
+          metadata: Json
+          order_ref: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          payer_document: string | null
+          payer_email: string | null
+          payer_name: string | null
+          qr_code: string | null
+          qr_code_image: string | null
+          refund_status: string | null
+          refunded_at: string | null
+          service_ref: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agency_ref?: string | null
+          amount: number
+          api_client_id: string
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string | null
+          booking_ref?: string | null
+          callback_url?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expires_at?: string | null
+          external_reference: string
+          id?: string
+          invoice_url?: string | null
+          metadata?: Json
+          order_ref?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          payer_document?: string | null
+          payer_email?: string | null
+          payer_name?: string | null
+          qr_code?: string | null
+          qr_code_image?: string | null
+          refund_status?: string | null
+          refunded_at?: string | null
+          service_ref?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_ref?: string | null
+          amount?: number
+          api_client_id?: string
+          asaas_customer_id?: string | null
+          asaas_payment_id?: string | null
+          booking_ref?: string | null
+          callback_url?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expires_at?: string | null
+          external_reference?: string
+          id?: string
+          invoice_url?: string | null
+          metadata?: Json
+          order_ref?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          payer_document?: string | null
+          payer_email?: string | null
+          payer_name?: string | null
+          qr_code?: string | null
+          qr_code_image?: string | null
+          refund_status?: string | null
+          refunded_at?: string | null
+          service_ref?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wallet_events: {
+        Row: {
+          charge_id: string | null
+          created_at: string
+          id: string
+          message: string | null
+          payload: Json | null
+          payout_id: string | null
+          status: string | null
+          type: string
+        }
+        Insert: {
+          charge_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          payload?: Json | null
+          payout_id?: string | null
+          status?: string | null
+          type: string
+        }
+        Update: {
+          charge_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          payload?: Json | null
+          payout_id?: string | null
+          status?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_events_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_events_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_payouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_payouts: {
+        Row: {
+          amount: number
+          api_client_id: string
+          asaas_transfer_id: string | null
+          bank_name: string | null
+          charge_id: string | null
+          created_at: string
+          currency: string
+          expires_at: string | null
+          external_reference: string | null
+          fail_code: string | null
+          fail_reason: string | null
+          id: string
+          idempotency_key: string
+          metadata: Json
+          order_ref: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          pix_copy_paste: string
+          raw: Json | null
+          receiver_document: string | null
+          receiver_name: string | null
+          status: string
+          transfer_row_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          api_client_id: string
+          asaas_transfer_id?: string | null
+          bank_name?: string | null
+          charge_id?: string | null
+          created_at?: string
+          currency?: string
+          expires_at?: string | null
+          external_reference?: string | null
+          fail_code?: string | null
+          fail_reason?: string | null
+          id?: string
+          idempotency_key: string
+          metadata?: Json
+          order_ref?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          pix_copy_paste: string
+          raw?: Json | null
+          receiver_document?: string | null
+          receiver_name?: string | null
+          status?: string
+          transfer_row_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          api_client_id?: string
+          asaas_transfer_id?: string | null
+          bank_name?: string | null
+          charge_id?: string | null
+          created_at?: string
+          currency?: string
+          expires_at?: string | null
+          external_reference?: string | null
+          fail_code?: string | null
+          fail_reason?: string | null
+          id?: string
+          idempotency_key?: string
+          metadata?: Json
+          order_ref?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          pix_copy_paste?: string
+          raw?: Json | null
+          receiver_document?: string | null
+          receiver_name?: string | null
+          status?: string
+          transfer_row_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_payouts_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
