@@ -252,6 +252,7 @@ import { Route as ApiPublicInternalV1MulticityGroupsGroupIdRouteImport } from '.
 import { Route as ApiPublicInternalV1OrdersOrderIdDocumentsRouteImport } from './routes/api/public/internal/v1/orders.$orderId.documents'
 import { Route as ApiPublicInternalV1OrdersOrderIdStatusRouteImport } from './routes/api/public/internal/v1/orders.$orderId.status'
 import { Route as ApiPublicInternalV1OrdersOrderIdTicketsRouteImport } from './routes/api/public/internal/v1/orders.$orderId.tickets'
+import { Route as ApiPublicInternalV1ServicesSearchSearchIdRouteImport } from './routes/api/public/internal/v1/services.search.$searchId'
 import { Route as ApiPublicInternalV1WalletChargesChargeIdRouteImport } from './routes/api/public/internal/v1/wallet.charges.$chargeId'
 import { Route as ApiPublicInternalV1WalletPayoutsPayoutIdRouteImport } from './routes/api/public/internal/v1/wallet.payouts.$payoutId'
 import { Route as ApiPublicInternalV1WalletPayoutsPixRouteImport } from './routes/api/public/internal/v1/wallet.payouts.pix'
@@ -1557,6 +1558,12 @@ const ApiPublicInternalV1OrdersOrderIdTicketsRoute =
     path: '/tickets',
     getParentRoute: () => ApiPublicInternalV1OrdersOrderIdRoute,
   } as any)
+const ApiPublicInternalV1ServicesSearchSearchIdRoute =
+  ApiPublicInternalV1ServicesSearchSearchIdRouteImport.update({
+    id: '/$searchId',
+    path: '/$searchId',
+    getParentRoute: () => ApiPublicInternalV1ServicesSearchRoute,
+  } as any)
 const ApiPublicInternalV1WalletChargesChargeIdRoute =
   ApiPublicInternalV1WalletChargesChargeIdRouteImport.update({
     id: '/$chargeId',
@@ -1852,7 +1859,7 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/v1/packages/search': typeof ApiPublicInternalV1PackagesSearchRoute
   '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
   '/api/public/internal/v1/quotes/flight': typeof ApiPublicInternalV1QuotesFlightRoute
-  '/api/public/internal/v1/services/search': typeof ApiPublicInternalV1ServicesSearchRoute
+  '/api/public/internal/v1/services/search': typeof ApiPublicInternalV1ServicesSearchRouteWithChildren
   '/api/public/internal/v1/services/select': typeof ApiPublicInternalV1ServicesSelectRoute
   '/api/public/internal/v1/services/selection': typeof ApiPublicInternalV1ServicesSelectionRoute
   '/api/public/internal/v1/wallet/charges': typeof ApiPublicInternalV1WalletChargesRouteWithChildren
@@ -1868,6 +1875,7 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/v1/orders/$orderId/documents': typeof ApiPublicInternalV1OrdersOrderIdDocumentsRoute
   '/api/public/internal/v1/orders/$orderId/status': typeof ApiPublicInternalV1OrdersOrderIdStatusRoute
   '/api/public/internal/v1/orders/$orderId/tickets': typeof ApiPublicInternalV1OrdersOrderIdTicketsRoute
+  '/api/public/internal/v1/services/search/$searchId': typeof ApiPublicInternalV1ServicesSearchSearchIdRoute
   '/api/public/internal/v1/wallet/charges/$chargeId': typeof ApiPublicInternalV1WalletChargesChargeIdRouteWithChildren
   '/api/public/internal/v1/wallet/payouts/$payoutId': typeof ApiPublicInternalV1WalletPayoutsPayoutIdRoute
   '/api/public/internal/v1/wallet/payouts/pix': typeof ApiPublicInternalV1WalletPayoutsPixRoute
@@ -2105,7 +2113,7 @@ export interface FileRoutesByTo {
   '/api/public/internal/v1/packages/search': typeof ApiPublicInternalV1PackagesSearchRoute
   '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
   '/api/public/internal/v1/quotes/flight': typeof ApiPublicInternalV1QuotesFlightRoute
-  '/api/public/internal/v1/services/search': typeof ApiPublicInternalV1ServicesSearchRoute
+  '/api/public/internal/v1/services/search': typeof ApiPublicInternalV1ServicesSearchRouteWithChildren
   '/api/public/internal/v1/services/select': typeof ApiPublicInternalV1ServicesSelectRoute
   '/api/public/internal/v1/services/selection': typeof ApiPublicInternalV1ServicesSelectionRoute
   '/api/public/internal/v1/wallet/charges': typeof ApiPublicInternalV1WalletChargesRouteWithChildren
@@ -2121,6 +2129,7 @@ export interface FileRoutesByTo {
   '/api/public/internal/v1/orders/$orderId/documents': typeof ApiPublicInternalV1OrdersOrderIdDocumentsRoute
   '/api/public/internal/v1/orders/$orderId/status': typeof ApiPublicInternalV1OrdersOrderIdStatusRoute
   '/api/public/internal/v1/orders/$orderId/tickets': typeof ApiPublicInternalV1OrdersOrderIdTicketsRoute
+  '/api/public/internal/v1/services/search/$searchId': typeof ApiPublicInternalV1ServicesSearchSearchIdRoute
   '/api/public/internal/v1/wallet/charges/$chargeId': typeof ApiPublicInternalV1WalletChargesChargeIdRouteWithChildren
   '/api/public/internal/v1/wallet/payouts/$payoutId': typeof ApiPublicInternalV1WalletPayoutsPayoutIdRoute
   '/api/public/internal/v1/wallet/payouts/pix': typeof ApiPublicInternalV1WalletPayoutsPixRoute
@@ -2362,7 +2371,7 @@ export interface FileRoutesById {
   '/api/public/internal/v1/packages/search': typeof ApiPublicInternalV1PackagesSearchRoute
   '/api/public/internal/v1/payments/$paymentId': typeof ApiPublicInternalV1PaymentsPaymentIdRoute
   '/api/public/internal/v1/quotes/flight': typeof ApiPublicInternalV1QuotesFlightRoute
-  '/api/public/internal/v1/services/search': typeof ApiPublicInternalV1ServicesSearchRoute
+  '/api/public/internal/v1/services/search': typeof ApiPublicInternalV1ServicesSearchRouteWithChildren
   '/api/public/internal/v1/services/select': typeof ApiPublicInternalV1ServicesSelectRoute
   '/api/public/internal/v1/services/selection': typeof ApiPublicInternalV1ServicesSelectionRoute
   '/api/public/internal/v1/wallet/charges': typeof ApiPublicInternalV1WalletChargesRouteWithChildren
@@ -2378,6 +2387,7 @@ export interface FileRoutesById {
   '/api/public/internal/v1/orders/$orderId/documents': typeof ApiPublicInternalV1OrdersOrderIdDocumentsRoute
   '/api/public/internal/v1/orders/$orderId/status': typeof ApiPublicInternalV1OrdersOrderIdStatusRoute
   '/api/public/internal/v1/orders/$orderId/tickets': typeof ApiPublicInternalV1OrdersOrderIdTicketsRoute
+  '/api/public/internal/v1/services/search/$searchId': typeof ApiPublicInternalV1ServicesSearchSearchIdRoute
   '/api/public/internal/v1/wallet/charges/$chargeId': typeof ApiPublicInternalV1WalletChargesChargeIdRouteWithChildren
   '/api/public/internal/v1/wallet/payouts/$payoutId': typeof ApiPublicInternalV1WalletPayoutsPayoutIdRoute
   '/api/public/internal/v1/wallet/payouts/pix': typeof ApiPublicInternalV1WalletPayoutsPixRoute
@@ -2636,6 +2646,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/orders/$orderId/documents'
     | '/api/public/internal/v1/orders/$orderId/status'
     | '/api/public/internal/v1/orders/$orderId/tickets'
+    | '/api/public/internal/v1/services/search/$searchId'
     | '/api/public/internal/v1/wallet/charges/$chargeId'
     | '/api/public/internal/v1/wallet/payouts/$payoutId'
     | '/api/public/internal/v1/wallet/payouts/pix'
@@ -2889,6 +2900,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/orders/$orderId/documents'
     | '/api/public/internal/v1/orders/$orderId/status'
     | '/api/public/internal/v1/orders/$orderId/tickets'
+    | '/api/public/internal/v1/services/search/$searchId'
     | '/api/public/internal/v1/wallet/charges/$chargeId'
     | '/api/public/internal/v1/wallet/payouts/$payoutId'
     | '/api/public/internal/v1/wallet/payouts/pix'
@@ -3145,6 +3157,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/orders/$orderId/documents'
     | '/api/public/internal/v1/orders/$orderId/status'
     | '/api/public/internal/v1/orders/$orderId/tickets'
+    | '/api/public/internal/v1/services/search/$searchId'
     | '/api/public/internal/v1/wallet/charges/$chargeId'
     | '/api/public/internal/v1/wallet/payouts/$payoutId'
     | '/api/public/internal/v1/wallet/payouts/pix'
@@ -3283,7 +3296,7 @@ export interface RootRouteChildren {
   ApiPublicInternalV1PackagesSearchRoute: typeof ApiPublicInternalV1PackagesSearchRoute
   ApiPublicInternalV1PaymentsPaymentIdRoute: typeof ApiPublicInternalV1PaymentsPaymentIdRoute
   ApiPublicInternalV1QuotesFlightRoute: typeof ApiPublicInternalV1QuotesFlightRoute
-  ApiPublicInternalV1ServicesSearchRoute: typeof ApiPublicInternalV1ServicesSearchRoute
+  ApiPublicInternalV1ServicesSearchRoute: typeof ApiPublicInternalV1ServicesSearchRouteWithChildren
   ApiPublicInternalV1ServicesSelectRoute: typeof ApiPublicInternalV1ServicesSelectRoute
   ApiPublicInternalV1ServicesSelectionRoute: typeof ApiPublicInternalV1ServicesSelectionRoute
   ApiPublicInternalV1WalletChargesRoute: typeof ApiPublicInternalV1WalletChargesRouteWithChildren
@@ -4998,6 +5011,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInternalV1OrdersOrderIdTicketsRouteImport
       parentRoute: typeof ApiPublicInternalV1OrdersOrderIdRoute
     }
+    '/api/public/internal/v1/services/search/$searchId': {
+      id: '/api/public/internal/v1/services/search/$searchId'
+      path: '/$searchId'
+      fullPath: '/api/public/internal/v1/services/search/$searchId'
+      preLoaderRoute: typeof ApiPublicInternalV1ServicesSearchSearchIdRouteImport
+      parentRoute: typeof ApiPublicInternalV1ServicesSearchRoute
+    }
     '/api/public/internal/v1/wallet/charges/$chargeId': {
       id: '/api/public/internal/v1/wallet/charges/$chargeId'
       path: '/$chargeId'
@@ -5429,6 +5449,21 @@ const ApiPublicInternalV1OrdersOrderIdRouteWithChildren =
     ApiPublicInternalV1OrdersOrderIdRouteChildren,
   )
 
+interface ApiPublicInternalV1ServicesSearchRouteChildren {
+  ApiPublicInternalV1ServicesSearchSearchIdRoute: typeof ApiPublicInternalV1ServicesSearchSearchIdRoute
+}
+
+const ApiPublicInternalV1ServicesSearchRouteChildren: ApiPublicInternalV1ServicesSearchRouteChildren =
+  {
+    ApiPublicInternalV1ServicesSearchSearchIdRoute:
+      ApiPublicInternalV1ServicesSearchSearchIdRoute,
+  }
+
+const ApiPublicInternalV1ServicesSearchRouteWithChildren =
+  ApiPublicInternalV1ServicesSearchRoute._addFileChildren(
+    ApiPublicInternalV1ServicesSearchRouteChildren,
+  )
+
 interface ApiPublicInternalV1WalletChargesChargeIdRouteChildren {
   ApiPublicInternalV1WalletChargesChargeIdEventsRoute: typeof ApiPublicInternalV1WalletChargesChargeIdEventsRoute
   ApiPublicInternalV1WalletChargesChargeIdRefundRoute: typeof ApiPublicInternalV1WalletChargesChargeIdRefundRoute
@@ -5622,7 +5657,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicInternalV1PaymentsPaymentIdRoute,
   ApiPublicInternalV1QuotesFlightRoute: ApiPublicInternalV1QuotesFlightRoute,
   ApiPublicInternalV1ServicesSearchRoute:
-    ApiPublicInternalV1ServicesSearchRoute,
+    ApiPublicInternalV1ServicesSearchRouteWithChildren,
   ApiPublicInternalV1ServicesSelectRoute:
     ApiPublicInternalV1ServicesSelectRoute,
   ApiPublicInternalV1ServicesSelectionRoute:

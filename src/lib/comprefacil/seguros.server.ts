@@ -179,7 +179,10 @@ export async function buscarSegurosCF(p: {
   destinoIata?: string | null;
   /** true quando o destino é fora do Brasil (muda o plano ofertado) */
   internacional?: boolean;
+  /** instrumentação opcional desta execução */
+  metricas?: import("./servicos.server").MetricasFornecedor;
 }): Promise<ServicoDisponivel[]> {
+  const met = p.metricas;
   const ses = await sessaoCompreFacil();
   const base = COMPREFACIL_BASES.servico;
   const fim = p.dataFim || p.data;
@@ -209,36 +212,60 @@ export async function buscarSegurosCF(p: {
   });
 
 
-  const inicio = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(null) });
-  if (!inicio.ok) return [];
+  const chamar = async (guidChamada: string | null) => {
+    const t0 = Date.now();
+    if (met) met.chamadas++;
+    const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guidChamada) });
+    if (met) {
+      met.ms_rede += Date.now() - t0;
+      try {
+        met.bytes += JSON.stringify(r.dados ?? null).length;
+      } catch {
+        /* ignora */
+      }
+    }
+    return r;
+  };
+
+  const inicio = await chamar(null);
+  if (!inicio.ok) {
+    if (met) met.desfecho = "erro";
+    return [];
+  }
   let dados: any = inicio.dados;
   const guid = (dados?.MetaData?.Guid as string | undefined) ?? null;
 
   if (guid) {
-    let vazioSeguido = 0;
+    // Escada dirigida pelo estado das seguradoras: `ativas === 0` encerra na
+    // hora — com resultados (depois de uma confirmação de estabilidade) ou sem
+    // resultados (nada a esperar). Sem varrer 14 voltas fixas de 2 s.
     let anterior = -1;
     let estavel = 0;
-    for (let i = 0; i < 14; i++) {
-      await espera(2000);
-      const r = await chamarCompreFacil(rota, { base, method: "POST", body: corpo(guid) });
+    let intervalo = 800;
+    const limite = Date.now() + 30_000;
+    while (Date.now() < limite) {
+      const t0 = Date.now();
+      await espera(intervalo);
+      if (met) met.ms_espera += Date.now() - t0;
+      const r = await chamar(guid);
       const novos = ((r.dados as any)?.Items ?? (r.dados as any)?.Itens ?? []) as any[];
       const atuais = (dados?.Items ?? dados?.Itens ?? []) as any[];
       if (novos.length >= atuais.length) dados = r.dados;
-      const meta = (r.dados as any)?.MetaData;
-      // só encerra quando as seguradoras terminaram E a contagem parou de crescer
-      if (novos.length > 0 && ativas(meta) === 0) {
+      const terminou = ativas((r.dados as any)?.MetaData) === 0;
+      if (terminou && novos.length === 0) {
+        if (met) met.desfecho = "concluido_sem_resultados";
+        break; // concluído sem resultados: encerra imediatamente
+      }
+      if (terminou && novos.length > 0) {
         estavel = novos.length === anterior ? estavel + 1 : 0;
-        if (estavel >= 1) break;
+        if (estavel >= 1) {
+          if (met) met.desfecho = "concluido_com_resultados";
+          break;
+        }
       }
       anterior = novos.length;
-      if (ativas(meta) === 0 && novos.length === 0) {
-        vazioSeguido++;
-        if (vazioSeguido >= 3) break;
-      } else {
-        vazioSeguido = 0;
-      }
+      intervalo = Math.min(2000, Math.round(intervalo * 1.3));
     }
-
   }
 
   const itens: any[] = (dados?.Items ?? dados?.Itens ?? dados?.Seguros ?? []) as any[];
