@@ -807,6 +807,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
     pathname.startsWith("/admin/stripe") ||
     pathname.startsWith("/admin/api-tokens") ||
     pathname.startsWith("/admin/api-servicos") ||
+    pathname.startsWith("/admin/api-carros") ||
     pathname.startsWith("/admin/api-carteira") ||
     (showUsuarios && pathname.startsWith("/admin/usuarios"));
 
@@ -833,6 +834,7 @@ function SegurancaNav({ pathname, showUsuarios }: { pathname: string; showUsuari
             { to: "/admin/stripe", label: "Stripe — Testes 3DS", icon: CreditCard },
             { to: "/admin/api-tokens", label: "API — Tokens", icon: ShieldCheck },
             { to: "/admin/api-servicos", label: "API — Serviços Compre Fácil", icon: KeyRound },
+            { to: "/admin/api-carros", label: "API — Aluguel de Carro", icon: KeyRound },
             { to: "/admin/api-carteira", label: "API — Carteira (pagamentos)", icon: KeyRound },
 
           ],
