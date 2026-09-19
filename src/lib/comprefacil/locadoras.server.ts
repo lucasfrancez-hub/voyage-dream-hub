@@ -127,12 +127,12 @@ export function nomeLocadora(
 ): string | null {
   if (webServiceId) {
     const porId = catalogo.porId.get(Number(webServiceId));
-    if (porId) return porId.nome;
+    if (porId) return nomeExibicaoLocadora(porId);
   }
   const s = (sigla ?? "").trim().toUpperCase();
   if (s) {
     const porSigla = catalogo.porSigla.get(s);
-    if (porSigla) return porSigla.nome;
+    if (porSigla) return nomeExibicaoLocadora(porSigla);
   }
   return null;
 }
