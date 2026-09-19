@@ -286,8 +286,13 @@ export async function buscarServicosDestinoCF(p: {
     return r.dados ?? null;
   };
 
+  // Sonda leve: o estado da busca (`BuscasAtivas`, `TotalItens`) vem no
+  // MetaData de qualquer resposta, então perguntamos com 1 item por página.
+  // Assim o catálogo pesado é baixado UMA única vez, no fim.
+  const rotaSonda = `/api/Servico/busca?Pagina=1&ItensPorPagina=1`;
+
   let guidAtual: string | null = null;
-  const primeira = await chamar(rota(1), 60_000);
+  const primeira = await chamar(rotaSonda, 60_000);
   const guid = (primeira as any)?.MetaData?.Guid as string | undefined;
   if (!guid) {
     met.desfecho = "erro";
@@ -296,13 +301,10 @@ export async function buscarServicosDestinoCF(p: {
   guidAtual = guid;
 
   // Escada de espera dirigida pelo ESTADO DO FORNECEDOR, não pelo relógio.
-  // `BuscasAtivas = 0` significa que a operadora terminou: se veio lote, é
-  // "concluído com resultados"; se veio vazio, é "concluído sem resultados" e
-  // encerramos na hora (destino sem serviços NÃO é timeout). Uma consulta por
-  // vez: nada de baixar o mesmo catálogo em paralelo.
-  let dados: any = primeira;
-  let itensVistos = ((primeira?.Items ?? []) as any[]).length;
-  let concluido = buscasAtivas((primeira as any)?.MetaData) === 0;
+  // `BuscasAtivas = 0` significa que a operadora terminou: encerramos na hora,
+  // com ou sem resultados (destino sem serviços NÃO é timeout).
+  let meta: any = (primeira as any)?.MetaData;
+  let concluido = buscasAtivas(meta) === 0;
   const limite = Date.now() + 60_000; // teto de segurança
   let intervalo = 700;
 
@@ -312,56 +314,43 @@ export async function buscarServicosDestinoCF(p: {
     met.ms_espera += Date.now() - t0;
     if (Date.now() >= limite) break;
 
-    const r = await chamar(rota(1), 20_000);
-    if (!r) {
-      // chamada travada/timeout: a operadora ainda pode estar processando
-      intervalo = Math.min(3000, Math.round(intervalo * 1.4));
-      continue;
-    }
-    const lote = ((r?.Items ?? []) as any[]);
-    if (lote.length >= itensVistos) {
-      dados = r;
-      itensVistos = lote.length;
-    }
-    if (buscasAtivas((r as any)?.MetaData) === 0) {
-      concluido = true;
-      break;
+    const r = await chamar(rotaSonda, 20_000);
+    if (r) {
+      meta = (r as any)?.MetaData ?? meta;
+      if (buscasAtivas(meta) === 0) {
+        concluido = true;
+        break;
+      }
     }
     intervalo = Math.min(3000, Math.round(intervalo * 1.4));
   }
 
-  const itens: any[] = [...((dados?.Items ?? []) as any[])];
-  met.desfecho = concluido
-    ? itens.length
-      ? "concluido_com_resultados"
-      : "concluido_sem_resultados"
-    : "teto_de_tempo";
+  const totalItens = Number(meta?.TotalItens ?? 0);
+  const itens: any[] = [];
 
-  // Concluído sem nada: não há o que paginar, encerra imediatamente.
-  const totalItens = Number(dados?.MetaData?.TotalItens ?? 0);
-  if (itens.length && totalItens > itens.length) {
-    // Só vale pedir "tudo em uma página" se for um pedido DIFERENTE do que o
-    // polling já baixou — senão seria rebaixar o mesmo payload de graça.
-    const porPaginaCompleta = Math.min(300, totalItens);
-    const lote =
-      porPaginaCompleta > porPagina
-        ? (((await chamar(
-            `/api/Servico/busca?Pagina=1&ItensPorPagina=${porPaginaCompleta}`,
-            15_000,
-          )) as any)?.Items ?? [])
-        : [];
-    if ((lote as any[]).length > itens.length) {
-      itens.splice(0, itens.length, ...(lote as any[]));
-    } else {
-      // Plano B: páginas restantes em paralelo (cada página é conteúdo novo).
+  // Concluído sem nada: não há catálogo para baixar, encerra imediatamente.
+  if (totalItens > 0) {
+    const cheia = await chamar(rota(1), 30_000);
+    itens.push(...(((cheia as any)?.Items ?? []) as any[]));
+    const total = Number((cheia as any)?.MetaData?.TotalItens ?? totalItens);
+    if (total > itens.length && itens.length) {
+      // Páginas restantes em paralelo (cada página é conteúdo novo).
       const paginas = Array.from(
-        { length: Math.min(3, Math.max(0, Math.ceil(totalItens / porPagina) - 1)) },
+        { length: Math.min(3, Math.max(0, Math.ceil(total / porPagina) - 1)) },
         (_, k) => k + 2,
       );
       const respostas = await Promise.all(paginas.map((pagina) => chamar(rota(pagina), 12_000)));
       for (const r of respostas) itens.push(...(((r as any)?.Items ?? []) as any[]));
     }
   }
+
+  met.desfecho = concluido
+    ? itens.length
+      ? "concluido_com_resultados"
+      : "concluido_sem_resultados"
+    : itens.length
+      ? "concluido_com_resultados"
+      : "teto_de_tempo";
 
 
   const tParse = Date.now();
