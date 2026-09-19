@@ -74,7 +74,12 @@ export type CarroNormalizado = {
   fornecedor: "comprefacil";
   tipo: "carro";
   carro_id: string;
+  /** nome comercial quando o catálogo da operadora resolve; senão o código */
   locadora: string | null;
+  /** sigla crua da operadora (ex.: "FL", "MOV") */
+  locadora_codigo: string | null;
+  /** nome oficial do catálogo da operadora; null quando não resolvido */
+  locadora_nome: string | null;
   categoria: string | null;
   grupo: string | null;
   codigo_acriss: string | null;
@@ -136,7 +141,7 @@ export type CarsSearchResult = {
   busca_id: string;
   criterio: CarsCriterio;
   total: number;
-  locadoras: string[];
+  locadoras: { codigo: string; nome: string | null }[];
   carros: CarroNormalizado[];
   mensagem: string;
 };
@@ -179,14 +184,23 @@ function protecoes(c: CarroCF): ProtecaoNormalizada[] {
   }));
 }
 
-function normalizar(c: CarroCF, criterio: CarsCriterio, guid: string): CarroInterno {
+function normalizar(
+  c: CarroCF,
+  criterio: CarsCriterio,
+  guid: string,
+  nomeDaLocadora: (c: CarroCF) => string | null,
+): CarroInterno {
   const valorTotal = c.ValorTotalListagem ?? c.ValorListagem ?? c.ValorVenda ?? null;
   const valorDiaria = c.ValorVenda ?? c.ValorDiarias ?? null;
+  const locadoraCodigo = c.Fornecedor ?? null;
+  const locadoraNome = nomeDaLocadora(c);
   return {
     fornecedor: "comprefacil",
     tipo: "carro",
     carro_id: novoId("car"),
-    locadora: c.Fornecedor ?? null,
+    locadora: locadoraNome ?? locadoraCodigo,
+    locadora_codigo: locadoraCodigo,
+    locadora_nome: locadoraNome,
     categoria: c.Categoria ?? null,
     grupo: c.ModeloCodigo ?? null,
     codigo_acriss: c.Codigo ?? null,
@@ -358,9 +372,22 @@ export async function buscarCarros(
     itensPorPagina: input.limite ?? 50,
   });
 
-  const lista = bruto.itens.map((c) => normalizar(c, criterio, bruto.guid));
+  // Nome comercial vem do cadastro oficial da operadora (nunca inventado aqui).
+  const { catalogoLocadorasCF, nomeLocadora } = await import(
+    "@/lib/comprefacil/locadoras.server"
+  );
+  const catalogo = await catalogoLocadorasCF();
+  const lista = bruto.itens.map((c) =>
+    normalizar(c, criterio, bruto.guid, (item) =>
+      nomeLocadora(catalogo, item.WebServiceId, item.Fornecedor),
+    ),
+  );
   const locadoras = Array.from(
-    new Set(lista.map((c) => c.locadora).filter((x): x is string => Boolean(x))),
+    new Map(
+      lista
+        .filter((c) => c.locadora_codigo)
+        .map((c) => [c.locadora_codigo as string, { codigo: c.locadora_codigo as string, nome: c.locadora_nome }]),
+    ).values(),
   );
 
   const buscaId = novoId("cars");
