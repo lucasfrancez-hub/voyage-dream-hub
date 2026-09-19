@@ -372,9 +372,22 @@ export async function buscarCarros(
     itensPorPagina: input.limite ?? 50,
   });
 
-  const lista = bruto.itens.map((c) => normalizar(c, criterio, bruto.guid));
+  // Nome comercial vem do cadastro oficial da operadora (nunca inventado aqui).
+  const { catalogoLocadorasCF, nomeLocadora } = await import(
+    "@/lib/comprefacil/locadoras.server"
+  );
+  const catalogo = await catalogoLocadorasCF();
+  const lista = bruto.itens.map((c) =>
+    normalizar(c, criterio, bruto.guid, (item) =>
+      nomeLocadora(catalogo, item.WebServiceId, item.Fornecedor),
+    ),
+  );
   const locadoras = Array.from(
-    new Set(lista.map((c) => c.locadora).filter((x): x is string => Boolean(x))),
+    new Map(
+      lista
+        .filter((c) => c.locadora_codigo)
+        .map((c) => [c.locadora_codigo as string, { codigo: c.locadora_codigo as string, nome: c.locadora_nome }]),
+    ).values(),
   );
 
   const buscaId = novoId("cars");
