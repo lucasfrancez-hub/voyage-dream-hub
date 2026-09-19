@@ -237,6 +237,7 @@ import { Route as ApiPublicInternalV1QuotesFlightRouteImport } from './routes/ap
 import { Route as ApiPublicInternalV1ServicesSearchRouteImport } from './routes/api/public/internal/v1/services.search'
 import { Route as ApiPublicInternalV1ServicesSelectRouteImport } from './routes/api/public/internal/v1/services.select'
 import { Route as ApiPublicInternalV1ServicesSelectionRouteImport } from './routes/api/public/internal/v1/services.selection'
+import { Route as ApiPublicInternalV1WalletChargesRouteImport } from './routes/api/public/internal/v1/wallet.charges'
 import { Route as ApiPublicInternalV1WebhooksDispatchRouteImport } from './routes/api/public/internal/v1/webhooks.dispatch'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.installments'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdOrderRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.order'
@@ -249,12 +250,15 @@ import { Route as ApiPublicInternalV1MulticityGroupsGroupIdRouteImport } from '.
 import { Route as ApiPublicInternalV1OrdersOrderIdDocumentsRouteImport } from './routes/api/public/internal/v1/orders.$orderId.documents'
 import { Route as ApiPublicInternalV1OrdersOrderIdStatusRouteImport } from './routes/api/public/internal/v1/orders.$orderId.status'
 import { Route as ApiPublicInternalV1OrdersOrderIdTicketsRouteImport } from './routes/api/public/internal/v1/orders.$orderId.tickets'
+import { Route as ApiPublicInternalV1WalletChargesChargeIdRouteImport } from './routes/api/public/internal/v1/wallet.charges.$chargeId'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.cancel'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.card'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.card-token'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId.payments.pix'
 import { Route as ApiPublicInternalV1MulticityGroupsGroupIdPassengersRouteImport } from './routes/api/public/internal/v1/multicity.groups.$groupId.passengers'
 import { Route as ApiPublicInternalV1MulticityGroupsGroupIdRevalidateRouteImport } from './routes/api/public/internal/v1/multicity.groups.$groupId.revalidate'
+import { Route as ApiPublicInternalV1WalletChargesChargeIdEventsRouteImport } from './routes/api/public/internal/v1/wallet.charges.$chargeId.events'
+import { Route as ApiPublicInternalV1WalletChargesChargeIdRefundRouteImport } from './routes/api/public/internal/v1/wallet.charges.$chargeId.refund'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -1461,6 +1465,12 @@ const ApiPublicInternalV1ServicesSelectionRoute =
     path: '/api/public/internal/v1/services/selection',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicInternalV1WalletChargesRoute =
+  ApiPublicInternalV1WalletChargesRouteImport.update({
+    id: '/api/public/internal/v1/wallet/charges',
+    path: '/api/public/internal/v1/wallet/charges',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInternalV1WebhooksDispatchRoute =
   ApiPublicInternalV1WebhooksDispatchRouteImport.update({
     id: '/api/public/internal/v1/webhooks/dispatch',
@@ -1533,6 +1543,12 @@ const ApiPublicInternalV1OrdersOrderIdTicketsRoute =
     path: '/tickets',
     getParentRoute: () => ApiPublicInternalV1OrdersOrderIdRoute,
   } as any)
+const ApiPublicInternalV1WalletChargesChargeIdRoute =
+  ApiPublicInternalV1WalletChargesChargeIdRouteImport.update({
+    id: '/$chargeId',
+    path: '/$chargeId',
+    getParentRoute: () => ApiPublicInternalV1WalletChargesRoute,
+  } as any)
 const ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute =
   ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRouteImport.update({
     id: '/payments/cancel',
@@ -1568,6 +1584,18 @@ const ApiPublicInternalV1MulticityGroupsGroupIdRevalidateRoute =
     id: '/revalidate',
     path: '/revalidate',
     getParentRoute: () => ApiPublicInternalV1MulticityGroupsGroupIdRoute,
+  } as any)
+const ApiPublicInternalV1WalletChargesChargeIdEventsRoute =
+  ApiPublicInternalV1WalletChargesChargeIdEventsRouteImport.update({
+    id: '/events',
+    path: '/events',
+    getParentRoute: () => ApiPublicInternalV1WalletChargesChargeIdRoute,
+  } as any)
+const ApiPublicInternalV1WalletChargesChargeIdRefundRoute =
+  ApiPublicInternalV1WalletChargesChargeIdRefundRouteImport.update({
+    id: '/refund',
+    path: '/refund',
+    getParentRoute: () => ApiPublicInternalV1WalletChargesChargeIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -1799,6 +1827,7 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/v1/services/search': typeof ApiPublicInternalV1ServicesSearchRoute
   '/api/public/internal/v1/services/select': typeof ApiPublicInternalV1ServicesSelectRoute
   '/api/public/internal/v1/services/selection': typeof ApiPublicInternalV1ServicesSelectionRoute
+  '/api/public/internal/v1/wallet/charges': typeof ApiPublicInternalV1WalletChargesRouteWithChildren
   '/api/public/internal/v1/webhooks/dispatch': typeof ApiPublicInternalV1WebhooksDispatchRoute
   '/api/public/internal/v1/checkouts/$checkoutId/installments': typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute
   '/api/public/internal/v1/checkouts/$checkoutId/order': typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute
@@ -1811,12 +1840,15 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/v1/orders/$orderId/documents': typeof ApiPublicInternalV1OrdersOrderIdDocumentsRoute
   '/api/public/internal/v1/orders/$orderId/status': typeof ApiPublicInternalV1OrdersOrderIdStatusRoute
   '/api/public/internal/v1/orders/$orderId/tickets': typeof ApiPublicInternalV1OrdersOrderIdTicketsRoute
+  '/api/public/internal/v1/wallet/charges/$chargeId': typeof ApiPublicInternalV1WalletChargesChargeIdRouteWithChildren
   '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/pix': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute
   '/api/public/internal/v1/multicity/groups/$groupId/passengers': typeof ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute
   '/api/public/internal/v1/multicity/groups/$groupId/revalidate': typeof ApiPublicInternalV1MulticityGroupsGroupIdRevalidateRoute
+  '/api/public/internal/v1/wallet/charges/$chargeId/events': typeof ApiPublicInternalV1WalletChargesChargeIdEventsRoute
+  '/api/public/internal/v1/wallet/charges/$chargeId/refund': typeof ApiPublicInternalV1WalletChargesChargeIdRefundRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -2044,6 +2076,7 @@ export interface FileRoutesByTo {
   '/api/public/internal/v1/services/search': typeof ApiPublicInternalV1ServicesSearchRoute
   '/api/public/internal/v1/services/select': typeof ApiPublicInternalV1ServicesSelectRoute
   '/api/public/internal/v1/services/selection': typeof ApiPublicInternalV1ServicesSelectionRoute
+  '/api/public/internal/v1/wallet/charges': typeof ApiPublicInternalV1WalletChargesRouteWithChildren
   '/api/public/internal/v1/webhooks/dispatch': typeof ApiPublicInternalV1WebhooksDispatchRoute
   '/api/public/internal/v1/checkouts/$checkoutId/installments': typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute
   '/api/public/internal/v1/checkouts/$checkoutId/order': typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute
@@ -2056,12 +2089,15 @@ export interface FileRoutesByTo {
   '/api/public/internal/v1/orders/$orderId/documents': typeof ApiPublicInternalV1OrdersOrderIdDocumentsRoute
   '/api/public/internal/v1/orders/$orderId/status': typeof ApiPublicInternalV1OrdersOrderIdStatusRoute
   '/api/public/internal/v1/orders/$orderId/tickets': typeof ApiPublicInternalV1OrdersOrderIdTicketsRoute
+  '/api/public/internal/v1/wallet/charges/$chargeId': typeof ApiPublicInternalV1WalletChargesChargeIdRouteWithChildren
   '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/pix': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute
   '/api/public/internal/v1/multicity/groups/$groupId/passengers': typeof ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute
   '/api/public/internal/v1/multicity/groups/$groupId/revalidate': typeof ApiPublicInternalV1MulticityGroupsGroupIdRevalidateRoute
+  '/api/public/internal/v1/wallet/charges/$chargeId/events': typeof ApiPublicInternalV1WalletChargesChargeIdEventsRoute
+  '/api/public/internal/v1/wallet/charges/$chargeId/refund': typeof ApiPublicInternalV1WalletChargesChargeIdRefundRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -2293,6 +2329,7 @@ export interface FileRoutesById {
   '/api/public/internal/v1/services/search': typeof ApiPublicInternalV1ServicesSearchRoute
   '/api/public/internal/v1/services/select': typeof ApiPublicInternalV1ServicesSelectRoute
   '/api/public/internal/v1/services/selection': typeof ApiPublicInternalV1ServicesSelectionRoute
+  '/api/public/internal/v1/wallet/charges': typeof ApiPublicInternalV1WalletChargesRouteWithChildren
   '/api/public/internal/v1/webhooks/dispatch': typeof ApiPublicInternalV1WebhooksDispatchRoute
   '/api/public/internal/v1/checkouts/$checkoutId/installments': typeof ApiPublicInternalV1CheckoutsCheckoutIdInstallmentsRoute
   '/api/public/internal/v1/checkouts/$checkoutId/order': typeof ApiPublicInternalV1CheckoutsCheckoutIdOrderRoute
@@ -2305,12 +2342,15 @@ export interface FileRoutesById {
   '/api/public/internal/v1/orders/$orderId/documents': typeof ApiPublicInternalV1OrdersOrderIdDocumentsRoute
   '/api/public/internal/v1/orders/$orderId/status': typeof ApiPublicInternalV1OrdersOrderIdStatusRoute
   '/api/public/internal/v1/orders/$orderId/tickets': typeof ApiPublicInternalV1OrdersOrderIdTicketsRoute
+  '/api/public/internal/v1/wallet/charges/$chargeId': typeof ApiPublicInternalV1WalletChargesChargeIdRouteWithChildren
   '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCancelRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsCardTokenRoute
   '/api/public/internal/v1/checkouts/$checkoutId/payments/pix': typeof ApiPublicInternalV1CheckoutsCheckoutIdPaymentsPixRoute
   '/api/public/internal/v1/multicity/groups/$groupId/passengers': typeof ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute
   '/api/public/internal/v1/multicity/groups/$groupId/revalidate': typeof ApiPublicInternalV1MulticityGroupsGroupIdRevalidateRoute
+  '/api/public/internal/v1/wallet/charges/$chargeId/events': typeof ApiPublicInternalV1WalletChargesChargeIdEventsRoute
+  '/api/public/internal/v1/wallet/charges/$chargeId/refund': typeof ApiPublicInternalV1WalletChargesChargeIdRefundRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -2543,6 +2583,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/services/search'
     | '/api/public/internal/v1/services/select'
     | '/api/public/internal/v1/services/selection'
+    | '/api/public/internal/v1/wallet/charges'
     | '/api/public/internal/v1/webhooks/dispatch'
     | '/api/public/internal/v1/checkouts/$checkoutId/installments'
     | '/api/public/internal/v1/checkouts/$checkoutId/order'
@@ -2555,12 +2596,15 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/orders/$orderId/documents'
     | '/api/public/internal/v1/orders/$orderId/status'
     | '/api/public/internal/v1/orders/$orderId/tickets'
+    | '/api/public/internal/v1/wallet/charges/$chargeId'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
     | '/api/public/internal/v1/multicity/groups/$groupId/passengers'
     | '/api/public/internal/v1/multicity/groups/$groupId/revalidate'
+    | '/api/public/internal/v1/wallet/charges/$chargeId/events'
+    | '/api/public/internal/v1/wallet/charges/$chargeId/refund'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -2788,6 +2832,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/services/search'
     | '/api/public/internal/v1/services/select'
     | '/api/public/internal/v1/services/selection'
+    | '/api/public/internal/v1/wallet/charges'
     | '/api/public/internal/v1/webhooks/dispatch'
     | '/api/public/internal/v1/checkouts/$checkoutId/installments'
     | '/api/public/internal/v1/checkouts/$checkoutId/order'
@@ -2800,12 +2845,15 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/orders/$orderId/documents'
     | '/api/public/internal/v1/orders/$orderId/status'
     | '/api/public/internal/v1/orders/$orderId/tickets'
+    | '/api/public/internal/v1/wallet/charges/$chargeId'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
     | '/api/public/internal/v1/multicity/groups/$groupId/passengers'
     | '/api/public/internal/v1/multicity/groups/$groupId/revalidate'
+    | '/api/public/internal/v1/wallet/charges/$chargeId/events'
+    | '/api/public/internal/v1/wallet/charges/$chargeId/refund'
   id:
     | '__root__'
     | '/'
@@ -3036,6 +3084,7 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/services/search'
     | '/api/public/internal/v1/services/select'
     | '/api/public/internal/v1/services/selection'
+    | '/api/public/internal/v1/wallet/charges'
     | '/api/public/internal/v1/webhooks/dispatch'
     | '/api/public/internal/v1/checkouts/$checkoutId/installments'
     | '/api/public/internal/v1/checkouts/$checkoutId/order'
@@ -3048,12 +3097,15 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/orders/$orderId/documents'
     | '/api/public/internal/v1/orders/$orderId/status'
     | '/api/public/internal/v1/orders/$orderId/tickets'
+    | '/api/public/internal/v1/wallet/charges/$chargeId'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/card-token'
     | '/api/public/internal/v1/checkouts/$checkoutId/payments/pix'
     | '/api/public/internal/v1/multicity/groups/$groupId/passengers'
     | '/api/public/internal/v1/multicity/groups/$groupId/revalidate'
+    | '/api/public/internal/v1/wallet/charges/$chargeId/events'
+    | '/api/public/internal/v1/wallet/charges/$chargeId/refund'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -3184,6 +3236,7 @@ export interface RootRouteChildren {
   ApiPublicInternalV1ServicesSearchRoute: typeof ApiPublicInternalV1ServicesSearchRoute
   ApiPublicInternalV1ServicesSelectRoute: typeof ApiPublicInternalV1ServicesSelectRoute
   ApiPublicInternalV1ServicesSelectionRoute: typeof ApiPublicInternalV1ServicesSelectionRoute
+  ApiPublicInternalV1WalletChargesRoute: typeof ApiPublicInternalV1WalletChargesRouteWithChildren
   ApiPublicInternalV1WebhooksDispatchRoute: typeof ApiPublicInternalV1WebhooksDispatchRoute
   ApiPublicInternalV1FlightsMulticitySearchRoute: typeof ApiPublicInternalV1FlightsMulticitySearchRoute
   ApiPublicInternalV1ImportsComprarViagemReservationRoute: typeof ApiPublicInternalV1ImportsComprarViagemReservationRoute
@@ -4788,6 +4841,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInternalV1ServicesSelectionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/internal/v1/wallet/charges': {
+      id: '/api/public/internal/v1/wallet/charges'
+      path: '/api/public/internal/v1/wallet/charges'
+      fullPath: '/api/public/internal/v1/wallet/charges'
+      preLoaderRoute: typeof ApiPublicInternalV1WalletChargesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/internal/v1/webhooks/dispatch': {
       id: '/api/public/internal/v1/webhooks/dispatch'
       path: '/api/public/internal/v1/webhooks/dispatch'
@@ -4872,6 +4932,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInternalV1OrdersOrderIdTicketsRouteImport
       parentRoute: typeof ApiPublicInternalV1OrdersOrderIdRoute
     }
+    '/api/public/internal/v1/wallet/charges/$chargeId': {
+      id: '/api/public/internal/v1/wallet/charges/$chargeId'
+      path: '/$chargeId'
+      fullPath: '/api/public/internal/v1/wallet/charges/$chargeId'
+      preLoaderRoute: typeof ApiPublicInternalV1WalletChargesChargeIdRouteImport
+      parentRoute: typeof ApiPublicInternalV1WalletChargesRoute
+    }
     '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel': {
       id: '/api/public/internal/v1/checkouts/$checkoutId/payments/cancel'
       path: '/payments/cancel'
@@ -4913,6 +4980,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/internal/v1/multicity/groups/$groupId/revalidate'
       preLoaderRoute: typeof ApiPublicInternalV1MulticityGroupsGroupIdRevalidateRouteImport
       parentRoute: typeof ApiPublicInternalV1MulticityGroupsGroupIdRoute
+    }
+    '/api/public/internal/v1/wallet/charges/$chargeId/events': {
+      id: '/api/public/internal/v1/wallet/charges/$chargeId/events'
+      path: '/events'
+      fullPath: '/api/public/internal/v1/wallet/charges/$chargeId/events'
+      preLoaderRoute: typeof ApiPublicInternalV1WalletChargesChargeIdEventsRouteImport
+      parentRoute: typeof ApiPublicInternalV1WalletChargesChargeIdRoute
+    }
+    '/api/public/internal/v1/wallet/charges/$chargeId/refund': {
+      id: '/api/public/internal/v1/wallet/charges/$chargeId/refund'
+      path: '/refund'
+      fullPath: '/api/public/internal/v1/wallet/charges/$chargeId/refund'
+      preLoaderRoute: typeof ApiPublicInternalV1WalletChargesChargeIdRefundRouteImport
+      parentRoute: typeof ApiPublicInternalV1WalletChargesChargeIdRoute
     }
   }
 }
@@ -5264,6 +5345,39 @@ const ApiPublicInternalV1OrdersOrderIdRouteWithChildren =
     ApiPublicInternalV1OrdersOrderIdRouteChildren,
   )
 
+interface ApiPublicInternalV1WalletChargesChargeIdRouteChildren {
+  ApiPublicInternalV1WalletChargesChargeIdEventsRoute: typeof ApiPublicInternalV1WalletChargesChargeIdEventsRoute
+  ApiPublicInternalV1WalletChargesChargeIdRefundRoute: typeof ApiPublicInternalV1WalletChargesChargeIdRefundRoute
+}
+
+const ApiPublicInternalV1WalletChargesChargeIdRouteChildren: ApiPublicInternalV1WalletChargesChargeIdRouteChildren =
+  {
+    ApiPublicInternalV1WalletChargesChargeIdEventsRoute:
+      ApiPublicInternalV1WalletChargesChargeIdEventsRoute,
+    ApiPublicInternalV1WalletChargesChargeIdRefundRoute:
+      ApiPublicInternalV1WalletChargesChargeIdRefundRoute,
+  }
+
+const ApiPublicInternalV1WalletChargesChargeIdRouteWithChildren =
+  ApiPublicInternalV1WalletChargesChargeIdRoute._addFileChildren(
+    ApiPublicInternalV1WalletChargesChargeIdRouteChildren,
+  )
+
+interface ApiPublicInternalV1WalletChargesRouteChildren {
+  ApiPublicInternalV1WalletChargesChargeIdRoute: typeof ApiPublicInternalV1WalletChargesChargeIdRouteWithChildren
+}
+
+const ApiPublicInternalV1WalletChargesRouteChildren: ApiPublicInternalV1WalletChargesRouteChildren =
+  {
+    ApiPublicInternalV1WalletChargesChargeIdRoute:
+      ApiPublicInternalV1WalletChargesChargeIdRouteWithChildren,
+  }
+
+const ApiPublicInternalV1WalletChargesRouteWithChildren =
+  ApiPublicInternalV1WalletChargesRoute._addFileChildren(
+    ApiPublicInternalV1WalletChargesRouteChildren,
+  )
+
 interface ApiPublicInternalV1MulticityGroupsGroupIdRouteChildren {
   ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute: typeof ApiPublicInternalV1MulticityGroupsGroupIdPassengersRoute
   ApiPublicInternalV1MulticityGroupsGroupIdRevalidateRoute: typeof ApiPublicInternalV1MulticityGroupsGroupIdRevalidateRoute
@@ -5429,6 +5543,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicInternalV1ServicesSelectRoute,
   ApiPublicInternalV1ServicesSelectionRoute:
     ApiPublicInternalV1ServicesSelectionRoute,
+  ApiPublicInternalV1WalletChargesRoute:
+    ApiPublicInternalV1WalletChargesRouteWithChildren,
   ApiPublicInternalV1WebhooksDispatchRoute:
     ApiPublicInternalV1WebhooksDispatchRoute,
   ApiPublicInternalV1FlightsMulticitySearchRoute:
