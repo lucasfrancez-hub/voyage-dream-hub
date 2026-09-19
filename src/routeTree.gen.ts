@@ -32,6 +32,7 @@ import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as VoarRouteImport } from './routes/voar'
 import { Route as AdminAntifraudeRouteImport } from './routes/admin.antifraude'
+import { Route as AdminApiCarteiraRouteImport } from './routes/admin.api-carteira'
 import { Route as AdminApiServicosRouteImport } from './routes/admin.api-servicos'
 import { Route as AdminApiTokensRouteImport } from './routes/admin.api-tokens'
 import { Route as AdminAppCelularRouteImport } from './routes/admin.app-celular'
@@ -375,6 +376,11 @@ const VoarRoute = VoarRouteImport.update({
 const AdminAntifraudeRoute = AdminAntifraudeRouteImport.update({
   id: '/antifraude',
   path: '/antifraude',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminApiCarteiraRoute = AdminApiCarteiraRouteImport.update({
+  id: '/api-carteira',
+  path: '/api-carteira',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminApiServicosRoute = AdminApiServicosRouteImport.update({
@@ -1636,6 +1642,7 @@ export interface FileRoutesByFullPath {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-carteira': typeof AdminApiCarteiraRoute
   '/admin/api-servicos': typeof AdminApiServicosRoute
   '/admin/api-tokens': typeof AdminApiTokensRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
@@ -1888,6 +1895,7 @@ export interface FileRoutesByTo {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-carteira': typeof AdminApiCarteiraRoute
   '/admin/api-servicos': typeof AdminApiServicosRoute
   '/admin/api-tokens': typeof AdminApiTokensRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
@@ -2142,6 +2150,7 @@ export interface FileRoutesById {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-carteira': typeof AdminApiCarteiraRoute
   '/admin/api-servicos': typeof AdminApiServicosRoute
   '/admin/api-tokens': typeof AdminApiTokensRoute
   '/admin/app-celular': typeof AdminAppCelularRoute
@@ -2398,6 +2407,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-carteira'
     | '/admin/api-servicos'
     | '/admin/api-tokens'
     | '/admin/app-celular'
@@ -2650,6 +2660,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-carteira'
     | '/admin/api-servicos'
     | '/admin/api-tokens'
     | '/admin/app-celular'
@@ -2903,6 +2914,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-carteira'
     | '/admin/api-servicos'
     | '/admin/api-tokens'
     | '/admin/app-celular'
@@ -3432,6 +3444,13 @@ declare module '@tanstack/react-router' {
       path: '/antifraude'
       fullPath: '/admin/antifraude'
       preLoaderRoute: typeof AdminAntifraudeRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/api-carteira': {
+      id: '/admin/api-carteira'
+      path: '/api-carteira'
+      fullPath: '/admin/api-carteira'
+      preLoaderRoute: typeof AdminApiCarteiraRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/api-servicos': {
@@ -5067,6 +5086,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminAntifraudeRoute: typeof AdminAntifraudeRoute
+  AdminApiCarteiraRoute: typeof AdminApiCarteiraRoute
   AdminApiServicosRoute: typeof AdminApiServicosRoute
   AdminApiTokensRoute: typeof AdminApiTokensRoute
   AdminAppCelularRoute: typeof AdminAppCelularRoute
@@ -5144,6 +5164,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAntifraudeRoute: AdminAntifraudeRoute,
+  AdminApiCarteiraRoute: AdminApiCarteiraRoute,
   AdminApiServicosRoute: AdminApiServicosRoute,
   AdminApiTokensRoute: AdminApiTokensRoute,
   AdminAppCelularRoute: AdminAppCelularRoute,
