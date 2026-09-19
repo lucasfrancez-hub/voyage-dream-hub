@@ -47,15 +47,18 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/inbound")(
               arrivalIsCity: oferta.contexto.arrivalIsCity ?? false,
               searchKey: oferta.searchKey,
               flightKey: oferta.fareId,
+              // Reaplica os filtros da busca de ida (salvos no contexto do
+              // searchId). Buscas antigas sem esses campos caem nos defaults
+              // anteriores: sem bagagem, sem restrição de paradas/companhias.
               filters: {
-                containsDispatchBaggage: false,
-                maxStops: null,
+                containsDispatchBaggage: oferta.contexto.checkedBaggage ?? false,
+                maxStops: oferta.contexto.maxStops ?? null,
                 startPrice: null,
                 endPrice: null,
                 departureFrom: null,
                 departureTo: null,
-                airlineIatas: [],
-                cabinClass: null,
+                airlineIatas: oferta.contexto.airlines ?? [],
+                cabinClass: oferta.contexto.cabinClass ?? null,
               },
             } as never);
 
