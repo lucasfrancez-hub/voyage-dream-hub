@@ -18,6 +18,12 @@ export const API_SCOPES = [
   "packages:read",
   "services:read",
   "quotes:write",
+  // Carteira financeira genérica (entrada do cliente e saída Pix ao fornecedor).
+  // Propositalmente separadas de payments:* (aéreo) para não haver ambiguidade.
+  "wallet:charge",
+  "wallet:read",
+  "wallet:payout",
+  "wallet:refund",
 ] as const;
 
 export type ApiScope = (typeof API_SCOPES)[number];
