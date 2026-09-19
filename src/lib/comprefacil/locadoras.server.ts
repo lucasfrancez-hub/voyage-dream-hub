@@ -28,6 +28,46 @@ export type CatalogoLocadoras = {
   porSigla: Map<string, LocadoraCF>;
 };
 
+/**
+ * Nome de exibição por locadora, confirmado contra o cadastro real
+ * (GET /api/webservice, Carro=true — 19/09/2026):
+ *   316 FL    Foco Locadora      → "Foco"
+ *   241 MOV   MOVIDA             → "Movida"
+ *   326 HRTZ  Hertz - SG Rental  → "Hertz"
+ *   329 DLR   Dollar - SG Rental → "Dollar"
+ *   330 THRFT Thrifty - SG Rental→ "Thrifty"
+ * Localiza e Unidas NÃO constam no cadastro — sem Id oficial, não entram aqui.
+ */
+const NOME_EXIBICAO_POR_ID = new Map<number, string>([
+  [316, "Foco"],
+  [241, "Movida"],
+  [326, "Hertz"],
+  [329, "Dollar"],
+  [330, "Thrifty"],
+]);
+const NOME_EXIBICAO_POR_SIGLA = new Map<string, string>([
+  ["FL", "Foco"],
+  ["MOV", "Movida"],
+  ["HRTZ", "Hertz"],
+  ["DLR", "Dollar"],
+  ["THRFT", "Thrifty"],
+]);
+
+/** Remove sufixos comerciais do cadastro (ex.: " - SG Rental") da Descrição. */
+function limparDescricao(descricao: string): string {
+  const limpo = descricao.replace(/\s+-\s+SG Rental\s*$/i, "").trim();
+  return limpo || descricao.trim();
+}
+
+/** Nome comercial de exibição: tabela fixa primeiro, Descrição limpa depois. */
+export function nomeExibicaoLocadora(loc: LocadoraCF): string {
+  const porId = NOME_EXIBICAO_POR_ID.get(loc.id);
+  if (porId) return porId;
+  const porSigla = NOME_EXIBICAO_POR_SIGLA.get(loc.sigla);
+  if (porSigla) return porSigla;
+  return limparDescricao(loc.nome);
+}
+
 const TTL_MS = 6 * 60 * 60 * 1000;
 let cache: { em: number; catalogo: CatalogoLocadoras } | null = null;
 
