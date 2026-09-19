@@ -74,7 +74,12 @@ export type CarroNormalizado = {
   fornecedor: "comprefacil";
   tipo: "carro";
   carro_id: string;
+  /** nome comercial quando o catálogo da operadora resolve; senão o código */
   locadora: string | null;
+  /** sigla crua da operadora (ex.: "FL", "MOV") */
+  locadora_codigo: string | null;
+  /** nome oficial do catálogo da operadora; null quando não resolvido */
+  locadora_nome: string | null;
   categoria: string | null;
   grupo: string | null;
   codigo_acriss: string | null;
