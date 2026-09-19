@@ -23,6 +23,11 @@ export type OfferPayload = {
     infants: number;
     departureIsCity?: boolean;
     arrivalIsCity?: boolean;
+    /** Filtros da busca de ida, reaplicados na volta (/flights/inbound). */
+    checkedBaggage?: boolean;
+    cabinClass?: string | null;
+    maxStops?: number | null;
+    airlines?: string[];
   };
   resumo: Record<string, unknown>;
 };
