@@ -89,7 +89,12 @@ export const Route = createFileRoute("/api/public/internal/v1/flights/search")({
               infants: d.infants,
               departureIsCity: origemCidade,
               arrivalIsCity: destinoCidade,
-
+              // Filtros da busca de ida — reaplicados na volta (/flights/inbound)
+              // para que bagagem, cabine, paradas e companhias sejam preservados.
+              checkedBaggage: d.checkedBaggage,
+              cabinClass: d.cabinClass ?? null,
+              maxStops: d.maxStops ?? null,
+              airlines: d.airlines.map((a) => a.toUpperCase()),
             };
             const payloads: OfferPayload[] = voos.map((f) => ({
               searchKey: resultado.searchKey,
