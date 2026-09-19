@@ -525,11 +525,16 @@ export async function buscarServicos(
   for (const s of lista) por_tipo[s.tipo_servico] = (por_tipo[s.tipo_servico] ?? 0) + 1;
 
   const buscaId = novoId("svcs");
+  // Só contam os motores realmente consultados nesta busca.
+  const usados = [
+    ...(querOutros ? [metServicos.desfecho] : []),
+    ...(querSeguro ? [metSeguro.desfecho] : []),
+  ];
   const desfecho: ServicesSearchResult["desfecho"] = lista.length
     ? "concluido_com_resultados"
-    : metServicos.desfecho === "erro" && metSeguro.desfecho === "erro"
+    : usados.length && usados.every((d) => d === "erro")
       ? "erro"
-      : metServicos.desfecho === "teto_de_tempo" || metSeguro.desfecho === "teto_de_tempo"
+      : usados.includes("teto_de_tempo")
         ? "teto_de_tempo"
         : "concluido_sem_resultados";
 
