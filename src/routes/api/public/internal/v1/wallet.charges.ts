@@ -72,6 +72,7 @@ export const Route = createFileRoute("/api/public/internal/v1/wallet/charges")({
                 });
                 return ok({ ...r.charge, reused: r.reused }, ctx.correlationId, r.reused ? 200 : 201);
               } catch (e) {
+                console.error("[wallet/charges]", (e as Error).message);
                 return failFromError(e, ctx.correlationId, "asaas");
               }
             },
