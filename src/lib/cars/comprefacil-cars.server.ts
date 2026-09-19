@@ -353,8 +353,8 @@ export async function buscarCarros(
     dataHoraDevolucao: fim,
     adultos: criterio.adultos,
     idadesCriancas: criterio.criancas,
-    cidadeOrigemId: input.cidadeId ?? null,
-    cidadeDevolucaoId: input.cidadeDevolucaoId ?? null,
+    cidadeOrigemId,
+    cidadeDevolucaoId,
     itensPorPagina: input.limite ?? 50,
   });
 
