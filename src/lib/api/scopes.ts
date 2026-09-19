@@ -60,4 +60,8 @@ export const API_SCOPE_LABEL: Record<ApiScope, string> = {
   "packages:read": "Consultar pacotes",
   "services:read": "Consultar serviços (transfer, passeio, ingresso, seguro)",
   "quotes:write": "Criar orçamento público",
+  "wallet:charge": "Gerar cobrança Pix do cliente (carteira)",
+  "wallet:read": "Consultar cobranças e pagamentos da carteira",
+  "wallet:payout": "Pagar Pix copia e cola de fornecedor (saída)",
+  "wallet:refund": "Abrir devolução ao cliente",
 };

@@ -19,7 +19,16 @@ export type ApiWebhookEvent =
   | "order.failed"
   | "checkout.session.required"
   | "checkout.session.restored"
-  | "checkout.session.failed";
+  | "checkout.session.failed"
+  // Carteira financeira genérica (independente de produto/fornecedor)
+  | "wallet.charge.created"
+  | "wallet.customer_payment_confirmed"
+  | "wallet.charge.expired"
+  | "wallet.payout.paid"
+  | "wallet.payout.failed"
+  | "wallet.payout.manual_review"
+  | "wallet.refund.pending"
+  | "wallet.refund.completed";
 
 /** Espera entre tentativas: 1min, 5min, 15min, 1h, 6h, 24h. */
 const ESPERAS_MIN = [1, 5, 15, 60, 360, 1440];
