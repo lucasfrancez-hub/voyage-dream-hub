@@ -328,8 +328,22 @@ export async function buscarCarros(
     criancas: input.criancas ?? [],
   };
 
-  const { buscarCarrosCF } = await import("@/lib/comprefacil/carros.server");
+  const { buscarCarrosCF, lojasCarroCF } = await import("@/lib/comprefacil/carros.server");
   const tipo = (t?: "loja" | "cidade") => (t === "cidade" ? "A" : "C");
+
+  // A operadora exige o id da cidade na busca; resolvemos pelo código do local
+  // quando o Sky Hub não informa.
+  async function resolverCidade(codigo: string): Promise<number | null> {
+    const lojas = await lojasCarroCF(codigo, 10);
+    const achou =
+      lojas.find((l) => l.sigla?.toUpperCase() === codigo && l.cidadeId) ??
+      lojas.find((l) => l.cidadeId);
+    return achou?.cidadeId ?? null;
+  }
+  const cidadeOrigemId = input.cidadeId ?? (await resolverCidade(retirada));
+  const cidadeDevolucaoId =
+    input.cidadeDevolucaoId ??
+    (devolucao === retirada ? cidadeOrigemId : await resolverCidade(devolucao));
   const bruto = await buscarCarrosCF({
     localOrigem: retirada,
     localDevolucao: devolucao,
