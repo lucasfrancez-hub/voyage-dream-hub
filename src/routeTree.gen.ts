@@ -221,6 +221,10 @@ import { Route as ApiPublicInternalV1CheckoutsRouteImport } from './routes/api/p
 import { Route as ApiPublicInternalV1HealthRouteImport } from './routes/api/public/internal/v1/health'
 import { Route as ApiPublicInternalV1AgentToolsRouteImport } from './routes/api/public/internal/v1/agent.tools'
 import { Route as ApiPublicInternalV1AirportsSearchRouteImport } from './routes/api/public/internal/v1/airports.search'
+import { Route as ApiPublicInternalV1CarsLocationsRouteImport } from './routes/api/public/internal/v1/cars.locations'
+import { Route as ApiPublicInternalV1CarsSearchRouteImport } from './routes/api/public/internal/v1/cars.search'
+import { Route as ApiPublicInternalV1CarsSelectRouteImport } from './routes/api/public/internal/v1/cars.select'
+import { Route as ApiPublicInternalV1CarsSelectionRouteImport } from './routes/api/public/internal/v1/cars.selection'
 import { Route as ApiPublicInternalV1CheckoutsCheckoutIdRouteImport } from './routes/api/public/internal/v1/checkouts.$checkoutId'
 import { Route as ApiPublicInternalV1FlightsInboundRouteImport } from './routes/api/public/internal/v1/flights.inbound'
 import { Route as ApiPublicInternalV1FlightsSearchRouteImport } from './routes/api/public/internal/v1/flights.search'
@@ -1361,6 +1365,30 @@ const ApiPublicInternalV1AirportsSearchRoute =
     path: '/api/public/internal/v1/airports/search',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicInternalV1CarsLocationsRoute =
+  ApiPublicInternalV1CarsLocationsRouteImport.update({
+    id: '/api/public/internal/v1/cars/locations',
+    path: '/api/public/internal/v1/cars/locations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1CarsSearchRoute =
+  ApiPublicInternalV1CarsSearchRouteImport.update({
+    id: '/api/public/internal/v1/cars/search',
+    path: '/api/public/internal/v1/cars/search',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1CarsSelectRoute =
+  ApiPublicInternalV1CarsSelectRouteImport.update({
+    id: '/api/public/internal/v1/cars/select',
+    path: '/api/public/internal/v1/cars/select',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicInternalV1CarsSelectionRoute =
+  ApiPublicInternalV1CarsSelectionRouteImport.update({
+    id: '/api/public/internal/v1/cars/selection',
+    path: '/api/public/internal/v1/cars/selection',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicInternalV1CheckoutsCheckoutIdRoute =
   ApiPublicInternalV1CheckoutsCheckoutIdRouteImport.update({
     id: '/$checkoutId',
@@ -1755,6 +1783,10 @@ export interface FileRoutesByFullPath {
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
   '/api/public/internal/v1/agent/tools': typeof ApiPublicInternalV1AgentToolsRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/cars/locations': typeof ApiPublicInternalV1CarsLocationsRoute
+  '/api/public/internal/v1/cars/search': typeof ApiPublicInternalV1CarsSearchRoute
+  '/api/public/internal/v1/cars/select': typeof ApiPublicInternalV1CarsSelectRoute
+  '/api/public/internal/v1/cars/selection': typeof ApiPublicInternalV1CarsSelectionRoute
   '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
   '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
@@ -1996,6 +2028,10 @@ export interface FileRoutesByTo {
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
   '/api/public/internal/v1/agent/tools': typeof ApiPublicInternalV1AgentToolsRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/cars/locations': typeof ApiPublicInternalV1CarsLocationsRoute
+  '/api/public/internal/v1/cars/search': typeof ApiPublicInternalV1CarsSearchRoute
+  '/api/public/internal/v1/cars/select': typeof ApiPublicInternalV1CarsSelectRoute
+  '/api/public/internal/v1/cars/selection': typeof ApiPublicInternalV1CarsSelectionRoute
   '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
   '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
@@ -2241,6 +2277,10 @@ export interface FileRoutesById {
   '/api/public/internal/v1/health': typeof ApiPublicInternalV1HealthRoute
   '/api/public/internal/v1/agent/tools': typeof ApiPublicInternalV1AgentToolsRoute
   '/api/public/internal/v1/airports/search': typeof ApiPublicInternalV1AirportsSearchRoute
+  '/api/public/internal/v1/cars/locations': typeof ApiPublicInternalV1CarsLocationsRoute
+  '/api/public/internal/v1/cars/search': typeof ApiPublicInternalV1CarsSearchRoute
+  '/api/public/internal/v1/cars/select': typeof ApiPublicInternalV1CarsSelectRoute
+  '/api/public/internal/v1/cars/selection': typeof ApiPublicInternalV1CarsSelectionRoute
   '/api/public/internal/v1/checkouts/$checkoutId': typeof ApiPublicInternalV1CheckoutsCheckoutIdRouteWithChildren
   '/api/public/internal/v1/flights/inbound': typeof ApiPublicInternalV1FlightsInboundRoute
   '/api/public/internal/v1/flights/search': typeof ApiPublicInternalV1FlightsSearchRoute
@@ -2487,6 +2527,10 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/health'
     | '/api/public/internal/v1/agent/tools'
     | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/cars/locations'
+    | '/api/public/internal/v1/cars/search'
+    | '/api/public/internal/v1/cars/select'
+    | '/api/public/internal/v1/cars/selection'
     | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
     | '/api/public/internal/v1/flights/search'
@@ -2728,6 +2772,10 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/health'
     | '/api/public/internal/v1/agent/tools'
     | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/cars/locations'
+    | '/api/public/internal/v1/cars/search'
+    | '/api/public/internal/v1/cars/select'
+    | '/api/public/internal/v1/cars/selection'
     | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
     | '/api/public/internal/v1/flights/search'
@@ -2972,6 +3020,10 @@ export interface FileRouteTypes {
     | '/api/public/internal/v1/health'
     | '/api/public/internal/v1/agent/tools'
     | '/api/public/internal/v1/airports/search'
+    | '/api/public/internal/v1/cars/locations'
+    | '/api/public/internal/v1/cars/search'
+    | '/api/public/internal/v1/cars/select'
+    | '/api/public/internal/v1/cars/selection'
     | '/api/public/internal/v1/checkouts/$checkoutId'
     | '/api/public/internal/v1/flights/inbound'
     | '/api/public/internal/v1/flights/search'
@@ -3117,6 +3169,10 @@ export interface RootRouteChildren {
   ApiPublicInternalV1HealthRoute: typeof ApiPublicInternalV1HealthRoute
   ApiPublicInternalV1AgentToolsRoute: typeof ApiPublicInternalV1AgentToolsRoute
   ApiPublicInternalV1AirportsSearchRoute: typeof ApiPublicInternalV1AirportsSearchRoute
+  ApiPublicInternalV1CarsLocationsRoute: typeof ApiPublicInternalV1CarsLocationsRoute
+  ApiPublicInternalV1CarsSearchRoute: typeof ApiPublicInternalV1CarsSearchRoute
+  ApiPublicInternalV1CarsSelectRoute: typeof ApiPublicInternalV1CarsSelectRoute
+  ApiPublicInternalV1CarsSelectionRoute: typeof ApiPublicInternalV1CarsSelectionRoute
   ApiPublicInternalV1FlightsInboundRoute: typeof ApiPublicInternalV1FlightsInboundRoute
   ApiPublicInternalV1FlightsSearchRoute: typeof ApiPublicInternalV1FlightsSearchRoute
   ApiPublicInternalV1MulticityCheckoutsRoute: typeof ApiPublicInternalV1MulticityCheckoutsRoute
@@ -4620,6 +4676,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicInternalV1AirportsSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/internal/v1/cars/locations': {
+      id: '/api/public/internal/v1/cars/locations'
+      path: '/api/public/internal/v1/cars/locations'
+      fullPath: '/api/public/internal/v1/cars/locations'
+      preLoaderRoute: typeof ApiPublicInternalV1CarsLocationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/cars/search': {
+      id: '/api/public/internal/v1/cars/search'
+      path: '/api/public/internal/v1/cars/search'
+      fullPath: '/api/public/internal/v1/cars/search'
+      preLoaderRoute: typeof ApiPublicInternalV1CarsSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/cars/select': {
+      id: '/api/public/internal/v1/cars/select'
+      path: '/api/public/internal/v1/cars/select'
+      fullPath: '/api/public/internal/v1/cars/select'
+      preLoaderRoute: typeof ApiPublicInternalV1CarsSelectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/internal/v1/cars/selection': {
+      id: '/api/public/internal/v1/cars/selection'
+      path: '/api/public/internal/v1/cars/selection'
+      fullPath: '/api/public/internal/v1/cars/selection'
+      preLoaderRoute: typeof ApiPublicInternalV1CarsSelectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/internal/v1/checkouts/$checkoutId': {
       id: '/api/public/internal/v1/checkouts/$checkoutId'
       path: '/$checkoutId'
@@ -5322,6 +5406,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicInternalV1AgentToolsRoute: ApiPublicInternalV1AgentToolsRoute,
   ApiPublicInternalV1AirportsSearchRoute:
     ApiPublicInternalV1AirportsSearchRoute,
+  ApiPublicInternalV1CarsLocationsRoute: ApiPublicInternalV1CarsLocationsRoute,
+  ApiPublicInternalV1CarsSearchRoute: ApiPublicInternalV1CarsSearchRoute,
+  ApiPublicInternalV1CarsSelectRoute: ApiPublicInternalV1CarsSelectRoute,
+  ApiPublicInternalV1CarsSelectionRoute: ApiPublicInternalV1CarsSelectionRoute,
   ApiPublicInternalV1FlightsInboundRoute:
     ApiPublicInternalV1FlightsInboundRoute,
   ApiPublicInternalV1FlightsSearchRoute: ApiPublicInternalV1FlightsSearchRoute,
