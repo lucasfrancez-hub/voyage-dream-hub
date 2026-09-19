@@ -141,7 +141,7 @@ export type CarsSearchResult = {
   busca_id: string;
   criterio: CarsCriterio;
   total: number;
-  locadoras: string[];
+  locadoras: { codigo: string; nome: string | null }[];
   carros: CarroNormalizado[];
   mensagem: string;
 };
@@ -184,14 +184,23 @@ function protecoes(c: CarroCF): ProtecaoNormalizada[] {
   }));
 }
 
-function normalizar(c: CarroCF, criterio: CarsCriterio, guid: string): CarroInterno {
+function normalizar(
+  c: CarroCF,
+  criterio: CarsCriterio,
+  guid: string,
+  nomeDaLocadora: (c: CarroCF) => string | null,
+): CarroInterno {
   const valorTotal = c.ValorTotalListagem ?? c.ValorListagem ?? c.ValorVenda ?? null;
   const valorDiaria = c.ValorVenda ?? c.ValorDiarias ?? null;
+  const locadoraCodigo = c.Fornecedor ?? null;
+  const locadoraNome = nomeDaLocadora(c);
   return {
     fornecedor: "comprefacil",
     tipo: "carro",
     carro_id: novoId("car"),
-    locadora: c.Fornecedor ?? null,
+    locadora: locadoraNome ?? locadoraCodigo,
+    locadora_codigo: locadoraCodigo,
+    locadora_nome: locadoraNome,
     categoria: c.Categoria ?? null,
     grupo: c.ModeloCodigo ?? null,
     codigo_acriss: c.Codigo ?? null,
