@@ -32,6 +32,7 @@ import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
 import { Route as ValidacaoRouteImport } from './routes/validacao'
 import { Route as VoarRouteImport } from './routes/voar'
 import { Route as AdminAntifraudeRouteImport } from './routes/admin.antifraude'
+import { Route as AdminApiCarrosRouteImport } from './routes/admin.api-carros'
 import { Route as AdminApiCarteiraRouteImport } from './routes/admin.api-carteira'
 import { Route as AdminApiServicosRouteImport } from './routes/admin.api-servicos'
 import { Route as AdminApiTokensRouteImport } from './routes/admin.api-tokens'
@@ -376,6 +377,11 @@ const VoarRoute = VoarRouteImport.update({
 const AdminAntifraudeRoute = AdminAntifraudeRouteImport.update({
   id: '/antifraude',
   path: '/antifraude',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminApiCarrosRoute = AdminApiCarrosRouteImport.update({
+  id: '/api-carros',
+  path: '/api-carros',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminApiCarteiraRoute = AdminApiCarteiraRouteImport.update({
@@ -1642,6 +1648,7 @@ export interface FileRoutesByFullPath {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-carros': typeof AdminApiCarrosRoute
   '/admin/api-carteira': typeof AdminApiCarteiraRoute
   '/admin/api-servicos': typeof AdminApiServicosRoute
   '/admin/api-tokens': typeof AdminApiTokensRoute
@@ -1895,6 +1902,7 @@ export interface FileRoutesByTo {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-carros': typeof AdminApiCarrosRoute
   '/admin/api-carteira': typeof AdminApiCarteiraRoute
   '/admin/api-servicos': typeof AdminApiServicosRoute
   '/admin/api-tokens': typeof AdminApiTokensRoute
@@ -2150,6 +2158,7 @@ export interface FileRoutesById {
   '/validacao': typeof ValidacaoRoute
   '/voar': typeof VoarRoute
   '/admin/antifraude': typeof AdminAntifraudeRoute
+  '/admin/api-carros': typeof AdminApiCarrosRoute
   '/admin/api-carteira': typeof AdminApiCarteiraRoute
   '/admin/api-servicos': typeof AdminApiServicosRoute
   '/admin/api-tokens': typeof AdminApiTokensRoute
@@ -2407,6 +2416,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-carros'
     | '/admin/api-carteira'
     | '/admin/api-servicos'
     | '/admin/api-tokens'
@@ -2660,6 +2670,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-carros'
     | '/admin/api-carteira'
     | '/admin/api-servicos'
     | '/admin/api-tokens'
@@ -2914,6 +2925,7 @@ export interface FileRouteTypes {
     | '/validacao'
     | '/voar'
     | '/admin/antifraude'
+    | '/admin/api-carros'
     | '/admin/api-carteira'
     | '/admin/api-servicos'
     | '/admin/api-tokens'
@@ -3444,6 +3456,13 @@ declare module '@tanstack/react-router' {
       path: '/antifraude'
       fullPath: '/admin/antifraude'
       preLoaderRoute: typeof AdminAntifraudeRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/api-carros': {
+      id: '/admin/api-carros'
+      path: '/api-carros'
+      fullPath: '/admin/api-carros'
+      preLoaderRoute: typeof AdminApiCarrosRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/api-carteira': {
@@ -5086,6 +5105,7 @@ const AdminPessoasRouteWithChildren = AdminPessoasRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminAntifraudeRoute: typeof AdminAntifraudeRoute
+  AdminApiCarrosRoute: typeof AdminApiCarrosRoute
   AdminApiCarteiraRoute: typeof AdminApiCarteiraRoute
   AdminApiServicosRoute: typeof AdminApiServicosRoute
   AdminApiTokensRoute: typeof AdminApiTokensRoute
@@ -5164,6 +5184,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAntifraudeRoute: AdminAntifraudeRoute,
+  AdminApiCarrosRoute: AdminApiCarrosRoute,
   AdminApiCarteiraRoute: AdminApiCarteiraRoute,
   AdminApiServicosRoute: AdminApiServicosRoute,
   AdminApiTokensRoute: AdminApiTokensRoute,
