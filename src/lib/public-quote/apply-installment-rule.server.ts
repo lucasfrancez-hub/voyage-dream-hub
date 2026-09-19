@@ -116,7 +116,12 @@ function applyToPayment(
 
 /** Aplica a regra vigente no orçamento e em todas as suas opções. */
 export async function applyCurrentInstallmentRule(quote: PublicQuote): Promise<PublicQuote> {
-  const rule = await ruleForHint(quote.installmentHint ?? "");
+  // Orçamentos antigos não guardam a operadora (`installmentHint`). Nesse caso
+  // NÃO dá pra saber qual regra gerou o snapshot: aplicar o padrão VIA AIR
+  // cortaria parcelas legítimas (ex.: FRT 12x virando 10x). Preserva o snapshot.
+  const hint = (quote.installmentHint ?? "").trim();
+  if (!hint) return quote;
+  const rule = await ruleForHint(hint);
   const isAirOnly = quote.type === "AIR_ONLY";
   return {
     ...quote,
