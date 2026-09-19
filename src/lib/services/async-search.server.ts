@@ -44,28 +44,30 @@ async function db() {
   return supabaseAdmin;
 }
 
-async function gravar(searchId: string, clientId: string | null, bloco: BlocoServicos) {
+async function gravar(
+  searchId: string,
+  clientId: string | null,
+  bloco: BlocoServicos,
+  novo = false,
+) {
   emMemoria.set(searchId, bloco);
   const supabase = await db();
-  const linha = {
-    api_client_id: clientId,
-    search_id: searchId,
-    kind: `svcjob:${searchId}`,
-    payload: bloco as never,
-    expires_at: new Date(Date.now() + VALIDADE_MS).toISOString(),
-  };
-  const { error } = await supabase
+  const kind = `svcjob:${searchId}`;
+  const expires_at = new Date(Date.now() + VALIDADE_MS).toISOString();
+  if (novo) {
+    await supabase.from("api_offer_refs").insert({
+      api_client_id: clientId,
+      search_id: searchId,
+      kind,
+      payload: bloco as never,
+      expires_at,
+    } as never);
+    return;
+  }
+  await supabase
     .from("api_offer_refs")
-    .update({ payload: linha.payload, expires_at: linha.expires_at } as never)
-    .eq("kind", linha.kind);
-  if (error) return;
-  // primeira gravação: o update acima não cria a linha
-  const { data } = await supabase
-    .from("api_offer_refs")
-    .select("id")
-    .eq("kind", linha.kind)
-    .maybeSingle();
-  if (!data) await supabase.from("api_offer_refs").insert(linha as never);
+    .update({ payload: bloco as never, expires_at } as never)
+    .eq("kind", kind);
 }
 
 /** Dispara a busca em segundo plano e devolve o search_id na hora. */
