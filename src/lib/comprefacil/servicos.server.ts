@@ -192,6 +192,41 @@ async function limitarEspera<T>(promessa: Promise<T>, ms: number): Promise<T | n
   }
 }
 
+/** Instrumentação de uma busca de serviços (não sai para o Sky Hub cru). */
+export type MetricasFornecedor = {
+  /** chamadas HTTP reais feitas à operadora nesta execução */
+  chamadas: number;
+  /** soma do tempo gasto dentro das chamadas (download + fornecedor) */
+  ms_rede: number;
+  /** tempo dormindo entre consultas (polling) */
+  ms_espera: number;
+  /** tempo gastando CPU normalizando/parsing */
+  ms_parsing: number;
+  /** bytes de JSON recebidos da operadora */
+  bytes: number;
+  /** como a consulta terminou */
+  desfecho: "concluido_com_resultados" | "concluido_sem_resultados" | "teto_de_tempo" | "erro";
+};
+
+function novasMetricas(): MetricasFornecedor {
+  return {
+    chamadas: 0,
+    ms_rede: 0,
+    ms_espera: 0,
+    ms_parsing: 0,
+    bytes: 0,
+    desfecho: "teto_de_tempo",
+  };
+}
+
+function tamanho(dados: unknown): number {
+  try {
+    return JSON.stringify(dados ?? null).length;
+  } catch {
+    return 0;
+  }
+}
+
 export async function buscarServicosDestinoCF(p: {
   cidadeId: number;
   data: string;
@@ -201,7 +236,10 @@ export async function buscarServicosDestinoCF(p: {
   idades?: number[];
   limite?: number;
   destino?: string | null;
+  /** objeto opcional preenchido com a instrumentação desta execução */
+  metricas?: MetricasFornecedor;
 }): Promise<ServicoDisponivel[]> {
+  const met = p.metricas ?? novasMetricas();
   const ses = await sessaoCompreFacil();
   const base = COMPREFACIL_BASES.servico;
   // 300 por página: o catálogo de um destino cabe inteiro na primeira página,
@@ -234,81 +272,88 @@ export async function buscarServicosDestinoCF(p: {
     },
   });
 
-  const inicio = await chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(null) });
-  const guid = (inicio.dados as any)?.MetaData?.Guid as string | undefined;
-  if (!guid) return [];
-
-  // Consultas sobrepostas: a operadora atende o polling em milissegundos
-  // enquanto os fornecedores rodam, mas a chamada que traz o catálogo fica
-  // aberta (long-poll) por 15 a 40 s — e às vezes estoura o tempo da conexão.
-  // Em vez de esperar uma chamada por vez, disparamos consultas em cadência e
-  // aproveitamos a primeira que voltar completa. Assim uma chamada travada
-  // nunca deixa a tela sem serviços.
-  let dados: any = inicio.dados;
-  let pronto = false;
-  let emVoo = 0;
-  const limite = Date.now() + 60_000; // teto de segurança
-  const consultar = () => {
-    emVoo++;
-    void chamarCompreFacil(rota(1), { base, method: "POST", body: corpo(guid) })
-      .then((r) => {
-        const lote = ((r?.dados as any)?.Items ?? []) as any[];
-        // guarda sempre a melhor resposta já vista (a operadora às vezes devolve vazio depois de preencher)
-        if (lote.length >= ((dados?.Items ?? []) as any[]).length) dados = r.dados;
-        if (lote.length && buscasAtivas((r.dados as any)?.MetaData) === 0) pronto = true;
-      })
-      .catch(() => null)
-      .finally(() => {
-        emVoo--;
-      });
+  /** Uma chamada real à operadora, já instrumentada (tempo, bytes, contagem). */
+  const chamar = async (caminho: string, tetoMs: number): Promise<any | null> => {
+    const t0 = Date.now();
+    met.chamadas++;
+    const r = await limitarEspera(
+      chamarCompreFacil(caminho, { base, method: "POST", body: corpo(guidAtual) }),
+      tetoMs,
+    ).catch(() => null);
+    met.ms_rede += Date.now() - t0;
+    if (!r) return null;
+    met.bytes += tamanho(r.dados);
+    return r.dados ?? null;
   };
 
-  const intervalos = [700, 900, 1200, 1500, 1800, 2200, 3000, 4000, 5000, 5000, 5000, 5000, 5000];
-  for (const intervalo of intervalos) {
-    if (pronto || Date.now() > limite) break;
-    await espera(intervalo);
-    if (pronto || Date.now() > limite) break;
-    if (emVoo < 4) consultar();
-  }
-  // Ainda há consultas abertas? Espera um pouco mais pela que trouxer o catálogo.
-  while (!pronto && emVoo > 0 && Date.now() < limite) await espera(250);
+  // Sonda leve: o estado da busca (`BuscasAtivas`, `TotalItens`) vem no
+  // MetaData de qualquer resposta, então perguntamos com 1 item por página.
+  // Assim o catálogo pesado é baixado UMA única vez, no fim.
+  const rotaSonda = `/api/Servico/busca?Pagina=1&ItensPorPagina=1`;
 
-  // Catálogo inteiro em uma única requisição: depois que os fornecedores
-  // terminam, pedir 500 por página responde em segundos, enquanto buscar
-  // página por página custava 12 s cada.
-  const itens: any[] = [...((dados?.Items ?? []) as any[])];
-  const totalItens = Number(dados?.MetaData?.TotalItens ?? 0);
-  if (totalItens > itens.length) {
-    // A operadora ignora pedidos acima de 300 por página (devolve vazio).
-    const completa = await limitarEspera(
-      chamarCompreFacil(
-        `/api/Servico/busca?Pagina=1&ItensPorPagina=${Math.min(300, totalItens)}`,
-        { base, method: "POST", body: corpo(guid) },
-      ),
-      15_000,
-    ).catch(() => null);
-    const lote = ((completa?.dados as any)?.Items ?? []) as any[];
-    if (lote.length > itens.length) {
-      itens.splice(0, itens.length, ...lote);
-    } else {
-      // Plano B: páginas restantes em paralelo.
+  let guidAtual: string | null = null;
+  const primeira = await chamar(rotaSonda, 60_000);
+  const guid = (primeira as any)?.MetaData?.Guid as string | undefined;
+  if (!guid) {
+    met.desfecho = "erro";
+    return [];
+  }
+  guidAtual = guid;
+
+  // Escada de espera dirigida pelo ESTADO DO FORNECEDOR, não pelo relógio.
+  // `BuscasAtivas = 0` significa que a operadora terminou: encerramos na hora,
+  // com ou sem resultados (destino sem serviços NÃO é timeout).
+  let meta: any = (primeira as any)?.MetaData;
+  let concluido = buscasAtivas(meta) === 0;
+  const limite = Date.now() + 60_000; // teto de segurança
+  let intervalo = 700;
+
+  while (!concluido && Date.now() < limite) {
+    const t0 = Date.now();
+    await espera(intervalo);
+    met.ms_espera += Date.now() - t0;
+    if (Date.now() >= limite) break;
+
+    const r = await chamar(rotaSonda, 20_000);
+    if (r) {
+      meta = (r as any)?.MetaData ?? meta;
+      if (buscasAtivas(meta) === 0) {
+        concluido = true;
+        break;
+      }
+    }
+    intervalo = Math.min(3000, Math.round(intervalo * 1.4));
+  }
+
+  const totalItens = Number(meta?.TotalItens ?? 0);
+  const itens: any[] = [];
+
+  // Concluído sem nada: não há catálogo para baixar, encerra imediatamente.
+  if (totalItens > 0) {
+    const cheia = await chamar(rota(1), 30_000);
+    itens.push(...(((cheia as any)?.Items ?? []) as any[]));
+    const total = Number((cheia as any)?.MetaData?.TotalItens ?? totalItens);
+    if (total > itens.length && itens.length) {
+      // Páginas restantes em paralelo (cada página é conteúdo novo).
       const paginas = Array.from(
-        { length: Math.min(3, Math.max(0, Math.ceil(totalItens / porPagina) - 1)) },
+        { length: Math.min(3, Math.max(0, Math.ceil(total / porPagina) - 1)) },
         (_, k) => k + 2,
       );
-      const respostas = await Promise.all(
-        paginas.map((pagina) =>
-          limitarEspera(
-            chamarCompreFacil(rota(pagina), { base, method: "POST", body: corpo(guid) }),
-            12_000,
-          ).catch(() => null),
-        ),
-      );
-      for (const r of respostas) itens.push(...(((r?.dados as any)?.Items ?? []) as any[]));
+      const respostas = await Promise.all(paginas.map((pagina) => chamar(rota(pagina), 12_000)));
+      for (const r of respostas) itens.push(...(((r as any)?.Items ?? []) as any[]));
     }
   }
 
+  met.desfecho = concluido
+    ? itens.length
+      ? "concluido_com_resultados"
+      : "concluido_sem_resultados"
+    : itens.length
+      ? "concluido_com_resultados"
+      : "teto_de_tempo";
 
+
+  const tParse = Date.now();
   const vistos = new Set<string>();
   const lista = itens
     .map(mapear)
@@ -321,8 +366,10 @@ export async function buscarServicosDestinoCF(p: {
       return true;
     });
 
-  return lista.sort(
+  const ordenada = lista.sort(
     (a, b) =>
       Number(b.valor != null) - Number(a.valor != null) || (a.valor ?? 0) - (b.valor ?? 0),
   );
+  met.ms_parsing += Date.now() - tParse;
+  return ordenada;
 }

@@ -153,6 +153,22 @@ export type ServicesSearchResult = {
   por_tipo: Record<string, number>;
   servicos: ServicoNormalizado[];
   mensagem: string;
+  /** como a consulta ao fornecedor terminou (nunca confundir vazio com timeout) */
+  desfecho: "concluido_com_resultados" | "concluido_sem_resultados" | "teto_de_tempo" | "erro" | "destino_desconhecido";
+  /** instrumentação: onde o tempo foi gasto nesta busca */
+  metricas: {
+    ms_total: number;
+    ms_resolucao_cidade: number;
+    ms_rede_fornecedor: number;
+    ms_espera_polling: number;
+    ms_parsing: number;
+    bytes_fornecedor: number;
+    chamadas_fornecedor: number;
+    resultados: number;
+    cache_hit: boolean;
+    cache_age_ms: number | null;
+    cache_ttl_ms: number;
+  };
 };
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
@@ -340,8 +356,13 @@ async function lerBusca(buscaId: string): Promise<{
 export async function buscarServicos(
   input: ServicesSearchInput,
   clientId: string | null,
+  opcoes?: { ignorarCache?: boolean },
 ): Promise<ServicesSearchResult> {
+  const t0 = Date.now();
+  const { chaveBusca, lerCache, gravarCache, cacheTtlMs } = await import("./search-cache.server");
+  const tCidade = Date.now();
   const cidade = await resolverCidade(input);
+  const msCidade = Date.now() - tCidade;
   const filtros = input.tipoServico
     ? Array.isArray(input.tipoServico)
       ? input.tipoServico
@@ -361,6 +382,40 @@ export async function buscarServicos(
     tipo_servico: filtros,
   };
 
+  const metricasBase = (extra: {
+    rede: number;
+    espera: number;
+    parsing: number;
+    bytes: number;
+    chamadas: number;
+    resultados: number;
+    cacheHit: boolean;
+    cacheAge: number | null;
+  }): ServicesSearchResult["metricas"] => ({
+    ms_total: Date.now() - t0,
+    ms_resolucao_cidade: msCidade,
+    ms_rede_fornecedor: extra.rede,
+    ms_espera_polling: extra.espera,
+    ms_parsing: extra.parsing,
+    bytes_fornecedor: extra.bytes,
+    chamadas_fornecedor: extra.chamadas,
+    resultados: extra.resultados,
+    cache_hit: extra.cacheHit,
+    cache_age_ms: extra.cacheAge,
+    cache_ttl_ms: cacheTtlMs(),
+  });
+
+  const vazio = {
+    rede: 0,
+    espera: 0,
+    parsing: 0,
+    bytes: 0,
+    chamadas: 0,
+    resultados: 0,
+    cacheHit: false,
+    cacheAge: null,
+  };
+
   if (!cidade) {
     return {
       status: "not_found",
@@ -371,8 +426,39 @@ export async function buscarServicos(
       por_tipo: {},
       servicos: [],
       mensagem: "Destino não encontrado no catálogo de cidades da operadora.",
+      desfecho: "destino_desconhecido",
+      metricas: metricasBase(vazio),
     };
   }
+
+  /* ── Cache (destino + período + ocupação + filtros) ─────────────────── */
+  const chave = chaveBusca({
+    cidadeId: cidade.id,
+    data: input.data,
+    dataFim,
+    adultos,
+    criancas,
+    tipos: filtros,
+    limite: input.limite ?? null,
+  });
+  if (!opcoes?.ignorarCache) {
+    const guardado = lerCache<ServicesSearchResult>(chave);
+    if (guardado) {
+      console.info(
+        `[servicos] cache_hit chave=${chave} idade_ms=${guardado.idadeMs} resultados=${guardado.valor.total}`,
+      );
+      return {
+        ...guardado.valor,
+        metricas: metricasBase({
+          ...vazio,
+          resultados: guardado.valor.total,
+          cacheHit: true,
+          cacheAge: guardado.idadeMs,
+        }),
+      };
+    }
+  }
+
 
   const querSeguro =
     input.incluirSeguro ?? (filtros ? filtros.includes("seguro") : true);
@@ -391,14 +477,35 @@ export async function buscarServicos(
   const { buscarServicosDestinoCF } = await import("@/lib/comprefacil/servicos.server");
   const { buscarSegurosCF } = await import("@/lib/comprefacil/seguros.server");
 
+  const metServicos = {
+    chamadas: 0,
+    ms_rede: 0,
+    ms_espera: 0,
+    ms_parsing: 0,
+    bytes: 0,
+    desfecho: "concluido_sem_resultados" as const,
+  } as import("@/lib/comprefacil/servicos.server").MetricasFornecedor;
+  const metSeguro = { ...metServicos };
+
   const [servicos, seguros] = await Promise.all([
-    querOutros ? buscarServicosDestinoCF(params).catch(() => [] as ServicoDisponivel[]) : Promise.resolve([]),
+    querOutros
+      ? buscarServicosDestinoCF({ ...params, metricas: metServicos }).catch(() => {
+          metServicos.desfecho = "erro";
+          return [] as ServicoDisponivel[];
+        })
+      : Promise.resolve([]),
     querSeguro
-      ? buscarSegurosCF({ ...params, destinoIata: input.destinoIata ?? null }).catch(
-          () => [] as ServicoDisponivel[],
-        )
+      ? buscarSegurosCF({
+          ...params,
+          destinoIata: input.destinoIata ?? null,
+          metricas: metSeguro,
+        }).catch(() => {
+          metSeguro.desfecho = "erro";
+          return [] as ServicoDisponivel[];
+        })
       : Promise.resolve([]),
   ]);
+
 
   const ctx = {
     cidadeId: cidade.id,
@@ -418,6 +525,30 @@ export async function buscarServicos(
   for (const s of lista) por_tipo[s.tipo_servico] = (por_tipo[s.tipo_servico] ?? 0) + 1;
 
   const buscaId = novoId("svcs");
+  // Só contam os motores realmente consultados nesta busca.
+  const usados = [
+    ...(querOutros ? [metServicos.desfecho] : []),
+    ...(querSeguro ? [metSeguro.desfecho] : []),
+  ];
+  const desfecho: ServicesSearchResult["desfecho"] = lista.length
+    ? "concluido_com_resultados"
+    : usados.length && usados.every((d) => d === "erro")
+      ? "erro"
+      : usados.includes("teto_de_tempo")
+        ? "teto_de_tempo"
+        : "concluido_sem_resultados";
+
+  const metricas = metricasBase({
+    rede: metServicos.ms_rede + metSeguro.ms_rede,
+    espera: metServicos.ms_espera + metSeguro.ms_espera,
+    parsing: metServicos.ms_parsing + metSeguro.ms_parsing,
+    bytes: metServicos.bytes + metSeguro.bytes,
+    chamadas: metServicos.chamadas + metSeguro.chamadas,
+    resultados: lista.length,
+    cacheHit: false,
+    cacheAge: null,
+  });
+
   const resultado: ServicesSearchResult = {
     status: lista.length ? "found" : "not_found",
     fonte: "COMPREFACIL",
@@ -429,7 +560,23 @@ export async function buscarServicos(
     mensagem: lista.length
       ? `${lista.length} serviço(s) disponíveis para o destino e período.`
       : "Nenhum serviço disponível para este destino e período.",
+    desfecho,
+    metricas,
   };
+
+  console.info(
+    `[servicos] cache_miss destino=${criterio.destino ?? cidade.id} desfecho=${desfecho} ` +
+      `total_ms=${metricas.ms_total} rede_ms=${metricas.ms_rede_fornecedor} espera_ms=${metricas.ms_espera_polling} ` +
+      `parsing_ms=${metricas.ms_parsing} chamadas=${metricas.chamadas_fornecedor} kb=${Math.round(metricas.bytes_fornecedor / 1024)} ` +
+      `resultados=${lista.length}`,
+  );
+
+  // Só guarda resultado de consulta efetivamente concluída: erro e teto de
+  // tempo nunca viram cache.
+  if (desfecho === "concluido_com_resultados" || desfecho === "concluido_sem_resultados") {
+    gravarCache(chave, resultado);
+  }
+
 
   await guardarBusca({ clientId, buscaId, payload: { criterio, servicos: lista } });
   return resultado;
